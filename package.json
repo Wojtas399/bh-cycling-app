@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "ios:prebuild": "expo prebuild --clean --platform ios",
     "android:prebuild": "expo prebuild --clean --platform android",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "prepare": "husky"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -47,8 +48,17 @@
     "eslint-config-expo": "~10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{js,json,md}": "prettier --write"
+  }
 }
