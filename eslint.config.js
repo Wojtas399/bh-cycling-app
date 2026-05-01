@@ -1,9 +1,11 @@
 // https://docs.expo.dev/guides/using-eslint/
 const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
+const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
 
 module.exports = defineConfig([
   expoConfig,
+  eslintPluginPrettierRecommended,
   {
     ignores: ['dist/*'],
   },
@@ -13,8 +15,10 @@ module.exports = defineConfig([
       // TypeScript
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/consistent-type-imports': ['warn', { prefer: 'type-imports', fixStyle: 'inline-type-imports' }],
-      '@typescript-eslint/prefer-optional-chain': 'warn',
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
       '@typescript-eslint/no-empty-interface': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
 
@@ -30,7 +34,7 @@ module.exports = defineConfig([
 
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
       'prefer-const': 'error',
       'padding-line-between-statements': [
         'error',
