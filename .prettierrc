@@ -1,5 +1,5 @@
 {
-  "allowParens": "avoid",
+  "arrowParens": "avoid",
   "singleQuote": true,
   "printWidth": 80,
   "bracketSpacing": true,
