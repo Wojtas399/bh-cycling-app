@@ -41,3 +41,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Firebase config files — kept locally, distributed via EAS Secrets
+/firebase
