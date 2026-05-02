@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# BH Cycling
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo (SDK 54) app with [Expo Router](https://docs.expo.dev/router/introduction/), a [development client](https://docs.expo.dev/develop/development-builds/introduction/), and React Native Firebase. This is not a plain Expo Go project: native modules require a **dev build** on a simulator or device.
 
-## Get started
+## Prerequisites
 
-1. Install dependencies
+- **Node.js** (current LTS recommended) and npm
+- **iOS:** Xcode and Command Line Tools (for the simulator and `expo run:ios`)
+- **Android:** Android Studio, SDK, and an emulator or USB device (for `expo run:android`)
+- Optional: [EAS CLI](https://docs.expo.dev/build-reference/eas-cli/) (`npm i -g eas-cli`) if you pull environment config from EAS
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Install dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Environment and Firebase
+
+`APP_ENV` selects staging vs production bundles and Firebase files. It defaults to **`staging`** if unset.
+
+To sync secrets from EAS into `.env.local` (requires `eas login` and access to the Expo project):
+
+```bash
+npm run env:staging
+# or
+npm run env:production
+```
+
+At build time, `app.config.ts` can copy Firebase config from paths in those env vars into `firebase/`. If you already have the plist and `google-services` files under `firebase/`, you can develop without running the env scripts.
+
+## Run the app for development
+
+**1. Start the Metro bundler** (keep this terminal open). Same as `npx expo start`; use the Dev Tools UI to clear cache and open logs.
+
+```bash
+npm start
+```
+
+**2. Run a native dev build** (first run compiles native code; later runs are faster). Use a second terminal while Metro is running, or press `i` / `a` in the Expo CLI once a dev client is already installed.
+
+- iOS Simulator: `npm run ios`
+- Android emulator or device: `npm run android`
+
+After the dev client is installed on the simulator or emulator, you usually only need `npm start` and launch the app; it connects to Metro.
+
+Expo Go does **not** include this app’s native Firebase stack. Use the dev client from `expo run:ios` / `expo run:android` (or a prebuilt development build from EAS).
+
+## Other scripts
+
+| Script                                              | Purpose                                                                     |
+| --------------------------------------------------- | --------------------------------------------------------------------------- |
+| `npm run lint`                                      | ESLint via Expo config                                                      |
+| `npm run ios:prebuild` / `npm run android:prebuild` | Regenerate native projects (`expo prebuild --clean`)                        |
+| `npm run reset-project`                             | Moves starter `app` code to `app-example` and gives a blank `app` directory |
 
 ## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Expo documentation](https://docs.expo.dev/)
+- [Development builds](https://docs.expo.dev/develop/development-builds/introduction/)
