@@ -9,21 +9,11 @@ import { ThemeProvider } from '@shopify/restyle';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
   return (
     <ThemeProvider theme={theme}>
       <NavThemeProvider value={DarkTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: 'modal', title: 'Modal' }}
-          />
-        </Stack>
+        <Stack screenOptions={{ headerShown: false }} />
         <StatusBar style="light" />
       </NavThemeProvider>
     </ThemeProvider>
