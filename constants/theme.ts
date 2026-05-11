@@ -1,13 +1,19 @@
 import { createTheme, useTheme } from '@shopify/restyle';
 
 const palette = {
-  // Backgrounds
+  white: '#FFFFFF',
   black: '#0A0A0A',
-  surfaceDark: '#121212',
-  surfaceElevated: '#1C1C1E',
-  surfaceCard: '#242426',
 
-  // Brand / accent
+  gray100: '#F2F2F7',
+  gray200: '#E5E5EA',
+  gray300: '#D1D1D6',
+  gray400: '#C7C7CC',
+  gray500: '#AEAEB2',
+  gray600: '#8E8E93',
+  gray700: '#636366',
+  gray800: '#3A3A3C',
+  gray900: '#1C1C1E',
+
   green: '#34C759',
   greenDim: '#1A6B2E',
   red: '#FF3B30',
@@ -17,7 +23,6 @@ const palette = {
   yellow: '#FFD60A',
   purple: '#BF5AF2',
 
-  // Power zones
   zone1: '#6C6C70',
   zone2: '#34C759',
   zone3: '#FFD60A',
@@ -26,129 +31,165 @@ const palette = {
   zone6: '#FF3B30',
   zone7: '#BF5AF2',
 
-  // Text
-  white: '#FFFFFF',
-  textPrimary: '#F2F2F7',
-  textSecondary: '#AEAEB2',
-  textTertiary: '#636366',
-
-  // Borders / dividers
-  borderSubtle: '#2C2C2E',
-  borderDefault: '#3A3A3C',
-  transparent: 'transparent',
+  transparent: 'transparent' as const,
 };
 
 const theme = createTheme({
   colors: {
     ...palette,
 
-    // Semantic aliases
-    background: palette.black,
-    surface: palette.surfaceDark,
-    surfaceElevated: palette.surfaceElevated,
-    surfaceCard: palette.surfaceCard,
+    // Semantic — backgrounds
+    bgPrimary: palette.black,
+    bgSecondary: '#121212',
+    bgTertiary: palette.gray900,
 
-    textPrimary: palette.textPrimary,
-    textSecondary: palette.textSecondary,
-    textTertiary: palette.textTertiary,
+    // Semantic — text
+    textPrimary: palette.gray100,
+    textSecondary: palette.gray500,
+    textTertiary: palette.gray700,
 
-    accent: palette.blue,
+    // Semantic — borders
+    borderDefault: '#2C2C2E',
+    borderStrong: palette.gray800,
+
+    // Semantic — interactive
+    interactiveDefault: palette.white,
+    interactiveHover: palette.gray100,
+
+    // Status
     success: palette.green,
     successDim: palette.greenDim,
     warning: palette.orange,
     danger: palette.red,
     dangerDim: palette.redDim,
+    accent: palette.blue,
 
+    // Workout states
     workoutPlanned: palette.zone1,
     workoutDone: palette.green,
     workoutMissed: palette.red,
-
-    borderSubtle: palette.borderSubtle,
-    borderDefault: palette.borderDefault,
   },
 
   spacing: {
     xs: 4,
-    s: 8,
-    m: 16,
-    l: 24,
-    xl: 32,
-    xxl: 48,
-    xxxl: 64,
+    sm: 8,
+    md: 12,
+    base: 16,
+    lg: 20,
+    xl: 24,
+    '2xl': 32,
+    '3xl': 40,
+    '4xl': 48,
   },
 
   borderRadii: {
-    xs: 4,
-    s: 8,
-    m: 12,
-    l: 16,
-    xl: 24,
+    none: 0,
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
     full: 9999,
   },
 
-  textVariants: {
-    // Display
-    hero: {
-      fontSize: 34,
-      fontWeight: '700',
-      color: 'textPrimary',
-      letterSpacing: 0.4,
+  shadows: {
+    subtle: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 1,
     },
-    // Headings
-    h1: {
-      fontSize: 28,
+    medium: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    strong: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.18,
+      shadowRadius: 15,
+      elevation: 10,
+    },
+  },
+
+  textVariants: {
+    display: {
+      fontFamily: 'Inter-Bold',
+      fontSize: 40,
+      lineHeight: 48,
       fontWeight: '700',
       color: 'textPrimary',
-      letterSpacing: 0.35,
+    },
+    h1: {
+      fontFamily: 'Inter-Bold',
+      fontSize: 32,
+      lineHeight: 40,
+      fontWeight: '700',
+      color: 'textPrimary',
     },
     h2: {
-      fontSize: 22,
-      fontWeight: '600',
+      fontFamily: 'Inter-Bold',
+      fontSize: 24,
+      lineHeight: 32,
+      fontWeight: '700',
       color: 'textPrimary',
-      letterSpacing: 0.35,
     },
     h3: {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 20,
+      lineHeight: 28,
+      fontWeight: '600',
+      color: 'textPrimary',
+    },
+    bodyLarge: {
+      fontFamily: 'Inter-Regular',
       fontSize: 18,
-      fontWeight: '600',
-      color: 'textPrimary',
-    },
-    // Body
-    body: {
-      fontSize: 16,
+      lineHeight: 28,
       fontWeight: '400',
       color: 'textPrimary',
     },
-    bodyBold: {
+    bodyDefault: {
+      fontFamily: 'Inter-Regular',
       fontSize: 16,
-      fontWeight: '600',
+      lineHeight: 24,
+      fontWeight: '400',
       color: 'textPrimary',
     },
-    // Supporting
+    bodySmall: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '400',
+      color: 'textPrimary',
+    },
     caption: {
-      fontSize: 13,
+      fontFamily: 'Inter-Regular',
+      fontSize: 12,
+      lineHeight: 16,
       fontWeight: '400',
       color: 'textSecondary',
     },
-    captionBold: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: 'textSecondary',
-    },
-    label: {
-      fontSize: 11,
+    labelDefault: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 14,
+      lineHeight: 20,
       fontWeight: '500',
-      color: 'textTertiary',
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
+      color: 'textPrimary',
     },
-    // Tab bar
-    tabLabel: {
-      fontSize: 10,
+    labelSmall: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 12,
+      lineHeight: 16,
       fontWeight: '500',
-      color: 'textTertiary',
+      color: 'textPrimary',
     },
     defaults: {
+      fontFamily: 'Inter-Regular',
       fontSize: 16,
+      lineHeight: 24,
       color: 'textPrimary',
     },
   },
@@ -157,8 +198,5 @@ const theme = createTheme({
 });
 
 export type AppTheme = typeof theme;
-
-// Pre-typed hook so consumers avoid `import type` (which breaks the sort-imports plugin)
 export const useAppTheme = () => useTheme<AppTheme>();
-
 export default theme;
