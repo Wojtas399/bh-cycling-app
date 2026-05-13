@@ -1,53 +1,202 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-import { Platform } from 'react-native';
+import { createTheme, useTheme } from '@shopify/restyle';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const palette = {
+  white: '#FFFFFF',
+  black: '#0A0A0A',
 
-export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
+  gray100: '#F2F2F7',
+  gray200: '#E5E5EA',
+  gray300: '#D1D1D6',
+  gray400: '#C7C7CC',
+  gray500: '#AEAEB2',
+  gray600: '#8E8E93',
+  gray700: '#636366',
+  gray800: '#3A3A3C',
+  gray900: '#1C1C1E',
+
+  green: '#34C759',
+  greenDim: '#1A6B2E',
+  red: '#FF3B30',
+  redDim: '#7A1A14',
+  blue: '#0A84FF',
+  orange: '#FF9F0A',
+  yellow: '#FFD60A',
+  purple: '#BF5AF2',
+
+  zone1: '#6C6C70',
+  zone2: '#34C759',
+  zone3: '#FFD60A',
+  zone4: '#FF9F0A',
+  zone5: '#FF6B35',
+  zone6: '#FF3B30',
+  zone7: '#BF5AF2',
+
+  transparent: 'transparent' as const,
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+const theme = createTheme({
+  colors: {
+    ...palette,
+
+    // Semantic — backgrounds
+    bgPrimary: palette.black,
+    bgSecondary: '#121212',
+    bgTertiary: palette.gray900,
+
+    // Semantic — text
+    textPrimary: palette.gray100,
+    textSecondary: palette.gray500,
+    textTertiary: palette.gray700,
+
+    // Semantic — borders
+    borderDefault: '#2C2C2E',
+    borderStrong: palette.gray800,
+
+    // Semantic — interactive
+    interactiveDefault: palette.white,
+    interactiveHover: palette.gray100,
+
+    // Status
+    success: palette.green,
+    successDim: palette.greenDim,
+    warning: palette.orange,
+    danger: palette.red,
+    dangerDim: palette.redDim,
+    accent: palette.blue,
+
+    // Workout states
+    workoutPlanned: palette.zone1,
+    workoutDone: palette.green,
+    workoutMissed: palette.red,
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    base: 16,
+    lg: 20,
+    xl: 24,
+    '2xl': 32,
+    '3xl': 40,
+    '4xl': 48,
   },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded:
-      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+
+  borderRadii: {
+    none: 0,
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    full: 9999,
   },
+
+  shadows: {
+    subtle: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    medium: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    strong: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.18,
+      shadowRadius: 15,
+      elevation: 10,
+    },
+  },
+
+  textVariants: {
+    display: {
+      fontFamily: 'Inter-Bold',
+      fontSize: 40,
+      lineHeight: 48,
+      fontWeight: '700',
+      color: 'textPrimary',
+    },
+    h1: {
+      fontFamily: 'Inter-Bold',
+      fontSize: 32,
+      lineHeight: 40,
+      fontWeight: '700',
+      color: 'textPrimary',
+    },
+    h2: {
+      fontFamily: 'Inter-Bold',
+      fontSize: 24,
+      lineHeight: 32,
+      fontWeight: '700',
+      color: 'textPrimary',
+    },
+    h3: {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 20,
+      lineHeight: 28,
+      fontWeight: '600',
+      color: 'textPrimary',
+    },
+    bodyLarge: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 18,
+      lineHeight: 28,
+      fontWeight: '400',
+      color: 'textPrimary',
+    },
+    bodyDefault: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '400',
+      color: 'textPrimary',
+    },
+    bodySmall: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '400',
+      color: 'textPrimary',
+    },
+    caption: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '400',
+      color: 'textSecondary',
+    },
+    labelDefault: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 14,
+      lineHeight: 20,
+      fontWeight: '500',
+      color: 'textPrimary',
+    },
+    labelSmall: {
+      fontFamily: 'Inter-Medium',
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500',
+      color: 'textPrimary',
+    },
+    defaults: {
+      fontFamily: 'Inter-Regular',
+      fontSize: 16,
+      lineHeight: 24,
+      color: 'textPrimary',
+    },
+  },
+
+  breakpoints: {},
 });
+
+export type AppTheme = typeof theme;
+export const useAppTheme = () => useTheme<AppTheme>();
+export default theme;
