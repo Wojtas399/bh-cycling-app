@@ -1,22 +1,21 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
 
-export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Hello World</Text>
-    </View>
-  );
+import Box from '@/components/Box';
+import { auth } from '@/lib/firebase';
+import { useRouter } from 'expo-router';
+
+export default function RootIndex() {
+  const router = useRouter();
+
+  useEffect(() => {
+    return auth().onAuthStateChanged(user => {
+      if (user) {
+        router.replace('/(app)');
+      } else {
+        router.replace('/(auth)/sign-in');
+      }
+    });
+  }, []);
+
+  return <Box flex={1} backgroundColor="bgPrimary" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0A0A0A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: {
-    color: '#F2F2F7',
-    fontSize: 24,
-  },
-});
