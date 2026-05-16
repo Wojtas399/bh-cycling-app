@@ -47,6 +47,7 @@ const theme = createTheme({
     textPrimary: palette.gray100,
     textSecondary: palette.gray500,
     textTertiary: palette.gray700,
+    textInverse: palette.black,
 
     // Semantic — borders
     borderDefault: '#2C2C2E',
@@ -88,6 +89,7 @@ const theme = createTheme({
     md: 8,
     lg: 12,
     xl: 16,
+    '2xl': 24,
     full: 9999,
   },
 
@@ -113,9 +115,17 @@ const theme = createTheme({
       shadowRadius: 15,
       elevation: 10,
     },
+    elevated: {
+      shadowColor: palette.black,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      elevation: 8,
+    },
   },
 
   textVariants: {
+    // Headings
     display: {
       fontFamily: 'Inter-Bold',
       fontSize: 40,
@@ -144,53 +154,88 @@ const theme = createTheme({
       fontWeight: '600',
       color: 'textPrimary',
     },
-    bodyLarge: {
+
+    // Body — extra-large
+    'body-xl-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 18,
       lineHeight: 28,
       fontWeight: '400',
       color: 'textPrimary',
     },
-    bodyDefault: {
+
+    // Body — large (16px)
+    'body-l-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 16,
       lineHeight: 24,
       fontWeight: '400',
       color: 'textPrimary',
     },
-    bodySmall: {
+    'body-l-semibold': {
+      fontFamily: 'Inter-SemiBold',
+      fontSize: 16,
+      lineHeight: 24,
+      fontWeight: '600',
+      color: 'textPrimary',
+    },
+
+    // Body — small (14px)
+    'body-s-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '400',
       color: 'textPrimary',
     },
-    caption: {
-      fontFamily: 'Inter-Regular',
-      fontSize: 12,
-      lineHeight: 16,
-      fontWeight: '400',
-      color: 'textSecondary',
-    },
-    labelDefault: {
+    'body-s-medium': {
       fontFamily: 'Inter-Medium',
       fontSize: 14,
       lineHeight: 20,
       fontWeight: '500',
       color: 'textPrimary',
     },
-    labelSmall: {
+
+    // Body — extra-small (12px)
+    'body-xs-regular': {
+      fontFamily: 'Inter-Regular',
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '400',
+      color: 'textPrimary',
+    },
+    'body-xs-medium': {
       fontFamily: 'Inter-Medium',
       fontSize: 12,
       lineHeight: 16,
       fontWeight: '500',
       color: 'textPrimary',
     },
+
     defaults: {
       fontFamily: 'Inter-Regular',
       fontSize: 16,
       lineHeight: 24,
       color: 'textPrimary',
+    },
+  },
+
+  buttonVariants: {
+    defaults: {
+      height: 56,
+      borderRadius: 'full',
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      width: '100%' as const,
+    },
+    primary: {
+      backgroundColor: 'interactiveDefault',
+    },
+    secondary: {
+      borderWidth: 1.5,
+      borderColor: 'interactiveDefault',
+      flexDirection: 'row' as const,
+      gap: 'sm',
     },
   },
 

@@ -4,14 +4,13 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   TextInput as RNTextInput,
   ScrollView,
-  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import Button from '@/components/Button';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { GoogleSignin, auth } from '@/lib/firebase';
@@ -108,245 +107,196 @@ export default function SignInScreen() {
   }
 
   const disabled = loading || googleLoading;
-  const inputStyle = [
-    styles.input,
-    {
-      backgroundColor: theme.colors.bgTertiary,
-      borderColor: theme.colors.borderStrong,
-      color: theme.colors.textPrimary,
-    },
-  ];
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.flex, { backgroundColor: theme.colors.bgSecondary }]}
-    >
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Box
-          flex={1}
-          backgroundColor="bgSecondary"
-          alignItems="center"
-          justifyContent="center"
-          paddingHorizontal="base"
-        >
-          <Box
-            backgroundColor="bgTertiary"
-            paddingHorizontal="lg"
-            paddingVertical="3xl"
-            style={styles.card}
-            alignItems="center"
-          >
-            <Image
-              source={require('@/assets/images/bhc_logo.jpg')}
-              style={styles.logo}
-            />
-
-            <Box marginTop="xl">
-              <Text variant="h2">Zaloguj się</Text>
-            </Box>
-
-            <Box style={styles.fullWidth} marginTop="xl">
-              <Text variant="labelDefault">E-mail</Text>
-              <Box marginTop="xs">
-                <RNTextInput
-                  style={inputStyle}
-                  placeholder="you@example.com"
-                  placeholderTextColor={theme.colors.textTertiary}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordRef.current?.focus()}
-                />
-              </Box>
-              <Box marginTop="md">
-                <Text variant="labelDefault">Hasło</Text>
-                <Box marginTop="xs">
-                  <RNTextInput
-                    ref={passwordRef}
-                    style={inputStyle}
-                    placeholder="••••••••"
-                    placeholderTextColor={theme.colors.textTertiary}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    returnKeyType="done"
-                    onSubmitEditing={handleSignIn}
-                  />
-                </Box>
-              </Box>
-            </Box>
-
-            <Box style={[styles.fullWidth, styles.alignEnd]} marginTop="xl">
-              <Text variant="labelSmall" color="textSecondary">
-                Zapomniałeś hasła?
-              </Text>
-            </Box>
-
-            <Box style={styles.fullWidth} marginTop="xl">
-              <Pressable
-                style={[
-                  styles.primaryButton,
-                  disabled && styles.buttonDisabled,
-                ]}
-                onPress={handleSignIn}
-                disabled={disabled}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#0A0A0A" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Zaloguj się</Text>
-                )}
-              </Pressable>
-              {error ? (
-                <Box marginTop="sm">
-                  <Text variant="bodySmall" color="danger" textAlign="center">
-                    {error}
-                  </Text>
-                </Box>
-              ) : null}
-            </Box>
-
-            <Box
-              style={styles.fullWidth}
-              flexDirection="row"
-              alignItems="center"
-              marginTop="xl"
-            >
-              <Box
-                flex={1}
-                style={styles.dividerLine}
-                backgroundColor="borderDefault"
-              />
-              <Box marginHorizontal="md">
-                <Text variant="caption" color="textSecondary">
-                  lub
-                </Text>
-              </Box>
-              <Box
-                flex={1}
-                style={styles.dividerLine}
-                backgroundColor="borderDefault"
-              />
-            </Box>
-
-            <Pressable
-              style={[
-                styles.googleButton,
-                { borderColor: theme.colors.interactiveDefault },
-                disabled && styles.buttonDisabled,
-              ]}
-              onPress={handleGoogleSignIn}
-              disabled={disabled}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color={theme.colors.textPrimary} />
-              ) : (
-                <>
-                  <AntDesign
-                    name="google"
-                    size={20}
-                    color={theme.colors.textPrimary}
-                  />
-                  <Text style={styles.googleButtonText}>
-                    Zaloguj się przez Google
-                  </Text>
-                </>
-              )}
-            </Pressable>
-
-            <Box
-              style={[styles.fullWidth, styles.dividerLine]}
-              backgroundColor="borderDefault"
-              marginTop="xl"
-            />
-
-            <Box marginTop="xl">
-              <Text
-                variant="bodySmall"
-                color="textSecondary"
-                textAlign="center"
-              >
-                Nie masz konta? Zarejestruj się
-              </Text>
-            </Box>
-          </Box>
-        </Box>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-}
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  scrollContent: { flexGrow: 1 },
-  fullWidth: { width: '100%' },
-  alignEnd: { alignItems: 'flex-end' },
-  card: {
-    width: '100%',
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logo: {
-    width: 136,
-    height: 136,
-    borderRadius: 68,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  input: {
+  const inputStyle = {
     height: 48,
     borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 16,
+    borderRadius: theme.borderRadii.sm,
+    paddingHorizontal: theme.spacing.base,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-  },
-  dividerLine: { height: 1 },
-  primaryButton: {
-    backgroundColor: '#FFFFFF',
-    height: 56,
-    borderRadius: 9999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  primaryButtonText: {
-    color: '#0A0A0A',
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    fontWeight: '600',
-  },
-  googleButton: {
-    height: 48,
-    borderRadius: 9999,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    width: '100%',
-    gap: 8,
-    marginTop: 24,
-  },
-  googleButtonText: {
-    color: '#F2F2F7',
-    fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    fontWeight: '500',
-    letterSpacing: 0.1,
-  },
-  buttonDisabled: { opacity: 0.6 },
-});
+    backgroundColor: theme.colors.bgTertiary,
+    borderColor: theme.colors.borderStrong,
+    color: theme.colors.textPrimary,
+  };
+
+  return (
+    <Box flex={1} backgroundColor="bgSecondary">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: insets.top + 16,
+            paddingBottom: insets.bottom + 16,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Box
+            flex={1}
+            backgroundColor="bgSecondary"
+            alignItems="center"
+            justifyContent="center"
+            paddingHorizontal="base"
+          >
+            <Box
+              backgroundColor="bgTertiary"
+              paddingHorizontal="lg"
+              paddingVertical="3xl"
+              width="100%"
+              borderRadius="2xl"
+              alignItems="center"
+              shadowColor="black"
+              shadowOffset={{ width: 0, height: 4 }}
+              shadowOpacity={0.4}
+              shadowRadius={16}
+              elevation={8}
+            >
+              <Image
+                source={require('@/assets/images/bhc_logo.jpg')}
+                style={{
+                  width: 136,
+                  height: 136,
+                  borderRadius: 68,
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(255,255,255,0.2)',
+                }}
+              />
+
+              <Box marginTop="xl">
+                <Text variant="h2">Zaloguj się</Text>
+              </Box>
+
+              <Box width="100%" marginTop="xl">
+                <Text variant="body-s-medium">E-mail</Text>
+                <Box marginTop="xs">
+                  <RNTextInput
+                    style={inputStyle}
+                    placeholder="you@example.com"
+                    placeholderTextColor={theme.colors.textTertiary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordRef.current?.focus()}
+                  />
+                </Box>
+                <Box marginTop="md">
+                  <Text variant="body-s-medium">Hasło</Text>
+                  <Box marginTop="xs">
+                    <RNTextInput
+                      ref={passwordRef}
+                      style={inputStyle}
+                      placeholder="••••••••"
+                      placeholderTextColor={theme.colors.textTertiary}
+                      value={password}
+                      onChangeText={setPassword}
+                      secureTextEntry
+                      returnKeyType="done"
+                      onSubmitEditing={handleSignIn}
+                    />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Box width="100%" alignItems="flex-end" marginTop="xl">
+                <Text variant="body-xs-medium" color="textSecondary">
+                  Zapomniałeś hasła?
+                </Text>
+              </Box>
+
+              <Box width="100%" marginTop="xl">
+                <Button
+                  variant="primary"
+                  opacity={disabled ? 0.6 : 1}
+                  onPress={handleSignIn}
+                  disabled={disabled}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={theme.colors.textInverse} />
+                  ) : (
+                    <Text variant="body-l-semibold" color="textInverse">
+                      Zaloguj się
+                    </Text>
+                  )}
+                </Button>
+                {error ? (
+                  <Box marginTop="sm">
+                    <Text
+                      variant="body-s-regular"
+                      color="danger"
+                      textAlign="center"
+                    >
+                      {error}
+                    </Text>
+                  </Box>
+                ) : null}
+              </Box>
+
+              <Box
+                width="100%"
+                flexDirection="row"
+                alignItems="center"
+                marginTop="xl"
+              >
+                <Box flex={1} height={1} backgroundColor="borderDefault" />
+                <Box marginHorizontal="md">
+                  <Text variant="body-xs-regular" color="textSecondary">
+                    lub
+                  </Text>
+                </Box>
+                <Box flex={1} height={1} backgroundColor="borderDefault" />
+              </Box>
+
+              <Button
+                variant="secondary"
+                marginTop="xl"
+                opacity={disabled ? 0.6 : 1}
+                onPress={handleGoogleSignIn}
+                disabled={disabled}
+                activeOpacity={0.8}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator color={theme.colors.textPrimary} />
+                ) : (
+                  <>
+                    <AntDesign
+                      name="google"
+                      size={20}
+                      color={theme.colors.textPrimary}
+                    />
+                    <Text variant="body-s-medium" color="textPrimary">
+                      Zaloguj się przez Google
+                    </Text>
+                  </>
+                )}
+              </Button>
+
+              <Box
+                width="100%"
+                height={1}
+                backgroundColor="borderDefault"
+                marginTop="xl"
+              />
+
+              <Box marginTop="xl">
+                <Text
+                  variant="body-s-regular"
+                  color="textSecondary"
+                  textAlign="center"
+                >
+                  Nie masz konta? Zarejestruj się
+                </Text>
+              </Box>
+            </Box>
+          </Box>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Box>
+  );
+}
