@@ -12,7 +12,7 @@ export default function AppLayout() {
         router.replace('/(auth)/sign-in');
       }
     });
-  }, []);
+  }, [router]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

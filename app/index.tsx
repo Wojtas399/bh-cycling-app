@@ -15,7 +15,7 @@ export default function RootIndex() {
         router.replace('/(auth)/sign-in');
       }
     });
-  }, []);
+  }, [router]);
 
   return <Box flex={1} backgroundColor="bgPrimary" />;
 }

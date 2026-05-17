@@ -18,6 +18,7 @@ const Button = createRestyleComponent<
 >(
   [
     createVariant({ themeKey: 'buttonVariants' }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ...(boxRestyleFunctions as any[]),
   ],
   TouchableOpacity,

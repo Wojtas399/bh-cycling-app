@@ -1,10 +1,5 @@
 import { forwardRef } from 'react';
-import {
-  TextInput,
-  type TextInputProps,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { TextInput, type TextInputProps, View } from 'react-native';
 
 import { useAppTheme } from '@/constants/theme';
 

@@ -82,8 +82,10 @@ export function useSignIn() {
 
     try {
       await auth().signInWithEmailAndPassword(email.trim(), password);
-    } catch (e: any) {
-      setError(getFirebaseErrorMessage(e.code));
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? '';
+
+      setError(getFirebaseErrorMessage(code));
     } finally {
       setLoading(false);
     }
