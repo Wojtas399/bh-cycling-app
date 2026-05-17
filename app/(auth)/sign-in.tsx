@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -5,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,12 +16,14 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
 
 export default function SignInScreen() {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const {
     email,
@@ -102,9 +106,21 @@ export default function SignInScreen() {
                     placeholder="••••••••"
                     value={password}
                     onChangeText={onPasswordChange}
-                    secureTextEntry
+                    secureTextEntry={!passwordVisible}
                     returnKeyType="done"
                     onSubmitEditing={handleSignIn}
+                    rightElement={
+                      <TouchableOpacity
+                        onPress={() => setPasswordVisible(v => !v)}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name={passwordVisible ? 'eye-off' : 'eye'}
+                          size={20}
+                          color={theme.colors.textTertiary}
+                        />
+                      </TouchableOpacity>
+                    }
                   />
                 </Box>
                 {passwordError ? (
