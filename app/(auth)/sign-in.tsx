@@ -4,13 +4,14 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  TextInput as RNTextInput,
   ScrollView,
+  type TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { GoogleSignin, auth } from '@/lib/firebase';
@@ -42,7 +43,7 @@ function getFirebaseErrorMessage(code: string): string {
 export default function SignInScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const passwordRef = useRef<RNTextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -108,18 +109,6 @@ export default function SignInScreen() {
 
   const disabled = loading || googleLoading;
 
-  const inputStyle = {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: theme.borderRadii.sm,
-    paddingHorizontal: theme.spacing.base,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    backgroundColor: theme.colors.bgTertiary,
-    borderColor: theme.colors.borderStrong,
-    color: theme.colors.textPrimary,
-  };
-
   return (
     <Box flex={1} backgroundColor="bgSecondary">
       <KeyboardAvoidingView
@@ -172,10 +161,8 @@ export default function SignInScreen() {
               <Box width="100%" marginTop="xl">
                 <Text variant="body-s-medium">E-mail</Text>
                 <Box marginTop="xs">
-                  <RNTextInput
-                    style={inputStyle}
+                  <Input
                     placeholder="you@example.com"
-                    placeholderTextColor={theme.colors.textTertiary}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -188,11 +175,9 @@ export default function SignInScreen() {
                 <Box marginTop="md">
                   <Text variant="body-s-medium">Hasło</Text>
                   <Box marginTop="xs">
-                    <RNTextInput
+                    <Input
                       ref={passwordRef}
-                      style={inputStyle}
                       placeholder="••••••••"
-                      placeholderTextColor={theme.colors.textTertiary}
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry
