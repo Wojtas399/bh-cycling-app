@@ -47,6 +47,23 @@ export default function SignUpScreen() {
 
   return (
     <Box flex={1} backgroundColor="bgSecondary">
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          top: insets.top + 16,
+          left: 16,
+          zIndex: 10,
+        }}
+        onPress={() => router.back()}
+        hitSlop={8}
+      >
+        <Ionicons
+          name="arrow-back"
+          size={24}
+          color={theme.colors.textPrimary}
+        />
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
