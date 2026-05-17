@@ -1,4 +1,3 @@
-import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -6,118 +5,37 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  type TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSignIn } from './useSignIn';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import { GoogleSignin, auth } from '@/lib/firebase';
 import { AntDesign } from '@expo/vector-icons';
-import {
-  isErrorWithCode,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen() {
   const { t } = useTranslation();
-
-  function getFirebaseErrorMessage(code: string): string {
-    switch (code) {
-      case 'auth/invalid-credential':
-      case 'auth/wrong-password':
-      case 'auth/user-not-found':
-        return t('signIn.errors.invalidCredential');
-      case 'auth/invalid-email':
-        return t('signIn.errors.invalidEmail');
-      case 'auth/too-many-requests':
-        return t('signIn.errors.tooManyRequests');
-      case 'auth/network-request-failed':
-        return t('signIn.errors.networkFailed');
-      default:
-        return t('signIn.errors.generic');
-    }
-  }
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const passwordRef = useRef<TextInput>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  function validate(): boolean {
-    let valid = true;
-
-    if (!email.trim()) {
-      setEmailError(t('signIn.validation.emailRequired'));
-      valid = false;
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError(t('signIn.validation.emailInvalid'));
-      valid = false;
-    } else {
-      setEmailError('');
-    }
-
-    if (!password) {
-      setPasswordError(t('signIn.validation.passwordRequired'));
-      valid = false;
-    } else {
-      setPasswordError('');
-    }
-
-    return valid;
-  }
-
-  async function handleSignIn() {
-    if (!validate()) return;
-
-    setError('');
-    setLoading(true);
-
-    try {
-      await auth().signInWithEmailAndPassword(email.trim(), password);
-    } catch (e: any) {
-      setError(getFirebaseErrorMessage(e.code));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleGoogleSignIn() {
-    setError('');
-    setGoogleLoading(true);
-
-    try {
-      await GoogleSignin.hasPlayServices();
-      const result = await GoogleSignin.signIn();
-      const idToken = result.data?.idToken;
-
-      if (!idToken) throw new Error('no_id_token');
-
-      const credential = auth.GoogleAuthProvider.credential(idToken);
-
-      await auth().signInWithCredential(credential);
-    } catch (e) {
-      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
-        return;
-
-      setError(t('signIn.validation.googleFailed'));
-    } finally {
-      setGoogleLoading(false);
-    }
-  }
-
-  const disabled = loading || googleLoading;
+  const {
+    email,
+    password,
+    emailError,
+    passwordError,
+    error,
+    loading,
+    googleLoading,
+    disabled,
+    passwordRef,
+    onEmailChange,
+    onPasswordChange,
+    handleSignIn,
+    handleGoogleSignIn,
+  } = useSignIn();
 
   return (
     <Box flex={1} backgroundColor="bgSecondary">
@@ -161,11 +79,7 @@ export default function SignInScreen() {
                 <Input
                   placeholder="you@example.com"
                   value={email}
-                  onChangeText={text => {
-                    setEmail(text);
-
-                    if (emailError) setEmailError('');
-                  }}
+                  onChangeText={onEmailChange}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -187,11 +101,7 @@ export default function SignInScreen() {
                     ref={passwordRef}
                     placeholder="••••••••"
                     value={password}
-                    onChangeText={text => {
-                      setPassword(text);
-
-                      if (passwordError) setPasswordError('');
-                    }}
+                    onChangeText={onPasswordChange}
                     secureTextEntry
                     returnKeyType="done"
                     onSubmitEditing={handleSignIn}
