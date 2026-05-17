@@ -49,29 +49,37 @@ export default function SignInScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  function validate(): string {
-    if (!email.trim()) return t('signIn.validation.emailRequired');
+  function validate(): boolean {
+    let valid = true;
 
-    if (!EMAIL_REGEX.test(email.trim()))
-      return t('signIn.validation.emailInvalid');
+    if (!email.trim()) {
+      setEmailError(t('signIn.validation.emailRequired'));
+      valid = false;
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError(t('signIn.validation.emailInvalid'));
+      valid = false;
+    } else {
+      setEmailError('');
+    }
 
-    if (!password) return t('signIn.validation.passwordRequired');
+    if (!password) {
+      setPasswordError(t('signIn.validation.passwordRequired'));
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
 
-    return '';
+    return valid;
   }
 
   async function handleSignIn() {
-    const validationError = validate();
-
-    if (validationError) {
-      setError(validationError);
-
-      return;
-    }
+    if (!validate()) return;
 
     setError('');
     setLoading(true);
@@ -153,7 +161,11 @@ export default function SignInScreen() {
                 <Input
                   placeholder="you@example.com"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={text => {
+                    setEmail(text);
+
+                    if (emailError) setEmailError('');
+                  }}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -161,6 +173,13 @@ export default function SignInScreen() {
                   onSubmitEditing={() => passwordRef.current?.focus()}
                 />
               </Box>
+              {emailError ? (
+                <Box marginTop="xs">
+                  <Text variant="body-xs-regular" color="danger">
+                    {emailError}
+                  </Text>
+                </Box>
+              ) : null}
               <Box marginTop="md">
                 <Text variant="body-s-medium">{t('signIn.password')}</Text>
                 <Box marginTop="xs">
@@ -168,12 +187,23 @@ export default function SignInScreen() {
                     ref={passwordRef}
                     placeholder="••••••••"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={text => {
+                      setPassword(text);
+
+                      if (passwordError) setPasswordError('');
+                    }}
                     secureTextEntry
                     returnKeyType="done"
                     onSubmitEditing={handleSignIn}
                   />
                 </Box>
+                {passwordError ? (
+                  <Box marginTop="xs">
+                    <Text variant="body-xs-regular" color="danger">
+                      {passwordError}
+                    </Text>
+                  </Box>
+                ) : null}
               </Box>
             </Box>
 
