@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { GoogleSignin, auth } from '@/lib/firebase';
+import { EMAIL_REGEX } from '@/lib/validation';
 import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function useSignUp() {
   const { t } = useTranslation();

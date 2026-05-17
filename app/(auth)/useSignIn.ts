@@ -3,13 +3,12 @@ import { useTranslation } from 'react-i18next';
 import type { TextInput } from 'react-native';
 
 import { GoogleSignin, auth } from '@/lib/firebase';
+import { EMAIL_REGEX } from '@/lib/validation';
 import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function useSignIn() {
   const { t } = useTranslation();
