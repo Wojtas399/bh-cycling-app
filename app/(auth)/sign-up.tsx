@@ -235,18 +235,25 @@ export default function SignUpScreen() {
                 </>
               )}
             </Button>
-          </Box>
 
-          <Box alignItems="center" paddingBottom="md">
-            <TouchableOpacity onPress={() => router.back()}>
-              <Text
-                variant="body-s-regular"
-                color="textSecondary"
-                textAlign="center"
-              >
-                {t('signUp.hasAccount')}
-              </Text>
-            </TouchableOpacity>
+            <Box
+              width="100%"
+              height={1}
+              backgroundColor="borderDefault"
+              marginTop="xl"
+            />
+
+            <Box marginTop="xl">
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text
+                  variant="body-s-regular"
+                  color="textSecondary"
+                  textAlign="center"
+                >
+                  {t('signUp.hasAccount')}
+                </Text>
+              </TouchableOpacity>
+            </Box>
           </Box>
         </ScrollView>
       </KeyboardAvoidingView>
