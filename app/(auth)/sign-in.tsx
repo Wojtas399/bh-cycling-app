@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Image,
@@ -23,24 +24,25 @@ import {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function getFirebaseErrorMessage(code: string): string {
-  switch (code) {
-    case 'auth/invalid-credential':
-    case 'auth/wrong-password':
-    case 'auth/user-not-found':
-      return 'Nieprawidłowy e-mail lub hasło.';
-    case 'auth/invalid-email':
-      return 'Podaj prawidłowy adres e-mail.';
-    case 'auth/too-many-requests':
-      return 'Za dużo prób logowania. Spróbuj ponownie później.';
-    case 'auth/network-request-failed':
-      return 'Brak połączenia z internetem.';
-    default:
-      return 'Wystąpił błąd. Spróbuj ponownie.';
-  }
-}
-
 export default function SignInScreen() {
+  const { t } = useTranslation();
+
+  function getFirebaseErrorMessage(code: string): string {
+    switch (code) {
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return t('signIn.errors.invalidCredential');
+      case 'auth/invalid-email':
+        return t('signIn.errors.invalidEmail');
+      case 'auth/too-many-requests':
+        return t('signIn.errors.tooManyRequests');
+      case 'auth/network-request-failed':
+        return t('signIn.errors.networkFailed');
+      default:
+        return t('signIn.errors.generic');
+    }
+  }
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const passwordRef = useRef<TextInput>(null);
@@ -52,12 +54,12 @@ export default function SignInScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   function validate(): string {
-    if (!email.trim()) return 'Podaj adres e-mail.';
+    if (!email.trim()) return t('signIn.validation.emailRequired');
 
     if (!EMAIL_REGEX.test(email.trim()))
-      return 'Podaj prawidłowy adres e-mail.';
+      return t('signIn.validation.emailInvalid');
 
-    if (!password) return 'Podaj hasło.';
+    if (!password) return t('signIn.validation.passwordRequired');
 
     return '';
   }
@@ -101,7 +103,7 @@ export default function SignInScreen() {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;
 
-      setError('Logowanie przez Google nie powiodło się.');
+      setError(t('signIn.validation.googleFailed'));
     } finally {
       setGoogleLoading(false);
     }
@@ -155,11 +157,11 @@ export default function SignInScreen() {
               />
 
               <Box marginTop="xl">
-                <Text variant="h2">Zaloguj się</Text>
+                <Text variant="h2">{t('signIn.title')}</Text>
               </Box>
 
               <Box width="100%" marginTop="xl">
-                <Text variant="body-s-medium">E-mail</Text>
+                <Text variant="body-s-medium">{t('signIn.email')}</Text>
                 <Box marginTop="xs">
                   <Input
                     placeholder="you@example.com"
@@ -173,7 +175,7 @@ export default function SignInScreen() {
                   />
                 </Box>
                 <Box marginTop="md">
-                  <Text variant="body-s-medium">Hasło</Text>
+                  <Text variant="body-s-medium">{t('signIn.password')}</Text>
                   <Box marginTop="xs">
                     <Input
                       ref={passwordRef}
@@ -190,7 +192,7 @@ export default function SignInScreen() {
 
               <Box width="100%" alignItems="flex-end" marginTop="xl">
                 <Text variant="body-xs-medium" color="textSecondary">
-                  Zapomniałeś hasła?
+                  {t('signIn.forgotPassword')}
                 </Text>
               </Box>
 
@@ -206,7 +208,7 @@ export default function SignInScreen() {
                     <ActivityIndicator color={theme.colors.textInverse} />
                   ) : (
                     <Text variant="body-l-semibold" color="textInverse">
-                      Zaloguj się
+                      {t('signIn.signInButton')}
                     </Text>
                   )}
                 </Button>
@@ -232,7 +234,7 @@ export default function SignInScreen() {
                 <Box flex={1} height={1} backgroundColor="borderDefault" />
                 <Box marginHorizontal="md">
                   <Text variant="body-xs-regular" color="textSecondary">
-                    lub
+                    {t('signIn.or')}
                   </Text>
                 </Box>
                 <Box flex={1} height={1} backgroundColor="borderDefault" />
@@ -256,7 +258,7 @@ export default function SignInScreen() {
                       color={theme.colors.textPrimary}
                     />
                     <Text variant="body-s-medium" color="textPrimary">
-                      Zaloguj się przez Google
+                      {t('signIn.signInWithGoogle')}
                     </Text>
                   </>
                 )}
@@ -275,7 +277,7 @@ export default function SignInScreen() {
                   color="textSecondary"
                   textAlign="center"
                 >
-                  Nie masz konta? Zarejestruj się
+                  {t('signIn.noAccount')}
                 </Text>
               </Box>
             </Box>

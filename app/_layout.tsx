@@ -1,6 +1,7 @@
 import 'react-native-reanimated';
 
 import theme from '@/constants/theme';
+import '@/i18n';
 import {
   DarkTheme,
   ThemeProvider as NavThemeProvider,
