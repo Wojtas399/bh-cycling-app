@@ -111,7 +111,7 @@ export function useSignUp() {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;
 
-      setError(t('signUp.validation.googleFailed'));
+      setError(t('signUp.errors.googleFailed'));
     } finally {
       setGoogleLoading(false);
     }

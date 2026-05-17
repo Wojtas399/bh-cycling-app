@@ -15,6 +15,7 @@ const pl = {
       weakPassword: 'Hasło jest za słabe.',
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
+      googleFailed: 'Rejestracja przez Google nie powiodła się.',
     },
     validation: {
       emailRequired: 'Podaj adres e-mail.',
@@ -23,7 +24,6 @@ const pl = {
       passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków.',
       confirmPasswordRequired: 'Potwierdź hasło.',
       passwordsMismatch: 'Hasła nie są zgodne.',
-      googleFailed: 'Rejestracja przez Google nie powiodła się.',
     },
   },
   signIn: {
