@@ -266,7 +266,13 @@ export default function SignUpScreen() {
             />
 
             <Box marginTop="xl">
-              <TouchableOpacity onPress={() => router.replace('/sign-in')}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.canGoBack()
+                    ? router.back()
+                    : router.replace('/sign-in')
+                }
+              >
                 <Text
                   variant="body-s-regular"
                   color="textSecondary"
