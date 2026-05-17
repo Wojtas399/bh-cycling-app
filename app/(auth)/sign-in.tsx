@@ -16,7 +16,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SignInScreen() {
   const { t } = useTranslation();
@@ -195,8 +195,8 @@ export default function SignInScreen() {
                 <ActivityIndicator color={theme.colors.textPrimary} />
               ) : (
                 <>
-                  <AntDesign
-                    name="google"
+                  <Ionicons
+                    name="logo-google"
                     size={20}
                     color={theme.colors.textPrimary}
                   />
