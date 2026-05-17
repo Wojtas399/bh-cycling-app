@@ -130,156 +130,142 @@ export default function SignInScreen() {
             backgroundColor="bgSecondary"
             alignItems="center"
             justifyContent="center"
-            paddingHorizontal="base"
+            paddingHorizontal="lg"
           >
-            <Box
-              backgroundColor="bgTertiary"
-              paddingHorizontal="lg"
-              paddingVertical="3xl"
-              width="100%"
-              borderRadius="2xl"
-              alignItems="center"
-              shadowColor="black"
-              shadowOffset={{ width: 0, height: 4 }}
-              shadowOpacity={0.4}
-              shadowRadius={16}
-              elevation={8}
-            >
-              <Image
-                source={require('@/assets/images/bhc_logo.jpg')}
-                style={{
-                  width: 136,
-                  height: 136,
-                  borderRadius: 68,
-                  borderWidth: 1.5,
-                  borderColor: 'rgba(255,255,255,0.2)',
-                }}
-              />
+            <Image
+              source={require('@/assets/images/bhc_logo.jpg')}
+              style={{
+                width: 136,
+                height: 136,
+                borderRadius: 68,
+                borderWidth: 1.5,
+                borderColor: 'rgba(255,255,255,0.2)',
+              }}
+            />
 
-              <Box marginTop="xl">
-                <Text variant="h2">{t('signIn.title')}</Text>
+            <Box marginTop="xl">
+              <Text variant="h2">{t('signIn.title')}</Text>
+            </Box>
+
+            <Box width="100%" marginTop="xl">
+              <Text variant="body-s-medium">{t('signIn.email')}</Text>
+              <Box marginTop="xs">
+                <Input
+                  placeholder="you@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                />
               </Box>
-
-              <Box width="100%" marginTop="xl">
-                <Text variant="body-s-medium">{t('signIn.email')}</Text>
+              <Box marginTop="md">
+                <Text variant="body-s-medium">{t('signIn.password')}</Text>
                 <Box marginTop="xs">
                   <Input
-                    placeholder="you@example.com"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                    onSubmitEditing={() => passwordRef.current?.focus()}
+                    ref={passwordRef}
+                    placeholder="••••••••"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    returnKeyType="done"
+                    onSubmitEditing={handleSignIn}
                   />
                 </Box>
-                <Box marginTop="md">
-                  <Text variant="body-s-medium">{t('signIn.password')}</Text>
-                  <Box marginTop="xs">
-                    <Input
-                      ref={passwordRef}
-                      placeholder="••••••••"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry
-                      returnKeyType="done"
-                      onSubmitEditing={handleSignIn}
-                    />
-                  </Box>
-                </Box>
               </Box>
+            </Box>
 
-              <Box width="100%" alignItems="flex-end" marginTop="xl">
-                <Text variant="body-xs-medium" color="textSecondary">
-                  {t('signIn.forgotPassword')}
-                </Text>
-              </Box>
+            <Box width="100%" alignItems="flex-end" marginTop="xl">
+              <Text variant="body-xs-medium" color="textSecondary">
+                {t('signIn.forgotPassword')}
+              </Text>
+            </Box>
 
-              <Box width="100%" marginTop="xl">
-                <Button
-                  variant="primary"
-                  opacity={disabled ? 0.6 : 1}
-                  onPress={handleSignIn}
-                  disabled={disabled}
-                  activeOpacity={0.8}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={theme.colors.textInverse} />
-                  ) : (
-                    <Text variant="body-l-semibold" color="textInverse">
-                      {t('signIn.signInButton')}
-                    </Text>
-                  )}
-                </Button>
-                {error ? (
-                  <Box marginTop="sm">
-                    <Text
-                      variant="body-s-regular"
-                      color="danger"
-                      textAlign="center"
-                    >
-                      {error}
-                    </Text>
-                  </Box>
-                ) : null}
-              </Box>
-
-              <Box
-                width="100%"
-                flexDirection="row"
-                alignItems="center"
-                marginTop="xl"
-              >
-                <Box flex={1} height={1} backgroundColor="borderDefault" />
-                <Box marginHorizontal="md">
-                  <Text variant="body-xs-regular" color="textSecondary">
-                    {t('signIn.or')}
-                  </Text>
-                </Box>
-                <Box flex={1} height={1} backgroundColor="borderDefault" />
-              </Box>
-
+            <Box width="100%" marginTop="xl">
               <Button
-                variant="secondary"
-                marginTop="xl"
+                variant="primary"
                 opacity={disabled ? 0.6 : 1}
-                onPress={handleGoogleSignIn}
+                onPress={handleSignIn}
                 disabled={disabled}
                 activeOpacity={0.8}
               >
-                {googleLoading ? (
-                  <ActivityIndicator color={theme.colors.textPrimary} />
+                {loading ? (
+                  <ActivityIndicator color={theme.colors.textInverse} />
                 ) : (
-                  <>
-                    <AntDesign
-                      name="google"
-                      size={20}
-                      color={theme.colors.textPrimary}
-                    />
-                    <Text variant="body-s-medium" color="textPrimary">
-                      {t('signIn.signInWithGoogle')}
-                    </Text>
-                  </>
+                  <Text variant="body-l-semibold" color="textInverse">
+                    {t('signIn.signInButton')}
+                  </Text>
                 )}
               </Button>
+              {error ? (
+                <Box marginTop="sm">
+                  <Text
+                    variant="body-s-regular"
+                    color="danger"
+                    textAlign="center"
+                  >
+                    {error}
+                  </Text>
+                </Box>
+              ) : null}
+            </Box>
 
-              <Box
-                width="100%"
-                height={1}
-                backgroundColor="borderDefault"
-                marginTop="xl"
-              />
-
-              <Box marginTop="xl">
-                <Text
-                  variant="body-s-regular"
-                  color="textSecondary"
-                  textAlign="center"
-                >
-                  {t('signIn.noAccount')}
+            <Box
+              width="100%"
+              flexDirection="row"
+              alignItems="center"
+              marginTop="xl"
+            >
+              <Box flex={1} height={1} backgroundColor="borderDefault" />
+              <Box marginHorizontal="md">
+                <Text variant="body-xs-regular" color="textSecondary">
+                  {t('signIn.or')}
                 </Text>
               </Box>
+              <Box flex={1} height={1} backgroundColor="borderDefault" />
+            </Box>
+
+            <Button
+              variant="secondary"
+              marginTop="xl"
+              opacity={disabled ? 0.6 : 1}
+              onPress={handleGoogleSignIn}
+              disabled={disabled}
+              activeOpacity={0.8}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color={theme.colors.textPrimary} />
+              ) : (
+                <>
+                  <AntDesign
+                    name="google"
+                    size={20}
+                    color={theme.colors.textPrimary}
+                  />
+                  <Text variant="body-s-medium" color="textPrimary">
+                    {t('signIn.signInWithGoogle')}
+                  </Text>
+                </>
+              )}
+            </Button>
+
+            <Box
+              width="100%"
+              height={1}
+              backgroundColor="borderDefault"
+              marginTop="xl"
+            />
+
+            <Box marginTop="xl">
+              <Text
+                variant="body-s-regular"
+                color="textSecondary"
+                textAlign="center"
+              >
+                {t('signIn.noAccount')}
+              </Text>
             </Box>
           </Box>
         </ScrollView>
