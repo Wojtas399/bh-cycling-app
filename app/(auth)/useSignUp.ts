@@ -6,11 +6,13 @@ import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
+import { useRouter } from 'expo-router';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function useSignUp() {
   const { t } = useTranslation();
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -105,6 +107,7 @@ export function useSignUp() {
       const credential = auth.GoogleAuthProvider.credential(idToken);
 
       await auth().signInWithCredential(credential);
+      router.replace('/(app)');
     } catch (e) {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;
@@ -123,6 +126,7 @@ export function useSignUp() {
 
     try {
       await auth().createUserWithEmailAndPassword(email.trim(), password);
+      router.replace('/(app)');
     } catch (e) {
       const code = (e as { code?: string }).code ?? '';
 
