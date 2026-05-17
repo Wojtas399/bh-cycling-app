@@ -78,21 +78,27 @@ export function useSignUp() {
     setEmail(text);
 
     if (emailError) setEmailError('');
+
+    if (error) setError('');
   }
 
   function onPasswordChange(text: string) {
     setPassword(text);
 
     if (passwordError) setPasswordError('');
+
+    if (error) setError('');
   }
 
   function onConfirmPasswordChange(text: string) {
     setConfirmPassword(text);
 
     if (confirmPasswordError) setConfirmPasswordError('');
+
+    if (error) setError('');
   }
 
-  async function handleGoogleSignIn() {
+  async function handleGoogleSignUp() {
     setError('');
     setGoogleLoading(true);
 
@@ -150,6 +156,6 @@ export function useSignUp() {
     onPasswordChange,
     onConfirmPasswordChange,
     handleSignUp,
-    handleGoogleSignIn,
+    handleGoogleSignUp,
   };
 }

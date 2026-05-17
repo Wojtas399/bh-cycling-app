@@ -42,7 +42,7 @@ export default function SignUpScreen() {
     onPasswordChange,
     onConfirmPasswordChange,
     handleSignUp,
-    handleGoogleSignIn,
+    handleGoogleSignUp,
   } = useSignUp();
 
   return (
@@ -102,6 +102,7 @@ export default function SignUpScreen() {
                   placeholder="you@example.com"
                   value={email}
                   onChangeText={onEmailChange}
+                  editable={!disabled}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -123,6 +124,7 @@ export default function SignUpScreen() {
                     placeholder="••••••••"
                     value={password}
                     onChangeText={onPasswordChange}
+                    editable={!disabled}
                     secureTextEntry={!passwordVisible}
                     returnKeyType="next"
                     rightElement={
@@ -157,9 +159,12 @@ export default function SignUpScreen() {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChangeText={onConfirmPasswordChange}
+                    editable={!disabled}
                     secureTextEntry={!confirmPasswordVisible}
                     returnKeyType="done"
-                    onSubmitEditing={handleSignUp}
+                    onSubmitEditing={() => {
+                      if (!disabled) handleSignUp();
+                    }}
                     rightElement={
                       <TouchableOpacity
                         onPress={() => setConfirmPasswordVisible(v => !v)}
@@ -233,7 +238,7 @@ export default function SignUpScreen() {
               variant="secondary"
               marginTop="xl"
               opacity={disabled ? 0.6 : 1}
-              onPress={handleGoogleSignIn}
+              onPress={handleGoogleSignUp}
               disabled={disabled}
               activeOpacity={0.8}
             >
