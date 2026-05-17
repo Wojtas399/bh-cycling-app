@@ -17,11 +17,13 @@ import Input from '@/components/Input';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function SignInScreen() {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -215,13 +217,15 @@ export default function SignInScreen() {
             />
 
             <Box marginTop="xl">
-              <Text
-                variant="body-s-regular"
-                color="textSecondary"
-                textAlign="center"
-              >
-                {t('signIn.noAccount')}
-              </Text>
+              <TouchableOpacity onPress={() => router.push('/sign-up')}>
+                <Text
+                  variant="body-s-regular"
+                  color="textSecondary"
+                  textAlign="center"
+                >
+                  {t('signIn.noAccount')}
+                </Text>
+              </TouchableOpacity>
             </Box>
           </Box>
         </ScrollView>
