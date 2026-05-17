@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { auth } from '@/lib/firebase';
+import { GoogleSignin, auth } from '@/lib/firebase';
+import {
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,6 +20,7 @@ export function useSignUp() {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   function getFirebaseErrorMessage(code: string): string {
     switch (code) {
@@ -86,6 +91,30 @@ export function useSignUp() {
     if (confirmPasswordError) setConfirmPasswordError('');
   }
 
+  async function handleGoogleSignIn() {
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      await GoogleSignin.hasPlayServices();
+      const result = await GoogleSignin.signIn();
+      const idToken = result.data?.idToken;
+
+      if (!idToken) throw new Error('no_id_token');
+
+      const credential = auth.GoogleAuthProvider.credential(idToken);
+
+      await auth().signInWithCredential(credential);
+    } catch (e) {
+      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
+        return;
+
+      setError(t('signUp.validation.googleFailed'));
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
   async function handleSignUp() {
     if (!validate()) return;
 
@@ -112,10 +141,12 @@ export function useSignUp() {
     confirmPasswordError,
     error,
     loading,
-    disabled: loading,
+    googleLoading,
+    disabled: loading || googleLoading,
     onEmailChange,
     onPasswordChange,
     onConfirmPasswordChange,
     handleSignUp,
+    handleGoogleSignIn,
   };
 }

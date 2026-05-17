@@ -36,11 +36,13 @@ export default function SignUpScreen() {
     confirmPasswordError,
     error,
     loading,
+    googleLoading,
     disabled,
     onEmailChange,
     onPasswordChange,
     onConfirmPasswordChange,
     handleSignUp,
+    handleGoogleSignIn,
   } = useSignUp();
 
   return (
@@ -194,6 +196,45 @@ export default function SignUpScreen() {
                 )}
               </Button>
             </Box>
+
+            <Box
+              width="100%"
+              flexDirection="row"
+              alignItems="center"
+              marginTop="xl"
+            >
+              <Box flex={1} height={1} backgroundColor="borderDefault" />
+              <Box marginHorizontal="md">
+                <Text variant="body-xs-regular" color="textSecondary">
+                  {t('signUp.or')}
+                </Text>
+              </Box>
+              <Box flex={1} height={1} backgroundColor="borderDefault" />
+            </Box>
+
+            <Button
+              variant="secondary"
+              marginTop="xl"
+              opacity={disabled ? 0.6 : 1}
+              onPress={handleGoogleSignIn}
+              disabled={disabled}
+              activeOpacity={0.8}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color={theme.colors.textPrimary} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="logo-google"
+                    size={20}
+                    color={theme.colors.textPrimary}
+                  />
+                  <Text variant="body-s-medium" color="textPrimary">
+                    {t('signUp.signUpWithGoogle')}
+                  </Text>
+                </>
+              )}
+            </Button>
           </Box>
 
           <Box alignItems="center" paddingBottom="md">
