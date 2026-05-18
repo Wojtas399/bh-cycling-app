@@ -49,6 +49,31 @@ const pl = {
       googleFailed: 'Logowanie przez Google nie powiodło się.',
     },
   },
+  forgotPassword: {
+    title: 'Zapomniałeś hasła',
+    subtitle:
+      'Wpisz swój adres e-mail, a wyślemy Ci instrukcje resetowania hasła.',
+    email: 'E-mail',
+    sendButton: 'Wyślij link resetujący',
+    rememberPassword: 'Pamiętasz hasło? Zaloguj się',
+    success: {
+      title: 'Sprawdź skrzynkę',
+      subtitle: 'Link do resetowania hasła został wysłany na adres {{email}}.',
+      backToSignIn: 'Wróć do logowania',
+      resendButton: 'Wyślij ponownie',
+    },
+    errors: {
+      invalidEmail: 'Podaj prawidłowy adres e-mail.',
+      userNotFound: 'Nie znaleziono konta z tym adresem e-mail.',
+      tooManyRequests: 'Za dużo prób. Spróbuj ponownie później.',
+      networkFailed: 'Brak połączenia z internetem.',
+      generic: 'Wystąpił błąd. Spróbuj ponownie.',
+    },
+    validation: {
+      emailRequired: 'Podaj adres e-mail.',
+      emailInvalid: 'Podaj prawidłowy adres e-mail.',
+    },
+  },
 } as const;
 
 export default pl;
