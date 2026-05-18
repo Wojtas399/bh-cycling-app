@@ -37,6 +37,159 @@ export default function ForgotPasswordScreen() {
     handleBackToSignIn,
   } = useForgotPassword();
 
+  function renderResendLabel() {
+    const base = t('forgotPassword.success.resendButton');
+
+    return cooldown > 0 ? `${base} (${cooldown}s)` : base;
+  }
+
+  function renderSuccessContent() {
+    return (
+      <>
+        <Ionicons
+          name="checkmark-circle-outline"
+          size={64}
+          color={theme.colors.success}
+        />
+
+        <Box marginTop="xl">
+          <Text variant="h2" textAlign="center">
+            {t('forgotPassword.success.title')}
+          </Text>
+        </Box>
+
+        <Box marginTop="sm">
+          <Text
+            variant="body-s-regular"
+            color="textSecondary"
+            textAlign="center"
+          >
+            {t('forgotPassword.success.subtitle')}
+          </Text>
+        </Box>
+
+        {error && (
+          <Box width="100%" marginTop="xl">
+            <Text variant="body-s-regular" color="danger" textAlign="center">
+              {error}
+            </Text>
+          </Box>
+        )}
+
+        <Box width="100%" marginTop="xl">
+          <Button
+            variant="secondary"
+            opacity={disabled || cooldown > 0 ? 0.6 : 1}
+            onPress={handleResend}
+            disabled={disabled || cooldown > 0}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color={theme.colors.textPrimary} />
+            ) : (
+              <Text variant="body-s-medium" color="textPrimary">
+                {renderResendLabel()}
+              </Text>
+            )}
+          </Button>
+        </Box>
+
+        <Box marginTop="xl">
+          <TouchableOpacity onPress={handleBackToSignIn}>
+            <Text
+              variant="body-s-regular"
+              color="textSecondary"
+              textAlign="center"
+            >
+              {t('forgotPassword.success.backToSignIn')}
+            </Text>
+          </TouchableOpacity>
+        </Box>
+      </>
+    );
+  }
+
+  function renderFormContent() {
+    return (
+      <>
+        <Text variant="h2" textAlign="center">
+          {t('forgotPassword.title')}
+        </Text>
+
+        <Box marginTop="sm">
+          <Text
+            variant="body-s-regular"
+            color="textSecondary"
+            textAlign="center"
+          >
+            {t('forgotPassword.subtitle')}
+          </Text>
+        </Box>
+
+        <Box width="100%" marginTop="xl">
+          <Text variant="body-s-medium">{t('forgotPassword.email')}</Text>
+          <Box marginTop="xs">
+            <Input
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={onEmailChange}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleSend}
+            />
+          </Box>
+          {emailError && (
+            <Box marginTop="xs">
+              <Text variant="body-xs-regular" color="danger">
+                {emailError}
+              </Text>
+            </Box>
+          )}
+        </Box>
+
+        {error && (
+          <Box width="100%" marginTop="xl">
+            <Text variant="body-s-regular" color="danger" textAlign="center">
+              {error}
+            </Text>
+          </Box>
+        )}
+
+        <Box width="100%" marginTop="xl">
+          <Button
+            variant="primary"
+            opacity={disabled ? 0.6 : 1}
+            onPress={handleSend}
+            disabled={disabled}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color={theme.colors.textInverse} />
+            ) : (
+              <Text variant="body-l-semibold" color="textInverse">
+                {t('forgotPassword.sendButton')}
+              </Text>
+            )}
+          </Button>
+        </Box>
+
+        <Box marginTop="xl">
+          <TouchableOpacity onPress={handleBackToSignIn}>
+            <Text
+              variant="body-s-regular"
+              color="textSecondary"
+              textAlign="center"
+            >
+              {t('forgotPassword.rememberPassword')}
+            </Text>
+          </TouchableOpacity>
+        </Box>
+      </>
+    );
+  }
+
   return (
     <Box flex={1} backgroundColor="bgSecondary">
       <TouchableOpacity
@@ -75,158 +228,7 @@ export default function ForgotPasswordScreen() {
             justifyContent="center"
             paddingHorizontal="lg"
           >
-            {success ? (
-              <>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={64}
-                  color={theme.colors.success}
-                />
-
-                <Box marginTop="xl">
-                  <Text variant="h2" textAlign="center">
-                    {t('forgotPassword.success.title')}
-                  </Text>
-                </Box>
-
-                <Box marginTop="sm">
-                  <Text
-                    variant="body-s-regular"
-                    color="textSecondary"
-                    textAlign="center"
-                  >
-                    {t('forgotPassword.success.subtitle')}
-                  </Text>
-                </Box>
-
-                {error ? (
-                  <Box width="100%" marginTop="xl">
-                    <Text
-                      variant="body-s-regular"
-                      color="danger"
-                      textAlign="center"
-                    >
-                      {error}
-                    </Text>
-                  </Box>
-                ) : null}
-
-                <Box width="100%" marginTop="xl">
-                  <Button
-                    variant="secondary"
-                    opacity={disabled || cooldown > 0 ? 0.6 : 1}
-                    onPress={handleResend}
-                    disabled={disabled || cooldown > 0}
-                    activeOpacity={0.8}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color={theme.colors.textPrimary} />
-                    ) : (
-                      <Text variant="body-s-medium" color="textPrimary">
-                        {cooldown > 0
-                          ? `${t('forgotPassword.success.resendButton')} (${cooldown}s)`
-                          : t('forgotPassword.success.resendButton')}
-                      </Text>
-                    )}
-                  </Button>
-                </Box>
-
-                <Box marginTop="xl">
-                  <TouchableOpacity onPress={handleBackToSignIn}>
-                    <Text
-                      variant="body-s-regular"
-                      color="textSecondary"
-                      textAlign="center"
-                    >
-                      {t('forgotPassword.success.backToSignIn')}
-                    </Text>
-                  </TouchableOpacity>
-                </Box>
-              </>
-            ) : (
-              <>
-                <Text variant="h2" textAlign="center">
-                  {t('forgotPassword.title')}
-                </Text>
-
-                <Box marginTop="sm">
-                  <Text
-                    variant="body-s-regular"
-                    color="textSecondary"
-                    textAlign="center"
-                  >
-                    {t('forgotPassword.subtitle')}
-                  </Text>
-                </Box>
-
-                <Box width="100%" marginTop="xl">
-                  <Text variant="body-s-medium">
-                    {t('forgotPassword.email')}
-                  </Text>
-                  <Box marginTop="xs">
-                    <Input
-                      placeholder="you@example.com"
-                      value={email}
-                      onChangeText={onEmailChange}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="done"
-                      onSubmitEditing={handleSend}
-                    />
-                  </Box>
-                  {emailError ? (
-                    <Box marginTop="xs">
-                      <Text variant="body-xs-regular" color="danger">
-                        {emailError}
-                      </Text>
-                    </Box>
-                  ) : null}
-                </Box>
-
-                {error ? (
-                  <Box width="100%" marginTop="xl">
-                    <Text
-                      variant="body-s-regular"
-                      color="danger"
-                      textAlign="center"
-                    >
-                      {error}
-                    </Text>
-                  </Box>
-                ) : null}
-
-                <Box width="100%" marginTop="xl">
-                  <Button
-                    variant="primary"
-                    opacity={disabled ? 0.6 : 1}
-                    onPress={handleSend}
-                    disabled={disabled}
-                    activeOpacity={0.8}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color={theme.colors.textInverse} />
-                    ) : (
-                      <Text variant="body-l-semibold" color="textInverse">
-                        {t('forgotPassword.sendButton')}
-                      </Text>
-                    )}
-                  </Button>
-                </Box>
-
-                <Box marginTop="xl">
-                  <TouchableOpacity onPress={handleBackToSignIn}>
-                    <Text
-                      variant="body-s-regular"
-                      color="textSecondary"
-                      textAlign="center"
-                    >
-                      {t('forgotPassword.rememberPassword')}
-                    </Text>
-                  </TouchableOpacity>
-                </Box>
-              </>
-            )}
+            {success ? renderSuccessContent() : renderFormContent()}
           </Box>
         </ScrollView>
       </KeyboardAvoidingView>
