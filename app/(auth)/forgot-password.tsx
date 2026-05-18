@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
             color="textSecondary"
             textAlign="center"
           >
-            {t('forgotPassword.success.subtitle')}
+            {t('forgotPassword.success.subtitle', { email })}
           </Text>
         </Box>
 

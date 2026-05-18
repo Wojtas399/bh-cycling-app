@@ -58,8 +58,7 @@ const pl = {
     rememberPassword: 'Pamiętasz hasło? Zaloguj się',
     success: {
       title: 'Sprawdź skrzynkę',
-      subtitle:
-        'Wysłaliśmy instrukcje resetowania hasła na podany adres e-mail.',
+      subtitle: 'Link do resetowania hasła został wysłany na adres {{email}}.',
       backToSignIn: 'Wróć do logowania',
       resendButton: 'Wyślij ponownie',
     },
