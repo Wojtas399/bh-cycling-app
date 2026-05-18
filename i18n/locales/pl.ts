@@ -1,4 +1,31 @@
 const pl = {
+  signUp: {
+    title: 'Utwórz konto',
+    subtitle: 'Zarejestruj się, aby zacząć',
+    email: 'E-mail',
+    password: 'Hasło',
+    confirmPassword: 'Potwierdź hasło',
+    signUpButton: 'Zarejestruj się',
+    or: 'lub',
+    signUpWithGoogle: 'Zarejestruj się przez Google',
+    hasAccount: 'Masz już konto? Zaloguj się',
+    errors: {
+      emailAlreadyInUse: 'Ten adres e-mail jest już zajęty.',
+      invalidEmail: 'Podaj prawidłowy adres e-mail.',
+      weakPassword: 'Hasło jest za słabe.',
+      networkFailed: 'Brak połączenia z internetem.',
+      generic: 'Wystąpił błąd. Spróbuj ponownie.',
+      googleFailed: 'Rejestracja przez Google nie powiodła się.',
+    },
+    validation: {
+      emailRequired: 'Podaj adres e-mail.',
+      emailInvalid: 'Podaj prawidłowy adres e-mail.',
+      passwordRequired: 'Podaj hasło.',
+      passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków.',
+      confirmPasswordRequired: 'Potwierdź hasło.',
+      passwordsMismatch: 'Hasła nie są zgodne.',
+    },
+  },
   signIn: {
     title: 'Zaloguj się',
     email: 'E-mail',

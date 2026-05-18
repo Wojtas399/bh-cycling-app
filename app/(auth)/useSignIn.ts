@@ -3,15 +3,16 @@ import { useTranslation } from 'react-i18next';
 import type { TextInput } from 'react-native';
 
 import { GoogleSignin, auth } from '@/lib/firebase';
+import { EMAIL_REGEX } from '@/lib/validation';
 import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { useRouter } from 'expo-router';
 
 export function useSignIn() {
   const { t } = useTranslation();
+  const router = useRouter();
   const passwordRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState('');
@@ -82,6 +83,7 @@ export function useSignIn() {
 
     try {
       await auth().signInWithEmailAndPassword(email.trim(), password);
+      router.replace('/(app)');
     } catch (e) {
       const code = (e as { code?: string }).code ?? '';
 
@@ -105,6 +107,7 @@ export function useSignIn() {
       const credential = auth.GoogleAuthProvider.credential(idToken);
 
       await auth().signInWithCredential(credential);
+      router.replace('/(app)');
     } catch (e) {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;

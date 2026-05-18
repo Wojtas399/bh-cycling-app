@@ -1,0 +1,161 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { GoogleSignin, auth } from '@/lib/firebase';
+import { EMAIL_REGEX } from '@/lib/validation';
+import {
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import { useRouter } from 'expo-router';
+
+export function useSignUp() {
+  const { t } = useTranslation();
+  const router = useRouter();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  function getFirebaseErrorMessage(code: string): string {
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return t('signUp.errors.emailAlreadyInUse');
+      case 'auth/weak-password':
+        return t('signUp.errors.weakPassword');
+      case 'auth/invalid-email':
+        return t('signUp.errors.invalidEmail');
+      case 'auth/network-request-failed':
+        return t('signUp.errors.networkFailed');
+      default:
+        return t('signUp.errors.generic');
+    }
+  }
+
+  function validate(): boolean {
+    let valid = true;
+
+    if (!email.trim()) {
+      setEmailError(t('signUp.validation.emailRequired'));
+      valid = false;
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      setEmailError(t('signUp.validation.emailInvalid'));
+      valid = false;
+    } else {
+      setEmailError('');
+    }
+
+    if (!password) {
+      setPasswordError(t('signUp.validation.passwordRequired'));
+      valid = false;
+    } else if (password.length < 8) {
+      setPasswordError(t('signUp.validation.passwordTooShort'));
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+
+    if (!confirmPassword) {
+      setConfirmPasswordError(t('signUp.validation.confirmPasswordRequired'));
+      valid = false;
+    } else if (confirmPassword !== password) {
+      setConfirmPasswordError(t('signUp.validation.passwordsMismatch'));
+      valid = false;
+    } else {
+      setConfirmPasswordError('');
+    }
+
+    return valid;
+  }
+
+  function onEmailChange(text: string) {
+    setEmail(text);
+
+    if (emailError) setEmailError('');
+
+    if (error) setError('');
+  }
+
+  function onPasswordChange(text: string) {
+    setPassword(text);
+
+    if (passwordError) setPasswordError('');
+
+    if (error) setError('');
+  }
+
+  function onConfirmPasswordChange(text: string) {
+    setConfirmPassword(text);
+
+    if (confirmPasswordError) setConfirmPasswordError('');
+
+    if (error) setError('');
+  }
+
+  async function handleGoogleSignUp() {
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      await GoogleSignin.hasPlayServices();
+      const result = await GoogleSignin.signIn();
+      const idToken = result.data?.idToken;
+
+      if (!idToken) throw new Error('no_id_token');
+
+      const credential = auth.GoogleAuthProvider.credential(idToken);
+
+      await auth().signInWithCredential(credential);
+      router.replace('/(app)');
+    } catch (e) {
+      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
+        return;
+
+      setError(t('signUp.errors.googleFailed'));
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
+  async function handleSignUp() {
+    if (!validate()) return;
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await auth().createUserWithEmailAndPassword(email.trim(), password);
+      router.replace('/(app)');
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? '';
+
+      setError(getFirebaseErrorMessage(code));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return {
+    email,
+    password,
+    confirmPassword,
+    emailError,
+    passwordError,
+    confirmPasswordError,
+    error,
+    loading,
+    googleLoading,
+    disabled: loading || googleLoading,
+    onEmailChange,
+    onPasswordChange,
+    onConfirmPasswordChange,
+    handleSignUp,
+    handleGoogleSignUp,
+  };
+}
