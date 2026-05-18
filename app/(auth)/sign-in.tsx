@@ -136,9 +136,14 @@ export default function SignInScreen() {
             </Box>
 
             <Box width="100%" alignItems="flex-end" marginTop="xl">
-              <Text variant="body-xs-medium" color="textSecondary">
-                {t('signIn.forgotPassword')}
-              </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/forgot-password')}
+                hitSlop={8}
+              >
+                <Text variant="body-xs-medium" color="textSecondary">
+                  {t('signIn.forgotPassword')}
+                </Text>
+              </TouchableOpacity>
             </Box>
 
             <Box width="100%" marginTop="xl">
