@@ -36,6 +36,15 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: '/review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          direct_prompt: |
+            Review the changes in pull request #${{ github.event.pull_request.number }} of this repository.
+
+            Steps:
+            1. Run `gh pr diff ${{ github.event.pull_request.number }}` to see the changed files and diffs.
+            2. Analyze the changes for bugs, security issues, code style, and improvements.
+            3. Post your review as a PR comment using:
+               `gh pr comment ${{ github.event.pull_request.number }} --body "..."`
+
+            Keep feedback actionable and specific. Reference file paths and line numbers where relevant.
           claude_args: '--allowedTools Bash(gh *)'
 
