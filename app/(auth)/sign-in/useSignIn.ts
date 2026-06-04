@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TextInput } from 'react-native';
 
 import { GoogleSignin, auth } from '@/lib/firebase';
 import { EMAIL_REGEX } from '@/lib/validation';
@@ -9,32 +10,33 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
 
-export function useSignUp() {
+export function useSignIn() {
   const { t } = useTranslation();
   const router = useRouter();
+  const passwordRef = useRef<TextInput>(null);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   function getFirebaseErrorMessage(code: string): string {
     switch (code) {
-      case 'auth/email-already-in-use':
-        return t('signUp.errors.emailAlreadyInUse');
-      case 'auth/weak-password':
-        return t('signUp.errors.weakPassword');
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found':
+        return t('signIn.errors.invalidCredential');
       case 'auth/invalid-email':
-        return t('signUp.errors.invalidEmail');
+        return t('signIn.errors.invalidEmail');
+      case 'auth/too-many-requests':
+        return t('signIn.errors.tooManyRequests');
       case 'auth/network-request-failed':
-        return t('signUp.errors.networkFailed');
+        return t('signIn.errors.networkFailed');
       default:
-        return t('signUp.errors.generic');
+        return t('signIn.errors.generic');
     }
   }
 
@@ -42,33 +44,20 @@ export function useSignUp() {
     let valid = true;
 
     if (!email.trim()) {
-      setEmailError(t('signUp.validation.emailRequired'));
+      setEmailError(t('signIn.validation.emailRequired'));
       valid = false;
     } else if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError(t('signUp.validation.emailInvalid'));
+      setEmailError(t('signIn.validation.emailInvalid'));
       valid = false;
     } else {
       setEmailError('');
     }
 
     if (!password) {
-      setPasswordError(t('signUp.validation.passwordRequired'));
-      valid = false;
-    } else if (password.length < 8) {
-      setPasswordError(t('signUp.validation.passwordTooShort'));
+      setPasswordError(t('signIn.validation.passwordRequired'));
       valid = false;
     } else {
       setPasswordError('');
-    }
-
-    if (!confirmPassword) {
-      setConfirmPasswordError(t('signUp.validation.confirmPasswordRequired'));
-      valid = false;
-    } else if (confirmPassword !== password) {
-      setConfirmPasswordError(t('signUp.validation.passwordsMismatch'));
-      valid = false;
-    } else {
-      setConfirmPasswordError('');
     }
 
     return valid;
@@ -78,27 +67,33 @@ export function useSignUp() {
     setEmail(text);
 
     if (emailError) setEmailError('');
-
-    if (error) setError('');
   }
 
   function onPasswordChange(text: string) {
     setPassword(text);
 
     if (passwordError) setPasswordError('');
-
-    if (error) setError('');
   }
 
-  function onConfirmPasswordChange(text: string) {
-    setConfirmPassword(text);
+  async function handleSignIn() {
+    if (!validate()) return;
 
-    if (confirmPasswordError) setConfirmPasswordError('');
+    setError('');
+    setLoading(true);
 
-    if (error) setError('');
+    try {
+      await auth().signInWithEmailAndPassword(email.trim(), password);
+      router.replace('/(app)/home');
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? '';
+
+      setError(getFirebaseErrorMessage(code));
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleGoogleSignUp() {
+  async function handleGoogleSignIn() {
     setError('');
     setGoogleLoading(true);
 
@@ -112,50 +107,30 @@ export function useSignUp() {
       const credential = auth.GoogleAuthProvider.credential(idToken);
 
       await auth().signInWithCredential(credential);
-      router.replace('/(app)');
+      router.replace('/(app)/home');
     } catch (e) {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;
 
-      setError(t('signUp.errors.googleFailed'));
+      setError(t('signIn.validation.googleFailed'));
     } finally {
       setGoogleLoading(false);
-    }
-  }
-
-  async function handleSignUp() {
-    if (!validate()) return;
-
-    setError('');
-    setLoading(true);
-
-    try {
-      await auth().createUserWithEmailAndPassword(email.trim(), password);
-      router.replace('/(auth)/verify-email');
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
-
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
     }
   }
 
   return {
     email,
     password,
-    confirmPassword,
     emailError,
     passwordError,
-    confirmPasswordError,
     error,
     loading,
     googleLoading,
     disabled: loading || googleLoading,
+    passwordRef,
     onEmailChange,
     onPasswordChange,
-    onConfirmPasswordChange,
-    handleSignUp,
-    handleGoogleSignUp,
+    handleSignIn,
+    handleGoogleSignIn,
   };
 }

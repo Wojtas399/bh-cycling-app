@@ -14,7 +14,7 @@ export default function RootIndex() {
       } else if (!user.emailVerified) {
         router.replace('/(auth)/verify-email');
       } else {
-        router.replace('/(app)');
+        router.replace('/(app)/home');
       }
     });
   }, [router]);
