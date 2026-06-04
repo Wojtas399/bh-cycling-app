@@ -9,10 +9,12 @@ export default function RootIndex() {
 
   useEffect(() => {
     return auth().onAuthStateChanged(user => {
-      if (user) {
-        router.replace('/(app)');
-      } else {
+      if (!user) {
         router.replace('/(auth)/sign-in');
+      } else if (!user.emailVerified) {
+        router.replace('/(auth)/verify-email');
+      } else {
+        router.replace('/(app)');
       }
     });
   }, [router]);

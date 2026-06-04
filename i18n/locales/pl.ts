@@ -49,6 +49,19 @@ const pl = {
       googleFailed: 'Logowanie przez Google nie powiodło się.',
     },
   },
+  verifyEmail: {
+    title: 'Zweryfikuj adres e-mail',
+    subtitle:
+      'Wysłaliśmy wiadomość na adres {{email}}. Kliknij link w e-mailu, aby zweryfikować swoje konto.',
+    verifiedButton: 'Już zweryfikowałem',
+    resendButton: 'Wyślij ponownie ({{seconds}}s)',
+    signOut: 'Wyloguj się',
+    errors: {
+      notVerified: 'Adres e-mail nie został jeszcze zweryfikowany.',
+      networkFailed: 'Brak połączenia z internetem.',
+      generic: 'Wystąpił błąd. Spróbuj ponownie.',
+    },
+  },
   forgotPassword: {
     title: 'Zapomniałeś hasła',
     subtitle:
