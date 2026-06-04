@@ -131,7 +131,7 @@ export function useSignUp() {
 
     try {
       await auth().createUserWithEmailAndPassword(email.trim(), password);
-      router.replace('/(app)');
+      router.replace('/(auth)/verify-email');
     } catch (e) {
       const code = (e as { code?: string }).code ?? '';
 

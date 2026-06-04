@@ -10,6 +10,8 @@ export default function AppLayout() {
     return auth().onAuthStateChanged(user => {
       if (!user) {
         router.replace('/(auth)/sign-in');
+      } else if (!user.emailVerified) {
+        router.replace('/(auth)/verify-email');
       }
     });
   }, [router]);
