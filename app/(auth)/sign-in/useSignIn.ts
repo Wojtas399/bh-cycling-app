@@ -83,7 +83,7 @@ export function useSignIn() {
 
     try {
       await auth().signInWithEmailAndPassword(email.trim(), password);
-      router.replace('/(app)/home');
+      router.replace('/(app)/(tabs)/home');
     } catch (e) {
       const code = (e as { code?: string }).code ?? '';
 
@@ -107,7 +107,7 @@ export function useSignIn() {
       const credential = auth.GoogleAuthProvider.credential(idToken);
 
       await auth().signInWithCredential(credential);
-      router.replace('/(app)/home');
+      router.replace('/(app)/(tabs)/home');
     } catch (e) {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;
