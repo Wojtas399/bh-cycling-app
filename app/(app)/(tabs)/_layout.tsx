@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
@@ -17,16 +18,17 @@ function tabIcon(active: IoniconName, inactive: IoniconName) {
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const { colors } = useAppTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#F2F2F7',
-        tabBarInactiveTintColor: '#AEAEB2',
+        tabBarActiveTintColor: colors.textPrimary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#1C1C1E',
-          borderTopColor: '#2C2C2E',
+          backgroundColor: colors.bgTertiary,
+          borderTopColor: colors.borderDefault,
           borderTopWidth: 1,
         },
       }}
