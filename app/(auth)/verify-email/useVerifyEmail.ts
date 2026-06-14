@@ -59,7 +59,7 @@ export function useVerifyEmail() {
       await auth().currentUser?.reload();
 
       if (auth().currentUser?.emailVerified) {
-        router.replace('/(app)/home');
+        router.replace('/(app)/(tabs)/home');
       } else {
         setError(t('verifyEmail.errors.notVerified'));
       }

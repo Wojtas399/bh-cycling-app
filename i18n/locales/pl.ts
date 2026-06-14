@@ -87,6 +87,11 @@ const pl = {
       emailInvalid: 'Podaj prawidłowy adres e-mail.',
     },
   },
+  tabs: {
+    home: 'Główna',
+    calendar: 'Kalendarz',
+    settings: 'Ustawienia',
+  },
 } as const;
 
 export default pl;

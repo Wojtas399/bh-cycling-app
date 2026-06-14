@@ -112,7 +112,7 @@ export function useSignUp() {
       const credential = auth.GoogleAuthProvider.credential(idToken);
 
       await auth().signInWithCredential(credential);
-      router.replace('/(app)/home');
+      router.replace('/(app)/(tabs)/home');
     } catch (e) {
       if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
         return;
