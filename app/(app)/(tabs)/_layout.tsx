@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
@@ -14,6 +16,8 @@ function tabIcon(active: IoniconName, inactive: IoniconName) {
 }
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -30,21 +34,21 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home/index"
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: t('tabs.home'),
           tabBarIcon: tabIcon('home', 'home-outline'),
         }}
       />
       <Tabs.Screen
         name="calendar/index"
         options={{
-          tabBarLabel: 'Calendar',
+          tabBarLabel: t('tabs.calendar'),
           tabBarIcon: tabIcon('calendar', 'calendar-outline'),
         }}
       />
       <Tabs.Screen
         name="settings/index"
         options={{
-          tabBarLabel: 'Settings',
+          tabBarLabel: t('tabs.settings'),
           tabBarIcon: tabIcon('settings', 'settings-outline'),
         }}
       />
