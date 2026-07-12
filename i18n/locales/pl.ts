@@ -93,6 +93,10 @@ const pl = {
     settings: 'Ustawienia',
   },
   intervals: {
+    title: 'Intervals.icu',
+    connectButton: 'Połącz',
+    disconnectButton: 'Rozłącz',
+    connectedAs: 'Połączono jako {{name}}',
     disconnectConfirmTitle: 'Rozłączyć Intervals.icu?',
     disconnectConfirmBody:
       'Twoje konto Intervals.icu zostanie odłączone od aplikacji.',
