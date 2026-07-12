@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import Box from '@/components/Box';
+import IntervalsReconnectBanner from '@/components/IntervalsReconnectBanner';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
@@ -21,39 +23,42 @@ export default function TabsLayout() {
   const { colors } = useAppTheme();
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.textPrimary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.bgTertiary,
-          borderTopColor: colors.borderDefault,
-          borderTopWidth: 1,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="home/index"
-        options={{
-          tabBarLabel: t('tabs.home'),
-          tabBarIcon: tabIcon('home', 'home-outline'),
+    <Box flex={1}>
+      <IntervalsReconnectBanner />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.textPrimary,
+          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarStyle: {
+            backgroundColor: colors.bgTertiary,
+            borderTopColor: colors.borderDefault,
+            borderTopWidth: 1,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="calendar/index"
-        options={{
-          tabBarLabel: t('tabs.calendar'),
-          tabBarIcon: tabIcon('calendar', 'calendar-outline'),
-        }}
-      />
-      <Tabs.Screen
-        name="settings/index"
-        options={{
-          tabBarLabel: t('tabs.settings'),
-          tabBarIcon: tabIcon('settings', 'settings-outline'),
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="home/index"
+          options={{
+            tabBarLabel: t('tabs.home'),
+            tabBarIcon: tabIcon('home', 'home-outline'),
+          }}
+        />
+        <Tabs.Screen
+          name="calendar/index"
+          options={{
+            tabBarLabel: t('tabs.calendar'),
+            tabBarIcon: tabIcon('calendar', 'calendar-outline'),
+          }}
+        />
+        <Tabs.Screen
+          name="settings/index"
+          options={{
+            tabBarLabel: t('tabs.settings'),
+            tabBarIcon: tabIcon('settings', 'settings-outline'),
+          }}
+        />
+      </Tabs>
+    </Box>
   );
 }

@@ -108,6 +108,10 @@ const pl = {
       disconnectFailed:
         'Nie udało się rozłączyć konta Intervals.icu. Spróbuj ponownie.',
     },
+    reconnectBanner: {
+      message: 'Połączenie z Intervals.icu wygasło.',
+      action: 'Połącz ponownie',
+    },
   },
 } as const;
 

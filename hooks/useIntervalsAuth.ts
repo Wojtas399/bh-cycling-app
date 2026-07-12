@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
+import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -59,6 +60,8 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         code: result.params.code,
         clientId,
       });
+
+      setNeedsReconnect(false);
     } catch {
       setError(t('intervals.errors.exchangeFailed'));
     } finally {

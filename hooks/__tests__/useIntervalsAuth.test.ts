@@ -2,6 +2,10 @@ import { Alert } from 'react-native';
 
 import { useIntervalsAuth } from '../useIntervalsAuth';
 import { useIntervalsConnection } from '../useIntervalsConnection';
+import {
+  getNeedsReconnect,
+  setNeedsReconnect,
+} from '@/lib/intervalsReconnectStore';
 import { act, renderHook } from '@testing-library/react-native';
 
 const mockPromptAsync = jest.fn();
@@ -37,6 +41,7 @@ describe('useIntervalsAuth', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseIntervalsConnection.mockReturnValue({ isConnected: true });
+    setNeedsReconnect(false);
   });
 
   describe('handleConnect', () => {
@@ -61,6 +66,26 @@ describe('useIntervalsAuth', () => {
       );
       expect(result.current.error).toBe('');
       expect(result.current.connecting).toBe(false);
+    });
+
+    it('clears the needs-reconnect flag on a successful authorization', async () => {
+      setNeedsReconnect(true);
+
+      const mockExchange = jest.fn().mockResolvedValue({ data: {} });
+
+      mockHttpsCallable.mockReturnValue(mockExchange);
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderHook(() => useIntervalsAuth());
+
+      await act(async () => {
+        await result.current.handleConnect();
+      });
+
+      expect(getNeedsReconnect()).toBe(false);
     });
 
     it('sets an error when the Cloud Function exchange fails', async () => {
