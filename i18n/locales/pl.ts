@@ -92,6 +92,19 @@ const pl = {
     calendar: 'Kalendarz',
     settings: 'Ustawienia',
   },
+  intervals: {
+    disconnectConfirmTitle: 'Rozłączyć Intervals.icu?',
+    disconnectConfirmBody:
+      'Twoje konto Intervals.icu zostanie odłączone od aplikacji.',
+    disconnectConfirmButton: 'Rozłącz',
+    disconnectCancelButton: 'Anuluj',
+    errors: {
+      exchangeFailed:
+        'Nie udało się połączyć z Intervals.icu. Spróbuj ponownie.',
+      disconnectFailed:
+        'Nie udało się rozłączyć konta Intervals.icu. Spróbuj ponownie.',
+    },
+  },
 } as const;
 
 export default pl;

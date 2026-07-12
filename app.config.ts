@@ -71,7 +71,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         ios: {
           useFrameworks: 'static',
-          forceStaticLinking: ['RNFBApp', 'RNFBAuth', 'RNFBFirestore'],
+          forceStaticLinking: [
+            'RNFBApp',
+            'RNFBAuth',
+            'RNFBFirestore',
+            'RNFBFunctions',
+          ],
         },
       },
     ],
