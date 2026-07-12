@@ -61,9 +61,7 @@ describe('useIntervalsAuth', () => {
       });
 
       expect(mockHttpsCallable).toHaveBeenCalledWith('exchangeIntervalsToken');
-      expect(mockExchange).toHaveBeenCalledWith(
-        expect.objectContaining({ code: 'auth-code' }),
-      );
+      expect(mockExchange).toHaveBeenCalledWith({ code: 'auth-code' });
       expect(result.current.error).toBe('');
       expect(result.current.connecting).toBe(false);
     });

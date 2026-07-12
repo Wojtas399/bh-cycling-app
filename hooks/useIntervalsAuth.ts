@@ -56,10 +56,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         'exchangeIntervalsToken',
       );
 
-      await exchangeIntervalsToken({
-        code: result.params.code,
-        clientId,
-      });
+      await exchangeIntervalsToken({ code: result.params.code });
 
       setNeedsReconnect(false);
     } catch {

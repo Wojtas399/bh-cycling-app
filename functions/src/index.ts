@@ -1,6 +1,7 @@
 import { disconnectIntervalsHandler } from './intervals/disconnect';
 import {
   exchangeIntervalsTokenHandler,
+  intervalsClientId,
   intervalsClientSecret,
 } from './intervals/exchangeToken';
 import { getApps, initializeApp } from 'firebase-admin/app';
@@ -11,7 +12,7 @@ if (!getApps().length) {
 }
 
 export const exchangeIntervalsToken = onCall(
-  { secrets: [intervalsClientSecret] },
+  { secrets: [intervalsClientId, intervalsClientSecret] },
   exchangeIntervalsTokenHandler,
 );
 

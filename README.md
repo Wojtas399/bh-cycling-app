@@ -75,6 +75,19 @@ npx firebase deploy --only firestore:rules
 
 `firebase.json` (repo root) points at `functions/` as the functions source and `firestore.rules` (repo root) as the Firestore rules file. The rules file defaults to deny-all; update it per-feature as Firestore-backed features are added.
 
+### Intervals.icu OAuth secrets
+
+`exchangeIntervalsToken` reads `INTERVALS_CLIENT_ID` and `INTERVALS_CLIENT_SECRET` from Firebase Secret Manager — set independently per project so each environment only ever talks to its own Intervals.icu OAuth app registration:
+
+```bash
+npx firebase use staging
+npx firebase functions:secrets:set INTERVALS_CLIENT_ID
+npx firebase functions:secrets:set INTERVALS_CLIENT_SECRET
+# repeat with: npx firebase use production
+```
+
+The app side needs the matching public client ID to build the authorization request: set `EXPO_PUBLIC_INTERVALS_CLIENT_ID` in `.env.local` for local development, and as an EAS environment variable for the `development`, `preview`, and `production` environments (`eas env:create --name EXPO_PUBLIC_INTERVALS_CLIENT_ID --environment <env>` — this hasn't been run yet and needs an authenticated `eas login`).
+
 ## Learn more
 
 - [Expo documentation](https://docs.expo.dev/)

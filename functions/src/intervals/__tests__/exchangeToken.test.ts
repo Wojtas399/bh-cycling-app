@@ -25,6 +25,7 @@ describe('exchangeIntervalsTokenHandler', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.INTERVALS_CLIENT_ID = 'server-configured-client-id';
     process.env.INTERVALS_CLIENT_SECRET = 'test-secret';
   });
 
@@ -43,7 +44,7 @@ describe('exchangeIntervalsTokenHandler', () => {
     }) as unknown as typeof fetch;
 
     const result = await exchangeIntervalsTokenHandler(
-      buildRequest({ code: 'valid-code', clientId: 'client-1' }),
+      buildRequest({ code: 'valid-code' }),
     );
 
     expect(result).toEqual({
@@ -58,6 +59,15 @@ describe('exchangeIntervalsTokenHandler', () => {
       scope: 'ACTIVITY:READ,CALENDAR:READ',
       connectedAt: 'MOCK_TIMESTAMP',
     });
+
+    const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      { body: string },
+    ];
+
+    expect(JSON.parse(requestInit.body)).toMatchObject({
+      client_id: 'server-configured-client-id',
+    });
   });
 
   it('returns a structured error and writes nothing for an expired/invalid code', async () => {
@@ -68,9 +78,7 @@ describe('exchangeIntervalsTokenHandler', () => {
     }) as unknown as typeof fetch;
 
     await expect(
-      exchangeIntervalsTokenHandler(
-        buildRequest({ code: 'expired-code', clientId: 'client-1' }),
-      ),
+      exchangeIntervalsTokenHandler(buildRequest({ code: 'expired-code' })),
     ).rejects.toMatchObject({ code: 'invalid-argument' });
 
     expect(setMock).not.toHaveBeenCalled();
@@ -80,9 +88,7 @@ describe('exchangeIntervalsTokenHandler', () => {
     global.fetch = jest.fn();
 
     await expect(
-      exchangeIntervalsTokenHandler(
-        buildRequest({ code: 'any-code', clientId: 'client-1' }, ''),
-      ),
+      exchangeIntervalsTokenHandler(buildRequest({ code: 'any-code' }, '')),
     ).rejects.toMatchObject({ code: 'unauthenticated' });
 
     expect(global.fetch).not.toHaveBeenCalled();
@@ -95,9 +101,7 @@ describe('exchangeIntervalsTokenHandler', () => {
       .mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
 
     await expect(
-      exchangeIntervalsTokenHandler(
-        buildRequest({ code: 'valid-code', clientId: 'client-1' }),
-      ),
+      exchangeIntervalsTokenHandler(buildRequest({ code: 'valid-code' })),
     ).rejects.toMatchObject({ code: 'unavailable' });
 
     expect(setMock).not.toHaveBeenCalled();

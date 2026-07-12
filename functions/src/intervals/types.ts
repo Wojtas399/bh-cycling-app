@@ -19,7 +19,6 @@ export interface IntervalsTokenResponse {
 
 export interface ExchangeIntervalsTokenData {
   code: string;
-  clientId: string;
 }
 
 export interface ExchangeIntervalsTokenResult {

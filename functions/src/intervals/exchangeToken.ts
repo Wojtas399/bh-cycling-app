@@ -8,6 +8,7 @@ import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { type CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 
+export const intervalsClientId = defineSecret('INTERVALS_CLIENT_ID');
 export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
 
 const TOKEN_URL = 'https://intervals.icu/api/oauth/token';
@@ -20,10 +21,10 @@ export async function exchangeIntervalsTokenHandler(
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
 
-  const { code, clientId } = request.data ?? {};
+  const { code } = request.data ?? {};
 
-  if (!code || !clientId) {
-    throw new HttpsError('invalid-argument', 'code and clientId are required.');
+  if (!code) {
+    throw new HttpsError('invalid-argument', 'code is required.');
   }
 
   let response: Response;
@@ -33,7 +34,7 @@ export async function exchangeIntervalsTokenHandler(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        client_id: clientId,
+        client_id: intervalsClientId.value(),
         client_secret: intervalsClientSecret.value(),
         code,
         grant_type: 'authorization_code',
