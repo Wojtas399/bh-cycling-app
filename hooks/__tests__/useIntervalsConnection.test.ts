@@ -1,0 +1,82 @@
+import { useIntervalsConnection } from '../useIntervalsConnection';
+import { act, renderHook } from '@testing-library/react-native';
+
+const mockOnSnapshot = jest.fn();
+const mockDoc = jest.fn(() => ({ onSnapshot: mockOnSnapshot }));
+
+jest.mock('@/lib/firebase', () => ({
+  auth: () => ({ currentUser: { uid: 'user-1' } }),
+  firestore: () => ({ doc: mockDoc }),
+}));
+
+async function emitSnapshot(data: Record<string, unknown> | undefined) {
+  const onNext = mockOnSnapshot.mock.calls[0][0] as (snapshot: {
+    data: () => Record<string, unknown> | undefined;
+  }) => void;
+
+  await act(() => {
+    onNext({ data: () => data });
+  });
+}
+
+describe('useIntervalsConnection', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('is loading before the first snapshot resolves', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.isConnected).toBe(false);
+    expect(mockDoc).toHaveBeenCalledWith('users/user-1/integrations/intervals');
+  });
+
+  it('is not connected when no document exists', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    await emitSnapshot(undefined);
+
+    expect(result.current).toEqual({
+      isConnected: false,
+      athleteName: null,
+      athleteId: null,
+      accessToken: null,
+      loading: false,
+    });
+  });
+
+  it('is connected with populated fields when the document exists', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    await emitSnapshot({
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+      athleteName: 'Jane Rider',
+    });
+
+    expect(result.current).toEqual({
+      isConnected: true,
+      athleteName: 'Jane Rider',
+      athleteId: 'athlete-1',
+      accessToken: 'token-1',
+      loading: false,
+    });
+  });
+
+  it('transitions to not connected when the document is deleted mid-session', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    await emitSnapshot({
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+      athleteName: 'Jane Rider',
+    });
+
+    expect(result.current.isConnected).toBe(true);
+
+    await emitSnapshot(undefined);
+
+    expect(result.current.isConnected).toBe(false);
+  });
+});
