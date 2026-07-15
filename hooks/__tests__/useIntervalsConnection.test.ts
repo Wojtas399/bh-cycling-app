@@ -79,4 +79,25 @@ describe('useIntervalsConnection', () => {
 
     expect(result.current.isConnected).toBe(false);
   });
+
+  it('does not crash and reports not connected when the snapshot listener errors', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    const onNext = mockOnSnapshot.mock.calls[0][0] as (
+      snapshot: null,
+      error: Error,
+    ) => void;
+
+    await act(() => {
+      onNext(null, new Error('permission-denied'));
+    });
+
+    expect(result.current).toEqual({
+      isConnected: false,
+      athleteName: null,
+      athleteId: null,
+      accessToken: null,
+      loading: false,
+    });
+  });
 });

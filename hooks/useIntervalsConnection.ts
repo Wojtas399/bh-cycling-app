@@ -36,6 +36,12 @@ export function useIntervalsConnection(): IntervalsConnectionState {
     const unsubscribe = firestore()
       .doc(`users/${uid}/integrations/intervals`)
       .onSnapshot(snapshot => {
+        if (!snapshot) {
+          setState(NOT_CONNECTED);
+
+          return;
+        }
+
         const data = snapshot.data() as
           | { accessToken?: string; athleteId?: string; athleteName?: string }
           | undefined;
