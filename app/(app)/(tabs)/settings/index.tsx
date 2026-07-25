@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import Button from '@/components/Button';
@@ -12,6 +13,7 @@ import { auth } from '@/lib/firebase';
 export default function SettingsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'intervals' });
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
   const connection = useIntervalsConnection();
   const { handleConnect, handleDisconnect, connecting, disconnecting, error } =
     useIntervalsAuth();
@@ -24,6 +26,7 @@ export default function SettingsScreen() {
       backgroundColor="bgPrimary"
       alignItems="center"
       justifyContent="center"
+      style={{ paddingTop: insets.top }}
     >
       <Text variant="h2">Ustawienia</Text>
 

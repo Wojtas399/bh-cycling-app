@@ -92,6 +92,14 @@ const pl = {
     calendar: 'Kalendarz',
     settings: 'Ustawienia',
   },
+  home: {
+    upcomingWorkouts: {
+      title: 'Nadchodzące treningi',
+      empty: 'Brak zaplanowanych treningów na dziś i jutro.',
+      today: 'Dziś',
+      tomorrow: 'Jutro',
+    },
+  },
   intervals: {
     title: 'Intervals.icu',
     connectButton: 'Połącz',

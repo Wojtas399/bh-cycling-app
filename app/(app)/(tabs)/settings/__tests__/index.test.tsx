@@ -1,9 +1,16 @@
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import SettingsScreen from '../index';
 import theme from '@/constants/theme';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { ThemeProvider } from '@shopify/restyle';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+
+const TEST_SAFE_AREA_METRICS = {
+  frame: { x: 0, y: 0, width: 320, height: 640 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
 
 const mockHandleConnect = jest.fn();
 const mockHandleDisconnect = jest.fn();
@@ -35,9 +42,11 @@ const mockUseIntervalsAuth = useIntervalsAuth as jest.Mock;
 
 function renderScreen() {
   return render(
-    <ThemeProvider theme={theme}>
-      <SettingsScreen />
-    </ThemeProvider>,
+    <SafeAreaProvider initialMetrics={TEST_SAFE_AREA_METRICS}>
+      <ThemeProvider theme={theme}>
+        <SettingsScreen />
+      </ThemeProvider>
+    </SafeAreaProvider>,
   );
 }
 
