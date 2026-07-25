@@ -47,5 +47,5 @@ jobs:
                Even if there are no issues, post a brief summary of what you reviewed and a LGTM verdict.
 
             Keep feedback actionable and specific. Reference file paths and line numbers where relevant.
-          claude_args: '--allowedTools Bash(gh *)'
+          claude_args: '--allowedTools Bash(gh:*)'
 
