@@ -62,12 +62,15 @@ describe('exchangeIntervalsTokenHandler', () => {
 
     const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0] as [
       string,
-      { body: string },
+      { body: string; headers: Record<string, string> },
     ];
 
-    expect(JSON.parse(requestInit.body)).toMatchObject({
-      client_id: 'server-configured-client-id',
-    });
+    expect(requestInit.headers['Content-Type']).toBe(
+      'application/x-www-form-urlencoded',
+    );
+    expect(new URLSearchParams(requestInit.body).get('client_id')).toBe(
+      'server-configured-client-id',
+    );
   });
 
   it('returns a structured error and writes nothing for an expired/invalid code', async () => {

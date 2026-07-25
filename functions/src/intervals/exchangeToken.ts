@@ -12,7 +12,6 @@ export const intervalsClientId = defineSecret('INTERVALS_CLIENT_ID');
 export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
 
 const TOKEN_URL = 'https://intervals.icu/api/oauth/token';
-const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
 
 export async function exchangeIntervalsTokenHandler(
   request: CallableRequest<ExchangeIntervalsTokenData>,
@@ -32,14 +31,12 @@ export async function exchangeIntervalsTokenHandler(
   try {
     response = await fetch(TOKEN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
         client_id: intervalsClientId.value(),
         client_secret: intervalsClientSecret.value(),
         code,
-        grant_type: 'authorization_code',
-        redirect_uri: REDIRECT_URI,
-      }),
+      }).toString(),
     });
   } catch {
     throw new HttpsError('unavailable', 'Could not reach Intervals.icu.');
