@@ -1,4 +1,8 @@
-const BASE_URL = 'https://intervals.icu/api/v1';
+import {
+  INTERVALS_API_BASE_URL,
+  intervalsActivitiesPath,
+  intervalsCalendarEventsPath,
+} from './intervalsApiPaths';
 
 export class IntervalsAuthError extends Error {
   constructor(message = 'Intervals.icu access token is invalid or expired.') {
@@ -45,7 +49,7 @@ async function request<T>(
   token: string,
   params?: IntervalsDateRangeParams,
 ): Promise<T> {
-  const url = new URL(`${BASE_URL}${path}`);
+  const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -74,7 +78,7 @@ export function getActivities(
   params?: IntervalsDateRangeParams,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
-    `/athlete/${athleteId}/activities`,
+    intervalsActivitiesPath(athleteId),
     token,
     params,
   );
@@ -86,7 +90,7 @@ export function getCalendarEvents(
   params?: IntervalsDateRangeParams,
 ): Promise<IntervalsCalendarEvent[]> {
   return request<IntervalsCalendarEvent[]>(
-    `/athlete/${athleteId}/events`,
+    intervalsCalendarEventsPath(athleteId),
     token,
     params,
   );
