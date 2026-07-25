@@ -69,7 +69,7 @@ describe('HomeScreen — Upcoming Workouts section', () => {
     mockUseUpcomingWorkouts.mockReturnValue({
       status: 'ready',
       workouts: [
-        { id: 1, name: 'Intervals', dayLabel: 'today' },
+        { id: 1, name: 'Intervals', dayLabel: 'today', durationSeconds: 6600 },
         { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow' },
       ],
     });
@@ -78,6 +78,7 @@ describe('HomeScreen — Upcoming Workouts section', () => {
 
     expect(screen.getByText('Intervals')).toBeTruthy();
     expect(screen.getByText('home.upcomingWorkouts.today')).toBeTruthy();
+    expect(screen.getByText('1h 50m')).toBeTruthy();
     expect(screen.getByText('Endurance ride')).toBeTruthy();
     expect(screen.getByText('home.upcomingWorkouts.tomorrow')).toBeTruthy();
   });

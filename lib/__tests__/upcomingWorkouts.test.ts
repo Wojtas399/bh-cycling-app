@@ -118,4 +118,33 @@ describe('getUpcomingWorkouts', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('attaches durationSeconds from the workout_doc when present', () => {
+    const events = [
+      event({
+        id: 1,
+        name: 'Structured ride',
+        start_date_local: '2026-07-25T08:00:00',
+        workout_doc: { duration: 3600 },
+      }),
+    ];
+
+    const result = getUpcomingWorkouts(events, NOW);
+
+    expect(result[0].durationSeconds).toBe(3600);
+  });
+
+  it('maps workouts lacking a workout_doc without a duration', () => {
+    const events = [
+      event({
+        id: 1,
+        name: 'Unstructured ride',
+        start_date_local: '2026-07-25T08:00:00',
+      }),
+    ];
+
+    const result = getUpcomingWorkouts(events, NOW);
+
+    expect(result[0].durationSeconds).toBeUndefined();
+  });
 });
