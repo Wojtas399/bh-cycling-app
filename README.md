@@ -54,6 +54,40 @@ Expo Go does **not** include this app’s native Firebase stack. Use the dev cli
 | `npm run ios:prebuild` / `npm run android:prebuild` | Regenerate native projects (`expo prebuild --clean`)                        |
 | `npm run reset-project`                             | Moves starter `app` code to `app-example` and gives a blank `app` directory |
 
+## Cloud Functions (`functions/`)
+
+A separate TypeScript project deployed independently from the app. It has its own `package.json`, dependencies, and test suite.
+
+```bash
+cd functions
+npm install
+npm run build   # compile TypeScript to lib/
+npm test        # run the Jest suite
+```
+
+Two Firebase projects are registered as aliases in the root `.firebaserc`: `staging` (`bh-cycling-staging`) and `production` (`bh-cycling-production`). Select one before deploying or working with the emulator:
+
+```bash
+npx firebase use staging       # or: npx firebase use production
+npx firebase deploy --only functions
+npx firebase deploy --only firestore:rules
+```
+
+`firebase.json` (repo root) points at `functions/` as the functions source and `firestore.rules` (repo root) as the Firestore rules file. The rules file defaults to deny-all; update it per-feature as Firestore-backed features are added.
+
+### Intervals.icu OAuth secrets
+
+`exchangeIntervalsToken` reads `INTERVALS_CLIENT_ID` and `INTERVALS_CLIENT_SECRET` from Firebase Secret Manager — set independently per project so each environment only ever talks to its own Intervals.icu OAuth app registration:
+
+```bash
+npx firebase use staging
+npx firebase functions:secrets:set INTERVALS_CLIENT_ID
+npx firebase functions:secrets:set INTERVALS_CLIENT_SECRET
+# repeat with: npx firebase use production
+```
+
+The app side needs the matching public client ID to build the authorization request: set `EXPO_PUBLIC_INTERVALS_CLIENT_ID` in `.env.local` for local development, and as an EAS environment variable for the `development`, `preview`, and `production` environments (`eas env:create --name EXPO_PUBLIC_INTERVALS_CLIENT_ID --environment <env>` — this hasn't been run yet and needs an authenticated `eas login`).
+
 ## Learn more
 
 - [Expo documentation](https://docs.expo.dev/)

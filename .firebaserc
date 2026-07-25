@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "staging": "bh-cycling-staging",
+    "production": "bh-cycling-production",
+    "default": "bh-cycling-staging"
+  }
+}

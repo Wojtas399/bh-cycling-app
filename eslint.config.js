@@ -17,7 +17,7 @@ module.exports = defineConfig([
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/consistent-type-imports': [
         'warn',
-        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+        { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
       ],
       '@typescript-eslint/no-empty-interface': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
