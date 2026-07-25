@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUpcomingWorkouts } from './useUpcomingWorkouts';
 import Box from '@/components/Box';
@@ -11,6 +12,7 @@ export default function HomeScreen() {
     keyPrefix: 'home.upcomingWorkouts',
   });
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
   const state = useUpcomingWorkouts();
 
   if (state.status === 'hidden') {
@@ -22,7 +24,7 @@ export default function HomeScreen() {
       flex={1}
       backgroundColor="bgPrimary"
       paddingHorizontal="lg"
-      paddingTop="xl"
+      style={{ paddingTop: insets.top + theme.spacing.xl }}
     >
       <Text variant="h2">{t('title')}</Text>
 

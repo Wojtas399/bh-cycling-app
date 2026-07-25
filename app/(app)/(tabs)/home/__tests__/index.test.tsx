@@ -1,8 +1,15 @@
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import HomeScreen from '../index';
 import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
 import theme from '@/constants/theme';
 import { ThemeProvider } from '@shopify/restyle';
 import { render, screen } from '@testing-library/react-native';
+
+const TEST_SAFE_AREA_METRICS = {
+  frame: { x: 0, y: 0, width: 320, height: 640 },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
 
 jest.mock('react-i18next', () => ({
   useTranslation: (_ns?: string, options?: { keyPrefix?: string }) => ({
@@ -19,9 +26,11 @@ const mockUseUpcomingWorkouts = useUpcomingWorkouts as jest.Mock;
 
 function renderScreen() {
   return render(
-    <ThemeProvider theme={theme}>
-      <HomeScreen />
-    </ThemeProvider>,
+    <SafeAreaProvider initialMetrics={TEST_SAFE_AREA_METRICS}>
+      <ThemeProvider theme={theme}>
+        <HomeScreen />
+      </ThemeProvider>
+    </SafeAreaProvider>,
   );
 }
 
