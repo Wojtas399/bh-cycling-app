@@ -28,33 +28,32 @@ export default function HomeScreen() {
     >
       <Text variant="h2">{t('title')}</Text>
 
-      {state.status === 'loading' ? (
+      {state.status === 'loading' && (
         <Box marginTop="md" testID="upcoming-workouts-loading">
           <ActivityIndicator color={theme.colors.textPrimary} />
         </Box>
-      ) : null}
+      )}
 
-      {state.status === 'empty' ? (
+      {state.status === 'empty' && (
         <Text variant="body-l-regular" color="textSecondary" marginTop="md">
           {t('empty')}
         </Text>
-      ) : null}
+      )}
 
-      {state.status === 'ready'
-        ? state.workouts.map(workout => (
-            <Box
-              key={workout.id}
-              flexDirection="row"
-              justifyContent="space-between"
-              marginTop="md"
-            >
-              <Text variant="body-l-regular">{workout.name}</Text>
-              <Text variant="body-s-regular" color="textSecondary">
-                {t(workout.dayLabel)}
-              </Text>
-            </Box>
-          ))
-        : null}
+      {state.status === 'ready' &&
+        state.workouts.map(workout => (
+          <Box
+            key={workout.id}
+            flexDirection="row"
+            justifyContent="space-between"
+            marginTop="md"
+          >
+            <Text variant="body-l-regular">{workout.name}</Text>
+            <Text variant="body-s-regular" color="textSecondary">
+              {t(workout.dayLabel)}
+            </Text>
+          </Box>
+        ))}
     </Box>
   );
 }
