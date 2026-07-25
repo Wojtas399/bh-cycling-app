@@ -10,7 +10,7 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { auth } from '@/lib/firebase';
 
 export default function SettingsScreen() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { keyPrefix: 'intervals' });
   const theme = useAppTheme();
   const connection = useIntervalsConnection();
   const { handleConnect, handleDisconnect, connecting, disconnecting, error } =
@@ -36,10 +36,10 @@ export default function SettingsScreen() {
         marginTop="xl"
       >
         <Box flex={1} marginRight="md">
-          <Text variant="body-l-regular">{t('intervals.title')}</Text>
+          <Text variant="body-l-regular">{t('title')}</Text>
           {connection.isConnected ? (
             <Text variant="body-s-regular" color="textSecondary">
-              {t('intervals.connectedAs', {
+              {t('connectedAs', {
                 name: connection.athleteName ?? '',
               })}
             </Text>
@@ -59,8 +59,8 @@ export default function SettingsScreen() {
               color={connection.isConnected ? 'danger' : 'accent'}
             >
               {connection.isConnected
-                ? t('intervals.disconnectButton')
-                : t('intervals.connectButton')}
+                ? t('disconnectButton')
+                : t('connectButton')}
             </Text>
           )}
         </TouchableOpacity>

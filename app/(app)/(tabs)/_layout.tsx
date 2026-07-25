@@ -19,7 +19,7 @@ function tabIcon(active: IoniconName, inactive: IoniconName) {
 }
 
 export default function TabsLayout() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { keyPrefix: 'tabs' });
   const { colors } = useAppTheme();
 
   return (
@@ -40,21 +40,21 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="home/index"
           options={{
-            tabBarLabel: t('tabs.home'),
+            tabBarLabel: t('home'),
             tabBarIcon: tabIcon('home', 'home-outline'),
           }}
         />
         <Tabs.Screen
           name="calendar/index"
           options={{
-            tabBarLabel: t('tabs.calendar'),
+            tabBarLabel: t('calendar'),
             tabBarIcon: tabIcon('calendar', 'calendar-outline'),
           }}
         />
         <Tabs.Screen
           name="settings/index"
           options={{
-            tabBarLabel: t('tabs.settings'),
+            tabBarLabel: t('settings'),
             tabBarIcon: tabIcon('settings', 'settings-outline'),
           }}
         />

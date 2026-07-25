@@ -9,9 +9,12 @@ const mockHandleConnect = jest.fn();
 const mockHandleDisconnect = jest.fn();
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) =>
-      opts ? `${key}:${JSON.stringify(opts)}` : key,
+  useTranslation: (_ns?: string, options?: { keyPrefix?: string }) => ({
+    t: (key: string, opts?: Record<string, unknown>) => {
+      const fullKey = options?.keyPrefix ? `${options.keyPrefix}.${key}` : key;
+
+      return opts ? `${fullKey}:${JSON.stringify(opts)}` : fullKey;
+    },
   }),
 }));
 

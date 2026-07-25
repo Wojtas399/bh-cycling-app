@@ -23,7 +23,7 @@ export interface UseIntervalsAuthResult {
 }
 
 export function useIntervalsAuth(): UseIntervalsAuthResult {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { keyPrefix: 'intervals' });
   const connection = useIntervalsConnection();
 
   const [connecting, setConnecting] = useState(false);
@@ -60,7 +60,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       setNeedsReconnect(false);
     } catch {
-      setError(t('intervals.errors.exchangeFailed'));
+      setError(t('errors.exchangeFailed'));
     } finally {
       setConnecting(false);
     }
@@ -69,18 +69,14 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
   function handleDisconnect() {
     if (!connection.isConnected) return;
 
-    Alert.alert(
-      t('intervals.disconnectConfirmTitle'),
-      t('intervals.disconnectConfirmBody'),
-      [
-        { text: t('intervals.disconnectCancelButton'), style: 'cancel' },
-        {
-          text: t('intervals.disconnectConfirmButton'),
-          style: 'destructive',
-          onPress: confirmDisconnect,
-        },
-      ],
-    );
+    Alert.alert(t('disconnectConfirmTitle'), t('disconnectConfirmBody'), [
+      { text: t('disconnectCancelButton'), style: 'cancel' },
+      {
+        text: t('disconnectConfirmButton'),
+        style: 'destructive',
+        onPress: confirmDisconnect,
+      },
+    ]);
   }
 
   async function confirmDisconnect() {
@@ -94,7 +90,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       await disconnectIntervals();
     } catch {
-      setError(t('intervals.errors.disconnectFailed'));
+      setError(t('errors.disconnectFailed'));
     } finally {
       setDisconnecting(false);
     }

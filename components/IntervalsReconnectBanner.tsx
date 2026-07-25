@@ -8,7 +8,9 @@ import { useNeedsReconnect } from '@/hooks/useNeedsReconnect';
 import { useRouter } from 'expo-router';
 
 export default function IntervalsReconnectBanner() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, {
+    keyPrefix: 'intervals.reconnectBanner',
+  });
   const router = useRouter();
   const needsReconnect = useNeedsReconnect();
   const { handleConnect } = useIntervalsAuth();
@@ -31,10 +33,10 @@ export default function IntervalsReconnectBanner() {
         justifyContent="space-between"
       >
         <Text variant="body-s-regular" color="textInverse">
-          {t('intervals.reconnectBanner.message')}
+          {t('message')}
         </Text>
         <Text variant="body-s-medium" color="textInverse">
-          {t('intervals.reconnectBanner.action')}
+          {t('action')}
         </Text>
       </Box>
     </TouchableOpacity>

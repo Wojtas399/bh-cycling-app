@@ -8,7 +8,10 @@ const mockPush = jest.fn();
 const mockHandleConnect = jest.fn();
 
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: (_ns?: string, options?: { keyPrefix?: string }) => ({
+    t: (key: string) =>
+      options?.keyPrefix ? `${options.keyPrefix}.${key}` : key,
+  }),
 }));
 
 jest.mock('expo-router', () => ({
