@@ -1,4 +1,5 @@
 import { auth, firestore } from '@/lib/firebase';
+import { intervalsIntegrationDocPath } from '@/lib/firestorePaths';
 import type { IntervalsAuthError } from '@/lib/intervalsApi';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 
@@ -8,7 +9,7 @@ export async function handleIntervalsAuthError(
   const uid = auth().currentUser?.uid;
 
   if (uid) {
-    await firestore().doc(`users/${uid}/integrations/intervals`).delete();
+    await firestore().doc(intervalsIntegrationDocPath(uid)).delete();
   }
 
   setNeedsReconnect(true);

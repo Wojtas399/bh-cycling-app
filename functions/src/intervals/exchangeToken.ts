@@ -1,3 +1,4 @@
+import { intervalsIntegrationDocPath } from '../firestorePaths';
 import type {
   ExchangeIntervalsTokenData,
   ExchangeIntervalsTokenResult,
@@ -6,7 +7,8 @@ import type {
 } from './types';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
-import { type CallableRequest, HttpsError } from 'firebase-functions/v2/https';
+import { HttpsError } from 'firebase-functions/v2/https';
+import type { CallableRequest } from 'firebase-functions/v2/https';
 
 export const intervalsClientId = defineSecret('INTERVALS_CLIENT_ID');
 export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
@@ -60,7 +62,7 @@ export async function exchangeIntervalsTokenHandler(
   };
 
   await getFirestore()
-    .doc(`users/${request.auth.uid}/integrations/intervals`)
+    .doc(intervalsIntegrationDocPath(request.auth.uid))
     .set(integration);
 
   return {

@@ -1,5 +1,7 @@
+import { intervalsIntegrationDocPath } from '../firestorePaths';
 import { getFirestore } from 'firebase-admin/firestore';
-import { type CallableRequest, HttpsError } from 'firebase-functions/v2/https';
+import type { CallableRequest } from 'firebase-functions/v2/https';
+import { HttpsError } from 'firebase-functions/v2/https';
 
 export async function disconnectIntervalsHandler(
   request: CallableRequest<unknown>,
@@ -9,7 +11,7 @@ export async function disconnectIntervalsHandler(
   }
 
   await getFirestore()
-    .doc(`users/${request.auth.uid}/integrations/intervals`)
+    .doc(intervalsIntegrationDocPath(request.auth.uid))
     .delete();
 
   return { success: true };

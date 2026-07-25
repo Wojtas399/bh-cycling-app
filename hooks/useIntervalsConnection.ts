@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { auth, firestore } from '@/lib/firebase';
+import { intervalsIntegrationDocPath } from '@/lib/firestorePaths';
 
 export interface IntervalsConnectionState {
   isConnected: boolean;
@@ -34,7 +35,7 @@ export function useIntervalsConnection(): IntervalsConnectionState {
     }
 
     const unsubscribe = firestore()
-      .doc(`users/${uid}/integrations/intervals`)
+      .doc(intervalsIntegrationDocPath(uid))
       .onSnapshot(snapshot => {
         if (!snapshot) {
           setState(NOT_CONNECTED);
