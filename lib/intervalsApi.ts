@@ -36,12 +36,17 @@ export interface IntervalsActivity {
   icu_training_load?: number;
 }
 
+export interface IntervalsWorkoutDoc {
+  duration?: number;
+}
+
 export interface IntervalsCalendarEvent {
   id: number;
   category: string;
   name: string;
   start_date_local: string;
   type?: string;
+  workout_doc?: IntervalsWorkoutDoc;
 }
 
 async function request<T>(

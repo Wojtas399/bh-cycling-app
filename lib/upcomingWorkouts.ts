@@ -4,6 +4,7 @@ export interface UpcomingWorkout {
   id: number;
   name: string;
   dayLabel: 'today' | 'tomorrow';
+  durationSeconds?: number;
 }
 
 export function toLocalDateString(date: Date): string {
@@ -40,5 +41,6 @@ export function getUpcomingWorkouts(
       id: event.id,
       name: event.name,
       dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
+      durationSeconds: event.workout_doc?.duration,
     }));
 }

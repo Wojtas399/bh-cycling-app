@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUpcomingWorkouts } from './useUpcomingWorkouts';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
+import WorkoutTile from '@/components/WorkoutTile';
 import { useAppTheme } from '@/constants/theme';
 
 export default function HomeScreen() {
@@ -42,16 +43,12 @@ export default function HomeScreen() {
 
       {state.status === 'ready' &&
         state.workouts.map(workout => (
-          <Box
-            key={workout.id}
-            flexDirection="row"
-            justifyContent="space-between"
-            marginTop="md"
-          >
-            <Text variant="body-l-regular">{workout.name}</Text>
-            <Text variant="body-s-regular" color="textSecondary">
-              {t(workout.dayLabel)}
-            </Text>
+          <Box key={workout.id} marginTop="md">
+            <WorkoutTile
+              title={workout.name}
+              dayLabel={t(workout.dayLabel)}
+              durationSeconds={workout.durationSeconds}
+            />
           </Box>
         ))}
     </Box>
