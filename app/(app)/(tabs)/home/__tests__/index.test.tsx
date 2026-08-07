@@ -82,4 +82,30 @@ describe('HomeScreen — Upcoming Workouts section', () => {
     expect(screen.getByText('Endurance ride')).toBeTruthy();
     expect(screen.getByText('home.upcomingWorkouts.tomorrow')).toBeTruthy();
   });
+
+  it('renders the workout profile on tiles that carry blocks', async () => {
+    mockUseUpcomingWorkouts.mockReturnValue({
+      status: 'ready',
+      workouts: [
+        {
+          id: 1,
+          name: 'Intervals',
+          dayLabel: 'today',
+          durationSeconds: 3600,
+          blocks: [
+            { widthFraction: 0.5, minPct: 50, maxPct: 50, zone: 1 },
+            { widthFraction: 0.5, minPct: 95, maxPct: 105, zone: 4 },
+          ],
+        },
+        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow' },
+      ],
+    });
+
+    await renderScreen();
+
+    // Only the workout with blocks draws a profile; the other degrades.
+    expect(screen.getAllByTestId('workout-profile')).toHaveLength(1);
+    expect(screen.getAllByTestId(/^workout-profile-bar-/)).toHaveLength(2);
+    expect(screen.getByText('Endurance ride')).toBeTruthy();
+  });
 });

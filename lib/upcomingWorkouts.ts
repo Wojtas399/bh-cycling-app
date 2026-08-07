@@ -1,10 +1,18 @@
 import type { IntervalsCalendarEvent } from './intervalsApi';
+import type { ZoneConfig } from './powerZones';
+import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
 export interface UpcomingWorkout {
   id: number;
   name: string;
   dayLabel: 'today' | 'tomorrow';
   durationSeconds?: number;
+  /**
+   * The workout's drawable Workout Profile, absent whenever there is no honest
+   * shape to draw — an unstructured ride, or one targeted by anything other
+   * than power. Callers degrade to the title and duration alone.
+   */
+  blocks?: WorkoutBlock[];
 }
 
 export function toLocalDateString(date: Date): string {
@@ -26,6 +34,7 @@ function addDays(date: Date, days: number): Date {
 export function getUpcomingWorkouts(
   events: IntervalsCalendarEvent[],
   now: Date,
+  zoneConfig: ZoneConfig,
 ): UpcomingWorkout[] {
   const today = toLocalDateString(now);
   const tomorrow = toLocalDateString(addDays(now, 1));
@@ -37,10 +46,15 @@ export function getUpcomingWorkouts(
     .sort((a, b) =>
       a.event.start_date_local.localeCompare(b.event.start_date_local),
     )
-    .map(({ event, date }) => ({
-      id: event.id,
-      name: event.name,
-      dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
-      durationSeconds: event.workout_doc?.duration,
-    }));
+    .map(({ event, date }) => {
+      const blocks = buildWorkoutProfile(event.workout_doc?.steps, zoneConfig);
+
+      return {
+        id: event.id,
+        name: event.name,
+        dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
+        durationSeconds: event.workout_doc?.duration,
+        blocks: blocks.length > 0 ? blocks : undefined,
+      };
+    });
 }

@@ -2,6 +2,7 @@ import {
   IntervalsApiError,
   IntervalsAuthError,
   getActivities,
+  getAthleteSettings,
   getCalendarEvents,
 } from '../intervalsApi';
 
@@ -51,6 +52,20 @@ describe('intervalsApi', () => {
     expect(result).toEqual(events);
     expect(global.fetch).toHaveBeenCalledWith(
       'https://intervals.icu/api/v1/athlete/athlete-1/events?oldest=2026-01-01',
+      { headers: { Authorization: 'Bearer token-1' } },
+    );
+  });
+
+  it('getAthleteSettings reads the token owner athlete and returns typed data on 200', async () => {
+    const settings = { powerZones: [55, 75, 90, 105, 120, 150, 200] };
+
+    mockFetchOnce({ ok: true, status: 200, json: async () => settings });
+
+    const result = await getAthleteSettings('token-1');
+
+    expect(result).toEqual(settings);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://intervals.icu/api/v1/athlete/0',
       { headers: { Authorization: 'Bearer token-1' } },
     );
   });
