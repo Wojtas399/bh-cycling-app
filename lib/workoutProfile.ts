@@ -63,8 +63,11 @@ function isUsableNumber(value: number | undefined): value is number {
 /**
  * Splits the profile width between the steps in proportion to their duration,
  * lifting anything narrower than `MIN_WIDTH_FRACTION` up to that floor and
- * taking the difference off the steps that can spare it. Widening one step can
- * push the next below the floor, so the floored set is grown until it settles.
+ * taking the difference off the steps that can spare it. Flooring is
+ * monotonic in the sorted order — once a fraction clears the floor after
+ * rescaling, every larger fraction clears it too, since rescaling shrinks
+ * every survivor's share by the same factor — so a single ascending pass
+ * finds the floored set without rescanning.
  */
 function toWidthFractions(durations: number[]): number[] {
   const total = durations.reduce((sum, duration) => sum + duration, 0);
@@ -75,30 +78,26 @@ function toWidthFractions(durations: number[]): number[] {
   // is no width left to steal from. Keep the proportions truthful instead.
   if (durations.length * MIN_WIDTH_FRACTION >= 1) return fractions;
 
-  const isFloored = durations.map(() => false);
+  const ascending = fractions
+    .map((_, index) => index)
+    .sort((a, b) => fractions[a] - fractions[b]);
 
-  // Terminates because each pass floors one more step, and the guard above
-  // guarantees at least one step always stays above the floor to scale down.
-  for (;;) {
-    const flooredCount = isFloored.filter(Boolean).length;
-    const spareTotal = fractions.reduce(
-      (sum, fraction, index) => (isFloored[index] ? sum : sum + fraction),
-      0,
-    );
-    const scale = (1 - MIN_WIDTH_FRACTION * flooredCount) / spareTotal;
-    const tooNarrow = fractions.findIndex(
-      (fraction, index) =>
-        !isFloored[index] && fraction * scale < MIN_WIDTH_FRACTION,
-    );
+  let flooredCount = 0;
+  let spareSum = 1;
+  let scale = 1;
 
-    if (tooNarrow === -1) {
-      return fractions.map((fraction, index) =>
-        isFloored[index] ? MIN_WIDTH_FRACTION : fraction * scale,
-      );
-    }
-
-    isFloored[tooNarrow] = true;
+  for (const index of ascending) {
+    scale = (1 - MIN_WIDTH_FRACTION * flooredCount) / spareSum;
+    if (fractions[index] * scale >= MIN_WIDTH_FRACTION) break;
+    flooredCount += 1;
+    spareSum -= fractions[index];
   }
+
+  const floored = new Set(ascending.slice(0, flooredCount));
+
+  return fractions.map((fraction, index) =>
+    floored.has(index) ? MIN_WIDTH_FRACTION : fraction * scale,
+  );
 }
 
 /**
