@@ -31,4 +31,31 @@ describe('WorkoutTile', () => {
     expect(screen.getByText('Tomorrow')).toBeTruthy();
     expect(screen.queryByTestId('workout-tile-duration')).toBeNull();
   });
+
+  it('renders the workout profile when the workout has blocks', async () => {
+    await renderTile({
+      title: 'Threshold intervals',
+      dayLabel: 'Today',
+      durationSeconds: 6600,
+      blocks: [
+        { widthFraction: 0.5, minPct: 50, maxPct: 50, zone: 1 },
+        { widthFraction: 0.5, minPct: 95, maxPct: 105, zone: 4 },
+      ],
+    });
+
+    expect(screen.getByTestId('workout-profile')).toBeTruthy();
+    expect(screen.getAllByTestId(/^workout-profile-bar-/)).toHaveLength(2);
+  });
+
+  it('degrades to the title and duration when there are no blocks', async () => {
+    await renderTile({
+      title: 'Unstructured ride',
+      dayLabel: 'Today',
+      durationSeconds: 3600,
+    });
+
+    expect(screen.getByText('Unstructured ride')).toBeTruthy();
+    expect(screen.getByText('1h')).toBeTruthy();
+    expect(screen.queryByTestId('workout-profile')).toBeNull();
+  });
 });

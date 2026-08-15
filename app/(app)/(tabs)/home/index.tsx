@@ -48,6 +48,7 @@ export default function HomeScreen() {
               title={workout.name}
               dayLabel={t(workout.dayLabel)}
               durationSeconds={workout.durationSeconds}
+              blocks={workout.blocks}
             />
           </Box>
         ))}

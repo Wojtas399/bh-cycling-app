@@ -1,8 +1,11 @@
 import {
   INTERVALS_API_BASE_URL,
+  INTERVALS_CURRENT_ATHLETE_PATH,
   intervalsActivitiesPath,
   intervalsCalendarEventsPath,
 } from './intervalsApiPaths';
+import type { AthleteZoneSettings } from './powerZones';
+import type { WorkoutStep } from './workoutProfile';
 
 export class IntervalsAuthError extends Error {
   constructor(message = 'Intervals.icu access token is invalid or expired.') {
@@ -38,6 +41,8 @@ export interface IntervalsActivity {
 
 export interface IntervalsWorkoutDoc {
   duration?: number;
+  /** The workout's efforts in time order, with repeats already expanded. */
+  steps?: WorkoutStep[];
 }
 
 export interface IntervalsCalendarEvent {
@@ -87,6 +92,16 @@ export function getActivities(
     token,
     params,
   );
+}
+
+/**
+ * Reads the settings of the athlete the token belongs to. Only the zone slice
+ * is typed — the endpoint returns a far larger athlete record the app ignores.
+ */
+export function getAthleteSettings(
+  token: string,
+): Promise<AthleteZoneSettings> {
+  return request<AthleteZoneSettings>(INTERVALS_CURRENT_ATHLETE_PATH, token);
 }
 
 export function getCalendarEvents(

@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
-import { IntervalsAuthError, getCalendarEvents } from '@/lib/intervalsApi';
+import {
+  IntervalsAuthError,
+  getAthleteSettings,
+  getCalendarEvents,
+} from '@/lib/intervalsApi';
+import { resolveZoneConfig } from '@/lib/powerZones';
 import {
   type UpcomingWorkout,
   getUpcomingWorkouts,
@@ -48,14 +53,24 @@ export function useUpcomingWorkouts(): UpcomingWorkoutsState {
 
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    getCalendarEvents(connection.accessToken, connection.athleteId, {
-      oldest: toLocalDateString(now),
-      newest: toLocalDateString(tomorrow),
-    })
-      .then(events => {
+    Promise.all([
+      getCalendarEvents(connection.accessToken, connection.athleteId, {
+        oldest: toLocalDateString(now),
+        newest: toLocalDateString(tomorrow),
+      }),
+      // Custom zone boundaries only sharpen the colours of the profile, and
+      // Coggan stands in for them well enough. Losing them must never cost the
+      // athlete the list of workouts itself.
+      getAthleteSettings(connection.accessToken).catch(() => null),
+    ])
+      .then(([events, settings]) => {
         if (cancelled) return;
 
-        const workouts = getUpcomingWorkouts(events, now);
+        const workouts = getUpcomingWorkouts(
+          events,
+          now,
+          resolveZoneConfig(settings),
+        );
 
         setState(
           workouts.length === 0
