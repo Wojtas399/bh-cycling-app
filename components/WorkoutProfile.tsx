@@ -57,11 +57,6 @@ export default function WorkoutProfile({ blocks }: WorkoutProfileProps) {
     >
       {blocks.map((block, index) => {
         const color = ZONE_COLORS[block.zone];
-        // Share of the bar taken by the range above `minPct`; zero when the
-        // block is flat, and when a rest step asks for no power and so has no
-        // bar to divide up.
-        const capShare =
-          block.maxPct > 0 ? (block.maxPct - block.minPct) / block.maxPct : 0;
 
         return (
           <Box
@@ -82,15 +77,20 @@ export default function WorkoutProfile({ blocks }: WorkoutProfileProps) {
               style={{ height: `${(block.maxPct / ceilingPct) * 100}%` }}
               testID={`workout-profile-bar-${index}`}
             >
+              {/* The bar is split between the range above `minPct` and the
+                  solid fill below it, in proportion to the power each stands
+                  for — the same idiom the widths above are drawn with. */}
               <Box
                 backgroundColor={color}
                 opacity={CAP_OPACITY}
-                style={{ height: `${capShare * 100}%` }}
+                flexGrow={block.maxPct - block.minPct}
+                flexBasis={0}
                 testID={`workout-profile-cap-${index}`}
               />
               <Box
                 backgroundColor={color}
-                flex={1}
+                flexGrow={block.minPct}
+                flexBasis={0}
                 testID={`workout-profile-solid-${index}`}
               />
             </Box>

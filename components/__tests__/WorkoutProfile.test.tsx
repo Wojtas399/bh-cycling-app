@@ -51,15 +51,18 @@ describe('WorkoutProfile', () => {
   it('caps a range block over the span between its minPct and maxPct', async () => {
     await renderProfile(BLOCKS);
 
-    // 80–100% FTP: the top fifth of a bar that reaches the 100% ceiling.
-    expect(styleOf('workout-profile-cap-1').height).toBe('20%');
+    // 80–100% FTP: the bar is split 80 solid to 20 cap, so the range is drawn
+    // over its top fifth.
+    expect(styleOf('workout-profile-cap-1').flexGrow).toBe(20);
+    expect(styleOf('workout-profile-solid-1').flexGrow).toBe(80);
   });
 
   it('leaves a flat block with no cap above its solid fill', async () => {
     await renderProfile(BLOCKS);
 
-    expect(styleOf('workout-profile-cap-0').height).toBe('0%');
-    expect(styleOf('workout-profile-cap-2').height).toBe('0%');
+    expect(styleOf('workout-profile-cap-0').flexGrow).toBe(0);
+    expect(styleOf('workout-profile-cap-2').flexGrow).toBe(0);
+    expect(styleOf('workout-profile-solid-0').flexGrow).toBe(40);
   });
 
   it('draws the cap lighter than the solid fill below it', async () => {
@@ -104,7 +107,8 @@ describe('WorkoutProfile', () => {
     ]);
 
     expect(styleOf('workout-profile-bar-0').height).toBe('0%');
-    expect(styleOf('workout-profile-cap-0').height).toBe('0%');
+    expect(styleOf('workout-profile-cap-0').flexGrow).toBe(0);
+    expect(styleOf('workout-profile-solid-0').flexGrow).toBe(0);
   });
 
   it('renders nothing when there are no blocks to draw', async () => {
