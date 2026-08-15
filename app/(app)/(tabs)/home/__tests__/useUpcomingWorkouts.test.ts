@@ -168,7 +168,7 @@ describe('useUpcomingWorkouts', () => {
 
     expect(
       result.current.status === 'ready' && result.current.workouts,
-    ).toEqual([{ id: 1, name: 'Intervals', dayLabel: 'today' }]);
+    ).toEqual([{ id: 1, name: 'Intervals', dayLabel: 'today', blocks: [] }]);
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',

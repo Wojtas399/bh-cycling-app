@@ -69,8 +69,14 @@ describe('HomeScreen — Upcoming Workouts section', () => {
     mockUseUpcomingWorkouts.mockReturnValue({
       status: 'ready',
       workouts: [
-        { id: 1, name: 'Intervals', dayLabel: 'today', durationSeconds: 6600 },
-        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow' },
+        {
+          id: 1,
+          name: 'Intervals',
+          dayLabel: 'today',
+          durationSeconds: 6600,
+          blocks: [],
+        },
+        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow', blocks: [] },
       ],
     });
 
@@ -97,7 +103,7 @@ describe('HomeScreen — Upcoming Workouts section', () => {
             { widthFraction: 0.5, minPct: 95, maxPct: 105, zone: 4 },
           ],
         },
-        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow' },
+        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow', blocks: [] },
       ],
     });
 

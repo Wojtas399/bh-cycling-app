@@ -58,11 +58,4 @@ describe('WorkoutTile', () => {
     expect(screen.getByText('1h')).toBeTruthy();
     expect(screen.queryByTestId('workout-profile')).toBeNull();
   });
-
-  it('degrades when handed an empty block list', async () => {
-    await renderTile({ title: 'Free ride', dayLabel: 'Today', blocks: [] });
-
-    expect(screen.getByText('Free ride')).toBeTruthy();
-    expect(screen.queryByTestId('workout-profile')).toBeNull();
-  });
 });

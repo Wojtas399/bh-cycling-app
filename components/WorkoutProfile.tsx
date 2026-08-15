@@ -43,6 +43,8 @@ export interface WorkoutProfileProps {
 export default function WorkoutProfile({ blocks }: WorkoutProfileProps) {
   const ceilingPct = profileCeilingPct(blocks);
 
+  // Nothing to scale against, and nothing to draw: an empty profile, or one
+  // whose every block sits on the floor. Also keeps the divisor below safe.
   if (ceilingPct <= 0) return null;
 
   return (

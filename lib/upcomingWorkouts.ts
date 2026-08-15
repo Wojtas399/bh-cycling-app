@@ -8,11 +8,11 @@ export interface UpcomingWorkout {
   dayLabel: 'today' | 'tomorrow';
   durationSeconds?: number;
   /**
-   * The workout's drawable Workout Profile, absent whenever there is no honest
+   * The workout's drawable Workout Profile, empty whenever there is no honest
    * shape to draw — an unstructured ride, or one targeted by anything other
    * than power. Callers degrade to the title and duration alone.
    */
-  blocks?: WorkoutBlock[];
+  blocks: WorkoutBlock[];
 }
 
 export function toLocalDateString(date: Date): string {
@@ -46,15 +46,11 @@ export function getUpcomingWorkouts(
     .sort((a, b) =>
       a.event.start_date_local.localeCompare(b.event.start_date_local),
     )
-    .map(({ event, date }) => {
-      const blocks = buildWorkoutProfile(event.workout_doc?.steps, zoneConfig);
-
-      return {
-        id: event.id,
-        name: event.name,
-        dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
-        durationSeconds: event.workout_doc?.duration,
-        blocks: blocks.length > 0 ? blocks : undefined,
-      };
-    });
+    .map(({ event, date }) => ({
+      id: event.id,
+      name: event.name,
+      dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
+      durationSeconds: event.workout_doc?.duration,
+      blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
+    }));
 }

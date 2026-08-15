@@ -8,7 +8,7 @@ export interface WorkoutTileProps {
   title: string;
   dayLabel: string;
   durationSeconds?: number;
-  /** The Workout Profile to draw. Absent or empty when there is none to show. */
+  /** The Workout Profile to draw. Empty when there is none to show. */
   blocks?: WorkoutBlock[];
 }
 
@@ -22,7 +22,7 @@ export default function WorkoutTile({
   title,
   dayLabel,
   durationSeconds,
-  blocks,
+  blocks = [],
 }: WorkoutTileProps) {
   return (
     <Box backgroundColor="bgSecondary" borderRadius="lg" padding="base">
@@ -50,7 +50,7 @@ export default function WorkoutTile({
         </Text>
       )}
 
-      {blocks !== undefined && blocks.length > 0 && (
+      {blocks.length > 0 && (
         <Box marginTop="md">
           <WorkoutProfile blocks={blocks} />
         </Box>

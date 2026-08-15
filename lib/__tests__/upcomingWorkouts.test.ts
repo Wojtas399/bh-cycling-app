@@ -27,7 +27,9 @@ describe('getUpcomingWorkouts', () => {
 
     const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
 
-    expect(result).toEqual([{ id: 3, name: 'Intervals', dayLabel: 'today' }]);
+    expect(result).toEqual([
+      { id: 3, name: 'Intervals', dayLabel: 'today', blocks: [] },
+    ]);
   });
 
   it('includes events scheduled for today and tomorrow', () => {
@@ -47,8 +49,8 @@ describe('getUpcomingWorkouts', () => {
     const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
 
     expect(result).toEqual([
-      { id: 1, name: 'Today ride', dayLabel: 'today' },
-      { id: 2, name: 'Tomorrow ride', dayLabel: 'tomorrow' },
+      { id: 1, name: 'Today ride', dayLabel: 'today', blocks: [] },
+      { id: 2, name: 'Tomorrow ride', dayLabel: 'tomorrow', blocks: [] },
     ]);
   });
 
@@ -198,7 +200,7 @@ describe('getUpcomingWorkouts', () => {
     ]);
   });
 
-  it('maps a workout whose steps are not drawable without blocks', () => {
+  it('maps a workout whose steps are not drawable with an empty profile', () => {
     const events = [
       event({
         id: 1,
@@ -212,10 +214,10 @@ describe('getUpcomingWorkouts', () => {
 
     expect(result[0].name).toBe('Free ride');
     expect(result[0].durationSeconds).toBe(3600);
-    expect(result[0].blocks).toBeUndefined();
+    expect(result[0].blocks).toEqual([]);
   });
 
-  it('maps a workout with no steps at all without blocks', () => {
+  it('maps a workout with no steps at all with an empty profile', () => {
     const events = [
       event({
         id: 1,
@@ -227,6 +229,6 @@ describe('getUpcomingWorkouts', () => {
 
     const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
 
-    expect(result[0].blocks).toBeUndefined();
+    expect(result[0].blocks).toEqual([]);
   });
 });
