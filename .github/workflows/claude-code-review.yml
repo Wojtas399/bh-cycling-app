@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
 
@@ -37,8 +37,9 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review PR #${{ github.event.pull_request.number }} by reading
-            `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md` and following it exactly.
+            /thermo-nuclear-code-quality-review
+
+            Review PR #${{ github.event.pull_request.number }}.
 
             Post the review with `gh pr comment ${{ github.event.pull_request.number }} --body "..."`.
             Only post a GitHub comment - don't submit the review as a message.
