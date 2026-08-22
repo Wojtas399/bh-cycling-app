@@ -1,7 +1,7 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from '../index';
-import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
+import { useUpcomingEntries } from '../useUpcomingEntries';
 import theme from '@/constants/theme';
 import { ThemeProvider } from '@shopify/restyle';
 import { render, screen } from '@testing-library/react-native';
@@ -18,11 +18,11 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-jest.mock('../useUpcomingWorkouts', () => ({
-  useUpcomingWorkouts: jest.fn(),
+jest.mock('../useUpcomingEntries', () => ({
+  useUpcomingEntries: jest.fn(),
 }));
 
-const mockUseUpcomingWorkouts = useUpcomingWorkouts as jest.Mock;
+const mockUseUpcomingEntries = useUpcomingEntries as jest.Mock;
 
 function renderScreen() {
   return render(
@@ -34,13 +34,13 @@ function renderScreen() {
   );
 }
 
-describe('HomeScreen — Upcoming Workouts section', () => {
+describe('HomeScreen — Upcoming Entries section', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders nothing when hidden', async () => {
-    mockUseUpcomingWorkouts.mockReturnValue({ status: 'hidden' });
+    mockUseUpcomingEntries.mockReturnValue({ status: 'hidden' });
 
     await renderScreen();
 
@@ -48,7 +48,7 @@ describe('HomeScreen — Upcoming Workouts section', () => {
   });
 
   it('shows a loading indicator while loading', async () => {
-    mockUseUpcomingWorkouts.mockReturnValue({ status: 'loading' });
+    mockUseUpcomingEntries.mockReturnValue({ status: 'loading' });
 
     await renderScreen();
 
@@ -56,8 +56,8 @@ describe('HomeScreen — Upcoming Workouts section', () => {
     expect(screen.getByTestId('upcoming-workouts-loading')).toBeTruthy();
   });
 
-  it('shows an empty-state message when there are no matching workouts', async () => {
-    mockUseUpcomingWorkouts.mockReturnValue({ status: 'empty' });
+  it('shows an empty-state message when there are no matching entries', async () => {
+    mockUseUpcomingEntries.mockReturnValue({ status: 'empty' });
 
     await renderScreen();
 
@@ -66,17 +66,24 @@ describe('HomeScreen — Upcoming Workouts section', () => {
   });
 
   it('renders the list of workouts with relative day labels when ready', async () => {
-    mockUseUpcomingWorkouts.mockReturnValue({
+    mockUseUpcomingEntries.mockReturnValue({
       status: 'ready',
-      workouts: [
+      entries: [
         {
+          kind: 'workout',
           id: 1,
           name: 'Intervals',
           dayLabel: 'today',
           durationSeconds: 6600,
           blocks: [],
         },
-        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow', blocks: [] },
+        {
+          kind: 'workout',
+          id: 2,
+          name: 'Endurance ride',
+          dayLabel: 'tomorrow',
+          blocks: [],
+        },
       ],
     });
 
@@ -90,10 +97,11 @@ describe('HomeScreen — Upcoming Workouts section', () => {
   });
 
   it('renders the workout profile on tiles that carry blocks', async () => {
-    mockUseUpcomingWorkouts.mockReturnValue({
+    mockUseUpcomingEntries.mockReturnValue({
       status: 'ready',
-      workouts: [
+      entries: [
         {
+          kind: 'workout',
           id: 1,
           name: 'Intervals',
           dayLabel: 'today',
@@ -103,7 +111,13 @@ describe('HomeScreen — Upcoming Workouts section', () => {
             { widthFraction: 0.5, minPct: 95, maxPct: 105, zone: 4 },
           ],
         },
-        { id: 2, name: 'Endurance ride', dayLabel: 'tomorrow', blocks: [] },
+        {
+          kind: 'workout',
+          id: 2,
+          name: 'Endurance ride',
+          dayLabel: 'tomorrow',
+          blocks: [],
+        },
       ],
     });
 
@@ -113,5 +127,81 @@ describe('HomeScreen — Upcoming Workouts section', () => {
     expect(screen.getAllByTestId('workout-profile')).toHaveLength(1);
     expect(screen.getAllByTestId(/^workout-profile-bar-/)).toHaveLength(2);
     expect(screen.getByText('Endurance ride')).toBeTruthy();
+  });
+
+  it('renders a note entry as a NoteCard alongside a workout', async () => {
+    mockUseUpcomingEntries.mockReturnValue({
+      status: 'ready',
+      entries: [
+        {
+          kind: 'workout',
+          id: 1,
+          name: 'Intervals',
+          dayLabel: 'today',
+          blocks: [],
+        },
+        {
+          kind: 'note',
+          id: 2,
+          title: 'Bike check',
+          text: 'Adjust saddle height.',
+          dayLabel: 'today',
+        },
+      ],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByText('Intervals')).toBeTruthy();
+    expect(screen.getByText('Bike check')).toBeTruthy();
+    expect(screen.getByText('Adjust saddle height.')).toBeTruthy();
+  });
+
+  it('renders a note-only day with no workout above it', async () => {
+    mockUseUpcomingEntries.mockReturnValue({
+      status: 'ready',
+      entries: [
+        {
+          kind: 'note',
+          id: 1,
+          title: 'Route change',
+          text: 'Meet at the north gate.',
+          dayLabel: 'tomorrow',
+        },
+      ],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByText('Route change')).toBeTruthy();
+    expect(screen.getByText('Meet at the north gate.')).toBeTruthy();
+    expect(screen.queryByTestId('workout-profile')).toBeNull();
+  });
+
+  it('renders multiple same-day notes as separate cards', async () => {
+    mockUseUpcomingEntries.mockReturnValue({
+      status: 'ready',
+      entries: [
+        {
+          kind: 'note',
+          id: 1,
+          title: 'First note',
+          text: 'Note A',
+          dayLabel: 'tomorrow',
+        },
+        {
+          kind: 'note',
+          id: 2,
+          title: 'Second note',
+          text: 'Note B',
+          dayLabel: 'tomorrow',
+        },
+      ],
+    });
+
+    await renderScreen();
+
+    expect(screen.getByText('First note')).toBeTruthy();
+    expect(screen.getByText('Second note')).toBeTruthy();
   });
 });

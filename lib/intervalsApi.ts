@@ -51,6 +51,8 @@ export interface IntervalsCalendarEvent {
   name: string;
   start_date_local: string;
   type?: string;
+  /** Raw Markdown body, present on `category === 'NOTE'` events. */
+  description?: string;
   workout_doc?: IntervalsWorkoutDoc;
 }
 

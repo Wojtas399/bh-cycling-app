@@ -9,23 +9,23 @@ import {
 } from '@/lib/intervalsApi';
 import { resolveZoneConfig } from '@/lib/powerZones';
 import {
-  type UpcomingWorkout,
-  getUpcomingWorkouts,
+  type UpcomingEntry,
+  getUpcomingEntries,
   toLocalDateString,
-} from '@/lib/upcomingWorkouts';
+} from '@/lib/upcomingEntries';
 
-export type UpcomingWorkoutsState =
+export type UpcomingEntriesState =
   | { status: 'hidden' }
   | { status: 'loading' }
   | { status: 'empty' }
-  | { status: 'ready'; workouts: UpcomingWorkout[] };
+  | { status: 'ready'; entries: UpcomingEntry[] };
 
-const HIDDEN: UpcomingWorkoutsState = { status: 'hidden' };
-const LOADING: UpcomingWorkoutsState = { status: 'loading' };
+const HIDDEN: UpcomingEntriesState = { status: 'hidden' };
+const LOADING: UpcomingEntriesState = { status: 'loading' };
 
-export function useUpcomingWorkouts(): UpcomingWorkoutsState {
+export function useUpcomingEntries(): UpcomingEntriesState {
   const connection = useIntervalsConnection();
-  const [state, setState] = useState<UpcomingWorkoutsState>(LOADING);
+  const [state, setState] = useState<UpcomingEntriesState>(LOADING);
 
   useEffect(() => {
     if (connection.loading) {
@@ -60,22 +60,22 @@ export function useUpcomingWorkouts(): UpcomingWorkoutsState {
       }),
       // Custom zone boundaries only sharpen the colours of the profile, and
       // Coggan stands in for them well enough. Losing them must never cost the
-      // athlete the list of workouts itself.
+      // athlete the list of entries itself.
       getAthleteSettings(connection.accessToken).catch(() => null),
     ])
       .then(([events, settings]) => {
         if (cancelled) return;
 
-        const workouts = getUpcomingWorkouts(
+        const entries = getUpcomingEntries(
           events,
           now,
           resolveZoneConfig(settings),
         );
 
         setState(
-          workouts.length === 0
+          entries.length === 0
             ? { status: 'empty' }
-            : { status: 'ready', workouts },
+            : { status: 'ready', entries },
         );
       })
       .catch(async (error: unknown) => {

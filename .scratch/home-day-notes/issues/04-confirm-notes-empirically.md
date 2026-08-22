@@ -1,7 +1,7 @@
 # Task: confirm NOTE events empirically against a real intervals.icu account
 
 Type: task
-Status: open
+Status: resolved
 
 ## Question
 
@@ -23,4 +23,10 @@ Confirm it returns 200 with your existing token/scope, and check whether any day
 
 ## Answer
 
-(pending)
+Confirmed empirically against the user's own live account (`i249400`).
+
+1. **Scope/access:** `GET /api/v1/athlete/i249400/events?oldest=...&newest=...` returned `200` and a `NOTE`-category event with no special param or additional scope — same call shape the app already makes. The only failure hit along the way was a malformed athlete ID (`249400` instead of `i249400`), which produced a `403 {"status":403,"error":"Access denied"}`; that's an ID-format issue, not a permissions/scope gate on notes. Since intervals.icu applies access control at the calendar/events level (confirmed by Ticket 01: no dedicated `NOTES` OAuth scope exists) and this app's existing `CALENDAR:READ` grant already successfully calls this same endpoint for `WORKOUT` events today, **no re-authorization is needed for already-connected users** to also receive `NOTE` events. (Caveat: the live test used a personal API key rather than pulling this app's actual stored OAuth token — intervals.icu's permission model is per-athlete rather than per-scope for personal keys, so this isn't a byte-for-byte replication of the app's OAuth path, but it corroborates Ticket 01's scope reasoning with a real response instead of docs alone.)
+
+2. **Multiplicity:** today (2026-08-22) has exactly **one** `NOTE` event. The quick check didn't surface a day with 2+, so multiplicity-in-practice for this account remains unobserved — but this doesn't block anything: Ticket 02 already modeled notes as independent flat-list entries (0..N per day), which handles any multiplicity without change if it's ever encountered.
+
+Sample response confirms the earlier research: `description` carries Markdown/emoji-formatted free text (e.g. `❗️ODŻYWIANIE PRZED TRENINGIEM:❗️` headers, `-` bullet lists), `name` is the short title, and the object is a full `Event` record with dozens of workout-only fields set to `null` — nothing new needed in the mapping beyond what Ticket 02 already specified.

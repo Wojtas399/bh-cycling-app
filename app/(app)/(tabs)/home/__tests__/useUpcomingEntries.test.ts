@@ -1,4 +1,4 @@
-import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
+import { useUpcomingEntries } from '../useUpcomingEntries';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
 import {
@@ -67,7 +67,7 @@ const ZONE_2_HOUR: IntervalsWorkoutDoc = {
   steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
 };
 
-describe('useUpcomingWorkouts', () => {
+describe('useUpcomingEntries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetAthleteSettings.mockResolvedValue({});
@@ -76,7 +76,7 @@ describe('useUpcomingWorkouts', () => {
   it('is hidden and makes no API call when not connected', async () => {
     mockConnection();
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     expect(result.current.status).toBe('hidden');
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
@@ -86,7 +86,7 @@ describe('useUpcomingWorkouts', () => {
   it('is loading while the connection state itself is resolving', async () => {
     mockConnection({ loading: true });
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     expect(result.current.status).toBe('loading');
   });
@@ -99,7 +99,7 @@ describe('useUpcomingWorkouts', () => {
     });
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     expect(result.current.status).toBe('loading');
   });
@@ -112,7 +112,7 @@ describe('useUpcomingWorkouts', () => {
     });
     mockGetCalendarEvents.mockRejectedValue(new IntervalsAuthError());
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     await waitFor(() => expect(result.current.status).toBe('hidden'));
 
@@ -127,7 +127,7 @@ describe('useUpcomingWorkouts', () => {
     });
     mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     await waitFor(() => expect(result.current.status).toBe('hidden'));
 
@@ -149,12 +149,12 @@ describe('useUpcomingWorkouts', () => {
       },
     ]);
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     await waitFor(() => expect(result.current.status).toBe('empty'));
   });
 
-  it('is ready with the mapped workouts when connected with matching events', async () => {
+  it('is ready with the mapped entries when connected with matching events', async () => {
     mockConnection({
       isConnected: true,
       accessToken: 'token-1',
@@ -162,13 +162,21 @@ describe('useUpcomingWorkouts', () => {
     });
     mockGetCalendarEvents.mockResolvedValue([todayEvent()]);
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
-    expect(
-      result.current.status === 'ready' && result.current.workouts,
-    ).toEqual([{ id: 1, name: 'Intervals', dayLabel: 'today', blocks: [] }]);
+    expect(result.current.status === 'ready' && result.current.entries).toEqual(
+      [
+        {
+          kind: 'workout',
+          id: 1,
+          name: 'Intervals',
+          dayLabel: 'today',
+          blocks: [],
+        },
+      ],
+    );
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',
@@ -176,6 +184,38 @@ describe('useUpcomingWorkouts', () => {
         oldest: expect.any(String),
         newest: expect.any(String),
       }),
+    );
+  });
+
+  it('is ready with a note entry when connected with a matching NOTE event', async () => {
+    mockConnection({
+      isConnected: true,
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+    });
+    mockGetCalendarEvents.mockResolvedValue([
+      todayEvent({
+        id: 2,
+        category: 'NOTE',
+        name: 'Bike check',
+        description: 'Adjust saddle height.',
+      }),
+    ]);
+
+    const { result } = await renderHook(() => useUpcomingEntries());
+
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    expect(result.current.status === 'ready' && result.current.entries).toEqual(
+      [
+        {
+          kind: 'note',
+          id: 2,
+          title: 'Bike check',
+          text: 'Adjust saddle height.',
+          dayLabel: 'today',
+        },
+      ],
     );
   });
 
@@ -192,18 +232,21 @@ describe('useUpcomingWorkouts', () => {
       todayEvent({ workout_doc: ZONE_2_HOUR }),
     ]);
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     // This athlete's Z2 is 60–80% FTP, not the Coggan 55–75%.
-    expect(
-      result.current.status === 'ready' && result.current.workouts[0].blocks,
-    ).toEqual([{ widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 }]);
+    const entries =
+      result.current.status === 'ready' ? result.current.entries : [];
+
+    expect(entries[0].kind === 'workout' && entries[0].blocks).toEqual([
+      { widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 },
+    ]);
     expect(mockGetAthleteSettings).toHaveBeenCalledWith('token-1');
   });
 
-  it('falls back to the Coggan zones and still lists workouts when the settings fetch fails', async () => {
+  it('falls back to the Coggan zones and still lists entries when the settings fetch fails', async () => {
     mockConnection({
       isConnected: true,
       accessToken: 'token-1',
@@ -214,13 +257,16 @@ describe('useUpcomingWorkouts', () => {
       todayEvent({ workout_doc: ZONE_2_HOUR }),
     ]);
 
-    const { result } = await renderHook(() => useUpcomingWorkouts());
+    const { result } = await renderHook(() => useUpcomingEntries());
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
-    expect(
-      result.current.status === 'ready' && result.current.workouts[0].blocks,
-    ).toEqual([{ widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 }]);
+    const entries =
+      result.current.status === 'ready' ? result.current.entries : [];
+
+    expect(entries[0].kind === 'workout' && entries[0].blocks).toEqual([
+      { widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 },
+    ]);
     expect(mockHandleIntervalsAuthError).not.toHaveBeenCalled();
   });
 });
