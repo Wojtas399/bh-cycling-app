@@ -154,7 +154,7 @@ describe('HomeScreen — Upcoming Entries section', () => {
 
     expect(screen.getByText('Intervals')).toBeTruthy();
     expect(screen.getByText('Bike check')).toBeTruthy();
-    expect(screen.getByText('Adjust saddle height.')).toBeTruthy();
+    expect(screen.queryByText('Adjust saddle height.')).toBeNull();
   });
 
   it('renders a note-only day with no workout above it', async () => {
@@ -174,7 +174,7 @@ describe('HomeScreen — Upcoming Entries section', () => {
     await renderScreen();
 
     expect(screen.getByText('Route change')).toBeTruthy();
-    expect(screen.getByText('Meet at the north gate.')).toBeTruthy();
+    expect(screen.queryByText('Meet at the north gate.')).toBeNull();
     expect(screen.queryByTestId('workout-profile')).toBeNull();
   });
 
