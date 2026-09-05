@@ -3,6 +3,12 @@ import 'react-native-reanimated';
 
 import theme from '@/constants/theme';
 import '@/i18n';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
 import { Ionicons } from '@expo/vector-icons';
 import {
   DarkTheme,
@@ -17,7 +23,13 @@ import { StatusBar } from 'expo-status-bar';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ ...Ionicons.font });
+  const [fontsLoaded] = useFonts({
+    'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+    ...Ionicons.font,
+  });
 
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
