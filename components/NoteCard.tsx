@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 export interface NoteCardProps {
   title: string;
   dayLabel: string;
-  /** Raw Markdown, shown in full inside the detail sheet, unrendered. */
+  /** Raw Markdown, rendered in full inside the detail sheet. */
   text: string;
 }
 

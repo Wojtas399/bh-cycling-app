@@ -21,6 +21,10 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/functions/"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|marked|@jsamr|github-slugger|svg-parser|html-entities))",
+      "/node_modules/react-native-reanimated/plugin/"
     ]
   },
   "dependencies": {
@@ -58,9 +62,11 @@
     "react-i18next": "^17.0.8",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-marked": "^8.1.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1"
   },

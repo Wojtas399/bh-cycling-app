@@ -2,6 +2,7 @@ import { Modal, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import NoteMarkdown from '@/components/NoteMarkdown';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 export interface NoteDetailSheetProps {
   title: string;
   dayLabel: string;
-  /** Raw Markdown, rendered as plain wrapped text for v1. */
+  /** Raw Markdown, rendered by NoteMarkdown. */
   text: string;
   onClose: () => void;
 }
@@ -90,9 +91,9 @@ export default function NoteDetailSheet({
             </Text>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text variant="body-l-regular" marginTop="md">
-                {text}
-              </Text>
+              <Box marginTop="md">
+                <NoteMarkdown text={text} />
+              </Box>
             </ScrollView>
           </Box>
         </Pressable>
