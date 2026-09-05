@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import theme from '@/constants/theme';
@@ -10,6 +11,7 @@ import {
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import {
   DarkTheme,
   ThemeProvider as NavThemeProvider,
@@ -38,11 +40,15 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ThemeProvider theme={theme}>
-      <NavThemeProvider value={DarkTheme}>
-        <Stack screenOptions={{ headerShown: false }} />
-        <StatusBar style="light" />
-      </NavThemeProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider theme={theme}>
+        <NavThemeProvider value={DarkTheme}>
+          <BottomSheetModalProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </BottomSheetModalProvider>
+          <StatusBar style="light" />
+        </NavThemeProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
