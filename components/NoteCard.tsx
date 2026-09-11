@@ -55,14 +55,13 @@ export default function NoteCard({ title, dayLabel, text }: NoteCardProps) {
         </Box>
       </Pressable>
 
-      {open && (
-        <NoteDetailSheet
-          title={title}
-          dayLabel={dayLabel}
-          text={text}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      <NoteDetailSheet
+        open={open}
+        title={title}
+        dayLabel={dayLabel}
+        text={text}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
