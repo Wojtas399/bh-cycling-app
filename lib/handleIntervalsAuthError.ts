@@ -1,3 +1,4 @@
+import { clearCalendarCache } from '@/lib/calendarWorkouts';
 import { auth, firestore } from '@/lib/firebase';
 import { intervalsIntegrationDocPath } from '@/lib/firestorePaths';
 import type { IntervalsAuthError } from '@/lib/intervalsApi';
@@ -12,5 +13,6 @@ export async function handleIntervalsAuthError(
     await firestore().doc(intervalsIntegrationDocPath(uid)).delete();
   }
 
+  clearCalendarCache();
   setNeedsReconnect(true);
 }

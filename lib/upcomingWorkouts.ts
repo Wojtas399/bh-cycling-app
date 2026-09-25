@@ -1,6 +1,9 @@
 import type { IntervalsCalendarEvent } from './intervalsApi';
+import { addDays, toLocalDateString } from './localDate';
 import type { ZoneConfig } from './powerZones';
 import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
+
+export { toLocalDateString } from './localDate';
 
 export interface UpcomingWorkout {
   id: number;
@@ -13,22 +16,6 @@ export interface UpcomingWorkout {
    * than power. Callers degrade to the title and duration alone.
    */
   blocks: WorkoutBlock[];
-}
-
-export function toLocalDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-
-  result.setDate(result.getDate() + days);
-
-  return result;
 }
 
 export function getUpcomingWorkouts(

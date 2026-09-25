@@ -29,6 +29,11 @@ export interface IntervalsDateRangeParams {
   newest?: string;
 }
 
+export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
+  /** Comma-separated field projection, e.g. `'id,start_date_local,type,paired_event_id'`. */
+  fields?: string;
+}
+
 export interface IntervalsActivity {
   id: string;
   name: string;
@@ -37,6 +42,8 @@ export interface IntervalsActivity {
   moving_time: number;
   distance: number;
   icu_training_load?: number;
+  /** The calendar event this activity fulfils, when intervals.icu paired one. */
+  paired_event_id?: number;
 }
 
 export interface IntervalsWorkoutDoc {
@@ -62,7 +69,9 @@ async function request<T>(
   const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
 
   if (params) {
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(
+      params as Record<string, string | undefined>,
+    )) {
       if (value !== undefined) url.searchParams.set(key, value);
     }
   }
@@ -85,7 +94,7 @@ async function request<T>(
 export function getActivities(
   token: string,
   athleteId: string,
-  params?: IntervalsDateRangeParams,
+  params?: IntervalsActivitiesParams,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
     intervalsActivitiesPath(athleteId),
