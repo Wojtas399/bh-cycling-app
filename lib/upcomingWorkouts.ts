@@ -1,5 +1,9 @@
 import type { IntervalsCalendarEvent } from './intervalsApi';
-import { addDays, toLocalDateString } from './localDate';
+import {
+  addDays,
+  toLocalDateString,
+  toSortedDatedWorkoutEvents,
+} from './localDate';
 import type { ZoneConfig } from './powerZones';
 import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
@@ -26,13 +30,8 @@ export function getUpcomingWorkouts(
   const today = toLocalDateString(now);
   const tomorrow = toLocalDateString(addDays(now, 1));
 
-  return events
-    .filter(event => event.category === 'WORKOUT')
-    .map(event => ({ event, date: event.start_date_local.slice(0, 10) }))
+  return toSortedDatedWorkoutEvents(events)
     .filter(({ date }) => date === today || date === tomorrow)
-    .sort((a, b) =>
-      a.event.start_date_local.localeCompare(b.event.start_date_local),
-    )
     .map(({ event, date }) => ({
       id: event.id,
       name: event.name,

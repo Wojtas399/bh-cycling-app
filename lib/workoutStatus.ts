@@ -1,5 +1,5 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
-import { toLocalDateString } from './localDate';
+import { toLocalDateString, toSortedDatedWorkoutEvents } from './localDate';
 import type { ZoneConfig } from './powerZones';
 import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
@@ -45,22 +45,16 @@ export function deriveWorkoutStatuses(
   );
   const today = toLocalDateString(now);
 
-  return events
-    .filter(event => event.category === 'WORKOUT')
-    .map(event => ({ event, date: event.start_date_local.slice(0, 10) }))
-    .sort((a, b) =>
-      a.event.start_date_local.localeCompare(b.event.start_date_local),
-    )
-    .map(({ event, date }) => ({
-      id: event.id,
-      name: event.name,
-      date,
-      status: completedEventIds.has(event.id)
-        ? ('completed' as const)
-        : date < today
-          ? ('missed' as const)
-          : ('planned' as const),
-      durationSeconds: event.workout_doc?.duration,
-      blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
-    }));
+  return toSortedDatedWorkoutEvents(events).map(({ event, date }) => ({
+    id: event.id,
+    name: event.name,
+    date,
+    status: completedEventIds.has(event.id)
+      ? ('completed' as const)
+      : date < today
+        ? ('missed' as const)
+        : ('planned' as const),
+    durationSeconds: event.workout_doc?.duration,
+    blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
+  }));
 }
