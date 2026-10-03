@@ -19,7 +19,7 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { toLocalDateString } from '@/lib/localDate';
+import { addDays, toLocalDateString } from '@/lib/localDate';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -149,7 +149,7 @@ describe('useCalendarRange', () => {
     expect(mockHandleIntervalsAuthError).toHaveBeenCalledTimes(1);
   });
 
-  it('hides on any other fetch error without calling the auth-error handler', async () => {
+  it('shows an error state on any other fetch error without calling the auth-error handler', async () => {
     mockConnection({
       isConnected: true,
       accessToken: 'token-1',
@@ -159,7 +159,7 @@ describe('useCalendarRange', () => {
 
     const { result } = await renderHook(() => useCalendarRange(monthConfig));
 
-    await waitFor(() => expect(result.current.state.status).toBe('hidden'));
+    await waitFor(() => expect(result.current.state.status).toBe('error'));
     expect(mockHandleIntervalsAuthError).not.toHaveBeenCalled();
   });
 
@@ -196,7 +196,9 @@ describe('useCalendarRange', () => {
       'token-1',
       'athlete-1',
       expect.objectContaining({
-        ...currentMonthRange,
+        // Reaches a week past each edge to catch cross-boundary pairings.
+        oldest: toLocalDateString(addDays(startOfMonth(now), -7)),
+        newest: toLocalDateString(addDays(endOfMonth(now), 7)),
         fields: expect.any(String),
       }),
     );
@@ -350,5 +352,98 @@ describe('useCalendarRange', () => {
 
     expect(result.current.anchor).toEqual(nextAnchor);
     expect(result.current.state).toEqual(nextAnchorReadyState);
+  });
+
+  it('hides even when the auth-error handler itself fails', async () => {
+    mockConnection({
+      isConnected: true,
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+    });
+    mockGetCalendarEvents.mockRejectedValue(new IntervalsAuthError());
+    mockHandleIntervalsAuthError.mockRejectedValueOnce(new Error('offline'));
+
+    const { result } = await renderHook(() => useCalendarRange(monthConfig));
+
+    await waitFor(() => expect(result.current.state.status).toBe('hidden'));
+  });
+
+  it('keeps the data on screen and in the cache when a refresh fails', async () => {
+    mockConnection({
+      isConnected: true,
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+    });
+    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
+
+    const { result } = await renderHook(() => useCalendarRange(monthConfig));
+
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+
+    const before = result.current.state;
+
+    mockGetCalendarEvents.mockRejectedValue(new Error('offline'));
+
+    await act(async () => result.current.refresh());
+
+    await waitFor(() =>
+      expect(
+        result.current.state.status === 'ready' &&
+          result.current.state.refreshing,
+      ).toBe(false),
+    );
+    expect(result.current.state).toEqual(before);
+    expect(isMonthFetched(startOfMonth(now), 'athlete-1')).toBe(true);
+  });
+
+  it('ignores a fetch that resolves after the connection is lost', async () => {
+    mockConnection({
+      isConnected: true,
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+    });
+
+    let resolveFetch: (value: IntervalsCalendarEvent[]) => void = () => {};
+
+    mockGetCalendarEvents.mockReturnValue(
+      new Promise(resolve => {
+        resolveFetch = resolve;
+      }),
+    );
+
+    const { result, rerender } = await renderHook(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    mockConnection();
+    await rerender({});
+
+    expect(result.current.state.status).toBe('hidden');
+
+    await act(async () => {
+      resolveFetch([event({ id: 1 })]);
+    });
+
+    expect(result.current.state.status).toBe('hidden');
+  });
+
+  it('does not fetch again while an identical fetch is in flight', async () => {
+    mockConnection({
+      isConnected: true,
+      accessToken: 'token-1',
+      athleteId: 'athlete-1',
+    });
+    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
+
+    const { rerender } = await renderHook(() => useCalendarRange(monthConfig));
+
+    mockConnection({
+      isConnected: true,
+      accessToken: 'token-2',
+      athleteId: 'athlete-1',
+    });
+    await rerender({});
+
+    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1);
   });
 });

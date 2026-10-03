@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import { clearCalendarCache, getWorkoutsByDate } from '@/lib/calendarWorkouts';
+import { type FetchOptions, getWorkoutsByDate } from '@/lib/calendarWorkouts';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
 import { IntervalsAuthError } from '@/lib/intervalsApi';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
@@ -9,6 +9,8 @@ import type { CalendarWorkout } from '@/lib/workoutStatus';
 export type CalendarViewState =
   | { status: 'hidden' }
   | { status: 'loading' }
+  /** The range couldn't be fetched (network/server failure), not a disconnect. */
+  | { status: 'error' }
   | {
       status: 'ready';
       workoutsByDate: Record<string, CalendarWorkout[]>;
@@ -37,13 +39,15 @@ export interface UseCalendarRangeConfig {
     athleteId: string,
     anchor: Date,
     now: Date,
+    options?: FetchOptions,
   ) => Promise<void>;
-  isRangeFetched: (anchor: Date) => boolean;
+  isRangeFetched: (anchor: Date, athleteId: string) => boolean;
   step: (anchor: Date, direction: -1 | 1) => Date;
 }
 
 const HIDDEN: CalendarViewState = { status: 'hidden' };
 const LOADING: CalendarViewState = { status: 'loading' };
+const ERROR: CalendarViewState = { status: 'error' };
 
 export function useCalendarRange({
   initialAnchor,
@@ -60,14 +64,64 @@ export function useCalendarRange({
   /**
    * Every fetch — effect-driven or from `refresh` — claims the next id
    * before it starts and only applies its result if it is still the latest
-   * one when it resolves. Without this, a refresh left in flight while the
-   * athlete navigates to a different range can resolve later and overwrite
-   * the newly navigated-to range's data with stale data of its own.
+   * one when it resolves. Anything that makes an in-flight fetch's result
+   * irrelevant (navigating, refreshing, losing the connection, unmounting)
+   * bumps it, so a late response can't overwrite newer state — e.g. show
+   * workouts for an account that has since been disconnected.
    */
   const requestIdRef = useRef(0);
 
+  useEffect(
+    () => () => {
+      requestIdRef.current++;
+    },
+    [],
+  );
+
+  const load = useCallback(
+    async (token: string, athleteId: string, options: FetchOptions) => {
+      const requestId = ++requestIdRef.current;
+      const isStale = () => requestId !== requestIdRef.current;
+
+      try {
+        await fetchRange(token, athleteId, anchor, new Date(), options);
+
+        if (isStale()) return;
+
+        setState({
+          status: 'ready',
+          workoutsByDate: getWorkoutsByDate(startOf(anchor), endOf(anchor)),
+          refreshing: false,
+        });
+      } catch (error) {
+        if (error instanceof IntervalsAuthError) {
+          // The handler's own failure (e.g. the Firestore delete) must not
+          // leave the view stuck mid-load; it clears the cache and flags the
+          // reconnect itself regardless.
+          await handleIntervalsAuthError(error).catch(() => {});
+
+          if (!isStale()) setState(HIDDEN);
+
+          return;
+        }
+
+        if (isStale()) return;
+
+        // A failed refresh keeps the data already on screen (the cache is
+        // only replaced on success); anything else has nothing to show.
+        setState(prev =>
+          options.force && prev.status === 'ready'
+            ? { ...prev, refreshing: false }
+            : ERROR,
+        );
+      }
+    },
+    [anchor, fetchRange, startOf, endOf],
+  );
+
   useEffect(() => {
     if (connection.loading) {
+      requestIdRef.current++;
       setState(LOADING);
 
       return;
@@ -78,40 +132,17 @@ export function useCalendarRange({
       !connection.accessToken ||
       !connection.athleteId
     ) {
+      requestIdRef.current++;
       setState(HIDDEN);
 
       return;
     }
 
-    const requestId = ++requestIdRef.current;
-    const token = connection.accessToken;
-    const athleteId = connection.athleteId;
-
-    if (!isRangeFetched(anchor)) {
+    if (!isRangeFetched(anchor, connection.athleteId)) {
       setState(LOADING);
     }
 
-    (async () => {
-      try {
-        await fetchRange(token, athleteId, anchor, new Date());
-
-        if (requestId !== requestIdRef.current) return;
-
-        setState({
-          status: 'ready',
-          workoutsByDate: getWorkoutsByDate(startOf(anchor), endOf(anchor)),
-          refreshing: false,
-        });
-      } catch (error) {
-        if (error instanceof IntervalsAuthError) {
-          await handleIntervalsAuthError(error);
-        }
-
-        if (requestId !== requestIdRef.current) return;
-
-        setState(HIDDEN);
-      }
-    })();
+    void load(connection.accessToken, connection.athleteId, {});
   }, [
     connection.loading,
     connection.isConnected,
@@ -119,52 +150,28 @@ export function useCalendarRange({
     connection.athleteId,
     anchor,
     isRangeFetched,
-    fetchRange,
-    startOf,
-    endOf,
+    load,
   ]);
 
   const refresh = useCallback(() => {
-    if (!connection.accessToken || !connection.athleteId) return;
-
-    const token = connection.accessToken;
-    const athleteId = connection.athleteId;
-    const requestId = ++requestIdRef.current;
+    if (
+      !connection.isConnected ||
+      !connection.accessToken ||
+      !connection.athleteId
+    ) {
+      return;
+    }
 
     setState(prev =>
-      prev.status === 'ready' ? { ...prev, refreshing: true } : prev,
+      prev.status === 'ready' ? { ...prev, refreshing: true } : LOADING,
     );
 
-    clearCalendarCache();
-
-    (async () => {
-      try {
-        await fetchRange(token, athleteId, anchor, new Date());
-
-        if (requestId !== requestIdRef.current) return;
-
-        setState({
-          status: 'ready',
-          workoutsByDate: getWorkoutsByDate(startOf(anchor), endOf(anchor)),
-          refreshing: false,
-        });
-      } catch (error) {
-        if (error instanceof IntervalsAuthError) {
-          await handleIntervalsAuthError(error);
-        }
-
-        if (requestId !== requestIdRef.current) return;
-
-        setState(HIDDEN);
-      }
-    })();
+    void load(connection.accessToken, connection.athleteId, { force: true });
   }, [
+    connection.isConnected,
     connection.accessToken,
     connection.athleteId,
-    anchor,
-    fetchRange,
-    startOf,
-    endOf,
+    load,
   ]);
 
   return {

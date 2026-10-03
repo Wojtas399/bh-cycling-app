@@ -7,12 +7,16 @@ import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 export async function handleIntervalsAuthError(
   _error: IntervalsAuthError,
 ): Promise<void> {
-  const uid = auth().currentUser?.uid;
+  try {
+    const uid = auth().currentUser?.uid;
 
-  if (uid) {
-    await firestore().doc(intervalsIntegrationDocPath(uid)).delete();
+    if (uid) {
+      await firestore().doc(intervalsIntegrationDocPath(uid)).delete();
+    }
+  } finally {
+    // Even if the integration doc couldn't be deleted (offline, rules), the
+    // token is known-bad: drop its cached data and prompt for a reconnect.
+    clearCalendarCache();
+    setNeedsReconnect(true);
   }
-
-  clearCalendarCache();
-  setNeedsReconnect(true);
 }

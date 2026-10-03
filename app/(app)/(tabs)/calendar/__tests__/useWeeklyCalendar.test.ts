@@ -125,9 +125,11 @@ describe('useWeeklyCalendar', () => {
 
     const now = new Date();
 
-    // Simulates the monthly view having already fetched the whole month,
-    // including the week the weekly view opens to.
-    await fetchMonth('token-1', 'athlete-1', now, now);
+    // Simulates the monthly view having already fetched the month(s) the
+    // week the weekly view opens to falls in — two when it straddles a
+    // month boundary.
+    await fetchMonth('token-1', 'athlete-1', startOfWeek(now), now);
+    await fetchMonth('token-1', 'athlete-1', endOfWeek(now), now);
     mockGetCalendarEvents.mockClear();
     mockGetActivities.mockClear();
 

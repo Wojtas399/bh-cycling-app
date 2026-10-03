@@ -26,4 +26,14 @@ describe('handleIntervalsAuthError', () => {
     expect(mockDelete).toHaveBeenCalled();
     expect(getNeedsReconnect()).toBe(true);
   });
+
+  it('still marks needs-reconnect when deleting the integration document fails', async () => {
+    mockDelete.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(
+      handleIntervalsAuthError(new IntervalsAuthError()),
+    ).rejects.toThrow('offline');
+
+    expect(getNeedsReconnect()).toBe(true);
+  });
 });

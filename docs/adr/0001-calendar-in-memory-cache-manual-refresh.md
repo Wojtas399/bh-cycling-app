@@ -12,7 +12,7 @@ The Calendar screen supports unbounded month/week navigation and needs the botto
 
 Calendar keeps a module-level, in-memory (not Firestore) per-day cache of joined Event+Activity status that persists across screen mounts for the app session, with no automatic eviction, prefetching, or time-based invalidation.
 
-Freshness is the sole responsibility of an explicit refresh button that clears the whole cache and eagerly refetches only the currently visible range. The cache is also cleared on Intervals.icu disconnect and on auth errors, to avoid showing stale or wrong-account data after reconnect.
+Freshness is the sole responsibility of an explicit refresh button that eagerly refetches only the currently visible range and, once that succeeds, replaces the whole cache with the result (a failed refresh leaves the existing data untouched). The cache is also cleared on Intervals.icu disconnect and on auth errors, and is owned by one athlete: a fetch for a different athlete drops it first. Clearing also invalidates fetches already in flight, so a late response never repopulates it.
 
 ## Consequences
 
