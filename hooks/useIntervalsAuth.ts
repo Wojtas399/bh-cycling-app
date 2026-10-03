@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
 import { useIntervalsConnection } from './useIntervalsConnection';
+import { clearCalendarCache } from '@/lib/calendarWorkouts';
 import { functions } from '@/lib/firebase';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import * as AuthSession from 'expo-auth-session';
@@ -89,6 +90,8 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       );
 
       await disconnectIntervals();
+
+      clearCalendarCache();
     } catch {
       setError(t('errors.disconnectFailed'));
     } finally {
