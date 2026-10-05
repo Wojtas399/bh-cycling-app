@@ -10,7 +10,6 @@
     "web": "expo start --web",
     "env:staging": "eas env:pull --environment development && printf '\\nAPP_ENV=staging\\n' >> .env.local",
     "env:production": "eas env:pull --environment production && printf '\\nAPP_ENV=production\\n' >> .env.local",
-    "worktree:setup": "bash ./scripts/setup-worktree.sh",
     "ios:prebuild": "expo prebuild --clean --platform ios",
     "android:prebuild": "expo prebuild --clean --platform android",
     "lint": "expo lint",
