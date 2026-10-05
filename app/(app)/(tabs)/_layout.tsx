@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { ColorValue } from 'react-native';
 
 import Box from '@/components/Box';
 import IntervalsReconnectBanner from '@/components/IntervalsReconnectBanner';
@@ -9,7 +10,13 @@ import { Tabs } from 'expo-router';
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 function tabIcon(active: IoniconName, inactive: IoniconName) {
-  function TabIcon({ color, focused }: { color: string; focused: boolean }) {
+  function TabIcon({
+    color,
+    focused,
+  }: {
+    color: ColorValue;
+    focused: boolean;
+  }) {
     return (
       <Ionicons name={focused ? active : inactive} size={24} color={color} />
     );
