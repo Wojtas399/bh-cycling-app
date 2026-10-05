@@ -109,11 +109,6 @@ const pl = {
     close: 'Zamknij',
     error: 'Nie udało się wczytać kalendarza.',
     emptyDay: 'Brak treningów w tym dniu.',
-    status: {
-      completed: 'Wykonany',
-      planned: 'Zaplanowany',
-      missed: 'Pominięty',
-    },
     monthNames: [
       'Styczeń',
       'Luty',

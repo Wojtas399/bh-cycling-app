@@ -19,8 +19,8 @@ export interface WorkoutTileProps {
 
 /**
  * Presentational card for a single workout. Renders the title — with a status
- * dot and a day label, when given — on the top row, the duration below in muted text, and
- * the Workout Profile beneath that. Knows nothing about intervals.icu, is
+ * dot and a day label, when given — on the top row, the duration below in
+ * muted text, and the Workout Profile beneath that. Knows nothing about intervals.icu, is
  * non-interactive, and degrades to whichever parts it was given.
  */
 export default function WorkoutTile({

@@ -58,7 +58,7 @@ export default function CalendarMonthGrid({
               key={cell.date}
               cell={cell}
               workouts={workoutsByDate[cell.date] ?? []}
-              isToday={cell.date === today}
+              isToday={cell.inMonth && cell.date === today}
               onDayPress={onDayPress}
             />
           ))}

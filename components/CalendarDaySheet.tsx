@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +34,14 @@ export default function CalendarDaySheet({
   const insets = useSafeAreaInsets();
   const labels = useCalendarLabels();
 
+  // Keep drawing the last day while the sheet slides out, rather than
+  // emptying it the moment `day` goes back to `null`.
+  const [shown, setShown] = useState({ day, workouts });
+
+  if (day && (day !== shown.day || workouts !== shown.workouts)) {
+    setShown({ day, workouts });
+  }
+
   return (
     <Modal
       visible={day !== null}
@@ -54,7 +63,7 @@ export default function CalendarDaySheet({
           }}
         />
 
-        {day && (
+        {shown.day && (
           <Box
             backgroundColor="bgTertiary"
             borderTopLeftRadius="2xl"
@@ -73,7 +82,7 @@ export default function CalendarDaySheet({
               justifyContent="space-between"
               marginBottom="base"
             >
-              <Text variant="h3">{labels.day(day)}</Text>
+              <Text variant="h3">{labels.day(shown.day)}</Text>
               <TouchableOpacity
                 onPress={onClose}
                 hitSlop={8}
@@ -88,14 +97,14 @@ export default function CalendarDaySheet({
               </TouchableOpacity>
             </Box>
 
-            {workouts.length === 0 ? (
+            {shown.workouts.length === 0 ? (
               <Text variant="body-l-regular" color="textSecondary">
                 {t('emptyDay')}
               </Text>
             ) : (
               <ScrollView>
                 <Box gap="md">
-                  {workouts.map(workout => (
+                  {shown.workouts.map(workout => (
                     <WorkoutTile
                       key={workout.id}
                       title={workout.name}
