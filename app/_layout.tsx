@@ -4,13 +4,13 @@ import 'react-native-reanimated';
 import theme from '@/constants/theme';
 import '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeProvider } from '@shopify/restyle';
+import { useFonts } from 'expo-font';
 import {
   DarkTheme,
   ThemeProvider as NavThemeProvider,
-} from '@react-navigation/native';
-import { ThemeProvider } from '@shopify/restyle';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+  Stack,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 

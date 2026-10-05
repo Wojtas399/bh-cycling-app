@@ -36,7 +36,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/images/icon.png',
   scheme: 'blackhorsecyclingapp',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: BUNDLE_ID,
@@ -54,7 +53,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',
     },
-    edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: BUNDLE_ID,
     googleServicesFile: IS_PRODUCTION
@@ -71,6 +69,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         ios: {
           useFrameworks: 'static',
+          // iOS 27 refuses to launch apps built with its SDK that don't use
+          // the UIScene lifecycle. Opt-in on SDK 57, default from SDK 58.
+          enableSceneSupport: true,
           forceStaticLinking: [
             'RNFBApp',
             'RNFBAuth',
@@ -81,6 +82,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-router',
+    'expo-font',
+    'expo-image',
+    'expo-localization',
+    'expo-status-bar',
+    'expo-web-browser',
     [
       'expo-splash-screen',
       {
