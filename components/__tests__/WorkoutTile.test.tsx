@@ -32,6 +32,19 @@ describe('WorkoutTile', () => {
     expect(screen.queryByTestId('workout-tile-duration')).toBeNull();
   });
 
+  it('draws a status dot when given a status', async () => {
+    await renderTile({ title: 'Easy spin', status: 'missed' });
+
+    expect(screen.getByTestId('workout-status-dot-missed')).toBeTruthy();
+  });
+
+  it('omits the status dot and day label when neither is given', async () => {
+    await renderTile({ title: 'Easy spin' });
+
+    expect(screen.getByText('Easy spin')).toBeTruthy();
+    expect(screen.queryByTestId(/^workout-status-dot-/)).toBeNull();
+  });
+
   it('renders the workout profile when the workout has blocks', async () => {
     await renderTile({
       title: 'Threshold intervals',
