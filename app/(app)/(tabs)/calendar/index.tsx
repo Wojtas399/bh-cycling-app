@@ -1,6 +1,4 @@
-import { type ComponentType, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView } from 'react-native';
+import { type ReactNode, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { CalendarViewState } from './useCalendarRange';
@@ -8,159 +6,124 @@ import { useDaySheet } from './useDaySheet';
 import { useMonthlyCalendar } from './useMonthlyCalendar';
 import { useWeeklyCalendar } from './useWeeklyCalendar';
 import Box from '@/components/Box';
-import CalendarDaySheet from '@/components/CalendarDaySheet';
-import CalendarHeader from '@/components/CalendarHeader';
-import CalendarMonthGrid from '@/components/CalendarMonthGrid';
-import type { CalendarView } from '@/components/CalendarViewToggle';
-import CalendarWeekAgenda from '@/components/CalendarWeekAgenda';
-import Text from '@/components/Text';
+import CalendarBody from '@/components/calendar/CalendarBody';
+import CalendarDaySheet from '@/components/calendar/CalendarDaySheet';
+import CalendarHeader from '@/components/calendar/CalendarHeader';
+import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
+import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
+import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
+import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useAppTheme } from '@/constants/theme';
-import {
-  type CalendarLabels,
-  useCalendarLabels,
-} from '@/hooks/useCalendarLabels';
-import { useToday } from '@/hooks/useToday';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
-interface CalendarRange {
-  state: CalendarViewState;
-  /** Any date in the visible range. */
-  anchor: Date;
-  goToPrevious: () => void;
-  goToNext: () => void;
-  refresh: () => void;
-}
-
-interface CalendarBodyProps {
-  anchor: Date;
-  workoutsByDate: Record<string, CalendarWorkout[]>;
-  today: string;
-  onDayPress: (day: CalendarDay) => void;
-}
-
-/** What differs between the Calendar's views; everything else is shared. */
-interface CalendarViewConfig {
-  useRange: () => CalendarRange;
-  title: (labels: CalendarLabels, anchor: Date) => string;
-  Body: ComponentType<CalendarBodyProps>;
-}
-
-const VIEWS: Record<CalendarView, CalendarViewConfig> = {
-  monthly: {
-    useRange() {
-      const { state, month, goToPreviousMonth, goToNextMonth, refresh } =
-        useMonthlyCalendar();
-
-      return {
-        state,
-        anchor: month,
-        goToPrevious: goToPreviousMonth,
-        goToNext: goToNextMonth,
-        refresh,
-      };
-    },
-    title: (labels, anchor) => labels.month(anchor),
-    Body: CalendarMonthGrid,
-  },
-  weekly: {
-    useRange() {
-      const { state, week, goToPreviousWeek, goToNextWeek, refresh } =
-        useWeeklyCalendar();
-
-      return {
-        state,
-        anchor: week,
-        goToPrevious: goToPreviousWeek,
-        goToNext: goToNextWeek,
-        refresh,
-      };
-    },
-    title: (labels, anchor) => labels.week(getWeekDays(anchor)),
-    Body: CalendarWeekAgenda,
-  },
-};
-
 /**
- * Only the active view is mounted (hence keyed), so switching views never
- * fetches for both — the shared per-day cache makes the switch instant
- * whenever the other view already covered the dates.
+ * Only the active view's hook is mounted, so switching views never fetches
+ * for both — the shared per-day cache makes the switch instant whenever the
+ * other view already covered the dates.
  */
 export default function CalendarScreen() {
   const [view, setView] = useState<CalendarView>('monthly');
 
-  return (
-    <CalendarViewPane
-      key={view}
-      view={view}
-      config={VIEWS[view]}
-      onViewChange={setView}
-    />
+  return view === 'monthly' ? (
+    <MonthlyCalendar onViewChange={setView} />
+  ) : (
+    <WeeklyCalendar onViewChange={setView} />
   );
 }
 
-interface CalendarViewPaneProps {
-  view: CalendarView;
-  config: CalendarViewConfig;
+interface ViewProps {
   onViewChange: (view: CalendarView) => void;
 }
 
-function CalendarViewPane({
+function MonthlyCalendar({ onViewChange }: ViewProps) {
+  const labels = useCalendarLabels();
+  const { state, month, goToPreviousMonth, goToNextMonth, refresh } =
+    useMonthlyCalendar();
+
+  return (
+    <CalendarLayout
+      view="monthly"
+      onViewChange={onViewChange}
+      title={labels.month(month)}
+      state={state}
+      onPrevious={goToPreviousMonth}
+      onNext={goToNextMonth}
+      onRefresh={refresh}
+    >
+      {(workoutsByDate, onDayPress) => (
+        <CalendarMonthGrid
+          month={month}
+          workoutsByDate={workoutsByDate}
+          onDayPress={onDayPress}
+        />
+      )}
+    </CalendarLayout>
+  );
+}
+
+function WeeklyCalendar({ onViewChange }: ViewProps) {
+  const labels = useCalendarLabels();
+  const { state, week, goToPreviousWeek, goToNextWeek, refresh } =
+    useWeeklyCalendar();
+
+  return (
+    <CalendarLayout
+      view="weekly"
+      onViewChange={onViewChange}
+      title={labels.week(getWeekDays(week))}
+      state={state}
+      onPrevious={goToPreviousWeek}
+      onNext={goToNextWeek}
+      onRefresh={refresh}
+    >
+      {(workoutsByDate, onDayPress) => (
+        <CalendarWeekAgenda
+          week={week}
+          workoutsByDate={workoutsByDate}
+          onDayPress={onDayPress}
+        />
+      )}
+    </CalendarLayout>
+  );
+}
+
+interface CalendarLayoutProps extends ViewProps {
+  view: CalendarView;
+  title: string;
+  state: CalendarViewState;
+  onPrevious: () => void;
+  onNext: () => void;
+  onRefresh: () => void;
+  /** The loaded view; `onDayPress` opens the day sheet. */
+  children: (
+    workoutsByDate: Record<string, CalendarWorkout[]>,
+    onDayPress: (day: CalendarDay) => void,
+  ) => ReactNode;
+}
+
+/**
+ * Everything the two views share: the header (toggle, refresh, range
+ * navigation), the loading/error/ready body, and the day sheet.
+ */
+function CalendarLayout({
   view,
-  config,
   onViewChange,
-}: CalendarViewPaneProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
+  title,
+  state,
+  onPrevious,
+  onNext,
+  onRefresh,
+  children,
+}: CalendarLayoutProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const labels = useCalendarLabels();
-  const today = useToday();
-  const { state, anchor, goToPrevious, goToNext, refresh } = config.useRange();
-  const workoutsByDate =
-    state.status === 'ready' ? state.workoutsByDate : undefined;
-  const sheet = useDaySheet(workoutsByDate);
+  const sheet = useDaySheet(
+    state.status === 'ready' ? state.workoutsByDate : undefined,
+  );
 
   if (state.status === 'hidden') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
-  }
-
-  function renderBody() {
-    switch (state.status) {
-      case 'loading':
-        return (
-          <Box marginTop="md" testID="calendar-loading">
-            <ActivityIndicator color={theme.colors.textPrimary} />
-          </Box>
-        );
-      case 'error':
-        return (
-          <Text
-            variant="body-l-regular"
-            color="textSecondary"
-            textAlign="center"
-            marginTop="md"
-            paddingHorizontal="lg"
-          >
-            {t('error')}
-          </Text>
-        );
-      case 'ready':
-        return (
-          <ScrollView
-            contentContainerStyle={{
-              paddingHorizontal: theme.spacing.lg,
-              paddingBottom: theme.spacing.xl,
-            }}
-          >
-            <config.Body
-              anchor={anchor}
-              workoutsByDate={state.workoutsByDate}
-              today={today}
-              onDayPress={sheet.open}
-            />
-          </ScrollView>
-        );
-    }
   }
 
   return (
@@ -172,17 +135,31 @@ function CalendarViewPane({
       <CalendarHeader
         view={view}
         onViewChange={onViewChange}
-        title={config.title(labels, anchor)}
-        onPrevious={goToPrevious}
-        onNext={goToNext}
-        onRefresh={refresh}
-        refreshing={state.status === 'ready' && state.refreshing}
-        refreshDisabled={state.status === 'loading'}
+        title={title}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        onRefresh={onRefresh}
+        refreshStatus={refreshStatus(state)}
       />
 
-      {renderBody()}
+      <CalendarBody state={state}>
+        {workoutsByDate => children(workoutsByDate, sheet.open)}
+      </CalendarBody>
 
-      <CalendarDaySheet selection={sheet.selection} onClose={sheet.close} />
+      <CalendarDaySheet
+        visible={sheet.visible}
+        day={sheet.day}
+        workouts={sheet.workouts}
+        onClose={sheet.close}
+      />
     </Box>
   );
+}
+
+function refreshStatus(state: CalendarViewState) {
+  if (state.status === 'loading') {
+    return 'disabled';
+  }
+
+  return state.status === 'ready' && state.refreshing ? 'refreshing' : 'idle';
 }

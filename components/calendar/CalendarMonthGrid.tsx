@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react';
 import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
-import { useCalendarLabels } from '@/hooks/useCalendarLabels';
+import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import { useToday } from '@/hooks/useToday';
 import {
   type CalendarDay,
   type CalendarGridCell,
@@ -16,10 +18,8 @@ const CELL_MIN_HEIGHT = 52;
 
 export interface CalendarMonthGridProps {
   /** Any date in the month to lay out. */
-  anchor: Date;
+  month: Date;
   workoutsByDate: Record<string, CalendarWorkout[]>;
-  /** Local `YYYY-MM-DD` of today, highlighted when it falls in the grid. */
-  today: string;
   onDayPress: (day: CalendarDay) => void;
 }
 
@@ -29,12 +29,12 @@ export interface CalendarMonthGridProps {
  * tappable — their data was never fetched.
  */
 export default function CalendarMonthGrid({
-  anchor,
+  month,
   workoutsByDate,
-  today,
   onDayPress,
 }: CalendarMonthGridProps) {
   const labels = useCalendarLabels();
+  const today = useToday();
 
   return (
     <Box testID="calendar-month-grid">
@@ -52,17 +52,21 @@ export default function CalendarMonthGrid({
         ))}
       </Box>
 
-      {getMonthGrid(anchor).map(week => (
+      {getMonthGrid(month).map(week => (
         <Box key={week[0].date} flexDirection="row">
-          {week.map(cell => (
-            <GridCell
-              key={cell.date}
-              cell={cell}
-              workouts={workoutsByDate[cell.date] ?? []}
-              isToday={cell.inMonth && cell.date === today}
-              onDayPress={onDayPress}
-            />
-          ))}
+          {week.map(cell =>
+            cell.inMonth ? (
+              <GridCell
+                key={cell.date}
+                cell={cell}
+                workouts={workoutsByDate[cell.date] ?? []}
+                isToday={cell.date === today}
+                onDayPress={onDayPress}
+              />
+            ) : (
+              <PaddingCell key={cell.date} cell={cell} />
+            ),
+          )}
         </Box>
       ))}
     </Box>
@@ -76,56 +80,33 @@ interface GridCellProps {
   onDayPress: (day: CalendarDay) => void;
 }
 
-const CELL_VARIANTS = {
-  today: {
-    textVariant: 'body-s-medium',
-    textColor: 'textInverse',
-    backgroundColor: 'interactiveDefault',
-  },
-  inMonth: {
-    textVariant: 'body-s-regular',
-    textColor: 'textPrimary',
-    backgroundColor: 'transparent',
-  },
-  padding: {
-    textVariant: 'body-s-regular',
-    textColor: 'textTertiary',
-    backgroundColor: 'transparent',
-  },
-} as const;
-
 function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
-  const variant =
-    CELL_VARIANTS[isToday ? 'today' : cell.inMonth ? 'inMonth' : 'padding'];
-
   return (
     <TouchableOpacity
       style={{ flex: 1 }}
-      disabled={!cell.inMonth}
       onPress={() => onDayPress(cell)}
-      accessibilityRole={cell.inMonth ? 'button' : undefined}
+      accessibilityRole="button"
       testID={`calendar-day-${cell.date}`}
     >
-      <Box
-        alignItems="center"
-        paddingVertical="xs"
-        style={{ minHeight: CELL_MIN_HEIGHT }}
-      >
+      <CellFrame>
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
           borderRadius="full"
           alignItems="center"
           justifyContent="center"
-          backgroundColor={variant.backgroundColor}
+          backgroundColor={isToday ? 'interactiveDefault' : 'transparent'}
           testID={isToday ? 'calendar-today' : undefined}
         >
-          <Text variant={variant.textVariant} color={variant.textColor}>
+          <Text
+            variant={isToday ? 'body-s-medium' : 'body-s-regular'}
+            color={isToday ? 'textInverse' : 'textPrimary'}
+          >
             {cell.dayOfMonth}
           </Text>
         </Box>
 
-        {cell.inMonth && workouts.length > 0 && (
+        {workouts.length > 0 && (
           <Box
             flexDirection="row"
             flexWrap="wrap"
@@ -138,7 +119,39 @@ function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
             ))}
           </Box>
         )}
-      </Box>
+      </CellFrame>
     </TouchableOpacity>
+  );
+}
+
+/** A day from a neighbouring month: dimmed, dot-less, not tappable. */
+function PaddingCell({ cell }: { cell: CalendarGridCell }) {
+  return (
+    <Box flex={1} testID={`calendar-day-${cell.date}`}>
+      <CellFrame>
+        <Box
+          width={DAY_NUMBER_SIZE}
+          height={DAY_NUMBER_SIZE}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Text variant="body-s-regular" color="textTertiary">
+            {cell.dayOfMonth}
+          </Text>
+        </Box>
+      </CellFrame>
+    </Box>
+  );
+}
+
+function CellFrame({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      alignItems="center"
+      paddingVertical="xs"
+      style={{ minHeight: CELL_MIN_HEIGHT }}
+    >
+      {children}
+    </Box>
   );
 }

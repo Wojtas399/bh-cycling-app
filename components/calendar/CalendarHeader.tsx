@@ -2,11 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
-import CalendarNavButton from '@/components/CalendarNavButton';
+import Text from '@/components/Text';
 import CalendarViewToggle, {
   type CalendarView,
-} from '@/components/CalendarViewToggle';
-import Text from '@/components/Text';
+} from '@/components/calendar/CalendarViewToggle';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,10 +20,11 @@ export interface CalendarHeaderProps {
   onPrevious: () => void;
   onNext: () => void;
   onRefresh: () => void;
-  /** A refresh is in flight: the button gives way to a spinner. */
-  refreshing: boolean;
-  /** The first load is in flight: refreshing would only duplicate it. */
-  refreshDisabled: boolean;
+  /**
+   * `refreshing` swaps the button for a spinner; `disabled` is the first load,
+   * which a refresh would only duplicate.
+   */
+  refreshStatus: 'idle' | 'refreshing' | 'disabled';
 }
 
 /** The Calendar's two header rows: view toggle + refresh, then range navigation. */
@@ -35,8 +35,7 @@ export default function CalendarHeader({
   onPrevious,
   onNext,
   onRefresh,
-  refreshing,
-  refreshDisabled,
+  refreshStatus,
 }: CalendarHeaderProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
@@ -57,7 +56,7 @@ export default function CalendarHeader({
           alignItems="center"
           justifyContent="center"
         >
-          {refreshing ? (
+          {refreshStatus === 'refreshing' ? (
             <ActivityIndicator
               size="small"
               color={theme.colors.textSecondary}
@@ -66,7 +65,7 @@ export default function CalendarHeader({
           ) : (
             <TouchableOpacity
               onPress={onRefresh}
-              disabled={refreshDisabled}
+              disabled={refreshStatus === 'disabled'}
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel={t('refresh')}
@@ -88,18 +87,35 @@ export default function CalendarHeader({
         paddingHorizontal="lg"
         marginVertical="base"
       >
-        <CalendarNavButton
+        <NavButton
           icon="chevron-back"
           label={t('previous')}
           onPress={onPrevious}
         />
         <Text variant="h3">{title}</Text>
-        <CalendarNavButton
-          icon="chevron-forward"
-          label={t('next')}
-          onPress={onNext}
-        />
+        <NavButton icon="chevron-forward" label={t('next')} onPress={onNext} />
       </Box>
     </>
+  );
+}
+
+interface NavButtonProps {
+  icon: 'chevron-back' | 'chevron-forward';
+  label: string;
+  onPress: () => void;
+}
+
+function NavButton({ icon, label, onPress }: NavButtonProps) {
+  const theme = useAppTheme();
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={24} color={theme.colors.textPrimary} />
+    </TouchableOpacity>
   );
 }
