@@ -76,63 +76,52 @@ interface GridCellProps {
 }
 
 function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
-  const content = (
-    <Box alignItems="center" paddingVertical="xs" style={{ minHeight: 52 }}>
-      <Box
-        width={DAY_NUMBER_SIZE}
-        height={DAY_NUMBER_SIZE}
-        borderRadius="full"
-        alignItems="center"
-        justifyContent="center"
-        backgroundColor={isToday ? 'interactiveDefault' : 'transparent'}
-        testID={isToday ? 'calendar-today' : undefined}
-      >
-        <Text
-          variant={isToday ? 'body-s-medium' : 'body-s-regular'}
-          color={
-            isToday
-              ? 'textInverse'
-              : cell.inMonth
-                ? 'textPrimary'
-                : 'textTertiary'
-          }
-        >
-          {cell.dayOfMonth}
-        </Text>
-      </Box>
-
-      {cell.inMonth && workouts.length > 0 && (
-        <Box
-          flexDirection="row"
-          flexWrap="wrap"
-          justifyContent="center"
-          gap="xs"
-          marginTop="xs"
-        >
-          {workouts.map(workout => (
-            <WorkoutStatusDot key={workout.id} status={workout.status} />
-          ))}
-        </Box>
-      )}
-    </Box>
-  );
-
-  if (!cell.inMonth) {
-    return (
-      <Box flex={1} testID={`calendar-day-${cell.date}`}>
-        {content}
-      </Box>
-    );
-  }
+  const textColor = isToday
+    ? 'textInverse'
+    : cell.inMonth
+      ? 'textPrimary'
+      : 'textTertiary';
 
   return (
     <TouchableOpacity
       style={{ flex: 1 }}
+      disabled={!cell.inMonth}
       onPress={() => onDayPress(cell)}
-      accessibilityRole="button"
+      accessibilityRole={cell.inMonth ? 'button' : undefined}
       testID={`calendar-day-${cell.date}`}
     >
-      {content}
+      <Box alignItems="center" paddingVertical="xs" style={{ minHeight: 52 }}>
+        <Box
+          width={DAY_NUMBER_SIZE}
+          height={DAY_NUMBER_SIZE}
+          borderRadius="full"
+          alignItems="center"
+          justifyContent="center"
+          backgroundColor={isToday ? 'interactiveDefault' : 'transparent'}
+          testID={isToday ? 'calendar-today' : undefined}
+        >
+          <Text
+            variant={isToday ? 'body-s-medium' : 'body-s-regular'}
+            color={textColor}
+          >
+            {cell.dayOfMonth}
+          </Text>
+        </Box>
+
+        {cell.inMonth && workouts.length > 0 && (
+          <Box
+            flexDirection="row"
+            flexWrap="wrap"
+            justifyContent="center"
+            gap="xs"
+            marginTop="xs"
+          >
+            {workouts.map(workout => (
+              <WorkoutStatusDot key={workout.id} status={workout.status} />
+            ))}
+          </Box>
+        )}
+      </Box>
     </TouchableOpacity>
   );
 }

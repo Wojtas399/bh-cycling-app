@@ -1,5 +1,5 @@
 import { endOfMonth, startOfMonth, startOfWeek } from './calendarWorkouts';
-import { toLocalDateString } from './localDate';
+import { addDays, toLocalDateString } from './localDate';
 
 export interface CalendarDay {
   /** Local calendar date, `YYYY-MM-DD` — the key into `workoutsByDate`. */
@@ -36,14 +36,7 @@ export function getWeekDays(anchor: Date): CalendarDay[] {
   const monday = startOfWeek(anchor);
 
   return Array.from({ length: 7 }, (_, weekday) =>
-    toCalendarDay(
-      new Date(
-        monday.getFullYear(),
-        monday.getMonth(),
-        monday.getDate() + weekday,
-      ),
-      weekday,
-    ),
+    toCalendarDay(addDays(monday, weekday), weekday),
   );
 }
 
@@ -54,25 +47,14 @@ export function getWeekDays(anchor: Date): CalendarDay[] {
  */
 export function getMonthGrid(anchor: Date): CalendarGridCell[][] {
   const month = anchor.getMonth();
-  const last = toLocalDateString(endOfMonth(anchor));
-  const weeks: CalendarGridCell[][] = [];
+  const firstMonday = startOfWeek(startOfMonth(anchor));
+  const leadingDays = (startOfMonth(anchor).getDay() + 6) % 7; // days since Monday
+  const weekCount = Math.ceil((leadingDays + endOfMonth(anchor).getDate()) / 7);
 
-  for (
-    let monday = startOfWeek(startOfMonth(anchor));
-    toLocalDateString(monday) <= last;
-    monday = new Date(
-      monday.getFullYear(),
-      monday.getMonth(),
-      monday.getDate() + 7,
-    )
-  ) {
-    weeks.push(
-      getWeekDays(monday).map(day => ({
-        ...day,
-        inMonth: day.month === month,
-      })),
-    );
-  }
-
-  return weeks;
+  return Array.from({ length: weekCount }, (_, week) =>
+    getWeekDays(addDays(firstMonday, week * 7)).map(day => ({
+      ...day,
+      inMonth: day.month === month,
+    })),
+  );
 }

@@ -1,8 +1,8 @@
 import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
+import CalendarWorkoutTile from '@/components/CalendarWorkoutTile';
 import Text from '@/components/Text';
-import WorkoutTile from '@/components/WorkoutTile';
 import { useCalendarLabels } from '@/hooks/useCalendarLabels';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
@@ -49,12 +49,7 @@ export default function CalendarWeekAgenda({
 
             {(workoutsByDate[day.date] ?? []).map(workout => (
               <Box key={workout.id} marginTop="sm">
-                <WorkoutTile
-                  title={workout.name}
-                  status={workout.status}
-                  durationSeconds={workout.durationSeconds}
-                  blocks={workout.blocks}
-                />
+                <CalendarWorkoutTile workout={workout} />
               </Box>
             ))}
           </TouchableOpacity>

@@ -4,18 +4,22 @@ import { Modal, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import CalendarWorkoutTile from '@/components/CalendarWorkoutTile';
 import Text from '@/components/Text';
-import WorkoutTile from '@/components/WorkoutTile';
 import { useAppTheme } from '@/constants/theme';
 import { useCalendarLabels } from '@/hooks/useCalendarLabels';
 import type { CalendarDay } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 import { Ionicons } from '@expo/vector-icons';
 
+export interface CalendarDaySelection {
+  day: CalendarDay;
+  workouts: CalendarWorkout[];
+}
+
 export interface CalendarDaySheetProps {
   /** The day to show; `null` keeps the sheet closed. */
-  day: CalendarDay | null;
-  workouts: CalendarWorkout[];
+  selection: CalendarDaySelection | null;
   onClose: () => void;
 }
 
@@ -25,8 +29,7 @@ export interface CalendarDaySheetProps {
  * caller reads the day straight from data already on screen.
  */
 export default function CalendarDaySheet({
-  day,
-  workouts,
+  selection,
   onClose,
 }: CalendarDaySheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
@@ -34,17 +37,17 @@ export default function CalendarDaySheet({
   const insets = useSafeAreaInsets();
   const labels = useCalendarLabels();
 
-  // Keep drawing the last day while the sheet slides out, rather than
-  // emptying it the moment `day` goes back to `null`.
-  const [shown, setShown] = useState({ day, workouts });
+  // Keep drawing the last selection while the sheet slides out, rather than
+  // emptying it the moment `selection` goes back to `null`.
+  const [shown, setShown] = useState(selection);
 
-  if (day && (day !== shown.day || workouts !== shown.workouts)) {
-    setShown({ day, workouts });
+  if (selection && selection !== shown) {
+    setShown(selection);
   }
 
   return (
     <Modal
-      visible={day !== null}
+      visible={selection !== null}
       transparent
       animationType="slide"
       onRequestClose={onClose}
@@ -63,7 +66,7 @@ export default function CalendarDaySheet({
           }}
         />
 
-        {shown.day && (
+        {shown && (
           <Box
             backgroundColor="bgTertiary"
             borderTopLeftRadius="2xl"
@@ -105,13 +108,7 @@ export default function CalendarDaySheet({
               <ScrollView>
                 <Box gap="md">
                   {shown.workouts.map(workout => (
-                    <WorkoutTile
-                      key={workout.id}
-                      title={workout.name}
-                      status={workout.status}
-                      durationSeconds={workout.durationSeconds}
-                      blocks={workout.blocks}
-                    />
+                    <CalendarWorkoutTile key={workout.id} workout={workout} />
                   ))}
                 </Box>
               </ScrollView>
