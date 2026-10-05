@@ -12,10 +12,11 @@ import {
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 const DAY_NUMBER_SIZE = 32;
+const CELL_MIN_HEIGHT = 52;
 
 export interface CalendarMonthGridProps {
   /** Any date in the month to lay out. */
-  month: Date;
+  anchor: Date;
   workoutsByDate: Record<string, CalendarWorkout[]>;
   /** Local `YYYY-MM-DD` of today, highlighted when it falls in the grid. */
   today: string;
@@ -28,7 +29,7 @@ export interface CalendarMonthGridProps {
  * tappable — their data was never fetched.
  */
 export default function CalendarMonthGrid({
-  month,
+  anchor,
   workoutsByDate,
   today,
   onDayPress,
@@ -51,7 +52,7 @@ export default function CalendarMonthGrid({
         ))}
       </Box>
 
-      {getMonthGrid(month).map(week => (
+      {getMonthGrid(anchor).map(week => (
         <Box key={week[0].date} flexDirection="row">
           {week.map(cell => (
             <GridCell
@@ -75,12 +76,27 @@ interface GridCellProps {
   onDayPress: (day: CalendarDay) => void;
 }
 
+const CELL_VARIANTS = {
+  today: {
+    textVariant: 'body-s-medium',
+    textColor: 'textInverse',
+    backgroundColor: 'interactiveDefault',
+  },
+  inMonth: {
+    textVariant: 'body-s-regular',
+    textColor: 'textPrimary',
+    backgroundColor: 'transparent',
+  },
+  padding: {
+    textVariant: 'body-s-regular',
+    textColor: 'textTertiary',
+    backgroundColor: 'transparent',
+  },
+} as const;
+
 function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
-  const textColor = isToday
-    ? 'textInverse'
-    : cell.inMonth
-      ? 'textPrimary'
-      : 'textTertiary';
+  const variant =
+    CELL_VARIANTS[isToday ? 'today' : cell.inMonth ? 'inMonth' : 'padding'];
 
   return (
     <TouchableOpacity
@@ -90,20 +106,21 @@ function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
       accessibilityRole={cell.inMonth ? 'button' : undefined}
       testID={`calendar-day-${cell.date}`}
     >
-      <Box alignItems="center" paddingVertical="xs" style={{ minHeight: 52 }}>
+      <Box
+        alignItems="center"
+        paddingVertical="xs"
+        style={{ minHeight: CELL_MIN_HEIGHT }}
+      >
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
           borderRadius="full"
           alignItems="center"
           justifyContent="center"
-          backgroundColor={isToday ? 'interactiveDefault' : 'transparent'}
+          backgroundColor={variant.backgroundColor}
           testID={isToday ? 'calendar-today' : undefined}
         >
-          <Text
-            variant={isToday ? 'body-s-medium' : 'body-s-regular'}
-            color={textColor}
-          >
+          <Text variant={variant.textVariant} color={variant.textColor}>
             {cell.dayOfMonth}
           </Text>
         </Box>

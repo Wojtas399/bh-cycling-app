@@ -1,19 +1,25 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import type { CalendarViewState } from './useCalendarRange';
 import type { CalendarDaySelection } from '@/components/CalendarDaySheet';
 import type { CalendarDay } from '@/lib/calendarGrid';
+import type { CalendarWorkout } from '@/lib/workoutStatus';
+
+export interface DaySheetController {
+  selection: CalendarDaySelection | null;
+  open: (day: CalendarDay) => void;
+  close: () => void;
+}
 
 /**
- * Which day's sheet is open. The workouts are read from `state` on every
- * render rather than copied, and the sheet closes whenever the view isn't
- * ready (a range reload, a disconnect).
+ * Which day's sheet is open. The workouts are read from `workoutsByDate` on
+ * every render rather than copied, and the sheet closes whenever it is
+ * `undefined` (a range reload, a disconnect).
  */
-export function useDaySheet(state: CalendarViewState) {
+export function useDaySheet(
+  workoutsByDate: Record<string, CalendarWorkout[]> | undefined,
+): DaySheetController {
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
 
-  const workoutsByDate =
-    state.status === 'ready' ? state.workoutsByDate : undefined;
   const selection = useMemo<CalendarDaySelection | null>(
     () =>
       workoutsByDate && selectedDay

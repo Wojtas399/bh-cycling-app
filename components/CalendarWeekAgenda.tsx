@@ -1,15 +1,15 @@
 import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
-import CalendarWorkoutTile from '@/components/CalendarWorkoutTile';
 import Text from '@/components/Text';
+import WorkoutTile from '@/components/WorkoutTile';
 import { useCalendarLabels } from '@/hooks/useCalendarLabels';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarWeekAgendaProps {
   /** Any date in the week to lay out. */
-  week: Date;
+  anchor: Date;
   workoutsByDate: Record<string, CalendarWorkout[]>;
   /** Local `YYYY-MM-DD` of today, highlighted when it falls in the week. */
   today: string;
@@ -21,7 +21,7 @@ export interface CalendarWeekAgendaProps {
  * per workout. Rest days show the label alone.
  */
 export default function CalendarWeekAgenda({
-  week,
+  anchor,
   workoutsByDate,
   today,
   onDayPress,
@@ -30,7 +30,7 @@ export default function CalendarWeekAgenda({
 
   return (
     <Box testID="calendar-week-agenda" gap="base">
-      {getWeekDays(week).map(day => {
+      {getWeekDays(anchor).map(day => {
         const isToday = day.date === today;
 
         return (
@@ -49,7 +49,12 @@ export default function CalendarWeekAgenda({
 
             {(workoutsByDate[day.date] ?? []).map(workout => (
               <Box key={workout.id} marginTop="sm">
-                <CalendarWorkoutTile workout={workout} />
+                <WorkoutTile
+                  title={workout.name}
+                  status={workout.status}
+                  durationSeconds={workout.durationSeconds}
+                  blocks={workout.blocks}
+                />
               </Box>
             ))}
           </TouchableOpacity>

@@ -1,6 +1,8 @@
 import { endOfMonth, startOfMonth, startOfWeek } from './calendarWorkouts';
 import { addDays, toLocalDateString } from './localDate';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export interface CalendarDay {
   /** Local calendar date, `YYYY-MM-DD` — the key into `workoutsByDate`. */
   date: string;
@@ -21,23 +23,21 @@ export interface CalendarGridCell extends CalendarDay {
   inMonth: boolean;
 }
 
-function toCalendarDay(date: Date, weekday: number): CalendarDay {
-  return {
-    date: toLocalDateString(date),
-    dayOfMonth: date.getDate(),
-    weekday,
-    month: date.getMonth(),
-    year: date.getFullYear(),
-  };
-}
-
 /** Monday through Sunday of the week containing `anchor`. */
 export function getWeekDays(anchor: Date): CalendarDay[] {
   const monday = startOfWeek(anchor);
 
-  return Array.from({ length: 7 }, (_, weekday) =>
-    toCalendarDay(addDays(monday, weekday), weekday),
-  );
+  return Array.from({ length: 7 }, (_, weekday) => {
+    const date = addDays(monday, weekday);
+
+    return {
+      date: toLocalDateString(date),
+      dayOfMonth: date.getDate(),
+      weekday,
+      month: date.getMonth(),
+      year: date.getFullYear(),
+    };
+  });
 }
 
 /**
@@ -48,7 +48,10 @@ export function getWeekDays(anchor: Date): CalendarDay[] {
 export function getMonthGrid(anchor: Date): CalendarGridCell[][] {
   const month = anchor.getMonth();
   const firstMonday = startOfWeek(startOfMonth(anchor));
-  const leadingDays = (startOfMonth(anchor).getDay() + 6) % 7; // days since Monday
+  // Rounded because a DST change makes the gap 23 or 25 hours off a whole day.
+  const leadingDays = Math.round(
+    (startOfMonth(anchor).getTime() - firstMonday.getTime()) / DAY_MS,
+  );
   const weekCount = Math.ceil((leadingDays + endOfMonth(anchor).getDate()) / 7);
 
   return Array.from({ length: weekCount }, (_, week) =>

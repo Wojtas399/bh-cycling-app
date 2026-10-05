@@ -1,13 +1,13 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, ScrollView, TouchableOpacity } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
-import CalendarWorkoutTile from '@/components/CalendarWorkoutTile';
 import Text from '@/components/Text';
+import WorkoutTile from '@/components/WorkoutTile';
 import { useAppTheme } from '@/constants/theme';
 import { useCalendarLabels } from '@/hooks/useCalendarLabels';
+import { useLastDefined } from '@/hooks/useLastDefined';
 import type { CalendarDay } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,11 +39,7 @@ export default function CalendarDaySheet({
 
   // Keep drawing the last selection while the sheet slides out, rather than
   // emptying it the moment `selection` goes back to `null`.
-  const [shown, setShown] = useState(selection);
-
-  if (selection && selection !== shown) {
-    setShown(selection);
-  }
+  const shown = useLastDefined(selection);
 
   return (
     <Modal
@@ -56,14 +52,10 @@ export default function CalendarDaySheet({
         <TouchableOpacity
           activeOpacity={1}
           onPress={onClose}
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          }}
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: theme.colors.overlay },
+          ]}
         />
 
         {shown && (
@@ -108,7 +100,13 @@ export default function CalendarDaySheet({
               <ScrollView>
                 <Box gap="md">
                   {shown.workouts.map(workout => (
-                    <CalendarWorkoutTile key={workout.id} workout={workout} />
+                    <WorkoutTile
+                      key={workout.id}
+                      title={workout.name}
+                      status={workout.status}
+                      durationSeconds={workout.durationSeconds}
+                      blocks={workout.blocks}
+                    />
                   ))}
                 </Box>
               </ScrollView>
