@@ -1,9 +1,10 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { CalendarViewState } from './useCalendarRange';
+import { useDaySheet } from './useDaySheet';
 import { useMonthlyCalendar } from './useMonthlyCalendar';
 import { useWeeklyCalendar } from './useWeeklyCalendar';
 import Box from '@/components/Box';
@@ -17,9 +18,8 @@ import CalendarWeekAgenda from '@/components/CalendarWeekAgenda';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { useCalendarLabels } from '@/hooks/useCalendarLabels';
-import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
+import { getWeekDays } from '@/lib/calendarGrid';
 import { toLocalDateString } from '@/lib/localDate';
-import type { CalendarWorkout } from '@/lib/workoutStatus';
 import { Ionicons } from '@expo/vector-icons';
 
 /**
@@ -45,6 +45,7 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
   const { state, month, goToPreviousMonth, goToNextMonth, refresh } =
     useMonthlyCalendar();
+  const sheet = useDaySheet(state);
 
   return (
     <CalendarLayout
@@ -52,11 +53,20 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
       onViewChange={onViewChange}
       title={labels.month(month)}
       state={state}
+      sheet={sheet}
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
       onRefresh={refresh}
-      renderBody={props => <CalendarMonthGrid month={month} {...props} />}
-    />
+    >
+      {state.status === 'ready' && (
+        <CalendarMonthGrid
+          month={month}
+          workoutsByDate={state.workoutsByDate}
+          today={toLocalDateString(new Date())}
+          onDayPress={sheet.open}
+        />
+      )}
+    </CalendarLayout>
   );
 }
 
@@ -64,6 +74,7 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
   const { state, week, goToPreviousWeek, goToNextWeek, refresh } =
     useWeeklyCalendar();
+  const sheet = useDaySheet(state);
 
   return (
     <CalendarLayout
@@ -71,31 +82,34 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
       onViewChange={onViewChange}
       title={labels.week(getWeekDays(week))}
       state={state}
+      sheet={sheet}
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
       onRefresh={refresh}
-      renderBody={props => <CalendarWeekAgenda week={week} {...props} />}
-    />
+    >
+      {state.status === 'ready' && (
+        <CalendarWeekAgenda
+          week={week}
+          workoutsByDate={state.workoutsByDate}
+          today={toLocalDateString(new Date())}
+          onDayPress={sheet.open}
+        />
+      )}
+    </CalendarLayout>
   );
-}
-
-interface BodyProps {
-  workoutsByDate: Record<string, CalendarWorkout[]>;
-  today: string;
-  onDayPress: (day: CalendarDay) => void;
 }
 
 interface CalendarLayoutProps extends ViewProps {
   view: CalendarView;
   title: string;
   state: CalendarViewState;
+  sheet: ReturnType<typeof useDaySheet>;
   onPrevious: () => void;
   onNext: () => void;
   onRefresh: () => void;
-  renderBody: (props: BodyProps) => ReactNode;
+  /** The view's body, rendered in the scroll area once the state is ready. */
+  children: ReactNode;
 }
-
-const NO_WORKOUTS: Record<string, CalendarWorkout[]> = {};
 
 /**
  * Everything the two views share: the view toggle, refresh control, range
@@ -106,27 +120,15 @@ function CalendarLayout({
   onViewChange,
   title,
   state,
+  sheet,
   onPrevious,
   onNext,
   onRefresh,
-  renderBody,
+  children,
 }: CalendarLayoutProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
-
-  // The sheet only shows data already on screen, so it closes whenever the
-  // view isn't ready (a range reload, a disconnect).
-  const workoutsByDate =
-    state.status === 'ready' ? state.workoutsByDate : NO_WORKOUTS;
-  const selection = useMemo(
-    () =>
-      state.status === 'ready' && selectedDay
-        ? { day: selectedDay, workouts: workoutsByDate[selectedDay.date] ?? [] }
-        : null,
-    [state.status, selectedDay, workoutsByDate],
-  );
 
   if (state.status === 'hidden') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
@@ -216,18 +218,11 @@ function CalendarLayout({
             paddingBottom: theme.spacing.xl,
           }}
         >
-          {renderBody({
-            workoutsByDate,
-            today: toLocalDateString(new Date()),
-            onDayPress: setSelectedDay,
-          })}
+          {children}
         </ScrollView>
       )}
 
-      <CalendarDaySheet
-        selection={selection}
-        onClose={() => setSelectedDay(null)}
-      />
+      <CalendarDaySheet selection={sheet.selection} onClose={sheet.close} />
     </Box>
   );
 }
