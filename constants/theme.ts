@@ -53,6 +53,9 @@ const theme = createTheme({
     borderDefault: '#2C2C2E',
     borderStrong: palette.gray800,
 
+    // Semantic — overlays
+    overlay: 'rgba(0, 0, 0, 0.6)',
+
     // Semantic — interactive
     interactiveDefault: palette.white,
     interactiveHover: palette.gray100,
