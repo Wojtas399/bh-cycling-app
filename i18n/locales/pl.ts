@@ -1,4 +1,7 @@
 const pl = {
+  common: {
+    back: 'Wstecz',
+  },
   signUp: {
     title: 'Utwórz konto',
     subtitle: 'Zarejestruj się, aby zacząć',
@@ -103,6 +106,7 @@ const pl = {
         google: 'Google',
         emailAndGoogle: 'E-mail i Google',
       },
+      changePassword: 'Zmień hasło',
     },
     integrations: {
       title: 'Integracje',
@@ -119,6 +123,41 @@ const pl = {
       confirmBody: 'Zostaniesz wylogowany z aplikacji.',
       confirmButton: 'Wyloguj',
       cancelButton: 'Anuluj',
+    },
+  },
+  changePassword: {
+    title: 'Zmień hasło',
+    currentPassword: 'Obecne hasło',
+    newPassword: 'Nowe hasło',
+    confirmPassword: 'Potwierdź nowe hasło',
+    submitButton: 'Zmień hasło',
+    forgotPassword: 'Nie pamiętasz obecnego hasła?',
+    success: {
+      title: 'Hasło zostało zmienione',
+      ok: 'OK',
+    },
+    reset: {
+      confirmTitle: 'Wysłać link do resetowania hasła na {{email}}?',
+      confirmButton: 'Wyślij',
+      cancelButton: 'Anuluj',
+      successTitle: 'Sprawdź skrzynkę',
+      successBody:
+        'Link do resetowania hasła został wysłany na adres {{email}}.',
+    },
+    errors: {
+      currentPasswordInvalid: 'Obecne hasło jest nieprawidłowe.',
+      weakPassword: 'Hasło jest za słabe.',
+      tooManyRequests: 'Za dużo prób. Spróbuj ponownie później.',
+      networkFailed: 'Brak połączenia z internetem.',
+      generic: 'Wystąpił błąd. Spróbuj ponownie.',
+    },
+    validation: {
+      currentPasswordRequired: 'Podaj obecne hasło.',
+      newPasswordRequired: 'Podaj nowe hasło.',
+      newPasswordTooShort: 'Hasło musi mieć co najmniej {{count}} znaków.',
+      newPasswordSameAsCurrent: 'Nowe hasło musi różnić się od obecnego.',
+      confirmPasswordRequired: 'Potwierdź nowe hasło.',
+      passwordsMismatch: 'Hasła nie są zgodne.',
     },
   },
   home: {

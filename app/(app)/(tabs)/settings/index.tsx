@@ -20,6 +20,7 @@ import { auth } from '@/lib/firebase';
 import { type SignInMethod, getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
 function getSignInMethodLabelKey(methods: SignInMethod[]) {
@@ -40,13 +41,15 @@ export default function SettingsScreen() {
     keyPrefix: 'intervals',
   });
   const theme = useAppTheme();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const connection = useIntervalsConnection();
   const { handleConnect, handleDisconnect, connecting, disconnecting, error } =
     useIntervalsAuth();
 
   const user = auth().currentUser;
-  const signInMethodLabelKey = getSignInMethodLabelKey(getSignInMethods(user));
+  const signInMethods = getSignInMethods(user);
+  const signInMethodLabelKey = getSignInMethodLabelKey(signInMethods);
   const appVersion = formatAppVersion(
     Constants.expoConfig?.version,
     Constants.expoConfig?.extra?.appEnv,
@@ -93,6 +96,15 @@ export default function SettingsScreen() {
               : ''
           }
         />
+        {signInMethods.includes('email') ? (
+          <SettingsRow
+            icon="lock-closed-outline"
+            iconColor="neutral"
+            label={t('account.changePassword')}
+            trailing="chevron"
+            onPress={() => router.push('/change-password')}
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection

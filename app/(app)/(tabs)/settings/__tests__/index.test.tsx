@@ -29,6 +29,7 @@ jest.mock('react-i18next', () => ({
 
 const mockSignOutAndClear = jest.fn();
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+const mockPush = jest.fn();
 const mockOpenBrowser = jest.fn();
 let mockExpoConfig: { version: string; extra: { appEnv: string } } = {
   version: '1.0.0',
@@ -42,6 +43,10 @@ jest.mock('expo-constants', () => ({
       return mockExpoConfig;
     },
   },
+}));
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
 }));
 
 jest.mock('expo-web-browser', () => ({
@@ -143,6 +148,27 @@ describe('SettingsScreen — Konto section', () => {
     await renderScreen();
 
     expect(screen.getByText(label)).toBeTruthy();
+  });
+
+  it.each([[['password']], [['password', 'google.com']]])(
+    'shows the Change Password row for providers %j and opens it',
+    async providers => {
+      mockUser(...providers);
+
+      await renderScreen();
+
+      fireEvent.press(screen.getByText('settings.account.changePassword'));
+
+      expect(mockPush).toHaveBeenCalledWith('/change-password');
+    },
+  );
+
+  it('hides the Change Password row for Google-only accounts', async () => {
+    mockUser('google.com');
+
+    await renderScreen();
+
+    expect(screen.queryByText('settings.account.changePassword')).toBeNull();
   });
 
   it('does not make the Konto rows pressable', async () => {

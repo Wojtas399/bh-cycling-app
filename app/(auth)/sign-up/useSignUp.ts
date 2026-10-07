@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { GoogleSignin, auth } from '@/lib/firebase';
-import { EMAIL_REGEX } from '@/lib/validation';
+import { EMAIL_REGEX, MIN_PASSWORD_LENGTH } from '@/lib/validation';
 import {
   isErrorWithCode,
   statusCodes,
@@ -54,7 +54,7 @@ export function useSignUp() {
     if (!password) {
       setPasswordError(t('signUp.validation.passwordRequired'));
       valid = false;
-    } else if (password.length < 8) {
+    } else if (password.length < MIN_PASSWORD_LENGTH) {
       setPasswordError(t('signUp.validation.passwordTooShort'));
       valid = false;
     } else {
