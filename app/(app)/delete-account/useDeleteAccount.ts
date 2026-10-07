@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { markAccountDeleted } from '@/lib/accountDeletedStore';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
 import { getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
 import {
@@ -97,9 +98,7 @@ export function useDeleteAccount() {
   async function handleError(e: unknown) {
     if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) return;
 
-    const code = (e as { code?: string }).code ?? '';
-
-    switch (code) {
+    switch (getErrorCode(e)) {
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
         setPasswordError(t('deleteAccount.errors.passwordInvalid'));

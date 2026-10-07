@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
 import { auth } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
 import { MIN_PASSWORD_LENGTH } from '@/lib/validation';
 import { useRouter } from 'expo-router';
 
@@ -125,7 +126,7 @@ export function useChangePassword() {
         },
       ]);
     } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
+      const code = getErrorCode(e);
 
       if (
         code === 'auth/wrong-password' ||
@@ -156,7 +157,7 @@ export function useChangePassword() {
         t('changePassword.reset.successBody', { email }),
       );
     } catch (e) {
-      setError(getFormErrorMessage((e as { code?: string }).code ?? ''));
+      setError(getFormErrorMessage(getErrorCode(e)));
     } finally {
       setLoading(false);
     }
