@@ -1,6 +1,7 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import SettingsScreen from '../index';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/constants/legal';
 import theme from '@/constants/theme';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
@@ -26,6 +27,25 @@ jest.mock('react-i18next', () => ({
 }));
 
 const mockSignOut = jest.fn();
+const mockOpenBrowser = jest.fn();
+let mockExpoConfig: { version: string; extra: { appEnv: string } } = {
+  version: '1.0.0',
+  extra: { appEnv: 'production' },
+};
+
+jest.mock('expo-constants', () => ({
+  __esModule: true,
+  default: {
+    get expoConfig() {
+      return mockExpoConfig;
+    },
+  },
+}));
+
+jest.mock('expo-web-browser', () => ({
+  openBrowserAsync: (url: string) => mockOpenBrowser(url),
+}));
+
 let mockCurrentUser: {
   email: string | null;
   providerData: { providerId: string }[];
@@ -123,7 +143,56 @@ describe('SettingsScreen — Konto section', () => {
     await renderScreen();
 
     // Pressable SettingsRows expose accessibilityRole="button".
-    expect(screen.queryAllByRole('button')).toHaveLength(0);
+    expect(
+      screen.queryByRole('button', { name: /settings\.account\.email/ }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /settings\.account\.signInMethod/ }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: /settings\.about\.privacyPolicy/ }),
+    ).toBeTruthy();
+  });
+});
+
+describe('SettingsScreen — O aplikacji section', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockConnection();
+    mockAuth();
+    mockUser('password');
+    mockExpoConfig = { version: '1.0.0', extra: { appEnv: 'production' } };
+  });
+
+  it('shows the plain version on production builds', async () => {
+    await renderScreen();
+
+    expect(screen.getByText('settings.about.version')).toBeTruthy();
+    expect(screen.getByText('1.0.0')).toBeTruthy();
+  });
+
+  it('appends (staging) on non-production builds', async () => {
+    mockExpoConfig = { version: '1.0.0', extra: { appEnv: 'staging' } };
+
+    await renderScreen();
+
+    expect(screen.getByText('1.0.0 (staging)')).toBeTruthy();
+  });
+
+  it('opens the privacy policy in the in-app browser', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('settings.about.privacyPolicy'));
+
+    expect(mockOpenBrowser).toHaveBeenCalledWith(PRIVACY_POLICY_URL);
+  });
+
+  it('opens the terms of service in the in-app browser', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('settings.about.termsOfService'));
+
+    expect(mockOpenBrowser).toHaveBeenCalledWith(TERMS_OF_SERVICE_URL);
   });
 });
 

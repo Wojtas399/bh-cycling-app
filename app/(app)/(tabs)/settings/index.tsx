@@ -7,11 +7,15 @@ import Button from '@/components/Button';
 import Text from '@/components/Text';
 import SettingsRow from '@/components/settings/SettingsRow';
 import SettingsSection from '@/components/settings/SettingsSection';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/constants/legal';
 import { useAppTheme } from '@/constants/theme';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
+import { formatAppVersion } from '@/lib/appVersion';
 import { auth } from '@/lib/firebase';
 import { type SignInMethod, getSignInMethods } from '@/lib/signInMethods';
+import Constants from 'expo-constants';
+import * as WebBrowser from 'expo-web-browser';
 
 function getSignInMethodLabelKey(methods: SignInMethod[]) {
   if (methods.includes('email') && methods.includes('google')) {
@@ -38,6 +42,10 @@ export default function SettingsScreen() {
 
   const user = auth().currentUser;
   const signInMethodLabelKey = getSignInMethodLabelKey(getSignInMethods(user));
+  const appVersion = formatAppVersion(
+    Constants.expoConfig?.version,
+    Constants.expoConfig?.extra?.appEnv,
+  );
   const busy = connecting || disconnecting;
 
   return (
@@ -109,6 +117,29 @@ export default function SettingsScreen() {
               )}
             </TouchableOpacity>
           }
+        />
+      </SettingsSection>
+
+      <SettingsSection title={t('about.title')}>
+        <SettingsRow
+          icon="information-circle-outline"
+          iconColor="neutral"
+          label={t('about.version')}
+          value={appVersion}
+        />
+        <SettingsRow
+          icon="document-text-outline"
+          iconColor="neutral"
+          label={t('about.privacyPolicy')}
+          trailing="external"
+          onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
+        />
+        <SettingsRow
+          icon="document-text-outline"
+          iconColor="neutral"
+          label={t('about.termsOfService')}
+          trailing="external"
+          onPress={() => WebBrowser.openBrowserAsync(TERMS_OF_SERVICE_URL)}
         />
       </SettingsSection>
 

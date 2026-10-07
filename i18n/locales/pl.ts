@@ -107,6 +107,12 @@ const pl = {
     integrations: {
       title: 'Integracje',
     },
+    about: {
+      title: 'O aplikacji',
+      version: 'Wersja',
+      privacyPolicy: 'Polityka prywatności',
+      termsOfService: 'Regulamin',
+    },
   },
   home: {
     upcomingWorkouts: {
