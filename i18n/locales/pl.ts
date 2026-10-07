@@ -38,6 +38,7 @@ const pl = {
     or: 'lub',
     signInWithGoogle: 'Zaloguj się przez Google',
     noAccount: 'Nie masz konta? Zarejestruj się',
+    accountDeleted: 'Konto zostało usunięte',
     errors: {
       invalidCredential: 'Nieprawidłowy e-mail lub hasło.',
       invalidEmail: 'Podaj prawidłowy adres e-mail.',
@@ -107,6 +108,7 @@ const pl = {
         emailAndGoogle: 'E-mail i Google',
       },
       changePassword: 'Zmień hasło',
+      deleteAccount: 'Usuń konto',
     },
     integrations: {
       title: 'Integracje',
@@ -158,6 +160,32 @@ const pl = {
       newPasswordSameAsCurrent: 'Nowe hasło musi różnić się od obecnego.',
       confirmPasswordRequired: 'Potwierdź nowe hasło.',
       passwordsMismatch: 'Hasła nie są zgodne.',
+    },
+  },
+  deleteAccount: {
+    title: 'Usuń konto',
+    warningTitle: 'Tej operacji nie można cofnąć',
+    consequences: {
+      data: 'Twoje konto i wszystkie dane w aplikacji BH Cycling zostaną trwale usunięte.',
+      intervals:
+        'Połączenie z Intervals.icu zostanie odłączone. Twoje treningi i aktywności na Intervals.icu pozostaną nienaruszone.',
+      irreversible:
+        'Aby potwierdzić, musisz ponownie potwierdzić swoją tożsamość.',
+    },
+    password: 'Hasło',
+    googleHint:
+      'Po naciśnięciu przycisku poprosimy Cię o ponowne zalogowanie przez Google.',
+    deleteButton: 'Usuń konto na zawsze',
+    errors: {
+      passwordInvalid: 'Hasło jest nieprawidłowe.',
+      wrongGoogleAccount:
+        'Wybrano inne konto Google niż to, na którym jesteś zalogowany. Spróbuj ponownie.',
+      reauthRequired:
+        'Minęło zbyt dużo czasu od ostatniego potwierdzenia tożsamości. Potwierdź ją ponownie i spróbuj jeszcze raz.',
+      generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
+    },
+    validation: {
+      passwordRequired: 'Podaj hasło.',
     },
   },
   home: {

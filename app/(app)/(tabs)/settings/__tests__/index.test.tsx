@@ -171,6 +171,22 @@ describe('SettingsScreen — Konto section', () => {
     expect(screen.queryByText('settings.account.changePassword')).toBeNull();
   });
 
+  it('opens the Delete account screen from a danger row', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('settings.account.deleteAccount'));
+
+    expect(mockPush).toHaveBeenCalledWith('/delete-account');
+  });
+
+  it('shows the Delete account row for Google-only accounts too', async () => {
+    mockUser('google.com');
+
+    await renderScreen();
+
+    expect(screen.getByText('settings.account.deleteAccount')).toBeTruthy();
+  });
+
   it('does not make the Konto rows pressable', async () => {
     await renderScreen();
 

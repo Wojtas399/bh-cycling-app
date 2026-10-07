@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert } from 'react-native';
 import type { TextInput } from 'react-native';
 
+import { consumeAccountDeleted } from '@/lib/accountDeletedStore';
 import { GoogleSignin, auth } from '@/lib/firebase';
 import { EMAIL_REGEX } from '@/lib/validation';
 import {
@@ -22,6 +24,10 @@ export function useSignIn() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (consumeAccountDeleted()) Alert.alert(t('signIn.accountDeleted'));
+  }, [t]);
 
   function getFirebaseErrorMessage(code: string): string {
     switch (code) {

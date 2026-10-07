@@ -105,6 +105,13 @@ export default function SettingsScreen() {
             onPress={() => router.push('/change-password')}
           />
         ) : null}
+        <SettingsRow
+          icon="trash-outline"
+          iconColor="danger"
+          label={t('account.deleteAccount')}
+          danger
+          onPress={() => router.push('/delete-account')}
+        />
       </SettingsSection>
 
       <SettingsSection
