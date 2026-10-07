@@ -199,6 +199,18 @@ describe('useDeleteAccount', () => {
       ]);
     });
 
+    it('shows nothing when Google sign-in resolves as cancelled', async () => {
+      mockGoogleSignIn.mockResolvedValue({ type: 'cancelled', data: null });
+      const hook = await setup(['google.com']);
+
+      await submit(hook);
+
+      expect(hook.result.current.error).toBe('');
+      expect(mockReauthenticate).not.toHaveBeenCalled();
+      expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
+      expect(hook.result.current.loading).toBe(false);
+    });
+
     it('shows nothing when the user cancels Google sign-in', async () => {
       mockGoogleSignIn.mockRejectedValue({ code: 'SIGN_IN_CANCELLED' });
       const hook = await setup(['google.com']);
@@ -225,7 +237,7 @@ describe('useDeleteAccount', () => {
     });
 
     it('shows a generic error when Google returns no id token', async () => {
-      mockGoogleSignIn.mockResolvedValue({ data: null });
+      mockGoogleSignIn.mockResolvedValue({ type: 'success', data: null });
       const hook = await setup(['google.com']);
 
       await submit(hook);

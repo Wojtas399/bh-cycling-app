@@ -30,7 +30,8 @@ export function useDeleteAccount() {
     if (error) setError('');
   }
 
-  async function reauthenticate() {
+  /** Resolves to false when the user cancelled Google sign-in. */
+  async function reauthenticate(): Promise<boolean> {
     const user = auth().currentUser;
 
     if (!user) throw new Error('no_user');
@@ -43,12 +44,15 @@ export function useDeleteAccount() {
 
       await user.reauthenticateWithCredential(credential);
 
-      return;
+      return true;
     }
 
     await GoogleSignin.hasPlayServices();
 
     const result = await GoogleSignin.signIn();
+
+    if (result.type === 'cancelled') return false;
+
     const idToken = result.data?.idToken;
 
     if (!idToken) throw new Error('no_id_token');
@@ -56,6 +60,8 @@ export function useDeleteAccount() {
     await user.reauthenticateWithCredential(
       auth.GoogleAuthProvider.credential(idToken),
     );
+
+    return true;
   }
 
   async function handleDelete() {
@@ -72,7 +78,7 @@ export function useDeleteAccount() {
     setLoading(true);
 
     try {
-      await reauthenticate();
+      if (!(await reauthenticate())) return;
 
       // Forces a token carrying the new `auth_time`, which the function checks.
       await auth().currentUser?.getIdToken(true);
