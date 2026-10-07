@@ -45,5 +45,7 @@ jobs:
 
             Post the review with `gh pr comment ${{ github.event.pull_request.number }} --body "..."`.
             Only post a GitHub comment - don't submit the review as a message.
-          claude_args: '--allowedTools Bash(gh:*)'
+          claude_args: '--allowedTools "Bash(gh:*),Bash(git:*),Agent,Read,Grep,Glob"'
+          # Temporary: surface the denied tool call that stopped the review. Remove once the comment posts.
+          show_full_output: true
 
