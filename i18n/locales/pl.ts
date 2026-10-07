@@ -113,6 +113,13 @@ const pl = {
       privacyPolicy: 'Polityka prywatności',
       termsOfService: 'Regulamin',
     },
+    logout: {
+      label: 'Wyloguj się',
+      confirmTitle: 'Wylogować się?',
+      confirmBody: 'Zostaniesz wylogowany z aplikacji.',
+      confirmButton: 'Wyloguj',
+      cancelButton: 'Anuluj',
+    },
   },
   home: {
     upcomingWorkouts: {

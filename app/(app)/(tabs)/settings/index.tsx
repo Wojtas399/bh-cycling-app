@@ -1,9 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
-import Button from '@/components/Button';
 import Text from '@/components/Text';
 import SettingsRow from '@/components/settings/SettingsRow';
 import SettingsSection from '@/components/settings/SettingsSection';
@@ -14,6 +18,7 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { formatAppVersion } from '@/lib/appVersion';
 import { auth } from '@/lib/firebase';
 import { type SignInMethod, getSignInMethods } from '@/lib/signInMethods';
+import { signOutAndClear } from '@/lib/signOutAndClear';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -47,6 +52,17 @@ export default function SettingsScreen() {
     Constants.expoConfig?.extra?.appEnv,
   );
   const busy = connecting || disconnecting;
+
+  function handleLogOut() {
+    Alert.alert(t('logout.confirmTitle'), t('logout.confirmBody'), [
+      { text: t('logout.cancelButton'), style: 'cancel' },
+      {
+        text: t('logout.confirmButton'),
+        style: 'destructive',
+        onPress: signOutAndClear,
+      },
+    ]);
+  }
 
   return (
     <ScrollView
@@ -143,10 +159,16 @@ export default function SettingsScreen() {
         />
       </SettingsSection>
 
-      <Box marginHorizontal="base" marginTop="lg">
-        <Button onPress={() => auth().signOut()}>
-          <Text variant="body-l-semibold">Log out</Text>
-        </Button>
+      <Box marginTop="xl">
+        <SettingsSection>
+          <SettingsRow
+            icon="log-out-outline"
+            iconColor="danger"
+            label={t('logout.label')}
+            danger
+            onPress={handleLogOut}
+          />
+        </SettingsSection>
       </Box>
     </ScrollView>
   );

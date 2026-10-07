@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import SettingsScreen from '../index';
@@ -26,7 +27,8 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-const mockSignOut = jest.fn();
+const mockSignOutAndClear = jest.fn();
+const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 const mockOpenBrowser = jest.fn();
 let mockExpoConfig: { version: string; extra: { appEnv: string } } = {
   version: '1.0.0',
@@ -52,7 +54,11 @@ let mockCurrentUser: {
 } | null = null;
 
 jest.mock('@/lib/firebase', () => ({
-  auth: () => ({ signOut: mockSignOut, currentUser: mockCurrentUser }),
+  auth: () => ({ currentUser: mockCurrentUser }),
+}));
+
+jest.mock('@/lib/signOutAndClear', () => ({
+  signOutAndClear: () => mockSignOutAndClear(),
 }));
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -253,12 +259,52 @@ describe('SettingsScreen — Intervals.icu row', () => {
 
     expect(screen.getByText('intervals.errors.exchangeFailed')).toBeTruthy();
   });
+});
 
-  it('keeps the existing Log out button working', async () => {
+describe('SettingsScreen — Log out', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockConnection();
+    mockAuth();
+    mockUser('password');
+  });
+
+  it('no longer renders the bare Log out button', async () => {
     await renderScreen();
 
-    fireEvent.press(screen.getByText('Log out'));
+    expect(screen.queryByText('Log out')).toBeNull();
+  });
 
-    expect(mockSignOut).toHaveBeenCalledTimes(1);
+  it('asks for confirmation before logging out', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('settings.logout.label'));
+
+    expect(mockAlert).toHaveBeenCalledWith(
+      'settings.logout.confirmTitle',
+      'settings.logout.confirmBody',
+      [
+        { text: 'settings.logout.cancelButton', style: 'cancel' },
+        {
+          text: 'settings.logout.confirmButton',
+          style: 'destructive',
+          onPress: expect.any(Function),
+        },
+      ],
+    );
+    expect(mockSignOutAndClear).not.toHaveBeenCalled();
+  });
+
+  it('signs out when the confirm button is pressed', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('settings.logout.label'));
+
+    const buttons = mockAlert.mock.calls[0][2] ?? [];
+    const confirm = buttons.find(b => b.style === 'destructive');
+
+    confirm?.onPress?.();
+
+    expect(mockSignOutAndClear).toHaveBeenCalledTimes(1);
   });
 });
