@@ -25,8 +25,14 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
+const mockSignOut = jest.fn();
+let mockCurrentUser: {
+  email: string | null;
+  providerData: { providerId: string }[];
+} | null = null;
+
 jest.mock('@/lib/firebase', () => ({
-  auth: () => ({ signOut: jest.fn() }),
+  auth: () => ({ signOut: mockSignOut, currentUser: mockCurrentUser }),
 }));
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -48,6 +54,13 @@ function renderScreen() {
       </ThemeProvider>
     </SafeAreaProvider>,
   );
+}
+
+function mockUser(...providerIds: string[]) {
+  mockCurrentUser = {
+    email: 'rider@example.com',
+    providerData: providerIds.map(providerId => ({ providerId })),
+  };
 }
 
 function mockConnection(
@@ -76,11 +89,50 @@ function mockAuth(
   });
 }
 
+describe('SettingsScreen — Konto section', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockConnection();
+    mockAuth();
+    mockUser('password');
+  });
+
+  it('shows the user email', async () => {
+    await renderScreen();
+
+    expect(screen.getByText('settings.account.email')).toBeTruthy();
+    expect(screen.getByText('rider@example.com')).toBeTruthy();
+  });
+
+  it.each([
+    [['password'], 'settings.account.signInMethods.email'],
+    [['google.com'], 'settings.account.signInMethods.google'],
+    [
+      ['password', 'google.com'],
+      'settings.account.signInMethods.emailAndGoogle',
+    ],
+  ])('labels the sign-in method for providers %j', async (providers, label) => {
+    mockUser(...providers);
+
+    await renderScreen();
+
+    expect(screen.getByText(label)).toBeTruthy();
+  });
+
+  it('does not make the Konto rows pressable', async () => {
+    await renderScreen();
+
+    // Pressable SettingsRows expose accessibilityRole="button".
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
+});
+
 describe('SettingsScreen — Intervals.icu row', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockConnection();
     mockAuth();
+    mockUser('password');
   });
 
   it('shows a Connect button when not connected and triggers handleConnect', async () => {
@@ -131,5 +183,13 @@ describe('SettingsScreen — Intervals.icu row', () => {
     await renderScreen();
 
     expect(screen.getByText('intervals.errors.exchangeFailed')).toBeTruthy();
+  });
+
+  it('keeps the existing Log out button working', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Log out'));
+
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 });

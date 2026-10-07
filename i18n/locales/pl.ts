@@ -92,6 +92,22 @@ const pl = {
     calendar: 'Kalendarz',
     settings: 'Ustawienia',
   },
+  settings: {
+    title: 'Ustawienia',
+    account: {
+      title: 'Konto',
+      email: 'E-mail',
+      signInMethod: 'Sposób logowania',
+      signInMethods: {
+        email: 'E-mail',
+        google: 'Google',
+        emailAndGoogle: 'E-mail i Google',
+      },
+    },
+    integrations: {
+      title: 'Integracje',
+    },
+  },
   home: {
     upcomingWorkouts: {
       title: 'Nadchodzące treningi',
