@@ -1,4 +1,7 @@
 const pl = {
+  common: {
+    back: 'Wstecz',
+  },
   signUp: {
     title: 'Utwórz konto',
     subtitle: 'Zarejestruj się, aby zacząć',
@@ -35,6 +38,7 @@ const pl = {
     or: 'lub',
     signInWithGoogle: 'Zaloguj się przez Google',
     noAccount: 'Nie masz konta? Zarejestruj się',
+    accountDeleted: 'Konto zostało usunięte',
     errors: {
       invalidCredential: 'Nieprawidłowy e-mail lub hasło.',
       invalidEmail: 'Podaj prawidłowy adres e-mail.',
@@ -91,6 +95,98 @@ const pl = {
     home: 'Główna',
     calendar: 'Kalendarz',
     settings: 'Ustawienia',
+  },
+  settings: {
+    title: 'Ustawienia',
+    account: {
+      title: 'Konto',
+      email: 'E-mail',
+      signInMethod: 'Sposób logowania',
+      signInMethods: {
+        email: 'E-mail',
+        google: 'Google',
+        emailAndGoogle: 'E-mail i Google',
+      },
+      changePassword: 'Zmień hasło',
+      deleteAccount: 'Usuń konto',
+    },
+    integrations: {
+      title: 'Integracje',
+    },
+    about: {
+      title: 'O aplikacji',
+      version: 'Wersja',
+      privacyPolicy: 'Polityka prywatności',
+      termsOfService: 'Regulamin',
+    },
+    logout: {
+      label: 'Wyloguj się',
+      confirmTitle: 'Wylogować się?',
+      confirmBody: 'Zostaniesz wylogowany z aplikacji.',
+      confirmButton: 'Wyloguj',
+      cancelButton: 'Anuluj',
+    },
+  },
+  changePassword: {
+    title: 'Zmień hasło',
+    currentPassword: 'Obecne hasło',
+    newPassword: 'Nowe hasło',
+    confirmPassword: 'Potwierdź nowe hasło',
+    submitButton: 'Zmień hasło',
+    forgotPassword: 'Nie pamiętasz obecnego hasła?',
+    success: {
+      title: 'Hasło zostało zmienione',
+      ok: 'OK',
+    },
+    reset: {
+      confirmTitle: 'Wysłać link do resetowania hasła na {{email}}?',
+      confirmButton: 'Wyślij',
+      cancelButton: 'Anuluj',
+      successTitle: 'Sprawdź skrzynkę',
+      successBody:
+        'Link do resetowania hasła został wysłany na adres {{email}}.',
+    },
+    errors: {
+      currentPasswordInvalid: 'Obecne hasło jest nieprawidłowe.',
+      weakPassword: 'Hasło jest za słabe.',
+      tooManyRequests: 'Za dużo prób. Spróbuj ponownie później.',
+      networkFailed: 'Brak połączenia z internetem.',
+      generic: 'Wystąpił błąd. Spróbuj ponownie.',
+    },
+    validation: {
+      currentPasswordRequired: 'Podaj obecne hasło.',
+      newPasswordRequired: 'Podaj nowe hasło.',
+      newPasswordTooShort: 'Hasło musi mieć co najmniej {{count}} znaków.',
+      newPasswordSameAsCurrent: 'Nowe hasło musi różnić się od obecnego.',
+      confirmPasswordRequired: 'Potwierdź nowe hasło.',
+      passwordsMismatch: 'Hasła nie są zgodne.',
+    },
+  },
+  deleteAccount: {
+    title: 'Usuń konto',
+    warningTitle: 'Tej operacji nie można cofnąć',
+    consequences: {
+      data: 'Twoje konto i wszystkie dane w aplikacji BH Cycling zostaną trwale usunięte.',
+      intervals:
+        'Połączenie z Intervals.icu zostanie odłączone. Twoje treningi i aktywności na Intervals.icu pozostaną nienaruszone.',
+      irreversible:
+        'Aby potwierdzić, musisz ponownie potwierdzić swoją tożsamość.',
+    },
+    password: 'Hasło',
+    googleHint:
+      'Po naciśnięciu przycisku poprosimy Cię o ponowne zalogowanie przez Google.',
+    deleteButton: 'Usuń konto na zawsze',
+    errors: {
+      passwordInvalid: 'Hasło jest nieprawidłowe.',
+      wrongGoogleAccount:
+        'Wybrano inne konto Google niż to, na którym jesteś zalogowany. Spróbuj ponownie.',
+      reauthRequired:
+        'Minęło zbyt dużo czasu od ostatniego potwierdzenia tożsamości. Potwierdź ją ponownie i spróbuj jeszcze raz.',
+      generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
+    },
+    validation: {
+      passwordRequired: 'Podaj hasło.',
+    },
   },
   home: {
     upcomingWorkouts: {

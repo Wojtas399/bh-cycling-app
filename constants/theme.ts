@@ -67,6 +67,7 @@ const theme = createTheme({
     danger: palette.red,
     dangerDim: palette.redDim,
     accent: palette.blue,
+    neutral: palette.gray600,
 
     // Workout states
     workoutPlanned: palette.zone1,

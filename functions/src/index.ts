@@ -1,3 +1,4 @@
+import { deleteAccountHandler } from './account/deleteAccount';
 import { disconnectIntervalsHandler } from './intervals/disconnect';
 import {
   exchangeIntervalsTokenHandler,
@@ -17,3 +18,5 @@ export const exchangeIntervalsToken = onCall(
 );
 
 export const disconnectIntervals = onCall(disconnectIntervalsHandler);
+
+export const deleteAccount = onCall(deleteAccountHandler);
