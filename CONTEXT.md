@@ -4,6 +4,14 @@ A cycling training app backed by Intervals.icu. Dark mode only, Polish UI labels
 
 ## Language
 
+**Workout**:
+A training session planned on the athlete's Intervals.icu calendar, with a date and, usually, a structure of steps. It is the plan, not the ride itself.
+_Avoid_: Event, session, training
+
+**Activity**:
+A ride the athlete actually recorded on Intervals.icu. An Activity that fulfils a Workout is paired to it.
+_Avoid_: Ride, completed workout
+
 **Workout Status**:
 The tri-state of a planned workout: `completed` (a matching Activity exists), `planned` (in the future, no matching Activity yet), or `missed` (in the past, no matching Activity). Drives the green/gray/red status dots on Home and Calendar.
 _Avoid_: Completion state, sync status
