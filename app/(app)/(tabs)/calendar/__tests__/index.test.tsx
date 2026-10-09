@@ -1,9 +1,9 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import CalendarScreen from '../index';
-import { useMonthlyCalendar } from '../useMonthlyCalendar';
-import { useWeeklyCalendar } from '../useWeeklyCalendar';
 import theme from '@/constants/theme';
+import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
+import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import '@/i18n';
 import { toLocalDateString } from '@/lib/localDate';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
@@ -20,11 +20,11 @@ const TEST_SAFE_AREA_METRICS = {
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 };
 
-jest.mock('../useMonthlyCalendar', () => ({
+jest.mock('@/hooks/calendar/useMonthlyCalendar', () => ({
   useMonthlyCalendar: jest.fn(),
 }));
 
-jest.mock('../useWeeklyCalendar', () => ({
+jest.mock('@/hooks/calendar/useWeeklyCalendar', () => ({
   useWeeklyCalendar: jest.fn(),
 }));
 

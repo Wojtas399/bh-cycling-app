@@ -2,11 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useUpcomingWorkouts } from './useUpcomingWorkouts';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutTile from '@/components/WorkoutTile';
 import { useAppTheme } from '@/constants/theme';
+import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
