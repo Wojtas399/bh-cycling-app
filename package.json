@@ -14,7 +14,8 @@
     "android:prebuild": "expo prebuild --clean --platform android",
     "lint": "expo lint",
     "test": "jest",
-    "prepare": "husky"
+    "prepare": "husky",
+    "worktree:link": "bash scripts/link-worktree-config.sh"
   },
   "jest": {
     "preset": "jest-expo",
