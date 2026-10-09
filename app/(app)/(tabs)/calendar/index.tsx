@@ -1,10 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { CalendarViewState } from './useCalendarRange';
-import { useDaySheet } from './useDaySheet';
-import { useMonthlyCalendar } from './useMonthlyCalendar';
-import { useWeeklyCalendar } from './useWeeklyCalendar';
 import Box from '@/components/Box';
 import CalendarBody from '@/components/calendar/CalendarBody';
 import CalendarDaySheet from '@/components/calendar/CalendarDaySheet';
@@ -14,6 +10,10 @@ import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useAppTheme } from '@/constants/theme';
+import type { CalendarViewState } from '@/hooks/calendar/useCalendarRange';
+import { useDaySheet } from '@/hooks/calendar/useDaySheet';
+import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
+import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 

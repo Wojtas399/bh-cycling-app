@@ -1,8 +1,8 @@
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import HomeScreen from '../index';
-import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
 import theme from '@/constants/theme';
+import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { ThemeProvider } from '@shopify/restyle';
 import { render, screen } from '@testing-library/react-native';
 
@@ -18,7 +18,7 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-jest.mock('../useUpcomingWorkouts', () => ({
+jest.mock('@/hooks/home/useUpcomingWorkouts', () => ({
   useUpcomingWorkouts: jest.fn(),
 }));
 
