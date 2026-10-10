@@ -1,6 +1,7 @@
 const pl = {
   common: {
     back: 'Wstecz',
+    close: 'Zamknij',
   },
   signUp: {
     title: 'Utwórz konto',
@@ -202,7 +203,6 @@ const pl = {
     previous: 'Poprzedni',
     next: 'Następny',
     refresh: 'Odśwież',
-    close: 'Zamknij',
     error: 'Nie udało się wczytać kalendarza.',
     emptyDay: 'Brak treningów w tym dniu.',
     monthNames: [

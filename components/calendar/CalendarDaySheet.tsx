@@ -1,15 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import BottomSheet from '@/components/BottomSheet';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutTile from '@/components/WorkoutTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
-import { useAppTheme } from '@/constants/theme';
 import type { CalendarDay } from '@/lib/calendarGrid';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
-import { Ionicons } from '@expo/vector-icons';
 
 export interface CalendarDaySheetProps {
   /** Whether the sheet is open. */
@@ -35,83 +32,34 @@ export default function CalendarDaySheet({
   onClose,
 }: CalendarDaySheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
-  const theme = useAppTheme();
-  const insets = useSafeAreaInsets();
   const labels = useCalendarLabels();
 
+  if (!day) return null;
+
   return (
-    <Modal
+    <BottomSheet
       visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={labels.day(day)}
+      testID="calendar-day-sheet"
     >
-      <Box flex={1} justifyContent="flex-end">
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={onClose}
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: theme.colors.overlay },
-          ]}
-        />
-
-        {day && (
-          <Box
-            backgroundColor="bgTertiary"
-            borderTopLeftRadius="2xl"
-            borderTopRightRadius="2xl"
-            paddingHorizontal="lg"
-            paddingTop="lg"
-            style={{
-              maxHeight: '70%',
-              paddingBottom: insets.bottom + theme.spacing.lg,
-            }}
-            testID="calendar-day-sheet"
-          >
-            <Box
-              flexDirection="row"
-              alignItems="center"
-              justifyContent="space-between"
-              marginBottom="base"
-            >
-              <Text variant="h3">{labels.day(day)}</Text>
-              <TouchableOpacity
-                onPress={onClose}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={t('close')}
-              >
-                <Ionicons
-                  name="close"
-                  size={24}
-                  color={theme.colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </Box>
-
-            {workouts.length === 0 ? (
-              <Text variant="body-l-regular" color="textSecondary">
-                {t('emptyDay')}
-              </Text>
-            ) : (
-              <ScrollView>
-                <Box gap="md">
-                  {workouts.map(workout => (
-                    <WorkoutTile
-                      key={workout.id}
-                      title={workout.name}
-                      status={workout.status}
-                      durationSeconds={workout.durationSeconds}
-                      blocks={workout.blocks}
-                    />
-                  ))}
-                </Box>
-              </ScrollView>
-            )}
-          </Box>
-        )}
-      </Box>
-    </Modal>
+      {workouts.length === 0 ? (
+        <Text variant="body-l-regular" color="textSecondary">
+          {t('emptyDay')}
+        </Text>
+      ) : (
+        <Box gap="md">
+          {workouts.map(workout => (
+            <WorkoutTile
+              key={workout.id}
+              title={workout.name}
+              status={workout.status}
+              durationSeconds={workout.durationSeconds}
+              blocks={workout.blocks}
+            />
+          ))}
+        </Box>
+      )}
+    </BottomSheet>
   );
 }
