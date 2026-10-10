@@ -12,6 +12,7 @@
     "env:production": "eas env:pull --environment production && printf '\\nAPP_ENV=production\\n' >> .env.local",
     "ios:prebuild": "expo prebuild --clean --platform ios",
     "android:prebuild": "expo prebuild --clean --platform android",
+    "prebuild": "expo prebuild --clean",
     "lint": "expo lint",
     "test": "jest",
     "prepare": "husky",

@@ -59,8 +59,14 @@ export default function BottomSheet({
       <RNHostView matchContents>
         <Box
           paddingHorizontal="lg"
-          paddingTop="lg"
-          style={{ width, maxHeight: height * MAX_HEIGHT_RATIO }}
+          style={{
+            width,
+            maxHeight: height * MAX_HEIGHT_RATIO,
+            // Android's drag handle reserves its own padded slot; iOS overlays
+            // it, so iOS needs the gap below the handle added back.
+            paddingTop:
+              Platform.OS === 'ios' ? theme.spacing.lg + theme.spacing.sm : 0,
+          }}
           testID={testID}
         >
           <Box
