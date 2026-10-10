@@ -9,13 +9,19 @@ import {
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
-import { useAppTheme } from '@/constants/theme';
+import theme, { useAppTheme } from '@/constants/theme';
 import { BottomSheet as ExpoBottomSheet, RNHostView } from '@expo/ui';
 import { preferredColorScheme } from '@expo/ui/swift-ui/modifiers';
 import { Ionicons } from '@expo/vector-icons';
 
 /** Share of the window height the sheet may take before its body scrolls. */
 const MAX_HEIGHT_RATIO = 0.7;
+
+/**
+ * Gap above the header on iOS, where the drag indicator overlays the content.
+ * Android's drag handle reserves its own padded slot, so it needs none.
+ */
+const IOS_HEADER_TOP_PADDING = theme.spacing.lg + theme.spacing.sm;
 
 export interface BottomSheetProps {
   /** Whether the sheet is open. */
@@ -62,10 +68,7 @@ export default function BottomSheet({
           style={{
             width,
             maxHeight: height * MAX_HEIGHT_RATIO,
-            // Android's drag handle reserves its own padded slot; iOS overlays
-            // it, so iOS needs the gap below the handle added back.
-            paddingTop:
-              Platform.OS === 'ios' ? theme.spacing.lg + theme.spacing.sm : 0,
+            paddingTop: Platform.OS === 'ios' ? IOS_HEADER_TOP_PADDING : 0,
           }}
           testID={testID}
         >
@@ -75,7 +78,7 @@ export default function BottomSheet({
             justifyContent={title ? 'space-between' : 'flex-end'}
             marginBottom="base"
           >
-            {title && <Text variant="h3">{title}</Text>}
+            {title ? <Text variant="h3">{title}</Text> : null}
             <TouchableOpacity
               onPress={onClose}
               hitSlop={8}
