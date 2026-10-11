@@ -6,6 +6,7 @@ import {
   getNeedsReconnect,
   setNeedsReconnect,
 } from '@/lib/intervalsReconnectStore';
+import { queryClient } from '@/lib/queryClient';
 import { act, renderHook } from '@testing-library/react-native';
 
 const mockPromptAsync = jest.fn();
@@ -37,6 +38,26 @@ jest.mock('../useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(() => ({ isConnected: true })),
 }));
 
+const INTERVALS_KEY = ['intervals', 'athlete-1', 'upcoming', '2026-10-11'];
+
+async function confirmDisconnect() {
+  const { result } = await renderHook(() => useIntervalsAuth());
+
+  await act(() => {
+    result.current.handleDisconnect();
+  });
+
+  const buttons = mockAlert.mock.calls[0][2] as {
+    onPress?: () => void | Promise<void>;
+  }[];
+
+  await act(async () => {
+    await buttons[1].onPress?.();
+  });
+
+  return result;
+}
+
 const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
@@ -45,6 +66,7 @@ describe('useIntervalsAuth', () => {
     jest.clearAllMocks();
     mockUseIntervalsConnection.mockReturnValue({ isConnected: true });
     setNeedsReconnect(false);
+    queryClient.clear();
   });
 
   describe('handleConnect', () => {
@@ -167,6 +189,27 @@ describe('useIntervalsAuth', () => {
 
       expect(mockHttpsCallable).toHaveBeenCalledWith('disconnectIntervals');
       expect(mockDisconnect).toHaveBeenCalled();
+    });
+
+    it('drops the cached Intervals data once the disconnect succeeds', async () => {
+      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+      queryClient.setQueryData(INTERVALS_KEY, []);
+
+      await confirmDisconnect();
+
+      expect(queryClient.getQueryData(INTERVALS_KEY)).toBeUndefined();
+    });
+
+    it('keeps the cached Intervals data when the disconnect fails', async () => {
+      mockHttpsCallable.mockReturnValue(
+        jest.fn().mockRejectedValue(new Error('boom')),
+      );
+      queryClient.setQueryData(INTERVALS_KEY, []);
+
+      const result = await confirmDisconnect();
+
+      expect(queryClient.getQueryData(INTERVALS_KEY)).toEqual([]);
+      expect(result.current.error).toBe('intervals.errors.disconnectFailed');
     });
 
     it('does nothing when the user cancels the confirmation', async () => {

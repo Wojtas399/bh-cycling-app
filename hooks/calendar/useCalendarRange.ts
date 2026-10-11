@@ -4,6 +4,7 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { type FetchOptions, getWorkoutsByDate } from '@/lib/calendarWorkouts';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
 import { IntervalsAuthError } from '@/lib/intervalsApi';
+import { queryClient } from '@/lib/queryClient';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export type CalendarViewState =
@@ -98,7 +99,7 @@ export function useCalendarRange({
           // The handler's own failure (e.g. the Firestore delete) must not
           // leave the view stuck mid-load; it clears the cache and flags the
           // reconnect itself regardless.
-          await handleIntervalsAuthError(error).catch(() => {});
+          await handleIntervalsAuthError(queryClient).catch(() => {});
 
           if (!isStale()) setState(HIDDEN);
 

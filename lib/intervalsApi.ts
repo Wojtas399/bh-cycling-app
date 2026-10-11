@@ -61,10 +61,16 @@ export interface IntervalsCalendarEvent {
   workout_doc?: IntervalsWorkoutDoc;
 }
 
+export interface IntervalsRequestOptions {
+  /** Aborts the request in flight, e.g. when React Query cancels its query. */
+  signal?: AbortSignal;
+}
+
 async function request<T>(
   path: string,
   token: string,
   params?: IntervalsDateRangeParams,
+  { signal }: IntervalsRequestOptions = {},
 ): Promise<T> {
   const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
 
@@ -78,6 +84,7 @@ async function request<T>(
 
   const response = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${token}` },
+    signal,
   });
 
   if (response.status === 401) {
@@ -95,11 +102,13 @@ export function getActivities(
   token: string,
   athleteId: string,
   params?: IntervalsActivitiesParams,
+  options?: IntervalsRequestOptions,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
     intervalsActivitiesPath(athleteId),
     token,
     params,
+    options,
   );
 }
 
@@ -109,18 +118,26 @@ export function getActivities(
  */
 export function getAthleteSettings(
   token: string,
+  options?: IntervalsRequestOptions,
 ): Promise<AthleteZoneSettings> {
-  return request<AthleteZoneSettings>(INTERVALS_CURRENT_ATHLETE_PATH, token);
+  return request<AthleteZoneSettings>(
+    INTERVALS_CURRENT_ATHLETE_PATH,
+    token,
+    undefined,
+    options,
+  );
 }
 
 export function getCalendarEvents(
   token: string,
   athleteId: string,
   params?: IntervalsDateRangeParams,
+  options?: IntervalsRequestOptions,
 ): Promise<IntervalsCalendarEvent[]> {
   return request<IntervalsCalendarEvent[]>(
     intervalsCalendarEventsPath(athleteId),
     token,
     params,
+    options,
   );
 }

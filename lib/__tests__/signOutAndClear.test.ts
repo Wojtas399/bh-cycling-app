@@ -3,6 +3,7 @@ import {
   getNeedsReconnect,
   setNeedsReconnect,
 } from '../intervalsReconnectStore';
+import { queryClient } from '../queryClient';
 import { signOutAndClear } from '../signOutAndClear';
 
 const callOrder: string[] = [];
@@ -24,18 +25,25 @@ jest.mock('../calendarWorkouts', () => ({
   }),
 }));
 
+const queryClientClear = jest.spyOn(queryClient, 'clear');
+
 describe('signOutAndClear', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     callOrder.length = 0;
     setNeedsReconnect(false);
+    queryClientClear.mockImplementation(() => {
+      callOrder.push('queryClient.clear');
+    });
   });
 
-  it('clears the cache, signs out of Google, then signs out of Firebase', async () => {
+  it('clears both caches, signs out of Google, then signs out of Firebase', async () => {
     await signOutAndClear();
 
+    expect(queryClientClear).toHaveBeenCalledTimes(1);
     expect(clearCalendarCache).toHaveBeenCalledTimes(1);
     expect(callOrder).toEqual([
+      'queryClient.clear',
       'clearCalendarCache',
       'google.signOut',
       'auth.signOut',
