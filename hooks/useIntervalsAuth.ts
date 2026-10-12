@@ -1,12 +1,16 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
+import {
+  type IntervalsAuthMutation,
+  mapIntervalsAuthError,
+} from './intervalsAuthErrors';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
 import { removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
-import { queryClient } from '@/lib/queryClient';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -27,16 +31,10 @@ export interface UseIntervalsAuthResult {
 export function useIntervalsAuth(): UseIntervalsAuthResult {
   const { t } = useTranslation(undefined, { keyPrefix: 'intervals' });
   const connection = useIntervalsConnection();
+  const queryClient = useQueryClient();
 
-  const [connecting, setConnecting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [error, setError] = useState('');
-
-  async function handleConnect() {
-    setError('');
-    setConnecting(true);
-
-    try {
+  const connect = useMutation({
+    mutationFn: async (): Promise<'connected' | 'cancelled'> => {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
@@ -51,7 +49,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       });
 
       if (result.type !== 'success' || !result.params.code) {
-        return;
+        return 'cancelled';
       }
 
       const exchangeIntervalsToken = functions().httpsCallable(
@@ -60,12 +58,37 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       await exchangeIntervalsToken({ code: result.params.code });
 
+      return 'connected';
+    },
+    onSuccess: outcome => {
+      if (outcome === 'cancelled') return;
+
+      // Re-enables the gated queries; the 401 already removed the old data.
       setNeedsReconnect(false);
-    } catch {
-      setError(t('errors.exchangeFailed'));
-    } finally {
-      setConnecting(false);
-    }
+    },
+  });
+
+  const disconnect = useMutation({
+    mutationFn: async () => {
+      const disconnectIntervals = functions().httpsCallable(
+        'disconnectIntervals',
+      );
+
+      await disconnectIntervals();
+    },
+    onSuccess: async () => {
+      // Otherwise reconnecting the same athlete would show the old data.
+      await removeIntervalsQueries(queryClient);
+    },
+  });
+
+  async function handleConnect() {
+    if (connect.isPending) return;
+
+    disconnect.reset();
+
+    // A failure surfaces through `connect.error`.
+    await connect.mutateAsync().catch(() => {});
   }
 
   function handleDisconnect() {
@@ -81,25 +104,28 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     ]);
   }
 
-  async function confirmDisconnect() {
-    setError('');
-    setDisconnecting(true);
+  function confirmDisconnect() {
+    if (disconnect.isPending) return;
 
-    try {
-      const disconnectIntervals = functions().httpsCallable(
-        'disconnectIntervals',
-      );
-
-      await disconnectIntervals();
-
-      // Otherwise reconnecting the same athlete would show the old data.
-      await removeIntervalsQueries(queryClient);
-    } catch {
-      setError(t('errors.disconnectFailed'));
-    } finally {
-      setDisconnecting(false);
-    }
+    connect.reset();
+    disconnect.mutate();
   }
 
-  return { handleConnect, handleDisconnect, connecting, disconnecting, error };
+  function errorMessage(mutation: IntervalsAuthMutation, e: unknown): string {
+    return t(mapIntervalsAuthError(mutation, getErrorCode(e)).key);
+  }
+
+  const error = connect.error
+    ? errorMessage('connect', connect.error)
+    : disconnect.error
+      ? errorMessage('disconnect', disconnect.error)
+      : '';
+
+  return {
+    handleConnect,
+    handleDisconnect,
+    connecting: connect.isPending,
+    disconnecting: disconnect.isPending,
+    error,
+  };
 }
