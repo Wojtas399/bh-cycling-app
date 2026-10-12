@@ -6,12 +6,16 @@ import {
 
 /**
  * Signs into Firebase with a Google account. Resolves 'cancelled' when the
- * user dismisses the Google prompt; any other failure rejects.
+ * user dismisses the Google prompt, whether the library returns or throws
+ * the cancel; any other failure rejects.
  */
 export async function signInWithGoogle(): Promise<'signedIn' | 'cancelled'> {
   try {
     await GoogleSignin.hasPlayServices();
     const result = await GoogleSignin.signIn();
+
+    if (result.type === 'cancelled') return 'cancelled';
+
     const idToken = result.data?.idToken;
 
     if (!idToken) throw new Error('no_id_token');
