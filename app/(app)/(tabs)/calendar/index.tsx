@@ -2,7 +2,9 @@ import { type ReactNode, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
-import CalendarBody from '@/components/calendar/CalendarBody';
+import CalendarBody, {
+  type CalendarBodyState,
+} from '@/components/calendar/CalendarBody';
 import CalendarDaySheet from '@/components/calendar/CalendarDaySheet';
 import CalendarHeader from '@/components/calendar/CalendarHeader';
 import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
@@ -10,7 +12,7 @@ import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useAppTheme } from '@/constants/theme';
-import type { CalendarViewState } from '@/hooks/calendar/useCalendarRange';
+import type { UseCalendarRangeResult } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
@@ -19,8 +21,8 @@ import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 /**
  * Only the active view's hook is mounted, so switching views never fetches
- * for both — the shared per-day cache makes the switch instant whenever the
- * other view already covered the dates.
+ * for both — both read the same per-month queries, so the switch is instant
+ * whenever the other view already loaded the months.
  */
 export default function CalendarScreen() {
   const [view, setView] = useState<CalendarView>('monthly');
@@ -38,15 +40,24 @@ interface ViewProps {
 
 function MonthlyCalendar({ onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
-  const { state, month, goToPreviousMonth, goToNextMonth, refresh } =
-    useMonthlyCalendar();
+  const {
+    availability,
+    query,
+    refreshing,
+    month,
+    goToPreviousMonth,
+    goToNextMonth,
+    refresh,
+  } = useMonthlyCalendar();
 
   return (
     <CalendarLayout
       view="monthly"
       onViewChange={onViewChange}
       title={labels.month(month)}
-      state={state}
+      availability={availability}
+      query={query}
+      refreshing={refreshing}
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
       onRefresh={refresh}
@@ -64,15 +75,24 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
 
 function WeeklyCalendar({ onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
-  const { state, week, goToPreviousWeek, goToNextWeek, refresh } =
-    useWeeklyCalendar();
+  const {
+    availability,
+    query,
+    refreshing,
+    week,
+    goToPreviousWeek,
+    goToNextWeek,
+    refresh,
+  } = useWeeklyCalendar();
 
   return (
     <CalendarLayout
       view="weekly"
       onViewChange={onViewChange}
       title={labels.week(getWeekDays(week))}
-      state={state}
+      availability={availability}
+      query={query}
+      refreshing={refreshing}
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
       onRefresh={refresh}
@@ -91,7 +111,9 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
 interface CalendarLayoutProps extends ViewProps {
   view: CalendarView;
   title: string;
-  state: CalendarViewState;
+  availability: UseCalendarRangeResult['availability'];
+  query: UseCalendarRangeResult['query'];
+  refreshing: boolean;
   onPrevious: () => void;
   onNext: () => void;
   onRefresh: () => void;
@@ -110,7 +132,9 @@ function CalendarLayout({
   view,
   onViewChange,
   title,
-  state,
+  availability,
+  query,
+  refreshing,
   onPrevious,
   onNext,
   onRefresh,
@@ -118,11 +142,9 @@ function CalendarLayout({
 }: CalendarLayoutProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const sheet = useDaySheet(
-    state.status === 'ready' ? state.workoutsByDate : undefined,
-  );
+  const sheet = useDaySheet(query.data);
 
-  if (state.status === 'hidden') {
+  if (availability === 'unavailable') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
   }
 
@@ -139,10 +161,10 @@ function CalendarLayout({
         onPrevious={onPrevious}
         onNext={onNext}
         onRefresh={onRefresh}
-        refreshStatus={refreshStatus(state)}
+        refreshStatus={refreshStatus(query, refreshing)}
       />
 
-      <CalendarBody state={state}>
+      <CalendarBody state={bodyState(query)}>
         {workoutsByDate => children(workoutsByDate, sheet.open)}
       </CalendarBody>
 
@@ -156,10 +178,23 @@ function CalendarLayout({
   );
 }
 
-function refreshStatus(state: CalendarViewState) {
-  if (state.status === 'loading') {
+/** Data wins over an error, so a failed refetch keeps the view on screen. */
+function bodyState(query: UseCalendarRangeResult['query']): CalendarBodyState {
+  if (query.data) {
+    return { status: 'ready', workoutsByDate: query.data };
+  }
+
+  return query.isError ? { status: 'error' } : { status: 'loading' };
+}
+
+/** An error can be retried with a refresh; a first load can't. */
+function refreshStatus(
+  query: UseCalendarRangeResult['query'],
+  refreshing: boolean,
+) {
+  if (!query.data && !query.isError) {
     return 'disabled';
   }
 
-  return state.status === 'ready' && state.refreshing ? 'refreshing' : 'idle';
+  return refreshing ? 'refreshing' : 'idle';
 }

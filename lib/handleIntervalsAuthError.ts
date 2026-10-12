@@ -1,4 +1,3 @@
-import { clearCalendarCache } from '@/lib/calendarWorkouts';
 import { auth, firestore } from '@/lib/firebase';
 import { intervalsIntegrationDocPath } from '@/lib/firestorePaths';
 import { removeIntervalsQueries } from '@/lib/intervalsQueries';
@@ -17,7 +16,6 @@ export async function handleIntervalsAuthError(
   // remounting screen must not refetch with the bad token and 401 again.
   setNeedsReconnect(true);
   await removeIntervalsQueries(client);
-  clearCalendarCache();
 
   // Best-effort: even if the integration doc can't be deleted (offline,
   // rules), the steps above have already run.

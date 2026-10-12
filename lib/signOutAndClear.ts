@@ -1,4 +1,3 @@
-import { clearCalendarCache } from './calendarWorkouts';
 import { GoogleSignin, auth } from './firebase';
 import { setNeedsReconnect } from './intervalsReconnectStore';
 import { queryClient } from './queryClient';
@@ -9,7 +8,6 @@ import { queryClient } from './queryClient';
  */
 export async function signOutAndClear(): Promise<void> {
   queryClient.clear();
-  clearCalendarCache();
   setNeedsReconnect(false);
 
   try {

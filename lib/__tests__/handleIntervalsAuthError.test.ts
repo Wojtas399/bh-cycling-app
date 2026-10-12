@@ -1,4 +1,3 @@
-import { clearCalendarCache } from '../calendarWorkouts';
 import { handleIntervalsAuthError } from '../handleIntervalsAuthError';
 import {
   getNeedsReconnect,
@@ -14,10 +13,6 @@ const mockDoc = jest.fn(() => ({ delete: mockDelete }));
 jest.mock('@/lib/firebase', () => ({
   auth: () => ({ currentUser: { uid: 'user-1' } }),
   firestore: () => ({ doc: mockDoc }),
-}));
-
-jest.mock('../calendarWorkouts', () => ({
-  clearCalendarCache: jest.fn(),
 }));
 
 describe('handleIntervalsAuthError', () => {
@@ -42,7 +37,7 @@ describe('handleIntervalsAuthError', () => {
     expect(needsReconnectAtWipe).toBe(true);
   });
 
-  it('wipes the Intervals queries and the calendar cache, then deletes the integration document', async () => {
+  it('wipes the Intervals queries, then deletes the integration document', async () => {
     const client = createQueryClient();
 
     client.setQueryData(INTERVALS_KEY, []);
@@ -53,12 +48,11 @@ describe('handleIntervalsAuthError', () => {
     expect(getNeedsReconnect()).toBe(true);
     expect(client.getQueryData(INTERVALS_KEY)).toBeUndefined();
     expect(client.getQueryData(['other'])).toBe('kept');
-    expect(clearCalendarCache).toHaveBeenCalledTimes(1);
     expect(mockDoc).toHaveBeenCalledWith('users/user-1/integrations/intervals');
     expect(mockDelete).toHaveBeenCalled();
   });
 
-  it('still flags the reconnect and wipes the caches when deleting the integration document fails', async () => {
+  it('still flags the reconnect and wipes the Intervals queries when deleting the integration document fails', async () => {
     const client = createQueryClient();
 
     client.setQueryData(INTERVALS_KEY, []);
@@ -68,6 +62,5 @@ describe('handleIntervalsAuthError', () => {
 
     expect(getNeedsReconnect()).toBe(true);
     expect(client.getQueryData(INTERVALS_KEY)).toBeUndefined();
-    expect(clearCalendarCache).toHaveBeenCalledTimes(1);
   });
 });

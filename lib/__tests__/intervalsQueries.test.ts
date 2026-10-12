@@ -1,12 +1,15 @@
 import {
+  type IntervalsActivity,
   type IntervalsCalendarEvent,
   type IntervalsWorkoutDoc,
+  getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '../intervalsApi';
 import {
   athleteSettingsQueryOptions,
   intervalsKeys,
+  monthQueryOptions,
   upcomingQueryOptions,
 } from '../intervalsQueries';
 import { toLocalDateString } from '../localDate';
@@ -20,9 +23,11 @@ jest.mock('../handleIntervalsAuthError', () => ({
 jest.mock('../intervalsApi', () => ({
   ...jest.requireActual('../intervalsApi'),
   getCalendarEvents: jest.fn(),
+  getActivities: jest.fn(),
   getAthleteSettings: jest.fn(),
 }));
 
+const mockGetActivities = getActivities as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
@@ -59,6 +64,18 @@ describe('intervalsKeys', () => {
       'athlete-1',
       'upcoming',
       '2026-10-11',
+    ]);
+    expect(intervalsKeys.calendar('athlete-1')).toEqual([
+      'intervals',
+      'athlete-1',
+      'calendar',
+    ]);
+    expect(intervalsKeys.month('athlete-1', '2026-06')).toEqual([
+      'intervals',
+      'athlete-1',
+      'calendar',
+      'month',
+      '2026-06',
     ]);
   });
 });
@@ -172,5 +189,119 @@ describe('upcomingQueryOptions', () => {
     expect(
       client.getQueryData(intervalsKeys.athleteSettings('athlete-1')),
     ).toEqual(resolveZoneConfig({ powerZones: ATHLETE_ZONES }));
+  });
+});
+
+describe('monthQueryOptions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetAthleteSettings.mockResolvedValue({ powerZones: ATHLETE_ZONES });
+    mockGetCalendarEvents.mockResolvedValue([]);
+    mockGetActivities.mockResolvedValue([]);
+  });
+
+  it("fetches the month's events and activities a week past each edge", async () => {
+    const client = createQueryClient();
+
+    await client.fetchQuery(
+      monthQueryOptions('token-1', 'athlete-1', '2026-06'),
+    );
+
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      { oldest: '2026-06-01', newest: '2026-06-30' },
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(mockGetActivities).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      {
+        oldest: '2026-05-25',
+        newest: '2026-07-07',
+        fields: 'id,start_date_local,type,paired_event_id',
+      },
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it('lists every day of the month, empty when it has no workouts', async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: 1,
+        category: 'WORKOUT',
+        name: 'Intervals',
+        start_date_local: '2026-02-10T08:00:00',
+      },
+    ]);
+
+    const client = createQueryClient();
+    const workoutsByDate = await client.fetchQuery(
+      monthQueryOptions('token-1', 'athlete-1', '2026-02'),
+    );
+
+    expect(Object.keys(workoutsByDate)).toHaveLength(28);
+    expect(workoutsByDate['2026-02-01']).toEqual([]);
+    expect(workoutsByDate['2026-02-28']).toEqual([]);
+    expect(workoutsByDate['2026-02-10']).toEqual([
+      {
+        id: 1,
+        name: 'Intervals',
+        date: '2026-02-10',
+        status: 'missed',
+        blocks: [],
+      },
+    ]);
+  });
+
+  it('marks a workout completed when a paired activity is returned', async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: 42,
+        category: 'WORKOUT',
+        name: 'Intervals',
+        start_date_local: '2026-02-10T08:00:00',
+      },
+    ]);
+    mockGetActivities.mockResolvedValue([
+      {
+        id: 'a1',
+        name: 'Ride',
+        type: 'Ride',
+        start_date_local: '2026-02-11T08:00:00',
+        moving_time: 3600,
+        distance: 30000,
+        paired_event_id: 42,
+      } satisfies IntervalsActivity,
+    ]);
+
+    const client = createQueryClient();
+    const workoutsByDate = await client.fetchQuery(
+      monthQueryOptions('token-1', 'athlete-1', '2026-02'),
+    );
+
+    expect(workoutsByDate['2026-02-10'][0].status).toBe('completed');
+  });
+
+  it('falls back to the Coggan zones when the settings fetch fails', async () => {
+    mockGetAthleteSettings.mockRejectedValue(new Error('settings unavailable'));
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: 1,
+        category: 'WORKOUT',
+        name: 'Intervals',
+        start_date_local: '2026-02-10T08:00:00',
+        workout_doc: ZONE_2_HOUR,
+      },
+    ]);
+
+    const client = createQueryClient();
+    const workoutsByDate = await client.fetchQuery(
+      monthQueryOptions('token-1', 'athlete-1', '2026-02'),
+    );
+
+    expect(workoutsByDate['2026-02-10'][0].blocks).toEqual([
+      { widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 },
+    ]);
   });
 });

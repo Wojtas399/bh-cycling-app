@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
 import { useIntervalsConnection } from './useIntervalsConnection';
-import { clearCalendarCache } from '@/lib/calendarWorkouts';
 import { functions } from '@/lib/firebase';
 import { removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
@@ -95,7 +94,6 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       // Otherwise reconnecting the same athlete would show the old data.
       await removeIntervalsQueries(queryClient);
-      clearCalendarCache();
     } catch {
       setError(t('errors.disconnectFailed'));
     } finally {

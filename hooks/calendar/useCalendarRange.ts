@@ -1,185 +1,86 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import { type FetchOptions, getWorkoutsByDate } from '@/lib/calendarWorkouts';
-import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
-import { IntervalsAuthError } from '@/lib/intervalsApi';
-import { queryClient } from '@/lib/queryClient';
-import type { CalendarWorkout } from '@/lib/workoutStatus';
-
-export type CalendarViewState =
-  | { status: 'hidden' }
-  | { status: 'loading' }
-  /** The range couldn't be fetched (network/server failure), not a disconnect. */
-  | { status: 'error' }
-  | {
-      status: 'ready';
-      workoutsByDate: Record<string, CalendarWorkout[]>;
-      refreshing: boolean;
-    };
+import {
+  type IntervalsAvailability,
+  useIntervalsAvailability,
+} from '@/hooks/useIntervalsAvailability';
+import {
+  type CombinedMonthResult,
+  combineMonthResults,
+} from '@/lib/combineMonthResults';
+import { intervalsKeys, monthQueryOptions } from '@/lib/intervalsQueries';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
-  state: CalendarViewState;
+  availability: IntervalsAvailability;
+  /** The visible range's months combined into one query-shaped result. */
+  query: CombinedMonthResult;
   anchor: Date;
   goToPrevious: () => void;
   goToNext: () => void;
   refresh: () => void;
+  /** A refresh the athlete asked for is in flight; background fetches aren't. */
+  refreshing: boolean;
 }
 
 /**
  * Configures `useCalendarRange` for a specific range shape (month, week, ...).
  * `step` receives `-1`/`1` and is expected to move `anchor` by one unit of
- * that range in the given direction.
+ * that range in the given direction. `monthsFor` lists the local `YYYY-MM`
+ * months the range touches, each cached as its own query.
  */
 export interface UseCalendarRangeConfig {
   initialAnchor: () => Date;
   startOf: (anchor: Date) => Date;
   endOf: (anchor: Date) => Date;
-  fetchRange: (
-    token: string,
-    athleteId: string,
-    anchor: Date,
-    now: Date,
-    options?: FetchOptions,
-  ) => Promise<void>;
-  isRangeFetched: (anchor: Date, athleteId: string) => boolean;
+  monthsFor: (anchor: Date) => string[];
   step: (anchor: Date, direction: -1 | 1) => Date;
 }
-
-const HIDDEN: CalendarViewState = { status: 'hidden' };
-const LOADING: CalendarViewState = { status: 'loading' };
-const ERROR: CalendarViewState = { status: 'error' };
 
 export function useCalendarRange({
   initialAnchor,
   startOf,
   endOf,
-  fetchRange,
-  isRangeFetched,
+  monthsFor,
   step,
 }: UseCalendarRangeConfig): UseCalendarRangeResult {
-  const connection = useIntervalsConnection();
+  const { availability, accessToken, athleteId } = useIntervalsAvailability();
+  const queryClient = useQueryClient();
   const [anchor, setAnchor] = useState(initialAnchor);
-  const [state, setState] = useState<CalendarViewState>(LOADING);
+  const [userRefreshing, setUserRefreshing] = useState(false);
 
-  /**
-   * Every fetch — effect-driven or from `refresh` — claims the next id
-   * before it starts and only applies its result if it is still the latest
-   * one when it resolves. Anything that makes an in-flight fetch's result
-   * irrelevant (navigating, refreshing, losing the connection, unmounting)
-   * bumps it, so a late response can't overwrite newer state — e.g. show
-   * workouts for an account that has since been disconnected.
-   */
-  const requestIdRef = useRef(0);
-
-  useEffect(
-    () => () => {
-      requestIdRef.current++;
-    },
-    [],
+  // Stable per range, so `useQueries` only re-combines when a result changes.
+  const combine = useMemo(
+    () => combineMonthResults(startOf(anchor), endOf(anchor)),
+    [anchor, startOf, endOf],
   );
 
-  const load = useCallback(
-    async (token: string, athleteId: string, options: FetchOptions) => {
-      const requestId = ++requestIdRef.current;
-      const isStale = () => requestId !== requestIdRef.current;
+  const query = useQueries({
+    queries: monthsFor(anchor).map(yearMonth => ({
+      ...monthQueryOptions(accessToken ?? '', athleteId ?? '', yearMonth),
+      enabled: availability === 'available',
+    })),
+    combine,
+  });
 
-      try {
-        await fetchRange(token, athleteId, anchor, new Date(), options);
-
-        if (isStale()) return;
-
-        setState({
-          status: 'ready',
-          workoutsByDate: getWorkoutsByDate(startOf(anchor), endOf(anchor)),
-          refreshing: false,
-        });
-      } catch (error) {
-        if (error instanceof IntervalsAuthError) {
-          // The handler's own failure (e.g. the Firestore delete) must not
-          // leave the view stuck mid-load; it clears the cache and flags the
-          // reconnect itself regardless.
-          await handleIntervalsAuthError(queryClient).catch(() => {});
-
-          if (!isStale()) setState(HIDDEN);
-
-          return;
-        }
-
-        if (isStale()) return;
-
-        // A failed refresh keeps the data already on screen (the cache is
-        // only replaced on success); anything else has nothing to show.
-        setState(prev =>
-          options.force && prev.status === 'ready'
-            ? { ...prev, refreshing: false }
-            : ERROR,
-        );
-      }
-    },
-    [anchor, fetchRange, startOf, endOf],
-  );
-
-  useEffect(() => {
-    if (connection.loading) {
-      requestIdRef.current++;
-      setState(LOADING);
-
-      return;
-    }
-
-    if (
-      !connection.isConnected ||
-      !connection.accessToken ||
-      !connection.athleteId
-    ) {
-      requestIdRef.current++;
-      setState(HIDDEN);
-
-      return;
-    }
-
-    if (!isRangeFetched(anchor, connection.athleteId)) {
-      setState(LOADING);
-    }
-
-    void load(connection.accessToken, connection.athleteId, {});
-  }, [
-    connection.loading,
-    connection.isConnected,
-    connection.accessToken,
-    connection.athleteId,
-    anchor,
-    isRangeFetched,
-    load,
-  ]);
-
+  // Marks every month stale: the visible ones fetch again now, the rest when
+  // they're next shown. A failed fetch keeps the month's data.
   const refresh = useCallback(() => {
-    if (
-      !connection.isConnected ||
-      !connection.accessToken ||
-      !connection.athleteId
-    ) {
-      return;
-    }
+    if (!athleteId) return;
 
-    setState(prev =>
-      prev.status === 'ready' ? { ...prev, refreshing: true } : LOADING,
-    );
-
-    void load(connection.accessToken, connection.athleteId, { force: true });
-  }, [
-    connection.isConnected,
-    connection.accessToken,
-    connection.athleteId,
-    load,
-  ]);
+    setUserRefreshing(true);
+    queryClient
+      .invalidateQueries({ queryKey: intervalsKeys.calendar(athleteId) })
+      .finally(() => setUserRefreshing(false));
+  }, [athleteId, queryClient]);
 
   return {
-    state,
+    availability,
+    query,
     anchor,
     goToPrevious: () => setAnchor(current => step(current, -1)),
     goToNext: () => setAnchor(current => step(current, 1)),
     refresh,
+    refreshing: userRefreshing,
   };
 }

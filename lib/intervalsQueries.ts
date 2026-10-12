@@ -1,6 +1,17 @@
-import { getAthleteSettings, getCalendarEvents } from './intervalsApi';
+import {
+  ACTIVITY_FIELDS,
+  PAIRING_WINDOW_DAYS,
+  buildMonthWorkouts,
+  endOfMonth,
+  fromYearMonth,
+} from './calendarWorkouts';
+import {
+  getActivities,
+  getAthleteSettings,
+  getCalendarEvents,
+} from './intervalsApi';
 import { addDays, toLocalDateString } from './localDate';
-import { resolveZoneConfig } from './powerZones';
+import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { getUpcomingWorkouts } from './upcomingWorkouts';
 import { type QueryClient, queryOptions } from '@tanstack/react-query';
 
@@ -16,6 +27,12 @@ export const intervalsKeys = {
   /** `today` is the local `YYYY-MM-DD` the upcoming workouts are counted from. */
   upcoming: (athleteId: string, today: string) =>
     [...intervalsKeys.all, athleteId, 'upcoming', today] as const,
+  /** Every Calendar month, the prefix the refresh control invalidates. */
+  calendar: (athleteId: string) =>
+    [...intervalsKeys.all, athleteId, 'calendar'] as const,
+  /** `yearMonth` is the local `YYYY-MM` of the month. */
+  month: (athleteId: string, yearMonth: string) =>
+    [...intervalsKeys.calendar(athleteId), 'month', yearMonth] as const,
 };
 
 /**
@@ -57,16 +74,73 @@ export function upcomingQueryOptions(
           { oldest: today, newest: toLocalDateString(tomorrow) },
           { signal },
         ),
-        // Custom zone boundaries only sharpen the colours of the profile, and
-        // Coggan stands in for them well enough. Losing them must never cost
-        // the athlete the list of workouts itself. A failed settings query
-        // isn't cached, so the next fetch retries it.
-        client
-          .fetchQuery(athleteSettingsQueryOptions(token, athleteId))
-          .catch(() => resolveZoneConfig(null)),
+        fetchZoneConfig(client, token, athleteId),
       ]);
 
       return getUpcomingWorkouts(events, new Date(), zoneConfig);
     },
   });
+}
+
+/**
+ * One Calendar month's workouts by day, every day of it present. Activities
+ * are fetched a pairing window past each edge, so a workout completed just
+ * outside the month still reads as completed.
+ */
+export function monthQueryOptions(
+  token: string,
+  athleteId: string,
+  yearMonth: string,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.month(athleteId, yearMonth),
+    queryFn: async ({ signal, client }) => {
+      const first = fromYearMonth(yearMonth);
+      const last = endOfMonth(first);
+
+      const [events, activities, zoneConfig] = await Promise.all([
+        getCalendarEvents(
+          token,
+          athleteId,
+          { oldest: toLocalDateString(first), newest: toLocalDateString(last) },
+          { signal },
+        ),
+        getActivities(
+          token,
+          athleteId,
+          {
+            oldest: toLocalDateString(addDays(first, -PAIRING_WINDOW_DAYS)),
+            newest: toLocalDateString(addDays(last, PAIRING_WINDOW_DAYS)),
+            fields: ACTIVITY_FIELDS,
+          },
+          { signal },
+        ),
+        fetchZoneConfig(client, token, athleteId),
+      ]);
+
+      return buildMonthWorkouts(
+        first,
+        events,
+        activities,
+        new Date(),
+        zoneConfig,
+      );
+    },
+  });
+}
+
+/**
+ * Custom zone boundaries only sharpen the colours of a profile, and Coggan
+ * stands in for them well enough. Losing them must never cost the athlete the
+ * workouts themselves. A failed settings query isn't cached, so the next fetch
+ * retries it.
+ */
+function fetchZoneConfig(
+  client: QueryClient,
+  token: string,
+  athleteId: string,
+): Promise<ZoneConfig> {
+  return client
+    .fetchQuery(athleteSettingsQueryOptions(token, athleteId))
+    .catch(() => resolveZoneConfig(null));
 }
