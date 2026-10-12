@@ -2,10 +2,21 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
+import {
+  type ChangePasswordErrorMapping,
+  type ChangePasswordMutation,
+  mapChangePasswordError,
+} from './changePasswordErrors';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { MIN_PASSWORD_LENGTH } from '@/lib/validation';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+
+interface ChangePasswordVariables {
+  currentPassword: string;
+  newPassword: string;
+}
 
 export function useChangePassword() {
   const { t } = useTranslation();
@@ -17,19 +28,46 @@ export function useChangePassword() {
   const [currentPasswordError, setCurrentPasswordError] = useState('');
   const [newPasswordError, setNewPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  function getFormErrorMessage(code: string): string {
-    switch (code) {
-      case 'auth/too-many-requests':
-        return t('changePassword.errors.tooManyRequests');
-      case 'auth/network-request-failed':
-        return t('changePassword.errors.networkFailed');
-      default:
-        return t('changePassword.errors.generic');
-    }
-  }
+  const changePassword = useMutation({
+    mutationFn: async (variables: ChangePasswordVariables) => {
+      const user = auth().currentUser;
+
+      // Maps to the generic form error.
+      if (!user?.email) throw new Error('no_email');
+
+      const credential = auth.EmailAuthProvider.credential(
+        user.email,
+        variables.currentPassword,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(variables.newPassword);
+    },
+    onSuccess: () => {
+      Alert.alert(t('changePassword.success.title'), undefined, [
+        {
+          text: t('changePassword.success.ok'),
+          style: 'default',
+          onPress: () => router.back(),
+        },
+      ]);
+    },
+  });
+
+  const sendResetEmail = useMutation({
+    mutationFn: async (email: string) => {
+      await auth().sendPasswordResetEmail(email);
+    },
+    onSuccess: (_data, email) => {
+      Alert.alert(
+        t('changePassword.reset.successTitle'),
+        t('changePassword.reset.successBody', { email }),
+      );
+    },
+  });
+
+  const loading = changePassword.isPending || sendResetEmail.isPending;
 
   function validate(): boolean {
     let valid = true;
@@ -71,12 +109,17 @@ export function useChangePassword() {
     return valid;
   }
 
+  function resetMutations() {
+    changePassword.reset();
+    sendResetEmail.reset();
+  }
+
   function onCurrentPasswordChange(text: string) {
     setCurrentPassword(text);
 
     if (currentPasswordError) setCurrentPasswordError('');
 
-    if (error) setError('');
+    resetMutations();
   }
 
   function onNewPasswordChange(text: string) {
@@ -84,7 +127,7 @@ export function useChangePassword() {
 
     if (newPasswordError) setNewPasswordError('');
 
-    if (error) setError('');
+    resetMutations();
   }
 
   function onConfirmPasswordChange(text: string) {
@@ -92,75 +135,18 @@ export function useChangePassword() {
 
     if (confirmPasswordError) setConfirmPasswordError('');
 
-    if (error) setError('');
+    resetMutations();
   }
 
   async function handleSubmit() {
     if (loading || !validate()) return;
 
-    const user = auth().currentUser;
+    sendResetEmail.reset();
 
-    if (!user?.email) {
-      setError(t('changePassword.errors.generic'));
-
-      return;
-    }
-
-    setError('');
-    setLoading(true);
-
-    try {
-      const credential = auth.EmailAuthProvider.credential(
-        user.email,
-        currentPassword,
-      );
-
-      await user.reauthenticateWithCredential(credential);
-      await user.updatePassword(newPassword);
-
-      Alert.alert(t('changePassword.success.title'), undefined, [
-        {
-          text: t('changePassword.success.ok'),
-          style: 'default',
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (e) {
-      const code = getErrorCode(e);
-
-      if (
-        code === 'auth/wrong-password' ||
-        code === 'auth/invalid-credential'
-      ) {
-        setCurrentPasswordError(
-          t('changePassword.errors.currentPasswordInvalid'),
-        );
-      } else if (code === 'auth/weak-password') {
-        setNewPasswordError(t('changePassword.errors.weakPassword'));
-      } else {
-        setError(getFormErrorMessage(code));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function sendResetEmail(email: string) {
-    setError('');
-    setLoading(true);
-
-    try {
-      await auth().sendPasswordResetEmail(email);
-
-      Alert.alert(
-        t('changePassword.reset.successTitle'),
-        t('changePassword.reset.successBody', { email }),
-      );
-    } catch (e) {
-      setError(getFormErrorMessage(getErrorCode(e)));
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `changePassword.error`.
+    await changePassword
+      .mutateAsync({ currentPassword, newPassword })
+      .catch(() => {});
   }
 
   function handleForgotPassword() {
@@ -173,19 +159,43 @@ export function useChangePassword() {
       {
         text: t('changePassword.reset.confirmButton'),
         style: 'default',
-        onPress: () => sendResetEmail(email),
+        onPress: () => {
+          if (sendResetEmail.isPending) return;
+
+          changePassword.reset();
+          sendResetEmail.mutate(email);
+        },
       },
     ]);
+  }
+
+  function mapError(
+    mutation: ChangePasswordMutation,
+    e: unknown,
+  ): ChangePasswordErrorMapping {
+    return mapChangePasswordError(mutation, getErrorCode(e));
+  }
+
+  // Starting one mutation resets the other, so at most one has an error.
+  const mapped: ChangePasswordErrorMapping | null = changePassword.error
+    ? mapError('changePassword', changePassword.error)
+    : sendResetEmail.error
+      ? mapError('sendResetEmail', sendResetEmail.error)
+      : null;
+
+  function mappedError(field?: ChangePasswordErrorMapping['field']): string {
+    return mapped && mapped.field === field ? t(mapped.key) : '';
   }
 
   return {
     currentPassword,
     newPassword,
     confirmPassword,
-    currentPasswordError,
-    newPasswordError,
+    currentPasswordError:
+      currentPasswordError || mappedError('currentPassword'),
+    newPasswordError: newPasswordError || mappedError('newPassword'),
     confirmPasswordError,
-    error,
+    error: mappedError(),
     loading,
     onCurrentPasswordChange,
     onNewPasswordChange,
