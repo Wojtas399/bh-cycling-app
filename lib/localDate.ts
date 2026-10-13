@@ -35,7 +35,7 @@ export interface DatedWorkoutEvent {
 /**
  * Filters calendar events down to WORKOUT-category ones, tags each with its
  * local calendar date, and orders them chronologically — the shared first
- * stage `deriveWorkoutStatuses` and `getUpcomingWorkouts` both build on
+ * stage `joinWorkouts` and `getUpcomingWorkouts` both build on
  * before applying their own filter/map.
  */
 export function toSortedDatedWorkoutEvents(

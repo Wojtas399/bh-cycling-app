@@ -13,7 +13,7 @@ A ride the athlete actually recorded on Intervals.icu. An Activity that fulfils 
 _Avoid_: Ride, completed workout
 
 **Workout Status**:
-The tri-state of a planned workout: `completed` (a matching Activity exists), `planned` (in the future, no matching Activity yet), or `missed` (in the past, no matching Activity). Drives the green/gray/red status dots on Home and Calendar.
+The tri-state of a planned workout: `completed` (a matching Activity exists), `planned` (in the future, no matching Activity yet), or `missed` (in the past, no matching Activity). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.
 _Avoid_: Completion state, sync status
 
 **Sign-in Method**:
