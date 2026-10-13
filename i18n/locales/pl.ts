@@ -39,7 +39,6 @@ const pl = {
     or: 'lub',
     signInWithGoogle: 'Zaloguj się przez Google',
     noAccount: 'Nie masz konta? Zarejestruj się',
-    accountDeleted: 'Konto zostało usunięte',
     errors: {
       invalidCredential: 'Nieprawidłowy e-mail lub hasło.',
       invalidEmail: 'Podaj prawidłowy adres e-mail.',
@@ -176,6 +175,7 @@ const pl = {
     googleHint:
       'Po naciśnięciu przycisku poprosimy Cię o ponowne zalogowanie przez Google.',
     deleteButton: 'Usuń konto na zawsze',
+    deleted: 'Konto zostało usunięte',
     errors: {
       passwordInvalid: 'Hasło jest nieprawidłowe.',
       wrongGoogleAccount:
@@ -250,6 +250,7 @@ const pl = {
     connectButton: 'Połącz',
     disconnectButton: 'Rozłącz',
     connectedAs: 'Połączono jako {{name}}',
+    connected: 'Połączono z Intervals.icu',
     disconnectConfirmTitle: 'Rozłączyć Intervals.icu?',
     disconnectConfirmBody:
       'Twoje konto Intervals.icu zostanie odłączone od aplikacji.',

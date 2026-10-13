@@ -9,6 +9,7 @@ import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
 import { removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import { toast } from '@/lib/toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
@@ -24,7 +25,6 @@ export interface UseIntervalsAuthResult {
   handleDisconnect: () => void;
   connecting: boolean;
   disconnecting: boolean;
-  error: string;
 }
 
 export function useIntervalsAuth(): UseIntervalsAuthResult {
@@ -64,7 +64,9 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       // Re-enables the gated queries; the 401 already removed the old data.
       setNeedsReconnect(false);
+      toast.success(t('connected'));
     },
+    onError: () => toast.error(errorMessage('connect')),
   });
 
   const disconnect = useMutation({
@@ -79,14 +81,13 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       // Otherwise reconnecting the same athlete would show the old data.
       await removeIntervalsQueries(queryClient);
     },
+    onError: () => toast.error(errorMessage('disconnect')),
   });
 
   async function handleConnect() {
     if (connect.isPending) return;
 
-    disconnect.reset();
-
-    // A failure surfaces through `connect.error`.
+    // A failure surfaces as a toast via `onError`.
     await connect.mutateAsync().catch(() => {});
   }
 
@@ -106,7 +107,6 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
   function confirmDisconnect() {
     if (disconnect.isPending) return;
 
-    connect.reset();
     disconnect.mutate();
   }
 
@@ -114,17 +114,10 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     return t(mapIntervalsAuthError(mutation).key);
   }
 
-  const error = connect.error
-    ? errorMessage('connect')
-    : disconnect.error
-      ? errorMessage('disconnect')
-      : '';
-
   return {
     handleConnect,
     handleDisconnect,
     connecting: connect.isPending,
     disconnecting: disconnect.isPending,
-    error,
   };
 }
