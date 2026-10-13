@@ -9,6 +9,7 @@ import {
 } from './changePasswordErrors';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
+import { toast } from '@/lib/toast';
 import { MIN_PASSWORD_LENGTH } from '@/lib/validation';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -45,13 +46,8 @@ export function useChangePassword() {
       await user.updatePassword(variables.newPassword);
     },
     onSuccess: () => {
-      Alert.alert(t('changePassword.success.title'), undefined, [
-        {
-          text: t('changePassword.success.ok'),
-          style: 'default',
-          onPress: () => router.back(),
-        },
-      ]);
+      toast.success(t('changePassword.success.title'));
+      router.back();
     },
   });
 

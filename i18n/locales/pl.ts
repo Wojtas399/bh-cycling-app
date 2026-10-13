@@ -137,7 +137,6 @@ const pl = {
     forgotPassword: 'Nie pamiętasz obecnego hasła?',
     success: {
       title: 'Hasło zostało zmienione',
-      ok: 'OK',
     },
     reset: {
       confirmTitle: 'Wysłać link do resetowania hasła na {{email}}?',
