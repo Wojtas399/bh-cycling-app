@@ -1,4 +1,5 @@
 import { useEffect, useId } from 'react';
+import type { TextStyle } from 'react-native';
 
 import theme from '@/constants/theme';
 import { registerSheetHost, unregisterSheetHost } from '@/lib/toast';
@@ -36,6 +37,8 @@ export const toasterConfig = {
       fontFamily: label.fontFamily,
       fontSize: label.fontSize,
       lineHeight: label.lineHeight,
+      // Overrides sonner's default '600', which Android would fake-bold.
+      fontWeight: label.fontWeight as TextStyle['fontWeight'],
     },
   },
   icons: {
