@@ -361,6 +361,27 @@ describe('useCalendarRange', () => {
     expect(result.current.query.data).toBeDefined();
   });
 
+  it('goes back to loading while a refresh retries a month that failed to load', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+    expect(result.current.refreshing).toBe(false);
+
+    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
+    await act(async () => result.current.refresh());
+
+    // A retry with no data is a first load again, not a refresh.
+    await waitFor(() => expect(result.current.query.isError).toBe(false));
+    expect(result.current.query.isPending).toBe(true);
+    expect(result.current.query.isFetching).toBe(true);
+    expect(result.current.refreshing).toBe(false);
+  });
+
   it('is not refreshing during a first load', async () => {
     mockConnected();
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
