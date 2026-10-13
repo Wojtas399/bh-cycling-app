@@ -1,6 +1,6 @@
 import { useDeleteAccount } from '../useDeleteAccount';
-import { consumeAccountDeleted } from '@/lib/accountDeletedStore';
 import { signOutAndClear } from '@/lib/signOutAndClear';
+import { toast } from '@/lib/toast';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -23,6 +23,18 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   isErrorWithCode: (e: unknown) =>
     typeof e === 'object' && e !== null && 'code' in e,
 }));
+
+jest.mock('@/lib/toast', () => ({
+  toast: {
+    success: jest.fn((message: string) => {
+      callOrder.push(`toast.success:${message}`);
+    }),
+    warning: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+const mockToast = jest.mocked(toast);
 
 jest.mock('@/lib/signOutAndClear', () => ({
   signOutAndClear: jest.fn(async () => {
@@ -91,7 +103,6 @@ describe('useDeleteAccount', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     callOrder.length = 0;
-    consumeAccountDeleted();
     mockReauthenticate.mockImplementation(async () => {
       callOrder.push('reauth');
     });
@@ -150,10 +161,11 @@ describe('useDeleteAccount', () => {
         'reauth',
         'getIdToken',
         'deleteAccount',
+        'toast.success:deleteAccount.deleted',
         'signOutAndClear',
       ]);
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
       expect(signOutAndClear).toHaveBeenCalledTimes(1);
-      expect(consumeAccountDeleted()).toBe(true);
     });
 
     it.each(['auth/wrong-password', 'auth/invalid-credential'])(
@@ -170,6 +182,7 @@ describe('useDeleteAccount', () => {
         );
         expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
         expect(signOutAndClear).not.toHaveBeenCalled();
+        expect(mockToast.success).not.toHaveBeenCalled();
         expect(hook.result.current.loading).toBe(false);
       },
     );
@@ -225,6 +238,7 @@ describe('useDeleteAccount', () => {
         'reauth',
         'getIdToken',
         'deleteAccount',
+        'toast.success:deleteAccount.deleted',
         'signOutAndClear',
       ]);
     });
@@ -239,7 +253,7 @@ describe('useDeleteAccount', () => {
       expect(mockReauthenticate).not.toHaveBeenCalled();
       expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
       expect(signOutAndClear).not.toHaveBeenCalled();
-      expect(consumeAccountDeleted()).toBe(false);
+      expect(mockToast.success).not.toHaveBeenCalled();
       expect(hook.result.current.loading).toBe(false);
     });
 
@@ -253,6 +267,7 @@ describe('useDeleteAccount', () => {
       expect(hook.result.current.passwordError).toBe('');
       expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
       expect(signOutAndClear).not.toHaveBeenCalled();
+      expect(mockToast.success).not.toHaveBeenCalled();
       expect(hook.result.current.loading).toBe(false);
     });
 
@@ -293,7 +308,7 @@ describe('useDeleteAccount', () => {
           'deleteAccount.errors.reauthRequired',
         );
         expect(signOutAndClear).not.toHaveBeenCalled();
-        expect(consumeAccountDeleted()).toBe(false);
+        expect(mockToast.success).not.toHaveBeenCalled();
       },
     );
 
@@ -309,10 +324,12 @@ describe('useDeleteAccount', () => {
       expect(hook.result.current.error).toBe('deleteAccount.errors.generic');
       expect(hook.result.current.loading).toBe(false);
       expect(signOutAndClear).not.toHaveBeenCalled();
+      expect(mockToast.success).not.toHaveBeenCalled();
 
       await submit(hook);
 
       expect(hook.result.current.error).toBe('');
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
       expect(signOutAndClear).toHaveBeenCalledTimes(1);
     });
   });
