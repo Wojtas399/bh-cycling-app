@@ -56,6 +56,10 @@ function todayEvent(
 describe('intervalsKeys', () => {
   it('nests every key under the intervals prefix and the athlete', () => {
     expect(intervalsKeys.all).toEqual(['intervals']);
+    expect(intervalsKeys.athlete('athlete-1')).toEqual([
+      'intervals',
+      'athlete-1',
+    ]);
     expect(intervalsKeys.athleteSettings('athlete-1')).toEqual([
       'intervals',
       'athlete-1',
@@ -79,6 +83,28 @@ describe('intervalsKeys', () => {
       'month',
       '2026-06',
     ]);
+  });
+});
+
+describe('freshness', () => {
+  const FIVE_MINUTES = 5 * 60_000;
+
+  it('keeps the athlete settings fresh for the whole session', () => {
+    expect(athleteSettingsQueryOptions(CREDENTIALS).staleTime).toBe(Infinity);
+  });
+
+  it('lets the upcoming workouts go stale after 5 minutes and refetch on focus', () => {
+    const options = upcomingQueryOptions(CREDENTIALS, '2026-10-11');
+
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
+  });
+
+  it('lets a month go stale after 5 minutes and refetch on focus', () => {
+    const options = monthQueryOptions(CREDENTIALS, '2026-06');
+
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
   });
 });
 

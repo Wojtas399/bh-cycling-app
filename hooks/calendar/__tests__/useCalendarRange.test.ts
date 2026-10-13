@@ -11,8 +11,13 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
+import { intervalsKeys } from '@/lib/intervalsQueries';
 import { toLocalDateString } from '@/lib/localDate';
-import { renderHookWithClient } from '@/test-utils/queryClient';
+import {
+  createTestQueryClient,
+  renderHookWithClient,
+} from '@/test-utils/queryClient';
+import { focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -85,12 +90,33 @@ const monthConfig: UseCalendarRangeConfig = {
 
 const today = toLocalDateString(new Date());
 
+const visibleMonthKey = intervalsKeys.month(
+  'athlete-1',
+  toYearMonth(new Date()),
+);
+
+/** A client whose visible month was last fetched `ageMs` ago. */
+function clientWithMonthFetched(ageMs: number) {
+  const client = createTestQueryClient();
+
+  client.setQueryData(visibleMonthKey, {}, { updatedAt: Date.now() - ageMs });
+
+  return client;
+}
+
+const SIX_MINUTES = 6 * 60_000;
+
 describe('useCalendarRange', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetAthleteSettings.mockResolvedValue({});
     mockGetCalendarEvents.mockResolvedValue([]);
     mockGetActivities.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    // Hands focus back to the default listener for the next test.
+    focusManager.setFocused(undefined);
   });
 
   it('is unavailable and makes no API call when not connected', async () => {
@@ -224,7 +250,7 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.refresh());
 
-    expect(result.current.refreshing).toBe(true);
+    await waitFor(() => expect(result.current.refreshing).toBe(true));
     expect(result.current.query.data?.[today].map(w => w.id)).toEqual([1]);
 
     await act(async () => {
@@ -276,8 +302,102 @@ describe('useCalendarRange', () => {
     await act(async () => result.current.goToPrevious());
 
     await waitFor(() => expect(mockGetCalendarEvents).toHaveBeenCalledTimes(4));
-    // A background refetch shows the old data and isn't a user refresh.
+    // A background refetch shows the old data meanwhile.
     expect(result.current.query.data).toBeDefined();
+  });
+
+  it('refetches a stale month when the app returns to the foreground', async () => {
+    mockConnected();
+    focusManager.setFocused(false);
+
+    const client = clientWithMonthFetched(0);
+
+    await renderHookWithClient(() => useCalendarRange(monthConfig), {
+      client,
+    });
+
+    // Aged after mounting, so only the return to the foreground can refetch.
+    await act(async () => {
+      client.setQueryData(
+        visibleMonthKey,
+        {},
+        {
+          updatedAt: Date.now() - SIX_MINUTES,
+        },
+      );
+    });
+    expect(mockGetCalendarEvents).not.toHaveBeenCalled();
+
+    await act(async () => focusManager.setFocused(true));
+
+    await waitFor(() => expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not refetch a fresh month when the app returns to the foreground', async () => {
+    mockConnected();
+    focusManager.setFocused(false);
+
+    const { result } = await renderHookWithClient(
+      () => useCalendarRange(monthConfig),
+      { client: clientWithMonthFetched(0) },
+    );
+
+    await act(async () => focusManager.setFocused(true));
+
+    expect(result.current.query.data).toBeDefined();
+    expect(mockGetCalendarEvents).not.toHaveBeenCalled();
+  });
+
+  it('is refreshing while a stale month refetches in the background', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
+
+    const { result } = await renderHookWithClient(
+      () => useCalendarRange(monthConfig),
+      { client: clientWithMonthFetched(SIX_MINUTES) },
+    );
+
+    await waitFor(() => expect(result.current.refreshing).toBe(true));
+    expect(result.current.query.data).toBeDefined();
+  });
+
+  it('is not refreshing during a first load', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    expect(result.current.query.isFetching).toBe(true);
     expect(result.current.refreshing).toBe(false);
+  });
+
+  it("refresh also invalidates Home's workouts and the athlete settings", async () => {
+    mockConnected();
+
+    const client = createTestQueryClient();
+    const upcomingKey = intervalsKeys.upcoming('athlete-1', today);
+    const settingsKey = intervalsKeys.athleteSettings('athlete-1');
+
+    client.setQueryData(upcomingKey, []);
+    client.setQueryData(settingsKey, []);
+
+    const { result } = await renderHookWithClient(
+      () => useCalendarRange(monthConfig),
+      { client },
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(mockGetAthleteSettings).not.toHaveBeenCalled();
+
+    await act(async () => result.current.refresh());
+
+    // Off screen, Home's workouts are only marked stale. The refetched month
+    // reads the settings, so they're fetched again at once.
+    expect(client.getQueryState(upcomingKey)?.isInvalidated).toBe(true);
+    await waitFor(() =>
+      expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1),
+    );
   });
 });

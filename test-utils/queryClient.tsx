@@ -8,7 +8,7 @@ import { renderHook } from '@testing-library/react-native';
  * The app-configured client, minus mutation garbage collection: its 5-minute
  * timers would otherwise keep Jest from exiting.
  */
-function createTestQueryClient(): QueryClient {
+export function createTestQueryClient(): QueryClient {
   const client = createQueryClient();
   const defaults = client.getDefaultOptions();
 

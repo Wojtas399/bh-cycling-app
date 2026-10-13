@@ -14,8 +14,9 @@ export function createQueryClient(): QueryClient {
     }),
     defaultOptions: {
       queries: {
-        // Parity with the hand-rolled caches: data lasts the whole session and
-        // only gets fresher through an explicit refresh.
+        // Data lasts the whole session and only gets fresher through an
+        // explicit refresh, unless a query's own options say otherwise (see
+        // `intervalsQueries`).
         staleTime: Infinity,
         gcTime: Infinity,
         // Any future retry count must never retry an IntervalsAuthError — the

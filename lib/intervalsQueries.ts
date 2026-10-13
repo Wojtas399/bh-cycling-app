@@ -32,22 +32,24 @@ export interface IntervalsCredentials {
 }
 
 /**
- * Every Intervals.icu query key starts with `intervalsKeys.all`, so the whole
- * athlete's data can be cancelled and removed by that prefix. The access token
- * is never part of a key — the `queryFn` closures capture it instead. The
- * athlete id is `undefined` only in the key of a query skipped for want of
- * credentials.
+ * Every Intervals.icu query key starts with `intervalsKeys.all`, so all of it
+ * can be cancelled and removed by that prefix. The access token is never part
+ * of a key — the `queryFn` closures capture it instead. The athlete id is
+ * `undefined` only in the key of a query skipped for want of credentials.
  */
 export const intervalsKeys = {
   all: ['intervals'] as const,
+  /** Everything for one athlete, the prefix the refresh control invalidates. */
+  athlete: (athleteId: string | undefined) =>
+    [...intervalsKeys.all, athleteId] as const,
   athleteSettings: (athleteId: string) =>
-    [...intervalsKeys.all, athleteId, 'athleteSettings'] as const,
+    [...intervalsKeys.athlete(athleteId), 'athleteSettings'] as const,
   /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
-    [...intervalsKeys.all, athleteId, 'upcoming', today] as const,
-  /** Every Calendar month, the prefix the refresh control invalidates. */
+    [...intervalsKeys.athlete(athleteId), 'upcoming', today] as const,
+  /** Every Calendar month. */
   calendar: (athleteId: string | undefined) =>
-    [...intervalsKeys.all, athleteId, 'calendar'] as const,
+    [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
   month: (athleteId: string | undefined, yearMonth: YearMonth) =>
     [...intervalsKeys.calendar(athleteId), 'month', yearMonth] as const,
 };
@@ -63,7 +65,16 @@ export async function removeIntervalsQueries(
   client.removeQueries({ queryKey: intervalsKeys.all });
 }
 
-/** The athlete's power zones, resolved from their Intervals.icu settings. */
+/**
+ * How long a month or the upcoming workouts count as fresh. Once stale, they
+ * refetch when shown again or when the app returns to the foreground.
+ */
+const WORKOUTS_STALE_TIME = 5 * 60_000;
+
+/**
+ * The athlete's power zones, resolved from their Intervals.icu settings. They
+ * rarely change, so only a refresh fetches them again.
+ */
 export function athleteSettingsQueryOptions({
   accessToken,
   athleteId,
@@ -72,6 +83,7 @@ export function athleteSettingsQueryOptions({
     queryKey: intervalsKeys.athleteSettings(athleteId),
     queryFn: async ({ signal }) =>
       resolveZoneConfig(await getAthleteSettings(accessToken, { signal })),
+    staleTime: Infinity,
   });
 }
 
@@ -102,6 +114,8 @@ export function upcomingQueryOptions(
           return getUpcomingWorkouts(events, new Date(), zoneConfig);
         }
       : skipToken,
+    staleTime: WORKOUTS_STALE_TIME,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -154,6 +168,8 @@ export function monthQueryOptions(
           );
         }
       : skipToken,
+    staleTime: WORKOUTS_STALE_TIME,
+    refetchOnWindowFocus: true,
   });
 }
 

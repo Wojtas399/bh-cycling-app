@@ -20,7 +20,7 @@ export interface UseCalendarRangeResult {
   goToPrevious: () => void;
   goToNext: () => void;
   refresh: () => void;
-  /** A refresh the athlete asked for is in flight; background fetches aren't. */
+  /** Shown data is being fetched again, by a refresh or in the background. */
   refreshing: boolean;
 }
 
@@ -54,7 +54,6 @@ export function useCalendarRange({
   const { availability, credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
   const [anchor, setAnchor] = useState(initialAnchor);
-  const [userRefreshing, setUserRefreshing] = useState(false);
 
   // Stable per range, so `useQueries` only re-combines when a result changes.
   const combine = useMemo(
@@ -71,15 +70,14 @@ export function useCalendarRange({
 
   const athleteId = credentials?.athleteId;
 
-  // Marks every month stale: the visible ones fetch again now, the rest when
-  // they're next shown. A failed fetch keeps the month's data.
+  // Marks everything for the athlete stale: what's on screen fetches again
+  // now, the rest when it's next shown. A failed fetch keeps the old data.
   const refresh = useCallback(() => {
     if (!athleteId) return;
 
-    setUserRefreshing(true);
-    queryClient
-      .invalidateQueries({ queryKey: intervalsKeys.calendar(athleteId) })
-      .finally(() => setUserRefreshing(false));
+    queryClient.invalidateQueries({
+      queryKey: intervalsKeys.athlete(athleteId),
+    });
   }, [athleteId, queryClient]);
 
   return {
@@ -89,6 +87,6 @@ export function useCalendarRange({
     goToPrevious: () => setAnchor(current => step(current, -1)),
     goToNext: () => setAnchor(current => step(current, 1)),
     refresh,
-    refreshing: userRefreshing,
+    refreshing: query.data !== undefined && query.isFetching,
   };
 }
