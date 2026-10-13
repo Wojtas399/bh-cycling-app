@@ -1,6 +1,7 @@
 import {
   ACTIVITY_FIELDS,
   PAIRING_WINDOW_DAYS,
+  type YearMonth,
   buildMonthWorkouts,
   endOfMonth,
   fromYearMonth,
@@ -10,28 +11,44 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from './intervalsApi';
-import { addDays, toLocalDateString } from './localDate';
+import {
+  type LocalDateString,
+  addDays,
+  fromLocalDateString,
+  toLocalDateString,
+} from './localDate';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { getUpcomingWorkouts } from './upcomingWorkouts';
-import { type QueryClient, queryOptions } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  queryOptions,
+  skipToken,
+} from '@tanstack/react-query';
+
+/** What every Intervals.icu request needs: who to ask about, and the token. */
+export interface IntervalsCredentials {
+  accessToken: string;
+  athleteId: string;
+}
 
 /**
  * Every Intervals.icu query key starts with `intervalsKeys.all`, so the whole
  * athlete's data can be cancelled and removed by that prefix. The access token
- * is never part of a key — the `queryFn` closures capture it instead.
+ * is never part of a key — the `queryFn` closures capture it instead. The
+ * athlete id is `undefined` only in the key of a query skipped for want of
+ * credentials.
  */
 export const intervalsKeys = {
   all: ['intervals'] as const,
   athleteSettings: (athleteId: string) =>
     [...intervalsKeys.all, athleteId, 'athleteSettings'] as const,
-  /** `today` is the local `YYYY-MM-DD` the upcoming workouts are counted from. */
-  upcoming: (athleteId: string, today: string) =>
+  /** `today` is the date the upcoming workouts are counted from. */
+  upcoming: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.all, athleteId, 'upcoming', today] as const,
   /** Every Calendar month, the prefix the refresh control invalidates. */
-  calendar: (athleteId: string) =>
+  calendar: (athleteId: string | undefined) =>
     [...intervalsKeys.all, athleteId, 'calendar'] as const,
-  /** `yearMonth` is the local `YYYY-MM` of the month. */
-  month: (athleteId: string, yearMonth: string) =>
+  month: (athleteId: string | undefined, yearMonth: YearMonth) =>
     [...intervalsKeys.calendar(athleteId), 'month', yearMonth] as const,
 };
 
@@ -47,85 +64,96 @@ export async function removeIntervalsQueries(
 }
 
 /** The athlete's power zones, resolved from their Intervals.icu settings. */
-export function athleteSettingsQueryOptions(token: string, athleteId: string) {
+export function athleteSettingsQueryOptions({
+  accessToken,
+  athleteId,
+}: IntervalsCredentials) {
   return queryOptions({
     queryKey: intervalsKeys.athleteSettings(athleteId),
     queryFn: async ({ signal }) =>
-      resolveZoneConfig(await getAthleteSettings(token, { signal })),
+      resolveZoneConfig(await getAthleteSettings(accessToken, { signal })),
   });
 }
 
-/** Workouts planned for `today` and the day after. */
+/**
+ * Workouts planned for `today` and the day after. Skipped while there are no
+ * credentials.
+ */
 export function upcomingQueryOptions(
-  token: string,
-  athleteId: string,
-  today: string,
+  credentials: IntervalsCredentials | null,
+  today: LocalDateString,
 ) {
   return queryOptions({
-    queryKey: intervalsKeys.upcoming(athleteId, today),
-    queryFn: async ({ signal, client }) => {
-      const [year, month, day] = today.split('-').map(Number);
-      const tomorrow = addDays(new Date(year, month - 1, day), 1);
+    queryKey: intervalsKeys.upcoming(credentials?.athleteId, today),
+    queryFn: credentials
+      ? async ({ signal, client }) => {
+          const tomorrow = addDays(fromLocalDateString(today), 1);
 
-      const [events, zoneConfig] = await Promise.all([
-        getCalendarEvents(
-          token,
-          athleteId,
-          { oldest: today, newest: toLocalDateString(tomorrow) },
-          { signal },
-        ),
-        fetchZoneConfig(client, token, athleteId),
-      ]);
+          const [events, zoneConfig] = await Promise.all([
+            getCalendarEvents(
+              credentials.accessToken,
+              credentials.athleteId,
+              { oldest: today, newest: toLocalDateString(tomorrow) },
+              { signal },
+            ),
+            fetchZoneConfig(client, credentials),
+          ]);
 
-      return getUpcomingWorkouts(events, new Date(), zoneConfig);
-    },
+          return getUpcomingWorkouts(events, new Date(), zoneConfig);
+        }
+      : skipToken,
   });
 }
 
 /**
  * One Calendar month's workouts by day, every day of it present. Activities
  * are fetched a pairing window past each edge, so a workout completed just
- * outside the month still reads as completed.
+ * outside the month still reads as completed. Skipped while there are no
+ * credentials.
  */
 export function monthQueryOptions(
-  token: string,
-  athleteId: string,
-  yearMonth: string,
+  credentials: IntervalsCredentials | null,
+  yearMonth: YearMonth,
 ) {
   return queryOptions({
-    queryKey: intervalsKeys.month(athleteId, yearMonth),
-    queryFn: async ({ signal, client }) => {
-      const first = fromYearMonth(yearMonth);
-      const last = endOfMonth(first);
+    queryKey: intervalsKeys.month(credentials?.athleteId, yearMonth),
+    queryFn: credentials
+      ? async ({ signal, client }) => {
+          const first = fromYearMonth(yearMonth);
+          const last = endOfMonth(first);
 
-      const [events, activities, zoneConfig] = await Promise.all([
-        getCalendarEvents(
-          token,
-          athleteId,
-          { oldest: toLocalDateString(first), newest: toLocalDateString(last) },
-          { signal },
-        ),
-        getActivities(
-          token,
-          athleteId,
-          {
-            oldest: toLocalDateString(addDays(first, -PAIRING_WINDOW_DAYS)),
-            newest: toLocalDateString(addDays(last, PAIRING_WINDOW_DAYS)),
-            fields: ACTIVITY_FIELDS,
-          },
-          { signal },
-        ),
-        fetchZoneConfig(client, token, athleteId),
-      ]);
+          const [events, activities, zoneConfig] = await Promise.all([
+            getCalendarEvents(
+              credentials.accessToken,
+              credentials.athleteId,
+              {
+                oldest: toLocalDateString(first),
+                newest: toLocalDateString(last),
+              },
+              { signal },
+            ),
+            getActivities(
+              credentials.accessToken,
+              credentials.athleteId,
+              {
+                oldest: toLocalDateString(addDays(first, -PAIRING_WINDOW_DAYS)),
+                newest: toLocalDateString(addDays(last, PAIRING_WINDOW_DAYS)),
+                fields: ACTIVITY_FIELDS,
+              },
+              { signal },
+            ),
+            fetchZoneConfig(client, credentials),
+          ]);
 
-      return buildMonthWorkouts(
-        first,
-        events,
-        activities,
-        new Date(),
-        zoneConfig,
-      );
-    },
+          return buildMonthWorkouts(
+            first,
+            events,
+            activities,
+            new Date(),
+            zoneConfig,
+          );
+        }
+      : skipToken,
   });
 }
 
@@ -137,10 +165,9 @@ export function monthQueryOptions(
  */
 function fetchZoneConfig(
   client: QueryClient,
-  token: string,
-  athleteId: string,
+  credentials: IntervalsCredentials,
 ): Promise<ZoneConfig> {
   return client
-    .fetchQuery(athleteSettingsQueryOptions(token, athleteId))
+    .fetchQuery(athleteSettingsQueryOptions(credentials))
     .catch(() => resolveZoneConfig(null));
 }

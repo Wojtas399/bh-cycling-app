@@ -12,11 +12,12 @@ import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useAppTheme } from '@/constants/theme';
-import type { UseCalendarRangeResult } from '@/hooks/calendar/useCalendarRange';
+import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
+import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 /**
@@ -40,27 +41,17 @@ interface ViewProps {
 
 function MonthlyCalendar({ onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
-  const {
-    availability,
-    query,
-    refreshing,
-    month,
-    goToPreviousMonth,
-    goToNextMonth,
-    refresh,
-  } = useMonthlyCalendar();
+  const { month, goToPreviousMonth, goToNextMonth, ...range } =
+    useMonthlyCalendar();
 
   return (
     <CalendarLayout
       view="monthly"
       onViewChange={onViewChange}
       title={labels.month(month)}
-      availability={availability}
-      query={query}
-      refreshing={refreshing}
+      range={range}
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
-      onRefresh={refresh}
     >
       {(workoutsByDate, onDayPress) => (
         <CalendarMonthGrid
@@ -75,27 +66,17 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
 
 function WeeklyCalendar({ onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
-  const {
-    availability,
-    query,
-    refreshing,
-    week,
-    goToPreviousWeek,
-    goToNextWeek,
-    refresh,
-  } = useWeeklyCalendar();
+  const { week, goToPreviousWeek, goToNextWeek, ...range } =
+    useWeeklyCalendar();
 
   return (
     <CalendarLayout
       view="weekly"
       onViewChange={onViewChange}
       title={labels.week(getWeekDays(week))}
-      availability={availability}
-      query={query}
-      refreshing={refreshing}
+      range={range}
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
-      onRefresh={refresh}
     >
       {(workoutsByDate, onDayPress) => (
         <CalendarWeekAgenda
@@ -111,12 +92,9 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
 interface CalendarLayoutProps extends ViewProps {
   view: CalendarView;
   title: string;
-  availability: UseCalendarRangeResult['availability'];
-  query: UseCalendarRangeResult['query'];
-  refreshing: boolean;
+  range: CalendarRangeView;
   onPrevious: () => void;
   onNext: () => void;
-  onRefresh: () => void;
   /** The loaded view; `onDayPress` opens the day sheet. */
   children: (
     workoutsByDate: Record<string, CalendarWorkout[]>,
@@ -132,12 +110,9 @@ function CalendarLayout({
   view,
   onViewChange,
   title,
-  availability,
-  query,
-  refreshing,
+  range: { availability, query, refresh, refreshing },
   onPrevious,
   onNext,
-  onRefresh,
   children,
 }: CalendarLayoutProps) {
   const theme = useAppTheme();
@@ -160,8 +135,8 @@ function CalendarLayout({
         title={title}
         onPrevious={onPrevious}
         onNext={onNext}
-        onRefresh={onRefresh}
-        refreshStatus={refreshStatus(query, refreshing)}
+        onRefresh={refresh}
+        refreshStatus={calendarRefreshStatus(query, refreshing)}
       />
 
       <CalendarBody state={bodyState(query)}>
@@ -179,22 +154,10 @@ function CalendarLayout({
 }
 
 /** Data wins over an error, so a failed refetch keeps the view on screen. */
-function bodyState(query: UseCalendarRangeResult['query']): CalendarBodyState {
+function bodyState(query: CalendarRangeView['query']): CalendarBodyState {
   if (query.data) {
     return { status: 'ready', workoutsByDate: query.data };
   }
 
   return query.isError ? { status: 'error' } : { status: 'loading' };
-}
-
-/** An error can be retried with a refresh; a first load can't. */
-function refreshStatus(
-  query: UseCalendarRangeResult['query'],
-  refreshing: boolean,
-) {
-  if (!query.data && !query.isError) {
-    return 'disabled';
-  }
-
-  return refreshing ? 'refreshing' : 'idle';
 }

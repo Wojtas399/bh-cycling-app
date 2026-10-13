@@ -7,7 +7,6 @@ import {
 } from './intervalsAuthErrors';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
-import { getErrorCode } from '@/lib/getErrorCode';
 import { removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -111,14 +110,14 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     disconnect.mutate();
   }
 
-  function errorMessage(mutation: IntervalsAuthMutation, e: unknown): string {
-    return t(mapIntervalsAuthError(mutation, getErrorCode(e)).key);
+  function errorMessage(mutation: IntervalsAuthMutation): string {
+    return t(mapIntervalsAuthError(mutation).key);
   }
 
   const error = connect.error
-    ? errorMessage('connect', connect.error)
+    ? errorMessage('connect')
     : disconnect.error
-      ? errorMessage('disconnect', disconnect.error)
+      ? errorMessage('disconnect')
       : '';
 
   return {

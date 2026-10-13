@@ -35,20 +35,18 @@ describe('useIntervalsAvailability', () => {
 
     expect(result.current).toEqual({
       availability: 'loading',
-      accessToken: null,
-      athleteId: null,
+      credentials: null,
     });
   });
 
-  it('is available with the token and athlete id when connected', async () => {
+  it('is available with the credentials when connected', async () => {
     mockUseIntervalsConnection.mockReturnValue(CONNECTED);
 
     const { result } = await renderHook(() => useIntervalsAvailability());
 
     expect(result.current).toEqual({
       availability: 'available',
-      accessToken: 'token-1',
-      athleteId: 'athlete-1',
+      credentials: { accessToken: 'token-1', athleteId: 'athlete-1' },
     });
   });
 
@@ -63,8 +61,7 @@ describe('useIntervalsAvailability', () => {
 
     expect(result.current).toEqual({
       availability: 'unavailable',
-      accessToken: null,
-      athleteId: null,
+      credentials: null,
     });
   });
 
@@ -79,8 +76,7 @@ describe('useIntervalsAvailability', () => {
 
     expect(result.current).toEqual({
       availability: 'unavailable',
-      accessToken: null,
-      athleteId: null,
+      credentials: null,
     });
   });
 });

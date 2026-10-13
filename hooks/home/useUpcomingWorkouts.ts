@@ -9,13 +9,10 @@ import { useQuery } from '@tanstack/react-query';
  * `availability` and branches on the raw `query`.
  */
 export function useUpcomingWorkouts() {
-  const { availability, accessToken, athleteId } = useIntervalsAvailability();
+  const { availability, credentials } = useIntervalsAvailability();
   const today = useToday();
 
-  const query = useQuery({
-    ...upcomingQueryOptions(accessToken ?? '', athleteId ?? '', today),
-    enabled: availability === 'available',
-  });
+  const query = useQuery(upcomingQueryOptions(credentials, today));
 
   return { availability, query };
 }

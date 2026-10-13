@@ -27,6 +27,8 @@ jest.mock('../intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
+const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
+
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
@@ -90,7 +92,7 @@ describe('athleteSettingsQueryOptions', () => {
 
     const client = createQueryClient();
     const zones = await client.fetchQuery(
-      athleteSettingsQueryOptions('token-1', 'athlete-1'),
+      athleteSettingsQueryOptions(CREDENTIALS),
     );
 
     // This athlete's Z2 is 60–80% FTP, not the Coggan 55–75%.
@@ -112,7 +114,7 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
     const workouts = await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-11'),
+      upcomingQueryOptions(CREDENTIALS, '2026-10-11'),
     );
 
     expect(workouts).toEqual([
@@ -133,7 +135,7 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
     const workouts = await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-11'),
+      upcomingQueryOptions(CREDENTIALS, '2026-10-11'),
     );
 
     expect(workouts[0].blocks).toEqual([
@@ -146,12 +148,8 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-11'),
-    );
-    await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-12'),
-    );
+    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11'));
+    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-12'));
 
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1);
   });
@@ -164,7 +162,7 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
     const workouts = await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-11'),
+      upcomingQueryOptions(CREDENTIALS, '2026-10-11'),
     );
 
     expect(workouts[0].blocks).toEqual([
@@ -178,12 +176,8 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-11'),
-    );
-    await client.fetchQuery(
-      upcomingQueryOptions('token-1', 'athlete-1', '2026-10-12'),
-    );
+    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11'));
+    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-12'));
 
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(2);
     expect(
@@ -203,9 +197,7 @@ describe('monthQueryOptions', () => {
   it("fetches the month's events and activities a week past each edge", async () => {
     const client = createQueryClient();
 
-    await client.fetchQuery(
-      monthQueryOptions('token-1', 'athlete-1', '2026-06'),
-    );
+    await client.fetchQuery(monthQueryOptions(CREDENTIALS, '2026-06'));
 
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
@@ -237,7 +229,7 @@ describe('monthQueryOptions', () => {
 
     const client = createQueryClient();
     const workoutsByDate = await client.fetchQuery(
-      monthQueryOptions('token-1', 'athlete-1', '2026-02'),
+      monthQueryOptions(CREDENTIALS, '2026-02'),
     );
 
     expect(Object.keys(workoutsByDate)).toHaveLength(28);
@@ -277,7 +269,7 @@ describe('monthQueryOptions', () => {
 
     const client = createQueryClient();
     const workoutsByDate = await client.fetchQuery(
-      monthQueryOptions('token-1', 'athlete-1', '2026-02'),
+      monthQueryOptions(CREDENTIALS, '2026-02'),
     );
 
     expect(workoutsByDate['2026-02-10'][0].status).toBe('completed');
@@ -297,7 +289,7 @@ describe('monthQueryOptions', () => {
 
     const client = createQueryClient();
     const workoutsByDate = await client.fetchQuery(
-      monthQueryOptions('token-1', 'athlete-1', '2026-02'),
+      monthQueryOptions(CREDENTIALS, '2026-02'),
     );
 
     expect(workoutsByDate['2026-02-10'][0].blocks).toEqual([

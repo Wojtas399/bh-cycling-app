@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { toLocalDateString } from '@/lib/localDate';
+import { type LocalDateString, toLocalDateString } from '@/lib/localDate';
 
 /**
  * Local `YYYY-MM-DD` of today, kept current across midnight — both while the
  * app is open (a timer to the next midnight) and after it was suspended
  * through one (re-read when it returns to the foreground).
  */
-export function useToday(): string {
+export function useToday(): LocalDateString {
   const [today, setToday] = useState(() => toLocalDateString(new Date()));
 
   useEffect(() => {

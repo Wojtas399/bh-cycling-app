@@ -1,37 +1,27 @@
+import { type CalendarRangeView, useCalendarRange } from './useCalendarRange';
 import {
-  type UseCalendarRangeResult,
-  useCalendarRange,
-} from './useCalendarRange';
-import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
+  type YearMonth,
+  endOfMonth,
+  startOfMonth,
+  toYearMonth,
+} from '@/lib/calendarWorkouts';
 
-export interface UseMonthlyCalendarResult {
-  availability: UseCalendarRangeResult['availability'];
-  query: UseCalendarRangeResult['query'];
+export interface UseMonthlyCalendarResult extends CalendarRangeView {
   month: Date;
   goToPreviousMonth: () => void;
   goToNextMonth: () => void;
-  refresh: () => void;
-  refreshing: boolean;
 }
 
 function addMonths(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
 
-function monthsFor(month: Date): string[] {
+function monthsFor(month: Date): YearMonth[] {
   return [toYearMonth(month)];
 }
 
 export function useMonthlyCalendar(): UseMonthlyCalendarResult {
-  const {
-    availability,
-    query,
-    anchor,
-    goToPrevious,
-    goToNext,
-    refresh,
-    refreshing,
-  } = useCalendarRange({
+  const { anchor, goToPrevious, goToNext, ...view } = useCalendarRange({
     initialAnchor: () => startOfMonth(new Date()),
     startOf: startOfMonth,
     endOf: endOfMonth,
@@ -40,12 +30,9 @@ export function useMonthlyCalendar(): UseMonthlyCalendarResult {
   });
 
   return {
-    availability,
-    query,
+    ...view,
     month: anchor,
     goToPreviousMonth: goToPrevious,
     goToNextMonth: goToNext,
-    refresh,
-    refreshing,
   };
 }

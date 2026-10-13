@@ -16,8 +16,6 @@ export interface IntervalsAuthErrorMapping {
  */
 export function mapIntervalsAuthError(
   mutation: IntervalsAuthMutation,
-  // Taken for parity with the other form mappers, where codes do matter.
-  _code: string,
 ): IntervalsAuthErrorMapping {
   switch (mutation) {
     case 'connect':

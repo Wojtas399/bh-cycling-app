@@ -51,13 +51,16 @@ export function endOfWeek(anchor: Date): Date {
   );
 }
 
-/** The local `YYYY-MM` the date falls in — a Calendar month's cache key. */
-export function toYearMonth(date: Date): string {
+/** A local calendar month, `YYYY-MM` — a Calendar month's cache key. */
+export type YearMonth = string;
+
+/** The local month the date falls in. */
+export function toYearMonth(date: Date): YearMonth {
   return toLocalDateString(date).slice(0, 7);
 }
 
-/** Local midnight of the first day of a `YYYY-MM` month. */
-export function fromYearMonth(yearMonth: string): Date {
+/** Local midnight of the first day of the month. */
+export function fromYearMonth(yearMonth: YearMonth): Date {
   const [year, month] = yearMonth.split('-').map(Number);
 
   return new Date(year, month - 1, 1);

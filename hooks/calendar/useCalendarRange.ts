@@ -4,6 +4,7 @@ import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from '@/hooks/useIntervalsAvailability';
+import type { YearMonth } from '@/lib/calendarWorkouts';
 import {
   type CombinedMonthResult,
   combineMonthResults,
@@ -23,17 +24,23 @@ export interface UseCalendarRangeResult {
   refreshing: boolean;
 }
 
+/** What the Calendar screen renders from, whichever view is active. */
+export type CalendarRangeView = Pick<
+  UseCalendarRangeResult,
+  'availability' | 'query' | 'refresh' | 'refreshing'
+>;
+
 /**
  * Configures `useCalendarRange` for a specific range shape (month, week, ...).
  * `step` receives `-1`/`1` and is expected to move `anchor` by one unit of
- * that range in the given direction. `monthsFor` lists the local `YYYY-MM`
- * months the range touches, each cached as its own query.
+ * that range in the given direction. `monthsFor` lists the months the range
+ * touches, each cached as its own query.
  */
 export interface UseCalendarRangeConfig {
   initialAnchor: () => Date;
   startOf: (anchor: Date) => Date;
   endOf: (anchor: Date) => Date;
-  monthsFor: (anchor: Date) => string[];
+  monthsFor: (anchor: Date) => YearMonth[];
   step: (anchor: Date, direction: -1 | 1) => Date;
 }
 
@@ -44,7 +51,7 @@ export function useCalendarRange({
   monthsFor,
   step,
 }: UseCalendarRangeConfig): UseCalendarRangeResult {
-  const { availability, accessToken, athleteId } = useIntervalsAvailability();
+  const { availability, credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
   const [anchor, setAnchor] = useState(initialAnchor);
   const [userRefreshing, setUserRefreshing] = useState(false);
@@ -56,12 +63,13 @@ export function useCalendarRange({
   );
 
   const query = useQueries({
-    queries: monthsFor(anchor).map(yearMonth => ({
-      ...monthQueryOptions(accessToken ?? '', athleteId ?? '', yearMonth),
-      enabled: availability === 'available',
-    })),
+    queries: monthsFor(anchor).map(yearMonth =>
+      monthQueryOptions(credentials, yearMonth),
+    ),
     combine,
   });
+
+  const athleteId = credentials?.athleteId;
 
   // Marks every month stale: the visible ones fetch again now, the rest when
   // they're next shown. A failed fetch keeps the month's data.

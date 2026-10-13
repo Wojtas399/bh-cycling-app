@@ -7,6 +7,7 @@ import CalendarViewToggle, {
   type CalendarView,
 } from '@/components/calendar/CalendarViewToggle';
 import { useAppTheme } from '@/constants/theme';
+import type { CalendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import { Ionicons } from '@expo/vector-icons';
 
 const REFRESH_SLOT_SIZE = 24;
@@ -24,7 +25,7 @@ export interface CalendarHeaderProps {
    * `refreshing` swaps the button for a spinner; `disabled` is the first load,
    * which a refresh would only duplicate.
    */
-  refreshStatus: 'idle' | 'refreshing' | 'disabled';
+  refreshStatus: CalendarRefreshStatus;
 }
 
 /** The Calendar's two header rows: view toggle + refresh, then range navigation. */
