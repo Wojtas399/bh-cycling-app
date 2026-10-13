@@ -1,4 +1,7 @@
+import { useEffect, useId } from 'react';
+
 import theme from '@/constants/theme';
+import { registerSheetHost, unregisterSheetHost } from '@/lib/toast';
 import { Ionicons } from '@expo/vector-icons';
 import { Toaster, type ToasterProps } from 'sonner-native';
 
@@ -63,4 +66,21 @@ interface ToastHostProps {
 /** Renders toasts. Mount the root host once, outside the navigator. */
 export function ToastHost({ id }: ToastHostProps) {
   return <Toaster {...toasterConfig} id={id} />;
+}
+
+/**
+ * A host inside a sheet, for Android, where a sheet is a Dialog window that
+ * covers the root host. It takes toasts while mounted, so mount it only while
+ * the sheet is presented.
+ */
+export function SheetToastHost() {
+  const id = useId();
+
+  useEffect(() => {
+    registerSheetHost(id);
+
+    return () => unregisterSheetHost(id);
+  }, [id]);
+
+  return <ToastHost id={id} />;
 }

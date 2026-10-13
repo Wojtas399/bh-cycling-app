@@ -1,4 +1,4 @@
-import { toast } from '@/lib/toast';
+import type * as ToastModule from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { toast as sonner } from 'sonner-native';
 
@@ -23,6 +23,10 @@ jest.mock('expo-haptics', () => ({
 const mockSonner = jest.mocked(sonner);
 const mockNotificationAsync = jest.mocked(Haptics.notificationAsync);
 
+let toast: typeof ToastModule.toast;
+let registerSheetHost: typeof ToastModule.registerSheetHost;
+let unregisterSheetHost: typeof ToastModule.unregisterSheetHost;
+
 /** The id sonner knows the toast by: the one we passed, or the one it made. */
 function shownToast(variant: 'success' | 'warning' | 'error', call: number) {
   const [, options] = mockSonner[variant].mock.calls[call];
@@ -36,6 +40,12 @@ function shownToast(variant: 'success' | 'warning' | 'error', call: number) {
 describe('toast', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // A fresh module per test, so no sheet host leaks between tests.
+    jest.isolateModules(() => {
+      ({ toast, registerSheetHost, unregisterSheetHost } =
+        jest.requireActual<typeof ToastModule>('@/lib/toast'));
+    });
 
     let sonnerId = 0;
 
@@ -90,4 +100,66 @@ describe('toast', () => {
       expect(mockSonner.dismiss).toHaveBeenLastCalledWith(second.id);
     },
   );
+
+  describe('host routing', () => {
+    /** The host the latest success toast was sent to; undefined is root. */
+    function lastHost() {
+      return mockSonner.success.mock.lastCall?.[1]?.toasterId;
+    }
+
+    it('sends a toast to the root host when no sheet host is open', () => {
+      toast.success('Message');
+
+      expect(lastHost()).toBeUndefined();
+    });
+
+    it('sends a toast to the open sheet host', () => {
+      registerSheetHost('sheet-a');
+
+      toast.success('Message');
+
+      expect(lastHost()).toBe('sheet-a');
+    });
+
+    it('sends a toast to the most recently opened sheet host', () => {
+      registerSheetHost('sheet-a');
+      registerSheetHost('sheet-b');
+
+      toast.success('Message');
+
+      expect(lastHost()).toBe('sheet-b');
+    });
+
+    it('falls back to the previous sheet host once the top one closes', () => {
+      registerSheetHost('sheet-a');
+      registerSheetHost('sheet-b');
+      unregisterSheetHost('sheet-b');
+
+      toast.success('Message');
+
+      expect(lastHost()).toBe('sheet-a');
+    });
+
+    it('goes back to the root host once every sheet host closes', () => {
+      registerSheetHost('sheet-a');
+      registerSheetHost('sheet-b');
+      unregisterSheetHost('sheet-b');
+      unregisterSheetHost('sheet-a');
+
+      toast.success('Message');
+
+      expect(lastHost()).toBeUndefined();
+    });
+
+    it('ignores unregistering a sheet host twice', () => {
+      registerSheetHost('sheet-a');
+      registerSheetHost('sheet-b');
+      unregisterSheetHost('sheet-b');
+      unregisterSheetHost('sheet-b');
+
+      toast.success('Message');
+
+      expect(lastHost()).toBe('sheet-a');
+    });
+  });
 });
