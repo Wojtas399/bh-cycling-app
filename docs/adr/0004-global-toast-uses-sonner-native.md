@@ -24,7 +24,7 @@ Screens never import sonner. Each toast takes a single `message` string with no 
 
 - **Hosts.** On iOS, one root `<Toaster>` is enough. react-native-screens moves its `FullWindowOverlay` back to the top of the window, so it stays above sheets opened before and after the toast. On Android, the `BottomSheet` primitive (ADR 0003) mounts its own `<Toaster id>` and registers it while open. The wrapper sends each toast to the top-most registered host, or to the root host when none is open. That makes it a rule that **every Dialog-window overlay goes through the `BottomSheet` primitive**: no ad-hoc RN `<Modal>`.
 - **Look.** A pill at the top centre, just below the status bar / Dynamic Island. It uses `bgTertiary` with a 1 px `borderStrong` border, `borderRadii.full`, and `textPrimary` text in Inter-Medium 14/20. Variants differ only by a 20 px Ionicons icon: `checkmark-circle` in `success`, `warning` in `warning` and `alert-circle` in `danger`.
-- **Behaviour.** Every variant stays 3 s. Toasts stack, with up to 3 visible and a gap of `spacing.sm`. Tapping a toast or swiping it up dismisses it, and these are its only interactions. Every variant plays `Haptics.notificationAsync` with the matching feedback type.
+- **Behaviour.** Every variant stays 3 s. Toasts show as a list, with up to 3 visible and a gap of `spacing.sm`. sonner's collapsed stack is turned off (`enableStacking: false`), because in 0.27 a tap on a stack expands it, pauses every timer and blocks touches underneath. Tapping a toast or swiping it up dismisses it, and these are its only interactions. Every variant plays `Haptics.notificationAsync` with the matching feedback type.
 
 ### What moves to Toast
 

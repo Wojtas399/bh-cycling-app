@@ -18,7 +18,9 @@ const label = textVariants['body-s-medium'];
 export const toasterConfig = {
   position: 'top-center',
   theme: 'dark',
-  enableStacking: true,
+  // sonner's collapsed stack expands on tap and pauses every timer, so
+  // toasts show as a plain list instead.
+  enableStacking: false,
   visibleToasts: 3,
   gap: spacing.sm,
   swipeToDismissDirection: 'up',
