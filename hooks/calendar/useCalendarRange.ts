@@ -10,7 +10,11 @@ import {
   type CombinedMonthResult,
   combineMonthResults,
 } from '@/lib/combineMonthResults';
-import { intervalsKeys, monthQueryOptions } from '@/lib/intervalsQueries';
+import {
+  intervalsKeys,
+  monthQueryOptions,
+  selectMonthAsOf,
+} from '@/lib/intervalsQueries';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
@@ -63,9 +67,12 @@ export function useCalendarRange({
     [anchor, startOf, endOf],
   );
 
+  // Stable per day, so a month's statuses are only re-derived when it changes.
+  const select = useMemo(() => selectMonthAsOf(today), [today]);
+
   const query = useQueries({
     queries: monthsFor(anchor).map(yearMonth =>
-      monthQueryOptions(credentials, yearMonth, today),
+      monthQueryOptions(credentials, yearMonth, select),
     ),
     combine,
   });

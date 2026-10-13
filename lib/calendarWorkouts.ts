@@ -3,7 +3,7 @@ import { type LocalDateString, toLocalDateString } from './localDate';
 import type { ZoneConfig } from './powerZones';
 import {
   type CalendarWorkout,
-  type PlannedWorkout,
+  type StoredWorkout,
   joinWorkouts,
   workoutStatus,
 } from './workoutStatus';
@@ -101,7 +101,7 @@ export function eachDate(oldest: Date, newest: Date): string[] {
  * activity. The status depends on today, so it's derived when read.
  */
 export interface StoredMonth {
-  workoutsByDate: Record<string, PlannedWorkout[]>;
+  workoutsByDate: Record<string, StoredWorkout[]>;
   completedEventIds: number[];
 }
 

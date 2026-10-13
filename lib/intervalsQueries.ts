@@ -69,10 +69,13 @@ export async function removeIntervalsQueries(
 }
 
 /**
- * How long a month or the upcoming workouts count as fresh. Once stale, they
- * refetch when shown again or when the app returns to the foreground.
+ * How a month and the upcoming workouts stay fresh: stale after 5 minutes,
+ * then refetched when shown again or when the app returns to the foreground.
  */
-const WORKOUTS_STALE_TIME = 5 * 60_000;
+const WORKOUTS_FRESHNESS = {
+  staleTime: 5 * 60_000,
+  refetchOnWindowFocus: true,
+} as const;
 
 /**
  * The athlete's power zones, resolved from their Intervals.icu settings. They
@@ -117,42 +120,34 @@ export function upcomingQueryOptions(
           return getUpcomingWorkouts(events, new Date(), zoneConfig);
         }
       : skipToken,
-    staleTime: WORKOUTS_STALE_TIME,
-    refetchOnWindowFocus: true,
+    ...WORKOUTS_FRESHNESS,
   });
 }
 
-let selectedFor: { today: LocalDateString; select: MonthSelect } | undefined;
-
-type MonthSelect = (month: StoredMonth) => WorkoutsByDate;
+/** Derives a stored month's Workout Statuses for display. */
+export type MonthSelect = (month: StoredMonth) => WorkoutsByDate;
 
 /**
- * The `select` for `today`, the same function for as long as `today` is, so a
- * month's selected result is only recomputed when the data or the day changes.
+ * The month `select` deriving each Workout Status as of `today`. Callers keep
+ * it referentially stable per `today`, so a month's selected result is only
+ * recomputed when the data or the day changes.
  */
-function selectMonthFor(today: LocalDateString): MonthSelect {
-  if (selectedFor?.today !== today) {
-    selectedFor = {
-      today,
-      select: month => withWorkoutStatuses(month, today),
-    };
-  }
-
-  return selectedFor.select;
+export function selectMonthAsOf(today: LocalDateString): MonthSelect {
+  return month => withWorkoutStatuses(month, today);
 }
 
 /**
  * One Calendar month's workouts by day, every day of it present. Activities
  * are fetched a pairing window past each edge, so a workout completed just
  * outside the month still reads as completed. The query stores the workouts
- * without a status; `select` derives each Workout Status as of `today`, so a
- * planned workout turns missed at midnight without a fetch. Skipped while
- * there are no credentials.
+ * without a status; `select` (see `selectMonthAsOf`) derives each Workout
+ * Status, so a planned workout turns missed at midnight without a fetch.
+ * Skipped while there are no credentials.
  */
 export function monthQueryOptions(
   credentials: IntervalsCredentials | null,
   yearMonth: YearMonth,
-  today: LocalDateString,
+  select: MonthSelect,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.month(credentials?.athleteId, yearMonth),
@@ -187,9 +182,8 @@ export function monthQueryOptions(
           return buildMonthWorkouts(first, events, activities, zoneConfig);
         }
       : skipToken,
-    select: selectMonthFor(today),
-    staleTime: WORKOUTS_STALE_TIME,
-    refetchOnWindowFocus: true,
+    select,
+    ...WORKOUTS_FRESHNESS,
   });
 }
 

@@ -46,7 +46,7 @@ describe('joinWorkouts', () => {
     ]);
   });
 
-  it('collects the ids of events an activity is paired to', () => {
+  it('collects the IDs of events an activity is paired to', () => {
     const events = [event({ id: 1 }), event({ id: 2 })];
     const activities = [
       activity({ id: 'a1', paired_event_id: 2 }),

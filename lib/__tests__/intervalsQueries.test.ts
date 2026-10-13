@@ -11,6 +11,7 @@ import {
   athleteSettingsQueryOptions,
   intervalsKeys,
   monthQueryOptions,
+  selectMonthAsOf,
   upcomingQueryOptions,
 } from '../intervalsQueries';
 import { toLocalDateString } from '../localDate';
@@ -103,7 +104,11 @@ describe('freshness', () => {
   });
 
   it('lets a month go stale after 5 minutes and refetch on focus', () => {
-    const options = monthQueryOptions(CREDENTIALS, '2026-06', '2026-06-15');
+    const options = monthQueryOptions(
+      CREDENTIALS,
+      '2026-06',
+      selectMonthAsOf('2026-06-15'),
+    );
 
     expect(options.staleTime).toBe(FIVE_MINUTES);
     expect(options.refetchOnWindowFocus).toBe(true);
@@ -226,7 +231,7 @@ describe('monthQueryOptions', () => {
     const client = createQueryClient();
 
     await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-06', '2026-06-15'),
+      monthQueryOptions(CREDENTIALS, '2026-06', selectMonthAsOf('2026-06-15')),
     );
 
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
@@ -259,7 +264,9 @@ describe('monthQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(monthQueryOptions(CREDENTIALS, '2026-02', TODAY));
+    await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
+    );
 
     const stored = client.getQueryData<StoredMonth>(
       intervalsKeys.month('athlete-1', '2026-02'),
@@ -296,7 +303,9 @@ describe('monthQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(monthQueryOptions(CREDENTIALS, '2026-02', TODAY));
+    await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
+    );
 
     expect(
       client.getQueryData<StoredMonth>(
@@ -339,7 +348,11 @@ describe('monthQueryOptions', () => {
     ]);
 
     const client = createQueryClient();
-    const options = monthQueryOptions(CREDENTIALS, '2026-02', TODAY);
+    const options = monthQueryOptions(
+      CREDENTIALS,
+      '2026-02',
+      selectMonthAsOf(TODAY),
+    );
 
     await client.fetchQuery(options);
 
@@ -351,15 +364,13 @@ describe('monthQueryOptions', () => {
     expect(selected['2026-02-09'][0].status).toBe('completed');
     expect(selected['2026-02-11'][0].status).toBe('planned');
 
-    const nextDay = monthQueryOptions(CREDENTIALS, '2026-02', '2026-02-12');
+    const nextDay = monthQueryOptions(
+      CREDENTIALS,
+      '2026-02',
+      selectMonthAsOf('2026-02-12'),
+    );
 
     expect(nextDay.select!(stored)['2026-02-11'][0].status).toBe('missed');
-  });
-
-  it('uses the same select for as long as today is the same', () => {
-    expect(monthQueryOptions(CREDENTIALS, '2026-02', TODAY).select).toBe(
-      monthQueryOptions(CREDENTIALS, '2026-03', TODAY).select,
-    );
   });
 
   it('falls back to the Coggan zones when the settings fetch fails', async () => {
@@ -376,7 +387,7 @@ describe('monthQueryOptions', () => {
 
     const client = createQueryClient();
     const stored = await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02', TODAY),
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
     );
 
     expect(stored.workoutsByDate['2026-02-10'][0].blocks).toEqual([

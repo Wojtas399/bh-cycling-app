@@ -12,7 +12,7 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { monthQueryOptions } from '@/lib/intervalsQueries';
+import { monthQueryOptions, selectMonthAsOf } from '@/lib/intervalsQueries';
 import { addDays, toLocalDateString } from '@/lib/localDate';
 import { createQueryClient } from '@/lib/queryClient';
 import { renderHookWithClient } from '@/test-utils/queryClient';
@@ -123,7 +123,7 @@ describe('useWeeklyCalendar', () => {
         monthQueryOptions(
           CREDENTIALS,
           toYearMonth(day),
-          toLocalDateString(now),
+          selectMonthAsOf(toLocalDateString(now)),
         ),
       );
     }

@@ -4,6 +4,7 @@ import {
 } from '../useCalendarRange';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
+import * as calendarWorkouts from '@/lib/calendarWorkouts';
 import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
 import {
   type IntervalsActivity,
@@ -18,7 +19,7 @@ import {
   createTestQueryClient,
   renderHookWithClient,
 } from '@/test-utils/queryClient';
-import { focusManager } from '@tanstack/react-query';
+import { type QueryClient, focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -103,13 +104,18 @@ const visibleMonthKey = intervalsKeys.month(
 
 const EMPTY_MONTH = { workoutsByDate: {}, completedEventIds: [] };
 
+/** Marks the visible month as last fetched `ageMs` ago. */
+function ageVisibleMonth(client: QueryClient, ageMs: number) {
+  client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
+    updatedAt: Date.now() - ageMs,
+  });
+}
+
 /** A client whose visible month was last fetched `ageMs` ago. */
 function clientWithMonthFetched(ageMs: number) {
   const client = createTestQueryClient();
 
-  client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
-    updatedAt: Date.now() - ageMs,
-  });
+  ageVisibleMonth(client, ageMs);
 
   return client;
 }
@@ -328,11 +334,7 @@ describe('useCalendarRange', () => {
     });
 
     // Aged after mounting, so only the return to the foreground can refetch.
-    await act(async () => {
-      client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
-        updatedAt: Date.now() - SIX_MINUTES,
-      });
-    });
+    await act(async () => ageVisibleMonth(client, SIX_MINUTES));
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
 
     await act(async () => focusManager.setFocused(true));
@@ -447,5 +449,23 @@ describe('useCalendarRange', () => {
       expect(result.current.query.data?.[today][0].status).toBe('missed'),
     );
     expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not derive the statuses again while today stays the same', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
+    const derive = jest.spyOn(calendarWorkouts, 'withWorkoutStatuses');
+
+    const { result, rerender } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    const derivations = derive.mock.calls.length;
+
+    await rerender({});
+
+    expect(derive).toHaveBeenCalledTimes(derivations);
+    derive.mockRestore();
   });
 });

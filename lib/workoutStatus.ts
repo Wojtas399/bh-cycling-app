@@ -26,21 +26,28 @@ export interface CalendarWorkout {
 }
 
 /** A workout as stored: everything but the status, which depends on today. */
-export type PlannedWorkout = Omit<CalendarWorkout, 'status'>;
+export type StoredWorkout = Omit<CalendarWorkout, 'status'>;
+
+/**
+ * Workouts without a status, plus the IDs of the events an activity is paired
+ * to — a plain array, so it stays JSON.
+ */
+export interface JoinedWorkouts {
+  workouts: StoredWorkout[];
+  completedEventIds: number[];
+}
 
 /**
  * Joins calendar events against activities on the `paired_event_id` link
- * intervals.icu sets when an activity fulfils a planned event. Returns the
- * workouts without a status, plus the IDs of the events an activity is paired
- * to — a plain array, so it stays JSON. Primary-key matching only — an
- * activity lacking the pairing field is never matched by date/type fallback,
- * an accepted v1 gap.
+ * intervals.icu sets when an activity fulfils a planned event. Primary-key
+ * matching only — an activity lacking the pairing field is never matched by
+ * date/type fallback, an accepted v1 gap.
  */
 export function joinWorkouts(
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
   zoneConfig: ZoneConfig,
-): { workouts: PlannedWorkout[]; completedEventIds: number[] } {
+): JoinedWorkouts {
   const completedEventIds = [
     ...new Set(
       activities
@@ -67,7 +74,7 @@ export function joinWorkouts(
  * an activity is paired to it, otherwise missed once its day is past.
  */
 export function workoutStatus(
-  workout: PlannedWorkout,
+  workout: StoredWorkout,
   completedEventIds: ReadonlySet<number>,
   today: LocalDateString,
 ): WorkoutStatus {
