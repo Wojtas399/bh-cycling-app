@@ -115,7 +115,6 @@ function mockAuth(
     handleDisconnect: mockHandleDisconnect,
     connecting: false,
     disconnecting: false,
-    error: '',
     ...overrides,
   });
 }
@@ -292,14 +291,6 @@ describe('SettingsScreen — Intervals.icu row', () => {
     await renderScreen();
 
     expect(screen.queryByText('intervals.disconnectButton')).toBeNull();
-  });
-
-  it('surfaces a translated error banner when the exchange fails', async () => {
-    mockAuth({ error: 'intervals.errors.exchangeFailed' });
-
-    await renderScreen();
-
-    expect(screen.getByText('intervals.errors.exchangeFailed')).toBeTruthy();
   });
 });
 

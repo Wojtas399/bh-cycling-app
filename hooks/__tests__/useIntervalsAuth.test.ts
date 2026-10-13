@@ -6,6 +6,7 @@ import {
   getNeedsReconnect,
   setNeedsReconnect,
 } from '@/lib/intervalsReconnectStore';
+import { toast } from '@/lib/toast';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -32,6 +33,10 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@/lib/firebase', () => ({
   functions: () => ({ httpsCallable: mockHttpsCallable }),
+}));
+
+jest.mock('@/lib/toast', () => ({
+  toast: { success: jest.fn(), warning: jest.fn(), error: jest.fn() },
 }));
 
 jest.mock('../useIntervalsConnection', () => ({
@@ -64,6 +69,7 @@ async function confirmDisconnect(
   await waitFor(() => expect(result.current.disconnecting).toBe(false));
 }
 
+const mockToast = jest.mocked(toast);
 const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
@@ -75,7 +81,7 @@ describe('useIntervalsAuth', () => {
   });
 
   describe('handleConnect', () => {
-    it('exchanges the code and clears error on a successful authorization', async () => {
+    it('exchanges the code on a successful authorization', async () => {
       const mockExchange = jest.fn().mockResolvedValue({ data: {} });
 
       mockHttpsCallable.mockReturnValue(mockExchange);
@@ -92,7 +98,6 @@ describe('useIntervalsAuth', () => {
 
       expect(mockHttpsCallable).toHaveBeenCalledWith('exchangeIntervalsToken');
       expect(mockExchange).toHaveBeenCalledWith({ code: 'auth-code' });
-      expect(result.current.error).toBe('');
       expect(result.current.connecting).toBe(false);
     });
 
@@ -116,7 +121,27 @@ describe('useIntervalsAuth', () => {
       expect(getNeedsReconnect()).toBe(false);
     });
 
-    it('sets an error when the Cloud Function exchange fails', async () => {
+    it('shows a success toast once the exchange succeeds', async () => {
+      setNeedsReconnect(true);
+      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        await result.current.handleConnect();
+      });
+
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
+      expect(mockToast.success).toHaveBeenCalledWith('intervals.connected');
+      expect(getNeedsReconnect()).toBe(false);
+      expect(mockToast.error).not.toHaveBeenCalled();
+    });
+
+    it('shows an error toast when the Cloud Function exchange fails', async () => {
       const mockExchange = jest.fn().mockRejectedValue(new Error('boom'));
 
       mockHttpsCallable.mockReturnValue(mockExchange);
@@ -132,12 +157,16 @@ describe('useIntervalsAuth', () => {
       });
 
       await waitFor(() =>
-        expect(result.current.error).toBe('intervals.errors.exchangeFailed'),
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'intervals.errors.exchangeFailed',
+        ),
       );
+      expect(mockToast.error).toHaveBeenCalledTimes(1);
+      expect(mockToast.success).not.toHaveBeenCalled();
       expect(result.current.connecting).toBe(false);
     });
 
-    it('resolves with no error and skips the exchange when the prompt is dismissed', async () => {
+    it('skips the exchange and shows no toast when the prompt is dismissed', async () => {
       mockPromptAsync.mockResolvedValue({ type: 'cancel' });
 
       const { result } = await renderAuth();
@@ -147,11 +176,12 @@ describe('useIntervalsAuth', () => {
       });
 
       expect(mockHttpsCallable).not.toHaveBeenCalled();
-      expect(result.current.error).toBe('');
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockToast.error).not.toHaveBeenCalled();
       expect(result.current.connecting).toBe(false);
     });
 
-    it('does nothing when the user denies access', async () => {
+    it('skips the exchange and shows no toast when the user denies access', async () => {
       mockPromptAsync.mockResolvedValue({
         type: 'error',
         params: { error: 'access_denied' },
@@ -165,30 +195,9 @@ describe('useIntervalsAuth', () => {
       });
 
       expect(mockHttpsCallable).not.toHaveBeenCalled();
-      expect(result.current.error).toBe('');
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockToast.error).not.toHaveBeenCalled();
       expect(result.current.connecting).toBe(false);
-    });
-
-    it('clears the disconnect error when a connect starts', async () => {
-      mockHttpsCallable.mockReturnValue(
-        jest.fn().mockRejectedValue(new Error('boom')),
-      );
-
-      const { result } = await renderAuth();
-
-      await confirmDisconnect(result);
-
-      await waitFor(() =>
-        expect(result.current.error).toBe('intervals.errors.disconnectFailed'),
-      );
-
-      mockPromptAsync.mockResolvedValue({ type: 'dismiss' });
-
-      await act(async () => {
-        await result.current.handleConnect();
-      });
-
-      await waitFor(() => expect(result.current.error).toBe(''));
     });
   });
 
@@ -220,7 +229,7 @@ describe('useIntervalsAuth', () => {
       expect(mockHttpsCallable).toHaveBeenCalledWith('disconnectIntervals');
     });
 
-    it('drops the cached Intervals data once the disconnect succeeds', async () => {
+    it('drops the cached Intervals data and shows no toast once the disconnect succeeds', async () => {
       mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
       const { result, client } = await renderAuth();
 
@@ -231,9 +240,11 @@ describe('useIntervalsAuth', () => {
       await waitFor(() =>
         expect(client.getQueryData(INTERVALS_KEY)).toBeUndefined(),
       );
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockToast.error).not.toHaveBeenCalled();
     });
 
-    it('keeps the cached Intervals data when the disconnect fails', async () => {
+    it('shows an error toast and keeps the cached Intervals data when the disconnect fails', async () => {
       mockHttpsCallable.mockReturnValue(
         jest.fn().mockRejectedValue(new Error('boom')),
       );
@@ -244,35 +255,12 @@ describe('useIntervalsAuth', () => {
       await confirmDisconnect(result);
 
       await waitFor(() =>
-        expect(result.current.error).toBe('intervals.errors.disconnectFailed'),
+        expect(mockToast.error).toHaveBeenCalledWith(
+          'intervals.errors.disconnectFailed',
+        ),
       );
+      expect(mockToast.error).toHaveBeenCalledTimes(1);
       expect(client.getQueryData(INTERVALS_KEY)).toEqual([]);
-    });
-
-    it('clears the connect error when a disconnect starts', async () => {
-      mockHttpsCallable.mockReturnValue(
-        jest.fn().mockRejectedValue(new Error('boom')),
-      );
-      mockPromptAsync.mockResolvedValue({
-        type: 'success',
-        params: { code: 'auth-code' },
-      });
-
-      const { result } = await renderAuth();
-
-      await act(async () => {
-        await result.current.handleConnect();
-      });
-
-      await waitFor(() =>
-        expect(result.current.error).toBe('intervals.errors.exchangeFailed'),
-      );
-
-      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
-
-      await confirmDisconnect(result);
-
-      await waitFor(() => expect(result.current.error).toBe(''));
     });
 
     it('does nothing when the user cancels the confirmation', async () => {
