@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert } from 'react-native';
 import type { TextInput } from 'react-native';
 
 import {
@@ -8,7 +7,6 @@ import {
   type SignInMutation,
   mapSignInError,
 } from './signInErrors';
-import { consumeAccountDeleted } from '@/lib/accountDeletedStore';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle } from '@/lib/signInWithGoogle';
@@ -30,10 +28,6 @@ export function useSignIn() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-
-  useEffect(() => {
-    if (consumeAccountDeleted()) Alert.alert(t('signIn.accountDeleted'));
-  }, [t]);
 
   const emailSignIn = useMutation({
     mutationFn: async (variables: EmailSignInVariables) => {

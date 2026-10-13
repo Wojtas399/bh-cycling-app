@@ -1,7 +1,4 @@
-import { Alert } from 'react-native';
-
 import { useSignIn } from '../useSignIn';
-import { markAccountDeleted } from '@/lib/accountDeletedStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act } from '@testing-library/react-native';
 
@@ -42,8 +39,6 @@ jest.mock('@/lib/firebase', () => {
   };
 });
 
-const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-
 async function setup() {
   return renderHookWithClient(() => useSignIn());
 }
@@ -70,30 +65,6 @@ async function signInWithGoogle(hook: Hook) {
   });
   await settle();
 }
-
-describe('useSignIn — account deleted notice', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('shows the "account deleted" alert once after a deletion', async () => {
-    markAccountDeleted();
-
-    await setup();
-
-    expect(mockAlert).toHaveBeenCalledWith('signIn.accountDeleted');
-
-    await setup();
-
-    expect(mockAlert).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows no alert on a normal visit', async () => {
-    await setup();
-
-    expect(mockAlert).not.toHaveBeenCalled();
-  });
-});
 
 describe('useSignIn — submits', () => {
   beforeEach(() => {
