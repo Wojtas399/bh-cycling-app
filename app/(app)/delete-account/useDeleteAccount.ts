@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import {
+  type DeleteAccountErrorMapping,
+  mapDeleteAccountError,
+} from './deleteAccountErrors';
 import { markAccountDeleted } from '@/lib/accountDeletedStore';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
@@ -10,26 +14,17 @@ import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
+import { useMutation } from '@tanstack/react-query';
 
 export function useDeleteAccount() {
   const { t } = useTranslation();
 
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const requiresPassword = getSignInMethods(auth().currentUser).includes(
     'email',
   );
-
-  function onPasswordChange(text: string) {
-    setPassword(text);
-
-    if (passwordError) setPasswordError('');
-
-    if (error) setError('');
-  }
 
   /** Resolves to false when the user cancelled Google sign-in. */
   async function reauthenticate(): Promise<boolean> {
@@ -65,8 +60,49 @@ export function useDeleteAccount() {
     return true;
   }
 
+  const deleteAccount = useMutation({
+    mutationFn: async (): Promise<'deleted' | 'cancelled'> => {
+      try {
+        if (!(await reauthenticate())) return 'cancelled';
+      } catch (e) {
+        if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
+          return 'cancelled';
+        }
+
+        throw e;
+      }
+
+      // Forces a token carrying the new `auth_time`, which the function checks.
+      await auth().currentUser?.getIdToken(true);
+
+      await functions().httpsCallable('deleteAccount')();
+
+      return 'deleted';
+    },
+    onSuccess: async outcome => {
+      if (outcome === 'cancelled') return;
+
+      markAccountDeleted();
+      await signOutAndClear();
+    },
+    onError: async e => {
+      if (getErrorCode(e) !== 'auth/user-mismatch') return;
+
+      // Sign out so the account picker shows again on the next attempt.
+      await GoogleSignin.signOut().catch(() => {});
+    },
+  });
+
+  function onPasswordChange(text: string) {
+    setPassword(text);
+
+    if (passwordError) setPasswordError('');
+
+    deleteAccount.reset();
+  }
+
   async function handleDelete() {
-    if (loading) return;
+    if (deleteAccount.isPending) return;
 
     if (requiresPassword && !password) {
       setPasswordError(t('deleteAccount.validation.passwordRequired'));
@@ -74,54 +110,23 @@ export function useDeleteAccount() {
       return;
     }
 
-    setError('');
-    setPasswordError('');
-    setLoading(true);
-
-    try {
-      if (!(await reauthenticate())) return;
-
-      // Forces a token carrying the new `auth_time`, which the function checks.
-      await auth().currentUser?.getIdToken(true);
-
-      await functions().httpsCallable('deleteAccount')();
-
-      markAccountDeleted();
-      await signOutAndClear();
-    } catch (e) {
-      await handleError(e);
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `deleteAccount.error`.
+    await deleteAccount.mutateAsync().catch(() => {});
   }
 
-  async function handleError(e: unknown) {
-    if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) return;
+  const mapped = deleteAccount.error
+    ? mapDeleteAccountError(getErrorCode(deleteAccount.error))
+    : null;
 
-    switch (getErrorCode(e)) {
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-        setPasswordError(t('deleteAccount.errors.passwordInvalid'));
-        break;
-      case 'auth/user-mismatch':
-        setError(t('deleteAccount.errors.wrongGoogleAccount'));
-        // Sign out so the account picker shows again on the next attempt.
-        await GoogleSignin.signOut().catch(() => {});
-        break;
-      case 'failed-precondition':
-      case 'functions/failed-precondition':
-        setError(t('deleteAccount.errors.reauthRequired'));
-        break;
-      default:
-        setError(t('deleteAccount.errors.generic'));
-    }
+  function mappedError(field?: DeleteAccountErrorMapping['field']): string {
+    return mapped && mapped.field === field ? t(mapped.key) : '';
   }
 
   return {
     password,
-    passwordError,
-    error,
-    loading,
+    passwordError: passwordError || mappedError('password'),
+    error: mappedError(),
+    loading: deleteAccount.isPending,
     requiresPassword,
     onPasswordChange,
     handleDelete,

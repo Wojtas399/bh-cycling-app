@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { mapForgotPasswordError } from './forgotPasswordErrors';
 import { auth } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
 import { EMAIL_REGEX } from '@/lib/validation';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
 const COOLDOWN_SECONDS = 60;
@@ -13,17 +16,9 @@ export function useForgotPassword() {
 
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   function startCooldown() {
     setCooldown(COOLDOWN_SECONDS);
@@ -40,20 +35,22 @@ export function useForgotPassword() {
     }, 1000);
   }
 
-  function getFirebaseErrorMessage(code: string): string {
-    switch (code) {
-      case 'auth/invalid-email':
-        return t('forgotPassword.errors.invalidEmail');
-      case 'auth/user-not-found':
-        return t('forgotPassword.errors.userNotFound');
-      case 'auth/too-many-requests':
-        return t('forgotPassword.errors.tooManyRequests');
-      case 'auth/network-request-failed':
-        return t('forgotPassword.errors.networkFailed');
-      default:
-        return t('forgotPassword.errors.generic');
-    }
-  }
+  // Send and resend hit the same endpoint, so they share one mutation.
+  const sendReset = useMutation({
+    mutationFn: async (address: string) => {
+      await auth().sendPasswordResetEmail(address);
+    },
+    onSuccess: () => {
+      setSuccess(true);
+      startCooldown();
+    },
+  });
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   function validate(): boolean {
     if (!email.trim()) {
@@ -78,44 +75,21 @@ export function useForgotPassword() {
 
     if (emailError) setEmailError('');
 
-    if (error) setError('');
+    sendReset.reset();
   }
 
   async function handleSend() {
-    if (!validate()) return;
+    if (sendReset.isPending || !validate()) return;
 
-    setError('');
-    setLoading(true);
-
-    try {
-      await auth().sendPasswordResetEmail(email.trim());
-      setSuccess(true);
-      startCooldown();
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
-
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `sendReset.error`.
+    await sendReset.mutateAsync(email.trim()).catch(() => {});
   }
 
   async function handleResend() {
-    if (cooldown > 0 || loading) return;
+    if (cooldown > 0 || sendReset.isPending) return;
 
-    setError('');
-    setLoading(true);
-
-    try {
-      await auth().sendPasswordResetEmail(email.trim());
-      startCooldown();
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
-
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `sendReset.error`.
+    await sendReset.mutateAsync(email.trim()).catch(() => {});
   }
 
   function handleBackToSignIn() {
@@ -129,11 +103,13 @@ export function useForgotPassword() {
   return {
     email,
     emailError,
-    error,
-    loading,
+    error: sendReset.error
+      ? t(mapForgotPasswordError(getErrorCode(sendReset.error)).key)
+      : '',
+    loading: sendReset.isPending,
     success,
     cooldown,
-    disabled: loading,
+    disabled: sendReset.isPending,
     onEmailChange,
     handleSend,
     handleResend,

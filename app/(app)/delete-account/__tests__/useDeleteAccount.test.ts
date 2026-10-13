@@ -1,7 +1,8 @@
 import { useDeleteAccount } from '../useDeleteAccount';
 import { consumeAccountDeleted } from '@/lib/accountDeletedStore';
 import { signOutAndClear } from '@/lib/signOutAndClear';
-import { act, renderHook } from '@testing-library/react-native';
+import { renderHookWithClient } from '@/test-utils/queryClient';
+import { act, waitFor } from '@testing-library/react-native';
 
 const callOrder: string[] = [];
 const mockReauthenticate = jest.fn();
@@ -67,7 +68,7 @@ jest.mock('@/lib/firebase', () => {
 async function setup(providerIds: string[]) {
   mockProviderIds = providerIds;
 
-  return renderHook(() => useDeleteAccount());
+  return renderHookWithClient(() => useDeleteAccount());
 }
 
 type Hook = Awaited<ReturnType<typeof setup>>;
@@ -82,6 +83,8 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.handleDelete();
   });
+  // React Query hands the settled state to the hook on a later tick.
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 }
 
 describe('useDeleteAccount', () => {
@@ -171,6 +174,33 @@ describe('useDeleteAccount', () => {
       },
     );
 
+    it('clears a mapped password error when the password changes', async () => {
+      mockReauthenticate.mockRejectedValue({ code: 'auth/wrong-password' });
+      const hook = await setup(['password']);
+
+      await enterPassword(hook, 'wrong');
+      await submit(hook);
+      await enterPassword(hook, 'wrong-again');
+
+      expect(hook.result.current.passwordError).toBe('');
+    });
+
+    it('clears the form error when the password changes', async () => {
+      mockDeleteAccountCallable.mockRejectedValue({
+        code: 'functions/unavailable',
+      });
+      const hook = await setup(['password']);
+
+      await enterPassword(hook, 'secret-password');
+      await submit(hook);
+
+      expect(hook.result.current.error).toBe('deleteAccount.errors.generic');
+
+      await enterPassword(hook, 'secret-password-2');
+
+      expect(hook.result.current.error).toBe('');
+    });
+
     it('clears the password error when the password changes', async () => {
       const hook = await setup(['password']);
 
@@ -208,6 +238,8 @@ describe('useDeleteAccount', () => {
       expect(hook.result.current.error).toBe('');
       expect(mockReauthenticate).not.toHaveBeenCalled();
       expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
+      expect(signOutAndClear).not.toHaveBeenCalled();
+      expect(consumeAccountDeleted()).toBe(false);
       expect(hook.result.current.loading).toBe(false);
     });
 
@@ -220,6 +252,7 @@ describe('useDeleteAccount', () => {
       expect(hook.result.current.error).toBe('');
       expect(hook.result.current.passwordError).toBe('');
       expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
+      expect(signOutAndClear).not.toHaveBeenCalled();
       expect(hook.result.current.loading).toBe(false);
     });
 
@@ -302,13 +335,13 @@ describe('useDeleteAccount', () => {
       pending = hook.result.current.handleDelete();
     });
 
-    expect(hook.result.current.loading).toBe(true);
+    await waitFor(() => expect(hook.result.current.loading).toBe(true));
 
     await act(async () => {
       release();
       await pending;
     });
 
-    expect(hook.result.current.loading).toBe(false);
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
   });
 });

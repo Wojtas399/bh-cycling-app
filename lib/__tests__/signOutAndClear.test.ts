@@ -1,8 +1,8 @@
-import { clearCalendarCache } from '../calendarWorkouts';
 import {
   getNeedsReconnect,
   setNeedsReconnect,
 } from '../intervalsReconnectStore';
+import { queryClient } from '../queryClient';
 import { signOutAndClear } from '../signOutAndClear';
 
 const callOrder: string[] = [];
@@ -18,25 +18,24 @@ jest.mock('../firebase', () => ({
   GoogleSignin: { signOut: () => mockGoogleSignOut() },
 }));
 
-jest.mock('../calendarWorkouts', () => ({
-  clearCalendarCache: jest.fn(() => {
-    callOrder.push('clearCalendarCache');
-  }),
-}));
+const queryClientClear = jest.spyOn(queryClient, 'clear');
 
 describe('signOutAndClear', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     callOrder.length = 0;
     setNeedsReconnect(false);
+    queryClientClear.mockImplementation(() => {
+      callOrder.push('queryClient.clear');
+    });
   });
 
-  it('clears the cache, signs out of Google, then signs out of Firebase', async () => {
+  it('clears the query client, signs out of Google, then signs out of Firebase', async () => {
     await signOutAndClear();
 
-    expect(clearCalendarCache).toHaveBeenCalledTimes(1);
+    expect(queryClientClear).toHaveBeenCalledTimes(1);
     expect(callOrder).toEqual([
-      'clearCalendarCache',
+      'queryClient.clear',
       'google.signOut',
       'auth.signOut',
     ]);

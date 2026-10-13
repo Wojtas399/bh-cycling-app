@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { NOT_VERIFIED_CODE, mapVerifyEmailError } from './verifyEmailErrors';
 import { auth } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
 const COOLDOWN_SECONDS = 60;
@@ -10,21 +13,8 @@ export function useVerifyEmail() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    auth()
-      .currentUser?.sendEmailVerification()
-      .catch(() => {});
-    startCooldown();
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   function startCooldown() {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -43,51 +33,60 @@ export function useVerifyEmail() {
     }, 1000);
   }
 
-  function getFirebaseErrorMessage(code: string): string {
-    if (code === 'auth/network-request-failed') {
-      return t('verifyEmail.errors.networkFailed');
-    }
-
-    return t('verifyEmail.errors.generic');
-  }
-
-  async function handleVerified() {
-    setError('');
-    setLoading(true);
-
-    try {
+  const checkVerified = useMutation({
+    mutationFn: async () => {
       await auth().currentUser?.reload();
 
-      if (auth().currentUser?.emailVerified) {
-        router.replace('/(app)/(tabs)/home');
-      } else {
-        setError(t('verifyEmail.errors.notVerified'));
+      // Rejecting makes "still unverified" show like any other error.
+      if (!auth().currentUser?.emailVerified) {
+        throw Object.assign(new Error('Email not verified'), {
+          code: NOT_VERIFIED_CODE,
+        });
       }
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
+    },
+    onSuccess: () => {
+      router.replace('/(app)/(tabs)/home');
+    },
+  });
 
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
-    }
+  const resend = useMutation({
+    mutationFn: async () => {
+      await auth().currentUser?.sendEmailVerification();
+    },
+    onSuccess: () => {
+      startCooldown();
+    },
+  });
+
+  const loading = checkVerified.isPending || resend.isPending;
+
+  useEffect(() => {
+    auth()
+      .currentUser?.sendEmailVerification()
+      .catch(() => {});
+    startCooldown();
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  async function handleVerified() {
+    if (loading) return;
+
+    resend.reset();
+
+    // A failure surfaces through `checkVerified.error`.
+    await checkVerified.mutateAsync().catch(() => {});
   }
 
   async function handleResend() {
     if (cooldown > 0 || loading) return;
 
-    setError('');
-    setLoading(true);
+    checkVerified.reset();
 
-    try {
-      await auth().currentUser?.sendEmailVerification();
-      startCooldown();
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
-
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `resend.error`.
+    await resend.mutateAsync().catch(() => {});
   }
 
   async function handleSignOut() {
@@ -98,10 +97,15 @@ export function useVerifyEmail() {
     }
   }
 
+  // Starting one mutation resets the other, so at most one has an error.
+  const mutationError = checkVerified.error ?? resend.error;
+
   return {
     email: auth().currentUser?.email ?? '',
     loading,
-    error,
+    error: mutationError
+      ? t(mapVerifyEmailError(getErrorCode(mutationError)).key)
+      : '',
     cooldown,
     handleVerified,
     handleResend,

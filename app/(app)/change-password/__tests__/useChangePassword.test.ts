@@ -2,7 +2,8 @@ import { Alert } from 'react-native';
 import type { AlertButton } from 'react-native';
 
 import { useChangePassword } from '../useChangePassword';
-import { act, renderHook } from '@testing-library/react-native';
+import { renderHookWithClient } from '@/test-utils/queryClient';
+import { act, waitFor } from '@testing-library/react-native';
 
 const mockBack = jest.fn();
 const mockReauthenticate = jest.fn();
@@ -45,9 +46,7 @@ jest.mock('@/lib/firebase', () => {
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
 async function setup() {
-  const hook = await renderHook(() => useChangePassword());
-
-  return hook;
+  return renderHookWithClient(() => useChangePassword());
 }
 
 type Hook = Awaited<ReturnType<typeof setup>>;
@@ -75,6 +74,8 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.handleSubmit();
   });
+  // React Query hands the settled state to the hook on a later tick.
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 }
 
 async function fillValid(hook: Hook) {
@@ -273,6 +274,17 @@ describe('useChangePassword', () => {
 
       expect(hook.result.current.error).toBe('');
     });
+
+    it('clears a mapped field error when any field changes', async () => {
+      mockUpdatePassword.mockRejectedValue({ code: 'auth/weak-password' });
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+      await fill(hook, { confirm: 'new-password-1' });
+
+      expect(hook.result.current.newPasswordError).toBe('');
+    });
   });
 
   describe('forgot current password', () => {
@@ -300,9 +312,11 @@ describe('useChangePassword', () => {
       expect(mockSendPasswordResetEmail).toHaveBeenCalledWith(
         'rider@example.com',
       );
-      expect(mockAlert).toHaveBeenLastCalledWith(
-        'changePassword.reset.successTitle',
-        'changePassword.reset.successBody:{"email":"rider@example.com"}',
+      await waitFor(() =>
+        expect(mockAlert).toHaveBeenLastCalledWith(
+          'changePassword.reset.successTitle',
+          'changePassword.reset.successBody:{"email":"rider@example.com"}',
+        ),
       );
       expect(mockBack).not.toHaveBeenCalled();
     });
@@ -318,8 +332,35 @@ describe('useChangePassword', () => {
         await pressAlertButton(0, 'default');
       });
 
+      await waitFor(() =>
+        expect(hook.result.current.error).toBe(
+          'changePassword.errors.networkFailed',
+        ),
+      );
+    });
+
+    it('shows only the change error when a submit follows a failed reset email', async () => {
+      mockSendPasswordResetEmail.mockRejectedValue({
+        code: 'auth/network-request-failed',
+      });
+      mockReauthenticate.mockRejectedValue({ code: 'auth/too-many-requests' });
+      const hook = await setup();
+
+      await act(async () => hook.result.current.handleForgotPassword());
+      await act(async () => {
+        await pressAlertButton(0, 'default');
+      });
+      await waitFor(() =>
+        expect(hook.result.current.error).toBe(
+          'changePassword.errors.networkFailed',
+        ),
+      );
+
+      await fillValid(hook);
+      await submit(hook);
+
       expect(hook.result.current.error).toBe(
-        'changePassword.errors.networkFailed',
+        'changePassword.errors.tooManyRequests',
       );
     });
   });

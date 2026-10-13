@@ -1,11 +1,21 @@
 import type { IntervalsCalendarEvent } from './intervalsApi';
 
-export function toLocalDateString(date: Date): string {
+/** A local calendar date, `YYYY-MM-DD`. */
+export type LocalDateString = string;
+
+export function toLocalDateString(date: Date): LocalDateString {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+}
+
+/** Local midnight of a `YYYY-MM-DD` date. */
+export function fromLocalDateString(date: LocalDateString): Date {
+  const [year, month, day] = date.split('-').map(Number);
+
+  return new Date(year, month - 1, day);
 }
 
 export function addDays(date: Date, days: number): Date {

@@ -14,9 +14,13 @@ export default function HomeScreen() {
   });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const state = useUpcomingWorkouts();
+  const { availability, query } = useUpcomingWorkouts();
 
-  if (state.status === 'hidden') {
+  // Home has no error state: like a disconnect, any failed fetch hides it.
+  if (
+    availability === 'unavailable' ||
+    (query.data === undefined && query.isError)
+  ) {
     return <Box flex={1} backgroundColor="bgPrimary" />;
   }
 
@@ -29,29 +33,28 @@ export default function HomeScreen() {
     >
       <Text variant="h2">{t('title')}</Text>
 
-      {state.status === 'loading' && (
+      {query.data === undefined && (
         <Box marginTop="md" testID="upcoming-workouts-loading">
           <ActivityIndicator color={theme.colors.textPrimary} />
         </Box>
       )}
 
-      {state.status === 'empty' && (
+      {query.data?.length === 0 && (
         <Text variant="body-l-regular" color="textSecondary" marginTop="md">
           {t('empty')}
         </Text>
       )}
 
-      {state.status === 'ready' &&
-        state.workouts.map(workout => (
-          <Box key={workout.id} marginTop="md">
-            <WorkoutTile
-              title={workout.name}
-              dayLabel={t(workout.dayLabel)}
-              durationSeconds={workout.durationSeconds}
-              blocks={workout.blocks}
-            />
-          </Box>
-        ))}
+      {query.data?.map(workout => (
+        <Box key={workout.id} marginTop="md">
+          <WorkoutTile
+            title={workout.name}
+            dayLabel={t(workout.dayLabel)}
+            durationSeconds={workout.durationSeconds}
+            blocks={workout.blocks}
+          />
+        </Box>
+      ))}
     </Box>
   );
 }

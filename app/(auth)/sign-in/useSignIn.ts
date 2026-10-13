@@ -3,14 +3,23 @@ import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 import type { TextInput } from 'react-native';
 
-import { consumeAccountDeleted } from '@/lib/accountDeletedStore';
-import { GoogleSignin, auth } from '@/lib/firebase';
-import { EMAIL_REGEX } from '@/lib/validation';
 import {
-  isErrorWithCode,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+  type SignInErrorMapping,
+  type SignInMutation,
+  mapSignInError,
+} from './signInErrors';
+import { consumeAccountDeleted } from '@/lib/accountDeletedStore';
+import { auth } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
+import { signInWithGoogle } from '@/lib/signInWithGoogle';
+import { EMAIL_REGEX } from '@/lib/validation';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+
+interface EmailSignInVariables {
+  email: string;
+  password: string;
+}
 
 export function useSignIn() {
   const { t } = useTranslation();
@@ -21,30 +30,31 @@ export function useSignIn() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (consumeAccountDeleted()) Alert.alert(t('signIn.accountDeleted'));
   }, [t]);
 
-  function getFirebaseErrorMessage(code: string): string {
-    switch (code) {
-      case 'auth/invalid-credential':
-      case 'auth/wrong-password':
-      case 'auth/user-not-found':
-        return t('signIn.errors.invalidCredential');
-      case 'auth/invalid-email':
-        return t('signIn.errors.invalidEmail');
-      case 'auth/too-many-requests':
-        return t('signIn.errors.tooManyRequests');
-      case 'auth/network-request-failed':
-        return t('signIn.errors.networkFailed');
-      default:
-        return t('signIn.errors.generic');
-    }
-  }
+  const emailSignIn = useMutation({
+    mutationFn: async (variables: EmailSignInVariables) => {
+      await auth().signInWithEmailAndPassword(
+        variables.email,
+        variables.password,
+      );
+    },
+    onSuccess: () => {
+      router.replace('/(app)/(tabs)/home');
+    },
+  });
+
+  const googleSignIn = useMutation({
+    mutationFn: signInWithGoogle,
+    onSuccess: outcome => {
+      if (outcome === 'cancelled') return;
+
+      router.replace('/(app)/(tabs)/home');
+    },
+  });
 
   function validate(): boolean {
     let valid = true;
@@ -69,70 +79,67 @@ export function useSignIn() {
     return valid;
   }
 
+  function resetMutations() {
+    emailSignIn.reset();
+    googleSignIn.reset();
+  }
+
   function onEmailChange(text: string) {
     setEmail(text);
 
     if (emailError) setEmailError('');
+
+    resetMutations();
   }
 
   function onPasswordChange(text: string) {
     setPassword(text);
 
     if (passwordError) setPasswordError('');
+
+    resetMutations();
   }
 
   async function handleSignIn() {
-    if (!validate()) return;
+    if (emailSignIn.isPending || !validate()) return;
 
-    setError('');
-    setLoading(true);
+    googleSignIn.reset();
 
-    try {
-      await auth().signInWithEmailAndPassword(email.trim(), password);
-      router.replace('/(app)/(tabs)/home');
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
-
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `emailSignIn.error`.
+    await emailSignIn
+      .mutateAsync({ email: email.trim(), password })
+      .catch(() => {});
   }
 
   async function handleGoogleSignIn() {
-    setError('');
-    setGoogleLoading(true);
+    if (googleSignIn.isPending) return;
 
-    try {
-      await GoogleSignin.hasPlayServices();
-      const result = await GoogleSignin.signIn();
-      const idToken = result.data?.idToken;
+    emailSignIn.reset();
 
-      if (!idToken) throw new Error('no_id_token');
-
-      const credential = auth.GoogleAuthProvider.credential(idToken);
-
-      await auth().signInWithCredential(credential);
-      router.replace('/(app)/(tabs)/home');
-    } catch (e) {
-      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
-        return;
-
-      setError(t('signIn.validation.googleFailed'));
-    } finally {
-      setGoogleLoading(false);
-    }
+    // A failure surfaces through `googleSignIn.error`.
+    await googleSignIn.mutateAsync().catch(() => {});
   }
+
+  function mapError(mutation: SignInMutation, e: unknown): SignInErrorMapping {
+    return mapSignInError(mutation, getErrorCode(e));
+  }
+
+  // Starting one mutation resets the other, so at most one has an error.
+  const mapped: SignInErrorMapping | null = emailSignIn.error
+    ? mapError('emailSignIn', emailSignIn.error)
+    : googleSignIn.error
+      ? mapError('googleSignIn', googleSignIn.error)
+      : null;
 
   return {
     email,
     password,
     emailError,
     passwordError,
-    error,
-    loading,
-    googleLoading,
-    disabled: loading || googleLoading,
+    error: mapped ? t(mapped.key) : '',
+    loading: emailSignIn.isPending,
+    googleLoading: googleSignIn.isPending,
+    disabled: emailSignIn.isPending || googleSignIn.isPending,
     passwordRef,
     onEmailChange,
     onPasswordChange,

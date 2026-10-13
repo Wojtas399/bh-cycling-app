@@ -70,6 +70,34 @@ describe('intervalsApi', () => {
     );
   });
 
+  it.each([
+    [
+      'getActivities',
+      (signal: AbortSignal) =>
+        getActivities('token-1', 'athlete-1', undefined, { signal }),
+    ],
+    [
+      'getCalendarEvents',
+      (signal: AbortSignal) =>
+        getCalendarEvents('token-1', 'athlete-1', undefined, { signal }),
+    ],
+    [
+      'getAthleteSettings',
+      (signal: AbortSignal) => getAthleteSettings('token-1', { signal }),
+    ],
+  ])('%s passes the abort signal through to fetch', async (_name, call) => {
+    const controller = new AbortController();
+
+    mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+
+    await call(controller.signal);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
   it('throws IntervalsAuthError on a 401 response', async () => {
     mockFetchOnce({ ok: false, status: 401 });
 

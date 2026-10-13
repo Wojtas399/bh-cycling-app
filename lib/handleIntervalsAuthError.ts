@@ -1,22 +1,27 @@
-import { clearCalendarCache } from '@/lib/calendarWorkouts';
 import { auth, firestore } from '@/lib/firebase';
 import { intervalsIntegrationDocPath } from '@/lib/firestorePaths';
-import type { IntervalsAuthError } from '@/lib/intervalsApi';
+import { removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import type { QueryClient } from '@tanstack/react-query';
 
+/**
+ * The token is known-bad: prompt for a reconnect and drop everything cached
+ * with it. Runs once per failed query, so several 401s at once run it several
+ * times — every step is safe to repeat.
+ */
 export async function handleIntervalsAuthError(
-  _error: IntervalsAuthError,
+  client: QueryClient,
 ): Promise<void> {
-  try {
-    const uid = auth().currentUser?.uid;
+  // First, so every Intervals query is disabled before the wipe below — a
+  // remounting screen must not refetch with the bad token and 401 again.
+  setNeedsReconnect(true);
+  await removeIntervalsQueries(client);
 
-    if (uid) {
-      await firestore().doc(intervalsIntegrationDocPath(uid)).delete();
-    }
-  } finally {
-    // Even if the integration doc couldn't be deleted (offline, rules), the
-    // token is known-bad: drop its cached data and prompt for a reconnect.
-    clearCalendarCache();
-    setNeedsReconnect(true);
+  // Best-effort: even if the integration doc can't be deleted (offline,
+  // rules), the steps above have already run.
+  const uid = auth().currentUser?.uid;
+
+  if (uid) {
+    await firestore().doc(intervalsIntegrationDocPath(uid)).delete();
   }
 }

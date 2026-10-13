@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { GoogleSignin, auth } from '@/lib/firebase';
-import { EMAIL_REGEX, MIN_PASSWORD_LENGTH } from '@/lib/validation';
 import {
-  isErrorWithCode,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+  type SignUpErrorMapping,
+  type SignUpMutation,
+  mapSignUpError,
+} from './signUpErrors';
+import { auth } from '@/lib/firebase';
+import { getErrorCode } from '@/lib/getErrorCode';
+import { signInWithGoogle } from '@/lib/signInWithGoogle';
+import { EMAIL_REGEX, MIN_PASSWORD_LENGTH } from '@/lib/validation';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
+
+interface EmailSignUpVariables {
+  email: string;
+  password: string;
+}
 
 export function useSignUp() {
   const { t } = useTranslation();
@@ -19,24 +28,27 @@ export function useSignUp() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
-  function getFirebaseErrorMessage(code: string): string {
-    switch (code) {
-      case 'auth/email-already-in-use':
-        return t('signUp.errors.emailAlreadyInUse');
-      case 'auth/weak-password':
-        return t('signUp.errors.weakPassword');
-      case 'auth/invalid-email':
-        return t('signUp.errors.invalidEmail');
-      case 'auth/network-request-failed':
-        return t('signUp.errors.networkFailed');
-      default:
-        return t('signUp.errors.generic');
-    }
-  }
+  const emailSignUp = useMutation({
+    mutationFn: async (variables: EmailSignUpVariables) => {
+      await auth().createUserWithEmailAndPassword(
+        variables.email,
+        variables.password,
+      );
+    },
+    onSuccess: () => {
+      router.replace('/(auth)/verify-email');
+    },
+  });
+
+  const googleSignUp = useMutation({
+    mutationFn: signInWithGoogle,
+    onSuccess: outcome => {
+      if (outcome === 'cancelled') return;
+
+      router.replace('/(app)/(tabs)/home');
+    },
+  });
 
   function validate(): boolean {
     let valid = true;
@@ -74,12 +86,17 @@ export function useSignUp() {
     return valid;
   }
 
+  function resetMutations() {
+    emailSignUp.reset();
+    googleSignUp.reset();
+  }
+
   function onEmailChange(text: string) {
     setEmail(text);
 
     if (emailError) setEmailError('');
 
-    if (error) setError('');
+    resetMutations();
   }
 
   function onPasswordChange(text: string) {
@@ -87,7 +104,7 @@ export function useSignUp() {
 
     if (passwordError) setPasswordError('');
 
-    if (error) setError('');
+    resetMutations();
   }
 
   function onConfirmPasswordChange(text: string) {
@@ -95,51 +112,39 @@ export function useSignUp() {
 
     if (confirmPasswordError) setConfirmPasswordError('');
 
-    if (error) setError('');
+    resetMutations();
   }
 
   async function handleGoogleSignUp() {
-    setError('');
-    setGoogleLoading(true);
+    if (googleSignUp.isPending) return;
 
-    try {
-      await GoogleSignin.hasPlayServices();
-      const result = await GoogleSignin.signIn();
-      const idToken = result.data?.idToken;
+    emailSignUp.reset();
 
-      if (!idToken) throw new Error('no_id_token');
-
-      const credential = auth.GoogleAuthProvider.credential(idToken);
-
-      await auth().signInWithCredential(credential);
-      router.replace('/(app)/(tabs)/home');
-    } catch (e) {
-      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED)
-        return;
-
-      setError(t('signUp.errors.googleFailed'));
-    } finally {
-      setGoogleLoading(false);
-    }
+    // A failure surfaces through `googleSignUp.error`.
+    await googleSignUp.mutateAsync().catch(() => {});
   }
 
   async function handleSignUp() {
-    if (!validate()) return;
+    if (emailSignUp.isPending || !validate()) return;
 
-    setError('');
-    setLoading(true);
+    googleSignUp.reset();
 
-    try {
-      await auth().createUserWithEmailAndPassword(email.trim(), password);
-      router.replace('/(auth)/verify-email');
-    } catch (e) {
-      const code = (e as { code?: string }).code ?? '';
-
-      setError(getFirebaseErrorMessage(code));
-    } finally {
-      setLoading(false);
-    }
+    // A failure surfaces through `emailSignUp.error`.
+    await emailSignUp
+      .mutateAsync({ email: email.trim(), password })
+      .catch(() => {});
   }
+
+  function mapError(mutation: SignUpMutation, e: unknown): SignUpErrorMapping {
+    return mapSignUpError(mutation, getErrorCode(e));
+  }
+
+  // Starting one mutation resets the other, so at most one has an error.
+  const mapped: SignUpErrorMapping | null = emailSignUp.error
+    ? mapError('emailSignUp', emailSignUp.error)
+    : googleSignUp.error
+      ? mapError('googleSignUp', googleSignUp.error)
+      : null;
 
   return {
     email,
@@ -148,10 +153,10 @@ export function useSignUp() {
     emailError,
     passwordError,
     confirmPasswordError,
-    error,
-    loading,
-    googleLoading,
-    disabled: loading || googleLoading,
+    error: mapped ? t(mapped.key) : '',
+    loading: emailSignUp.isPending,
+    googleLoading: googleSignUp.isPending,
+    disabled: emailSignUp.isPending || googleSignUp.isPending,
     onEmailChange,
     onPasswordChange,
     onConfirmPasswordChange,

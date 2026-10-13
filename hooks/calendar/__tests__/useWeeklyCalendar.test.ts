@@ -1,141 +1,134 @@
 import { useWeeklyCalendar } from '../useWeeklyCalendar';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
-  clearCalendarCache,
+  endOfMonth,
   endOfWeek,
-  fetchMonth,
+  startOfMonth,
   startOfWeek,
+  toYearMonth,
 } from '@/lib/calendarWorkouts';
 import {
   getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
+import { monthQueryOptions } from '@/lib/intervalsQueries';
 import { addDays, toLocalDateString } from '@/lib/localDate';
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { createQueryClient } from '@/lib/queryClient';
+import { renderHookWithClient } from '@/test-utils/queryClient';
+import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(),
 }));
 
-jest.mock('@/lib/intervalsApi', () => {
-  const actual = jest.requireActual('@/lib/intervalsApi');
-
-  return {
-    ...actual,
-    getCalendarEvents: jest.fn(),
-    getActivities: jest.fn(),
-    getAthleteSettings: jest.fn(),
-  };
-});
+jest.mock('@/lib/intervalsApi', () => ({
+  ...jest.requireActual('@/lib/intervalsApi'),
+  getCalendarEvents: jest.fn(),
+  getActivities: jest.fn(),
+  getAthleteSettings: jest.fn(),
+}));
 
 jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
+
+const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 
 const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
 /**
- * The shared race-guard/loading/refresh behavior is covered once, generically,
- * in useCalendarRange.test.ts. This suite only checks that useWeeklyCalendar
- * wires the week-shaped config (range functions, field names, nav step, and
- * the cross-view fetched-range cache) correctly.
+ * The shared loading/refresh behavior is covered once, generically, in
+ * useCalendarRange.test.ts. This suite only checks that useWeeklyCalendar
+ * wires the week-shaped config (range, the months it touches, nav step).
  */
 describe('useWeeklyCalendar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    clearCalendarCache();
+    mockUseIntervalsConnection.mockReturnValue({
+      isConnected: true,
+      athleteName: null,
+      athleteId: 'athlete-1',
+      accessToken: 'token-1',
+      loading: false,
+    });
     mockGetAthleteSettings.mockResolvedValue({});
     mockGetCalendarEvents.mockResolvedValue([]);
     mockGetActivities.mockResolvedValue([]);
   });
 
-  it('exposes the visible week (Monday) and fetches its range', async () => {
-    mockConnection({
-      isConnected: true,
-      accessToken: 'token-1',
-      athleteId: 'athlete-1',
-    });
+  it('exposes the visible week (Monday) and its seven days, fetching the whole months it touches', async () => {
+    const { result } = await renderHookWithClient(() => useWeeklyCalendar());
 
-    const { result } = await renderHook(() => useWeeklyCalendar());
-
-    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
 
     const now = new Date();
+    const monday = startOfWeek(now);
 
     expect(toLocalDateString(result.current.week)).toBe(
-      toLocalDateString(startOfWeek(now)),
+      toLocalDateString(monday),
+    );
+    expect(Object.keys(result.current.query.data ?? {})).toEqual(
+      Array.from({ length: 7 }, (_, index) =>
+        toLocalDateString(addDays(monday, index)),
+      ),
     );
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',
-      expect.objectContaining({
-        oldest: toLocalDateString(startOfWeek(now)),
-        newest: toLocalDateString(endOfWeek(now)),
-      }),
+      {
+        oldest: toLocalDateString(startOfMonth(monday)),
+        newest: toLocalDateString(endOfMonth(monday)),
+      },
+      expect.anything(),
+    );
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      {
+        oldest: toLocalDateString(startOfMonth(endOfWeek(now))),
+        newest: toLocalDateString(endOfMonth(endOfWeek(now))),
+      },
+      expect.anything(),
     );
   });
 
   it('goToNextWeek/goToPreviousWeek step by seven days', async () => {
-    mockConnection({
-      isConnected: true,
-      accessToken: 'token-1',
-      athleteId: 'athlete-1',
-    });
+    const { result } = await renderHookWithClient(() => useWeeklyCalendar());
 
-    const { result } = await renderHook(() => useWeeklyCalendar());
-
-    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
 
     const currentWeek = result.current.week;
 
     await act(async () => result.current.goToNextWeek());
-    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
 
     expect(result.current.week).toEqual(addDays(currentWeek, 7));
 
     await act(async () => result.current.goToPreviousWeek());
-    await waitFor(() => expect(result.current.state.status).toBe('ready'));
 
     expect(result.current.week).toEqual(currentWeek);
   });
 
-  it('does not refetch a week whose dates a prior month fetch already covered', async () => {
-    mockConnection({
-      isConnected: true,
-      accessToken: 'token-1',
-      athleteId: 'athlete-1',
+  it('does not fetch a week whose months are already loaded', async () => {
+    const now = new Date();
+    const client = createQueryClient();
+
+    // As if the monthly view had loaded the month(s) this week falls in.
+    for (const day of [startOfWeek(now), endOfWeek(now)]) {
+      await client.fetchQuery(monthQueryOptions(CREDENTIALS, toYearMonth(day)));
+    }
+
+    mockGetCalendarEvents.mockClear();
+
+    const { result } = await renderHookWithClient(() => useWeeklyCalendar(), {
+      client,
     });
 
-    const now = new Date();
-
-    // Simulates the monthly view having already fetched the month(s) the
-    // week the weekly view opens to falls in — two when it straddles a
-    // month boundary.
-    await fetchMonth('token-1', 'athlete-1', startOfWeek(now), now);
-    await fetchMonth('token-1', 'athlete-1', endOfWeek(now), now);
-    mockGetCalendarEvents.mockClear();
-    mockGetActivities.mockClear();
-
-    const { result } = await renderHook(() => useWeeklyCalendar());
-
-    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    expect(result.current.query.data).toBeDefined();
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
   });
 });
