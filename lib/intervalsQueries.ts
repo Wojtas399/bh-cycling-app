@@ -1,10 +1,13 @@
 import {
   ACTIVITY_FIELDS,
   PAIRING_WINDOW_DAYS,
+  type StoredMonth,
+  type WorkoutsByDate,
   type YearMonth,
   buildMonthWorkouts,
   endOfMonth,
   fromYearMonth,
+  withWorkoutStatuses,
 } from './calendarWorkouts';
 import {
   getActivities,
@@ -32,22 +35,24 @@ export interface IntervalsCredentials {
 }
 
 /**
- * Every Intervals.icu query key starts with `intervalsKeys.all`, so the whole
- * athlete's data can be cancelled and removed by that prefix. The access token
- * is never part of a key — the `queryFn` closures capture it instead. The
- * athlete id is `undefined` only in the key of a query skipped for want of
- * credentials.
+ * Every Intervals.icu query key starts with `intervalsKeys.all`, so all of it
+ * can be cancelled and removed by that prefix. The access token is never part
+ * of a key — the `queryFn` closures capture it instead. The athlete id is
+ * `undefined` only in the key of a query skipped for want of credentials.
  */
 export const intervalsKeys = {
   all: ['intervals'] as const,
+  /** Everything for one athlete, the prefix the refresh control invalidates. */
+  athlete: (athleteId: string | undefined) =>
+    [...intervalsKeys.all, athleteId] as const,
   athleteSettings: (athleteId: string) =>
-    [...intervalsKeys.all, athleteId, 'athleteSettings'] as const,
+    [...intervalsKeys.athlete(athleteId), 'athleteSettings'] as const,
   /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
-    [...intervalsKeys.all, athleteId, 'upcoming', today] as const,
-  /** Every Calendar month, the prefix the refresh control invalidates. */
+    [...intervalsKeys.athlete(athleteId), 'upcoming', today] as const,
+  /** Every Calendar month. */
   calendar: (athleteId: string | undefined) =>
-    [...intervalsKeys.all, athleteId, 'calendar'] as const,
+    [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
   month: (athleteId: string | undefined, yearMonth: YearMonth) =>
     [...intervalsKeys.calendar(athleteId), 'month', yearMonth] as const,
 };
@@ -63,7 +68,19 @@ export async function removeIntervalsQueries(
   client.removeQueries({ queryKey: intervalsKeys.all });
 }
 
-/** The athlete's power zones, resolved from their Intervals.icu settings. */
+/**
+ * How a month and the upcoming workouts stay fresh: stale after 5 minutes,
+ * then refetched when shown again or when the app returns to the foreground.
+ */
+const WORKOUTS_FRESHNESS = {
+  staleTime: 5 * 60_000,
+  refetchOnWindowFocus: true,
+} as const;
+
+/**
+ * The athlete's power zones, resolved from their Intervals.icu settings. They
+ * rarely change, so only a refresh fetches them again.
+ */
 export function athleteSettingsQueryOptions({
   accessToken,
   athleteId,
@@ -72,6 +89,7 @@ export function athleteSettingsQueryOptions({
     queryKey: intervalsKeys.athleteSettings(athleteId),
     queryFn: async ({ signal }) =>
       resolveZoneConfig(await getAthleteSettings(accessToken, { signal })),
+    staleTime: Infinity,
   });
 }
 
@@ -102,18 +120,34 @@ export function upcomingQueryOptions(
           return getUpcomingWorkouts(events, new Date(), zoneConfig);
         }
       : skipToken,
+    ...WORKOUTS_FRESHNESS,
   });
+}
+
+/** Derives a stored month's Workout Statuses for display. */
+export type MonthSelect = (month: StoredMonth) => WorkoutsByDate;
+
+/**
+ * The month `select` deriving each Workout Status as of `today`. Callers keep
+ * it referentially stable per `today`, so a month's selected result is only
+ * recomputed when the data or the day changes.
+ */
+export function selectMonthAsOf(today: LocalDateString): MonthSelect {
+  return month => withWorkoutStatuses(month, today);
 }
 
 /**
  * One Calendar month's workouts by day, every day of it present. Activities
  * are fetched a pairing window past each edge, so a workout completed just
- * outside the month still reads as completed. Skipped while there are no
- * credentials.
+ * outside the month still reads as completed. The query stores the workouts
+ * without a status; `select` (see `selectMonthAsOf`) derives each Workout
+ * Status, so a planned workout turns missed at midnight without a fetch.
+ * Skipped while there are no credentials.
  */
 export function monthQueryOptions(
   credentials: IntervalsCredentials | null,
   yearMonth: YearMonth,
+  select: MonthSelect,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.month(credentials?.athleteId, yearMonth),
@@ -145,15 +179,11 @@ export function monthQueryOptions(
             fetchZoneConfig(client, credentials),
           ]);
 
-          return buildMonthWorkouts(
-            first,
-            events,
-            activities,
-            new Date(),
-            zoneConfig,
-          );
+          return buildMonthWorkouts(first, events, activities, zoneConfig);
         }
       : skipToken,
+    select,
+    ...WORKOUTS_FRESHNESS,
   });
 }
 

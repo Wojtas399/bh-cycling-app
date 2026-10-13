@@ -1,7 +1,12 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
-import { toLocalDateString } from './localDate';
+import { type LocalDateString, toLocalDateString } from './localDate';
 import type { ZoneConfig } from './powerZones';
-import { type CalendarWorkout, deriveWorkoutStatuses } from './workoutStatus';
+import {
+  type CalendarWorkout,
+  type StoredWorkout,
+  joinWorkouts,
+  workoutStatus,
+} from './workoutStatus';
 
 /** Workouts keyed by local `YYYY-MM-DD`; a day with none maps to `[]`. */
 export type WorkoutsByDate = Record<string, CalendarWorkout[]>;
@@ -91,30 +96,55 @@ export function eachDate(oldest: Date, newest: Date): string[] {
 }
 
 /**
- * The month's workouts by day, every day of the month present. Each Workout
- * Status is derived against `now`, so it's fixed at the time of the fetch.
+ * What a month query stores: every day of the month with its workouts, none
+ * of them holding a status yet, and the IDs of the events completed by an
+ * activity. The status depends on today, so it's derived when read.
  */
+export interface StoredMonth {
+  workoutsByDate: Record<string, StoredWorkout[]>;
+  completedEventIds: number[];
+}
+
+/** The month's workouts by day, every day of the month present. */
 export function buildMonthWorkouts(
   month: Date,
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
-  now: Date,
   zoneConfig: ZoneConfig,
-): WorkoutsByDate {
-  const workoutsByDate: WorkoutsByDate = {};
+): StoredMonth {
+  const workoutsByDate: StoredMonth['workoutsByDate'] = {};
 
   for (const date of eachDate(startOfMonth(month), endOfMonth(month))) {
     workoutsByDate[date] = [];
   }
 
-  for (const workout of deriveWorkoutStatuses(
+  const { workouts, completedEventIds } = joinWorkouts(
     events,
     activities,
-    now,
     zoneConfig,
-  )) {
+  );
+
+  for (const workout of workouts) {
     workoutsByDate[workout.date]?.push(workout);
   }
 
-  return workoutsByDate;
+  return { workoutsByDate, completedEventIds };
+}
+
+/** Gives every stored workout its Workout Status as of `today`. */
+export function withWorkoutStatuses(
+  { workoutsByDate, completedEventIds }: StoredMonth,
+  today: LocalDateString,
+): WorkoutsByDate {
+  const completed = new Set(completedEventIds);
+  const result: WorkoutsByDate = {};
+
+  for (const [date, workouts] of Object.entries(workoutsByDate)) {
+    result[date] = workouts.map(workout => ({
+      ...workout,
+      status: workoutStatus(workout, completed, today),
+    }));
+  }
+
+  return result;
 }

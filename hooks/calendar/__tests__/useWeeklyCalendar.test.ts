@@ -12,7 +12,7 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { monthQueryOptions } from '@/lib/intervalsQueries';
+import { monthQueryOptions, selectMonthAsOf } from '@/lib/intervalsQueries';
 import { addDays, toLocalDateString } from '@/lib/localDate';
 import { createQueryClient } from '@/lib/queryClient';
 import { renderHookWithClient } from '@/test-utils/queryClient';
@@ -119,7 +119,13 @@ describe('useWeeklyCalendar', () => {
 
     // As if the monthly view had loaded the month(s) this week falls in.
     for (const day of [startOfWeek(now), endOfWeek(now)]) {
-      await client.fetchQuery(monthQueryOptions(CREDENTIALS, toYearMonth(day)));
+      await client.fetchQuery(
+        monthQueryOptions(
+          CREDENTIALS,
+          toYearMonth(day),
+          selectMonthAsOf(toLocalDateString(now)),
+        ),
+      );
     }
 
     mockGetCalendarEvents.mockClear();

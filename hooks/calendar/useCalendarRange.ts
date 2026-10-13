@@ -4,12 +4,17 @@ import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from '@/hooks/useIntervalsAvailability';
+import { useToday } from '@/hooks/useToday';
 import type { YearMonth } from '@/lib/calendarWorkouts';
 import {
   type CombinedMonthResult,
   combineMonthResults,
 } from '@/lib/combineMonthResults';
-import { intervalsKeys, monthQueryOptions } from '@/lib/intervalsQueries';
+import {
+  intervalsKeys,
+  monthQueryOptions,
+  selectMonthAsOf,
+} from '@/lib/intervalsQueries';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
@@ -20,7 +25,7 @@ export interface UseCalendarRangeResult {
   goToPrevious: () => void;
   goToNext: () => void;
   refresh: () => void;
-  /** A refresh the athlete asked for is in flight; background fetches aren't. */
+  /** Shown data is being fetched again, by a refresh or in the background. */
   refreshing: boolean;
 }
 
@@ -53,8 +58,8 @@ export function useCalendarRange({
 }: UseCalendarRangeConfig): UseCalendarRangeResult {
   const { availability, credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
+  const today = useToday();
   const [anchor, setAnchor] = useState(initialAnchor);
-  const [userRefreshing, setUserRefreshing] = useState(false);
 
   // Stable per range, so `useQueries` only re-combines when a result changes.
   const combine = useMemo(
@@ -62,24 +67,26 @@ export function useCalendarRange({
     [anchor, startOf, endOf],
   );
 
+  // Stable per day, so a month's statuses are only re-derived when it changes.
+  const select = useMemo(() => selectMonthAsOf(today), [today]);
+
   const query = useQueries({
     queries: monthsFor(anchor).map(yearMonth =>
-      monthQueryOptions(credentials, yearMonth),
+      monthQueryOptions(credentials, yearMonth, select),
     ),
     combine,
   });
 
   const athleteId = credentials?.athleteId;
 
-  // Marks every month stale: the visible ones fetch again now, the rest when
-  // they're next shown. A failed fetch keeps the month's data.
+  // Marks everything for the athlete stale: what's on screen fetches again
+  // now, the rest when it's next shown. A failed fetch keeps the old data.
   const refresh = useCallback(() => {
     if (!athleteId) return;
 
-    setUserRefreshing(true);
-    queryClient
-      .invalidateQueries({ queryKey: intervalsKeys.calendar(athleteId) })
-      .finally(() => setUserRefreshing(false));
+    queryClient.invalidateQueries({
+      queryKey: intervalsKeys.athlete(athleteId),
+    });
   }, [athleteId, queryClient]);
 
   return {
@@ -89,6 +96,6 @@ export function useCalendarRange({
     goToPrevious: () => setAnchor(current => step(current, -1)),
     goToNext: () => setAnchor(current => step(current, 1)),
     refresh,
-    refreshing: userRefreshing,
+    refreshing: query.data !== undefined && query.isFetching,
   };
 }

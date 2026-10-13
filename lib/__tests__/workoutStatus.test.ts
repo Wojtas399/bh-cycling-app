@@ -3,7 +3,7 @@ import type {
   IntervalsCalendarEvent,
 } from '../intervalsApi';
 import { resolveZoneConfig } from '../powerZones';
-import { deriveWorkoutStatuses } from '../workoutStatus';
+import { joinWorkouts, workoutStatus } from '../workoutStatus';
 
 function event(
   overrides: Partial<IntervalsCalendarEvent>,
@@ -29,10 +29,9 @@ function activity(overrides: Partial<IntervalsActivity>): IntervalsActivity {
   };
 }
 
-const NOW = new Date(2026, 6, 25, 10, 0, 0); // 2026-07-25, local
 const ZONE_CONFIG = resolveZoneConfig();
 
-describe('deriveWorkoutStatuses', () => {
+describe('joinWorkouts', () => {
   it('excludes non-WORKOUT categories', () => {
     const events = [
       event({ id: 1, category: 'RACE', name: 'Race day' }),
@@ -40,101 +39,39 @@ describe('deriveWorkoutStatuses', () => {
       event({ id: 3, category: 'WORKOUT', name: 'Intervals' }),
     ];
 
-    const result = deriveWorkoutStatuses(events, [], NOW, ZONE_CONFIG);
+    const { workouts } = joinWorkouts(events, [], ZONE_CONFIG);
 
-    expect(result).toEqual([
-      {
-        id: 3,
-        name: 'Intervals',
-        date: '2026-07-25',
-        status: 'planned',
-        blocks: [],
-      },
+    expect(workouts).toEqual([
+      { id: 3, name: 'Intervals', date: '2026-07-25', blocks: [] },
     ]);
   });
 
-  it('marks an event as completed when a paired activity exists', () => {
-    const events = [event({ id: 1, name: 'Threshold' })];
-    const activities = [activity({ paired_event_id: 1 })];
+  it('collects the IDs of events an activity is paired to', () => {
+    const events = [event({ id: 1 }), event({ id: 2 })];
+    const activities = [
+      activity({ id: 'a1', paired_event_id: 2 }),
+      activity({ id: 'a2', paired_event_id: 2 }),
+      activity({ id: 'a3' }),
+    ];
 
-    const result = deriveWorkoutStatuses(events, activities, NOW, ZONE_CONFIG);
+    const { completedEventIds } = joinWorkouts(events, activities, ZONE_CONFIG);
 
-    expect(result[0].status).toBe('completed');
+    expect(completedEventIds).toEqual([2]);
   });
 
   it('does not match an activity to an event by date/type alone', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Threshold',
-        start_date_local: '2026-07-25T08:00:00',
-      }),
-    ];
-    const activities = [
-      activity({
-        start_date_local: '2026-07-25T08:10:00',
-        paired_event_id: undefined,
-      }),
-    ];
+    const activities = [activity({ paired_event_id: undefined })];
 
-    const result = deriveWorkoutStatuses(events, activities, NOW, ZONE_CONFIG);
+    const { completedEventIds } = joinWorkouts(
+      [event({ id: 1 })],
+      activities,
+      ZONE_CONFIG,
+    );
 
-    expect(result[0].status).toBe('planned');
+    expect(completedEventIds).toEqual([]);
   });
 
-  it('marks a past event with no paired activity as missed', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Yesterday ride',
-        start_date_local: '2026-07-24T08:00:00',
-      }),
-    ];
-
-    const result = deriveWorkoutStatuses(events, [], NOW, ZONE_CONFIG);
-
-    expect(result[0].status).toBe('missed');
-  });
-
-  it('marks today’s event with no paired activity as planned', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Today ride',
-        start_date_local: '2026-07-25T08:00:00',
-      }),
-    ];
-
-    const result = deriveWorkoutStatuses(events, [], NOW, ZONE_CONFIG);
-
-    expect(result[0].status).toBe('planned');
-  });
-
-  it('marks a future event with no paired activity as planned', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Tomorrow ride',
-        start_date_local: '2026-07-26T08:00:00',
-      }),
-    ];
-
-    const result = deriveWorkoutStatuses(events, [], NOW, ZONE_CONFIG);
-
-    expect(result[0].status).toBe('planned');
-  });
-
-  it('only matches the activity carrying the paired event id, ignoring others', () => {
-    const events = [event({ id: 1 }), event({ id: 2, name: 'Other' })];
-    const activities = [activity({ paired_event_id: 2 })];
-
-    const result = deriveWorkoutStatuses(events, activities, NOW, ZONE_CONFIG);
-
-    expect(result.find(w => w.id === 1)?.status).toBe('planned');
-    expect(result.find(w => w.id === 2)?.status).toBe('completed');
-  });
-
-  it('sorts results chronologically', () => {
+  it('sorts workouts chronologically', () => {
     const events = [
       event({ id: 1, name: 'Later', start_date_local: '2026-07-25T18:00:00' }),
       event({
@@ -144,9 +81,9 @@ describe('deriveWorkoutStatuses', () => {
       }),
     ];
 
-    const result = deriveWorkoutStatuses(events, [], NOW, ZONE_CONFIG);
+    const { workouts } = joinWorkouts(events, [], ZONE_CONFIG);
 
-    expect(result.map(w => w.id)).toEqual([2, 1]);
+    expect(workouts.map(w => w.id)).toEqual([2, 1]);
   });
 
   it('attaches durationSeconds and profile blocks from the workout_doc', () => {
@@ -160,10 +97,10 @@ describe('deriveWorkoutStatuses', () => {
       }),
     ];
 
-    const result = deriveWorkoutStatuses(events, [], NOW, ZONE_CONFIG);
+    const { workouts } = joinWorkouts(events, [], ZONE_CONFIG);
 
-    expect(result[0].durationSeconds).toBe(3600);
-    expect(result[0].blocks).toEqual([
+    expect(workouts[0].durationSeconds).toBe(3600);
+    expect(workouts[0].blocks).toEqual([
       { widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 },
     ]);
   });
@@ -180,16 +117,49 @@ describe('deriveWorkoutStatuses', () => {
     ];
     const customConfig = resolveZoneConfig({ powerZones: [60, 80, 95] });
 
-    const result = deriveWorkoutStatuses(events, [], NOW, customConfig);
+    const { workouts } = joinWorkouts(events, [], customConfig);
 
-    expect(result[0].blocks).toEqual([
+    expect(workouts[0].blocks).toEqual([
       { widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 },
     ]);
   });
 
-  it('returns an empty list when there are no events', () => {
-    const result = deriveWorkoutStatuses([], [], NOW, ZONE_CONFIG);
+  it('returns nothing when there are no events', () => {
+    expect(joinWorkouts([], [], ZONE_CONFIG)).toEqual({
+      workouts: [],
+      completedEventIds: [],
+    });
+  });
+});
 
-    expect(result).toEqual([]);
+describe('workoutStatus', () => {
+  const TODAY = '2026-07-25';
+  const workout = (id: number, date: string) => ({
+    id,
+    name: 'Ride',
+    date,
+    blocks: [],
+  });
+
+  it('is completed when the workout id is in the completed set', () => {
+    expect(workoutStatus(workout(1, '2026-07-20'), new Set([1]), TODAY)).toBe(
+      'completed',
+    );
+  });
+
+  it('is missed for a past workout that is not completed', () => {
+    expect(workoutStatus(workout(1, '2026-07-24'), new Set([2]), TODAY)).toBe(
+      'missed',
+    );
+  });
+
+  it("is planned for today's workout that is not completed", () => {
+    expect(workoutStatus(workout(1, TODAY), new Set(), TODAY)).toBe('planned');
+  });
+
+  it('is planned for a future workout that is not completed', () => {
+    expect(workoutStatus(workout(1, '2026-07-26'), new Set(), TODAY)).toBe(
+      'planned',
+    );
   });
 });

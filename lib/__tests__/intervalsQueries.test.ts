@@ -1,3 +1,4 @@
+import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
   type IntervalsCalendarEvent,
@@ -10,6 +11,7 @@ import {
   athleteSettingsQueryOptions,
   intervalsKeys,
   monthQueryOptions,
+  selectMonthAsOf,
   upcomingQueryOptions,
 } from '../intervalsQueries';
 import { toLocalDateString } from '../localDate';
@@ -27,6 +29,7 @@ jest.mock('../intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
+const TODAY = '2026-02-11';
 const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 
 const mockGetActivities = getActivities as jest.Mock;
@@ -56,6 +59,10 @@ function todayEvent(
 describe('intervalsKeys', () => {
   it('nests every key under the intervals prefix and the athlete', () => {
     expect(intervalsKeys.all).toEqual(['intervals']);
+    expect(intervalsKeys.athlete('athlete-1')).toEqual([
+      'intervals',
+      'athlete-1',
+    ]);
     expect(intervalsKeys.athleteSettings('athlete-1')).toEqual([
       'intervals',
       'athlete-1',
@@ -79,6 +86,32 @@ describe('intervalsKeys', () => {
       'month',
       '2026-06',
     ]);
+  });
+});
+
+describe('freshness', () => {
+  const FIVE_MINUTES = 5 * 60_000;
+
+  it('keeps the athlete settings fresh for the whole session', () => {
+    expect(athleteSettingsQueryOptions(CREDENTIALS).staleTime).toBe(Infinity);
+  });
+
+  it('lets the upcoming workouts go stale after 5 minutes and refetch on focus', () => {
+    const options = upcomingQueryOptions(CREDENTIALS, '2026-10-11');
+
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
+  });
+
+  it('lets a month go stale after 5 minutes and refetch on focus', () => {
+    const options = monthQueryOptions(
+      CREDENTIALS,
+      '2026-06',
+      selectMonthAsOf('2026-06-15'),
+    );
+
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
   });
 });
 
@@ -197,7 +230,9 @@ describe('monthQueryOptions', () => {
   it("fetches the month's events and activities a week past each edge", async () => {
     const client = createQueryClient();
 
-    await client.fetchQuery(monthQueryOptions(CREDENTIALS, '2026-06'));
+    await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-06', selectMonthAsOf('2026-06-15')),
+    );
 
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
@@ -217,7 +252,7 @@ describe('monthQueryOptions', () => {
     );
   });
 
-  it('lists every day of the month, empty when it has no workouts', async () => {
+  it('stores every day of the month, empty when it has no workouts, without a status', async () => {
     mockGetCalendarEvents.mockResolvedValue([
       {
         id: 1,
@@ -228,25 +263,24 @@ describe('monthQueryOptions', () => {
     ]);
 
     const client = createQueryClient();
-    const workoutsByDate = await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02'),
+
+    await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
     );
 
-    expect(Object.keys(workoutsByDate)).toHaveLength(28);
-    expect(workoutsByDate['2026-02-01']).toEqual([]);
-    expect(workoutsByDate['2026-02-28']).toEqual([]);
-    expect(workoutsByDate['2026-02-10']).toEqual([
-      {
-        id: 1,
-        name: 'Intervals',
-        date: '2026-02-10',
-        status: 'missed',
-        blocks: [],
-      },
+    const stored = client.getQueryData<StoredMonth>(
+      intervalsKeys.month('athlete-1', '2026-02'),
+    );
+
+    expect(Object.keys(stored?.workoutsByDate ?? {})).toHaveLength(28);
+    expect(stored?.workoutsByDate['2026-02-01']).toEqual([]);
+    expect(stored?.workoutsByDate['2026-02-10']).toEqual([
+      { id: 1, name: 'Intervals', date: '2026-02-10', blocks: [] },
     ]);
+    expect(stored?.completedEventIds).toEqual([]);
   });
 
-  it('marks a workout completed when a paired activity is returned', async () => {
+  it('stores the IDs of the events a paired activity completes', async () => {
     mockGetCalendarEvents.mockResolvedValue([
       {
         id: 42,
@@ -268,11 +302,75 @@ describe('monthQueryOptions', () => {
     ]);
 
     const client = createQueryClient();
-    const workoutsByDate = await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02'),
+
+    await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
     );
 
-    expect(workoutsByDate['2026-02-10'][0].status).toBe('completed');
+    expect(
+      client.getQueryData<StoredMonth>(
+        intervalsKeys.month('athlete-1', '2026-02'),
+      )?.completedEventIds,
+    ).toEqual([42]);
+  });
+
+  it("selects each workout's status as of today", async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: 1,
+        category: 'WORKOUT',
+        name: 'Past',
+        start_date_local: '2026-02-10T08:00:00',
+      },
+      {
+        id: 2,
+        category: 'WORKOUT',
+        name: 'Done',
+        start_date_local: '2026-02-09T08:00:00',
+      },
+      {
+        id: 3,
+        category: 'WORKOUT',
+        name: 'Today',
+        start_date_local: '2026-02-11T08:00:00',
+      },
+    ]);
+    mockGetActivities.mockResolvedValue([
+      {
+        id: 'a1',
+        name: 'Ride',
+        type: 'Ride',
+        start_date_local: '2026-02-09T08:00:00',
+        moving_time: 3600,
+        distance: 30000,
+        paired_event_id: 2,
+      } satisfies IntervalsActivity,
+    ]);
+
+    const client = createQueryClient();
+    const options = monthQueryOptions(
+      CREDENTIALS,
+      '2026-02',
+      selectMonthAsOf(TODAY),
+    );
+
+    await client.fetchQuery(options);
+
+    const stored = client.getQueryData<StoredMonth>(options.queryKey)!;
+    const selected = options.select!(stored);
+
+    expect(selected['2026-02-01']).toEqual([]);
+    expect(selected['2026-02-10'][0].status).toBe('missed');
+    expect(selected['2026-02-09'][0].status).toBe('completed');
+    expect(selected['2026-02-11'][0].status).toBe('planned');
+
+    const nextDay = monthQueryOptions(
+      CREDENTIALS,
+      '2026-02',
+      selectMonthAsOf('2026-02-12'),
+    );
+
+    expect(nextDay.select!(stored)['2026-02-11'][0].status).toBe('missed');
   });
 
   it('falls back to the Coggan zones when the settings fetch fails', async () => {
@@ -288,11 +386,11 @@ describe('monthQueryOptions', () => {
     ]);
 
     const client = createQueryClient();
-    const workoutsByDate = await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02'),
+    const stored = await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
     );
 
-    expect(workoutsByDate['2026-02-10'][0].blocks).toEqual([
+    expect(stored.workoutsByDate['2026-02-10'][0].blocks).toEqual([
       { widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 },
     ]);
   });

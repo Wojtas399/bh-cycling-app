@@ -1,5 +1,5 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
-import { toLocalDateString, toSortedDatedWorkoutEvents } from './localDate';
+import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
 import type { ZoneConfig } from './powerZones';
 import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
@@ -25,36 +25,60 @@ export interface CalendarWorkout {
   blocks: WorkoutBlock[];
 }
 
+/** A workout as stored: everything but the status, which depends on today. */
+export type StoredWorkout = Omit<CalendarWorkout, 'status'>;
+
+/**
+ * Workouts without a status, plus the IDs of the events an activity is paired
+ * to — a plain array, so it stays JSON.
+ */
+export interface JoinedWorkouts {
+  workouts: StoredWorkout[];
+  completedEventIds: number[];
+}
+
 /**
  * Joins calendar events against activities on the `paired_event_id` link
- * intervals.icu sets when an activity fulfils a planned event, and derives
- * each event's Workout Status. Primary-key matching only — an activity
- * lacking the pairing field is never matched by date/type fallback, an
- * accepted v1 gap.
+ * intervals.icu sets when an activity fulfils a planned event. Primary-key
+ * matching only — an activity lacking the pairing field is never matched by
+ * date/type fallback, an accepted v1 gap.
  */
-export function deriveWorkoutStatuses(
+export function joinWorkouts(
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
-  now: Date,
   zoneConfig: ZoneConfig,
-): CalendarWorkout[] {
-  const completedEventIds = new Set(
-    activities
-      .map(activity => activity.paired_event_id)
-      .filter((id): id is number => typeof id === 'number'),
-  );
-  const today = toLocalDateString(now);
+): JoinedWorkouts {
+  const completedEventIds = [
+    ...new Set(
+      activities
+        .map(activity => activity.paired_event_id)
+        .filter((id): id is number => typeof id === 'number'),
+    ),
+  ];
 
-  return toSortedDatedWorkoutEvents(events).map(({ event, date }) => ({
-    id: event.id,
-    name: event.name,
-    date,
-    status: completedEventIds.has(event.id)
-      ? ('completed' as const)
-      : date < today
-        ? ('missed' as const)
-        : ('planned' as const),
-    durationSeconds: event.workout_doc?.duration,
-    blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
-  }));
+  const workouts = toSortedDatedWorkoutEvents(events).map(
+    ({ event, date }) => ({
+      id: event.id,
+      name: event.name,
+      date,
+      durationSeconds: event.workout_doc?.duration,
+      blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
+    }),
+  );
+
+  return { workouts, completedEventIds };
+}
+
+/**
+ * The Workout Status of a workout as of `today` (`YYYY-MM-DD`): completed if
+ * an activity is paired to it, otherwise missed once its day is past.
+ */
+export function workoutStatus(
+  workout: StoredWorkout,
+  completedEventIds: ReadonlySet<number>,
+  today: LocalDateString,
+): WorkoutStatus {
+  if (completedEventIds.has(workout.id)) return 'completed';
+
+  return workout.date < today ? 'missed' : 'planned';
 }
