@@ -4,6 +4,7 @@ import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from '@/hooks/useIntervalsAvailability';
+import { useToday } from '@/hooks/useToday';
 import type { YearMonth } from '@/lib/calendarWorkouts';
 import {
   type CombinedMonthResult,
@@ -53,6 +54,7 @@ export function useCalendarRange({
 }: UseCalendarRangeConfig): UseCalendarRangeResult {
   const { availability, credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
+  const today = useToday();
   const [anchor, setAnchor] = useState(initialAnchor);
 
   // Stable per range, so `useQueries` only re-combines when a result changes.
@@ -63,7 +65,7 @@ export function useCalendarRange({
 
   const query = useQueries({
     queries: monthsFor(anchor).map(yearMonth =>
-      monthQueryOptions(credentials, yearMonth),
+      monthQueryOptions(credentials, yearMonth, today),
     ),
     combine,
   });

@@ -119,7 +119,13 @@ describe('useWeeklyCalendar', () => {
 
     // As if the monthly view had loaded the month(s) this week falls in.
     for (const day of [startOfWeek(now), endOfWeek(now)]) {
-      await client.fetchQuery(monthQueryOptions(CREDENTIALS, toYearMonth(day)));
+      await client.fetchQuery(
+        monthQueryOptions(
+          CREDENTIALS,
+          toYearMonth(day),
+          toLocalDateString(now),
+        ),
+      );
     }
 
     mockGetCalendarEvents.mockClear();

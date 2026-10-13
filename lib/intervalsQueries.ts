@@ -1,10 +1,13 @@
 import {
   ACTIVITY_FIELDS,
   PAIRING_WINDOW_DAYS,
+  type StoredMonth,
+  type WorkoutsByDate,
   type YearMonth,
   buildMonthWorkouts,
   endOfMonth,
   fromYearMonth,
+  withWorkoutStatuses,
 } from './calendarWorkouts';
 import {
   getActivities,
@@ -119,15 +122,37 @@ export function upcomingQueryOptions(
   });
 }
 
+let selectedFor: { today: LocalDateString; select: MonthSelect } | undefined;
+
+type MonthSelect = (month: StoredMonth) => WorkoutsByDate;
+
+/**
+ * The `select` for `today`, the same function for as long as `today` is, so a
+ * month's selected result is only recomputed when the data or the day changes.
+ */
+function selectMonthFor(today: LocalDateString): MonthSelect {
+  if (selectedFor?.today !== today) {
+    selectedFor = {
+      today,
+      select: month => withWorkoutStatuses(month, today),
+    };
+  }
+
+  return selectedFor.select;
+}
+
 /**
  * One Calendar month's workouts by day, every day of it present. Activities
  * are fetched a pairing window past each edge, so a workout completed just
- * outside the month still reads as completed. Skipped while there are no
- * credentials.
+ * outside the month still reads as completed. The query stores the workouts
+ * without a status; `select` derives each Workout Status as of `today`, so a
+ * planned workout turns missed at midnight without a fetch. Skipped while
+ * there are no credentials.
  */
 export function monthQueryOptions(
   credentials: IntervalsCredentials | null,
   yearMonth: YearMonth,
+  today: LocalDateString,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.month(credentials?.athleteId, yearMonth),
@@ -159,15 +184,10 @@ export function monthQueryOptions(
             fetchZoneConfig(client, credentials),
           ]);
 
-          return buildMonthWorkouts(
-            first,
-            events,
-            activities,
-            new Date(),
-            zoneConfig,
-          );
+          return buildMonthWorkouts(first, events, activities, zoneConfig);
         }
       : skipToken,
+    select: selectMonthFor(today),
     staleTime: WORKOUTS_STALE_TIME,
     refetchOnWindowFocus: true,
   });

@@ -3,6 +3,7 @@ import {
   useCalendarRange,
 } from '../useCalendarRange';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
+import { useToday } from '@/hooks/useToday';
 import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
 import {
   type IntervalsActivity,
@@ -12,7 +13,7 @@ import {
   getCalendarEvents,
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
-import { toLocalDateString } from '@/lib/localDate';
+import { addDays, toLocalDateString } from '@/lib/localDate';
 import {
   createTestQueryClient,
   renderHookWithClient,
@@ -22,6 +23,10 @@ import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(),
+}));
+
+jest.mock('@/hooks/useToday', () => ({
+  useToday: jest.fn(),
 }));
 
 jest.mock('@/lib/intervalsApi', () => ({
@@ -36,6 +41,7 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 }));
 
 const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
+const mockUseToday = useToday as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
@@ -95,11 +101,15 @@ const visibleMonthKey = intervalsKeys.month(
   toYearMonth(new Date()),
 );
 
+const EMPTY_MONTH = { workoutsByDate: {}, completedEventIds: [] };
+
 /** A client whose visible month was last fetched `ageMs` ago. */
 function clientWithMonthFetched(ageMs: number) {
   const client = createTestQueryClient();
 
-  client.setQueryData(visibleMonthKey, {}, { updatedAt: Date.now() - ageMs });
+  client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
+    updatedAt: Date.now() - ageMs,
+  });
 
   return client;
 }
@@ -109,6 +119,7 @@ const SIX_MINUTES = 6 * 60_000;
 describe('useCalendarRange', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseToday.mockReturnValue(today);
     mockGetAthleteSettings.mockResolvedValue({});
     mockGetCalendarEvents.mockResolvedValue([]);
     mockGetActivities.mockResolvedValue([]);
@@ -318,13 +329,9 @@ describe('useCalendarRange', () => {
 
     // Aged after mounting, so only the return to the foreground can refetch.
     await act(async () => {
-      client.setQueryData(
-        visibleMonthKey,
-        {},
-        {
-          updatedAt: Date.now() - SIX_MINUTES,
-        },
-      );
+      client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
+        updatedAt: Date.now() - SIX_MINUTES,
+      });
     });
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
 
@@ -420,5 +427,25 @@ describe('useCalendarRange', () => {
     await waitFor(() =>
       expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1),
     );
+  });
+
+  it("turns yesterday's planned workout into missed when today moves on, without a new request", async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
+
+    const { result, rerender } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(result.current.query.data?.[today][0].status).toBe('planned');
+
+    mockUseToday.mockReturnValue(toLocalDateString(addDays(new Date(), 1)));
+    await rerender({});
+
+    await waitFor(() =>
+      expect(result.current.query.data?.[today][0].status).toBe('missed'),
+    );
+    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1);
   });
 });
