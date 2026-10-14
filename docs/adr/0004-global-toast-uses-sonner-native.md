@@ -20,7 +20,7 @@ toast.warning(message);
 toast.error(message);
 ```
 
-Screens never import sonner. Each toast takes a single `message` string with no title and no per-call options. The wrapper maps our variants to sonner styling, plays the haptic and routes each toast to the right host.
+Screens never import sonner; an ESLint `no-restricted-imports` rule enforces this everywhere except `lib/toast/**`. Each toast takes a single `message` string with no title and no per-call options. The wrapper maps our variants to sonner styling, plays the haptic and routes each toast to the right host.
 
 - **Hosts.** On iOS, one root `<Toaster>` is enough. react-native-screens moves its `FullWindowOverlay` back to the top of the window, so it stays above sheets opened before and after the toast. On Android, the `BottomSheet` primitive (ADR 0003) mounts its own `<Toaster id>` and registers it while open. The wrapper sends each toast to the top-most registered host, or to the root host when none is open. That makes it a rule that **every Dialog-window overlay goes through the `BottomSheet` primitive**: no ad-hoc RN `<Modal>`.
 - **Look.** A pill at the top centre, just below the status bar / Dynamic Island. It uses `bgTertiary` with a 1 px `borderStrong` border, `borderRadii.full`, and `textPrimary` text in Inter-Medium 14/20. Variants differ only by a 20 px Ionicons icon: `checkmark-circle` in `success`, `warning` in `warning` and `alert-circle` in `danger`.
