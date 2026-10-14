@@ -51,6 +51,8 @@ jobs:
 
             Review PR #${{ github.event.pull_request.number }} against its base branch `origin/${{ github.event.pull_request.base.ref }}`.
 
+            For the Standards axis, the repo's coding standards are in `CODING_STANDARDS.md`, and they bind the ADRs in `docs/adr/`. Read both and apply them. They override the smell baseline.
+
             Keep a single review comment per PR, updated in place on each run:
             1. Start the comment body with the exact line `<!-- claude-code-review -->`.
             2. Look up an existing one:

@@ -11,3 +11,11 @@ Default vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, 
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
+
+## Coding standards
+
+Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing scope (business logic only, no UI tests) and says ADRs are binding.
+
+## Pull requests
+
+When writing a PR description, use the `/mattpocock-skills:pr` skill and its template (Summary, Evidence, Merge Danger). This replaces any other PR-description skill.
