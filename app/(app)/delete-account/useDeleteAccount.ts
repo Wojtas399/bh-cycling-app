@@ -5,11 +5,11 @@ import {
   type DeleteAccountErrorMapping,
   mapDeleteAccountError,
 } from './deleteAccountErrors';
-import { markAccountDeleted } from '@/lib/accountDeletedStore';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
+import { toast } from '@/lib/toast';
 import {
   isErrorWithCode,
   statusCodes,
@@ -82,7 +82,8 @@ export function useDeleteAccount() {
     onSuccess: async outcome => {
       if (outcome === 'cancelled') return;
 
-      markAccountDeleted();
+      // The root toast host outlives the sign-out redirect to sign-in.
+      toast.success(t('deleteAccount.deleted'));
       await signOutAndClear();
     },
     onError: async e => {

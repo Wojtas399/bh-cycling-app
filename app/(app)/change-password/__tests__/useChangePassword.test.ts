@@ -2,6 +2,7 @@ import { Alert } from 'react-native';
 import type { AlertButton } from 'react-native';
 
 import { useChangePassword } from '../useChangePassword';
+import { toast } from '@/lib/toast';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -42,6 +43,12 @@ jest.mock('@/lib/firebase', () => {
 
   return { auth };
 });
+
+jest.mock('@/lib/toast', () => ({
+  toast: { success: jest.fn(), warning: jest.fn(), error: jest.fn() },
+}));
+
+const mockToast = jest.mocked(toast);
 
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
@@ -178,7 +185,7 @@ describe('useChangePassword', () => {
   });
 
   describe('submit', () => {
-    it('reauthenticates with the current password, updates it, and confirms', async () => {
+    it('reauthenticates with the current password and updates it', async () => {
       const hook = await setup();
 
       await fillValid(hook);
@@ -196,25 +203,21 @@ describe('useChangePassword', () => {
       expect(mockReauthenticate.mock.invocationCallOrder[0]).toBeLessThan(
         mockUpdatePassword.mock.invocationCallOrder[0],
       );
-      expect(mockAlert).toHaveBeenCalledWith(
-        'changePassword.success.title',
-        undefined,
-        expect.any(Array),
-      );
       expect(hook.result.current.loading).toBe(false);
     });
 
-    it('goes back after the success alert is acknowledged', async () => {
+    it('shows a success toast and goes back at once, with no alert', async () => {
       const hook = await setup();
 
       await fillValid(hook);
       await submit(hook);
 
-      expect(mockBack).not.toHaveBeenCalled();
-
-      pressAlertButton(0, 'default');
-
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
+      expect(mockToast.success).toHaveBeenCalledWith(
+        'changePassword.success.title',
+      );
       expect(mockBack).toHaveBeenCalledTimes(1);
+      expect(mockAlert).not.toHaveBeenCalled();
     });
 
     it.each(['auth/wrong-password', 'auth/invalid-credential'])(
@@ -261,6 +264,8 @@ describe('useChangePassword', () => {
       expect(hook.result.current.error).toBe(message);
       expect(hook.result.current.currentPasswordError).toBe('');
       expect(mockAlert).not.toHaveBeenCalled();
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockBack).not.toHaveBeenCalled();
       expect(hook.result.current.loading).toBe(false);
     });
 
@@ -319,6 +324,7 @@ describe('useChangePassword', () => {
         ),
       );
       expect(mockBack).not.toHaveBeenCalled();
+      expect(mockToast.success).not.toHaveBeenCalled();
     });
 
     it('shows a form-level error when sending fails', async () => {

@@ -10,6 +10,7 @@ import {
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import theme, { useAppTheme } from '@/constants/theme';
+import { SheetToastHost } from '@/lib/toast/ToastHost';
 import { BottomSheet as ExpoBottomSheet, RNHostView } from '@expo/ui';
 import { preferredColorScheme } from '@expo/ui/swift-ui/modifiers';
 import { Ionicons } from '@expo/vector-icons';
@@ -94,6 +95,11 @@ export default function BottomSheet({
           </Box>
 
           <ScrollView nestedScrollEnabled>{children}</ScrollView>
+
+          {/* On Android the sheet is a Dialog window above the root toast
+              host, so it carries its own host while presented. iOS keeps
+              the root host above sheets (ADR 0004). */}
+          {Platform.OS === 'android' && visible ? <SheetToastHost /> : null}
         </Box>
       </RNHostView>
     </ExpoBottomSheet>

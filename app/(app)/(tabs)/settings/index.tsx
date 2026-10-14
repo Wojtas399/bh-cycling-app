@@ -44,7 +44,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const connection = useIntervalsConnection();
-  const { handleConnect, handleDisconnect, connecting, disconnecting, error } =
+  const { handleConnect, handleDisconnect, connecting, disconnecting } =
     useIntervalsAuth();
 
   const user = auth().currentUser;
@@ -114,11 +114,7 @@ export default function SettingsScreen() {
         />
       </SettingsSection>
 
-      <SettingsSection
-        title={t('integrations.title')}
-        footer={error || undefined}
-        footerColor="danger"
-      >
+      <SettingsSection title={t('integrations.title')}>
         <SettingsRow
           icon="link-outline"
           iconColor="success"
