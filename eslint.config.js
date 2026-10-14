@@ -68,6 +68,25 @@ module.exports = defineConfig([
           next: '*',
         },
       ],
+
+      // Library wrappers (ADR 0004): only the wrapper module may import the library.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'sonner-native',
+              message: "Import from '@/lib/toast' instead (ADR 0004).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['lib/toast/**'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 ]);
