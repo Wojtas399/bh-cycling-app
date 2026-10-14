@@ -43,6 +43,8 @@ jobs:
 
             Review PR #${{ github.event.pull_request.number }} against its base branch `origin/${{ github.event.pull_request.base.ref }}`.
 
+            For the Standards axis, the repo's coding standards are in `CODING_STANDARDS.md`, and they bind the ADRs in `docs/adr/`. Read both and apply them. They override the smell baseline.
+
             Post the review with `gh pr comment ${{ github.event.pull_request.number }} --body "..."`.
             Only post a GitHub comment - don't submit the review as a message.
           claude_args: '--allowedTools "Bash(gh:*),Bash(git:*),Agent,Read,Grep,Glob"'
