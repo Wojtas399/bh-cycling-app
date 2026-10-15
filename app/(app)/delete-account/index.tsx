@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,7 +15,6 @@ import FormField from '@/components/FormField';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 
 export default function DeleteAccountScreen() {
@@ -24,8 +22,6 @@ export default function DeleteAccountScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-
-  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const {
     password,
@@ -90,23 +86,11 @@ export default function DeleteAccountScreen() {
                 onChangeText={onPasswordChange}
                 error={passwordError}
                 editable={!loading}
-                secureTextEntry={!passwordVisible}
+                password
                 textContentType="password"
                 autoComplete="current-password"
                 returnKeyType="done"
                 onSubmitEditing={handleDelete}
-                rightElement={
-                  <TouchableOpacity
-                    onPress={() => setPasswordVisible(v => !v)}
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={passwordVisible ? 'eye-off' : 'eye'}
-                      size={20}
-                      color={theme.colors.textTertiary}
-                    />
-                  </TouchableOpacity>
-                }
               />
             ) : (
               <Text variant="body-s-regular" color="textSecondary">

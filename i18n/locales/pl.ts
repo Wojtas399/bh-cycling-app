@@ -2,6 +2,8 @@ const pl = {
   common: {
     back: 'Wstecz',
     close: 'Zamknij',
+    showPassword: 'Pokaż hasło',
+    hidePassword: 'Ukryj hasło',
   },
   signUp: {
     title: 'Utwórz konto',
