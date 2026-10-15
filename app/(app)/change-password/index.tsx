@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -15,11 +16,16 @@ import FormField from '@/components/FormField';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'changePassword' });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  const [currentPasswordVisible, setCurrentPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const {
     currentPassword,
@@ -58,10 +64,22 @@ export default function ChangePasswordScreen() {
             onChangeText={onCurrentPasswordChange}
             error={currentPasswordError}
             editable={!loading}
-            secureTextEntry
+            secureTextEntry={!currentPasswordVisible}
             textContentType="password"
             autoComplete="current-password"
             returnKeyType="next"
+            rightElement={
+              <TouchableOpacity
+                onPress={() => setCurrentPasswordVisible(v => !v)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={currentPasswordVisible ? 'eye-off' : 'eye'}
+                  size={20}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+            }
           />
 
           <Box marginTop="md">
@@ -71,10 +89,22 @@ export default function ChangePasswordScreen() {
               onChangeText={onNewPasswordChange}
               error={newPasswordError}
               editable={!loading}
-              secureTextEntry
+              secureTextEntry={!newPasswordVisible}
               textContentType="newPassword"
               autoComplete="new-password"
               returnKeyType="next"
+              rightElement={
+                <TouchableOpacity
+                  onPress={() => setNewPasswordVisible(v => !v)}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name={newPasswordVisible ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={theme.colors.textTertiary}
+                  />
+                </TouchableOpacity>
+              }
             />
           </Box>
 
@@ -85,11 +115,23 @@ export default function ChangePasswordScreen() {
               onChangeText={onConfirmPasswordChange}
               error={confirmPasswordError}
               editable={!loading}
-              secureTextEntry
+              secureTextEntry={!confirmPasswordVisible}
               textContentType="newPassword"
               autoComplete="new-password"
               returnKeyType="done"
               onSubmitEditing={handleSubmit}
+              rightElement={
+                <TouchableOpacity
+                  onPress={() => setConfirmPasswordVisible(v => !v)}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name={confirmPasswordVisible ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={theme.colors.textTertiary}
+                  />
+                </TouchableOpacity>
+              }
             />
           </Box>
 
