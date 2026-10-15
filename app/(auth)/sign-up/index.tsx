@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -13,6 +12,7 @@ import { useSignUp } from './useSignUp';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
+import PasswordInput from '@/components/PasswordInput';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,9 +23,6 @@ export default function SignUpScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const {
     email,
@@ -120,25 +117,12 @@ export default function SignUpScreen() {
               <Box marginTop="md">
                 <Text variant="body-s-medium">{t('signUp.password')}</Text>
                 <Box marginTop="xs">
-                  <Input
+                  <PasswordInput
                     placeholder="••••••••"
                     value={password}
                     onChangeText={onPasswordChange}
                     editable={!disabled}
-                    secureTextEntry={!passwordVisible}
                     returnKeyType="next"
-                    rightElement={
-                      <TouchableOpacity
-                        onPress={() => setPasswordVisible(v => !v)}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={passwordVisible ? 'eye-off' : 'eye'}
-                          size={20}
-                          color={theme.colors.textTertiary}
-                        />
-                      </TouchableOpacity>
-                    }
                   />
                 </Box>
                 {passwordError ? (
@@ -155,28 +139,15 @@ export default function SignUpScreen() {
                   {t('signUp.confirmPassword')}
                 </Text>
                 <Box marginTop="xs">
-                  <Input
+                  <PasswordInput
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChangeText={onConfirmPasswordChange}
                     editable={!disabled}
-                    secureTextEntry={!confirmPasswordVisible}
                     returnKeyType="done"
                     onSubmitEditing={() => {
                       if (!disabled) handleSignUp();
                     }}
-                    rightElement={
-                      <TouchableOpacity
-                        onPress={() => setConfirmPasswordVisible(v => !v)}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name={confirmPasswordVisible ? 'eye-off' : 'eye'}
-                          size={20}
-                          color={theme.colors.textTertiary}
-                        />
-                      </TouchableOpacity>
-                    }
                   />
                 </Box>
                 {confirmPasswordError ? (

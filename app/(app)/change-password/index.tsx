@@ -58,7 +58,7 @@ export default function ChangePasswordScreen() {
             onChangeText={onCurrentPasswordChange}
             error={currentPasswordError}
             editable={!loading}
-            secureTextEntry
+            password
             textContentType="password"
             autoComplete="current-password"
             returnKeyType="next"
@@ -71,7 +71,7 @@ export default function ChangePasswordScreen() {
               onChangeText={onNewPasswordChange}
               error={newPasswordError}
               editable={!loading}
-              secureTextEntry
+              password
               textContentType="newPassword"
               autoComplete="new-password"
               returnKeyType="next"
@@ -85,7 +85,7 @@ export default function ChangePasswordScreen() {
               onChangeText={onConfirmPasswordChange}
               error={confirmPasswordError}
               editable={!loading}
-              secureTextEntry
+              password
               textContentType="newPassword"
               autoComplete="new-password"
               returnKeyType="done"

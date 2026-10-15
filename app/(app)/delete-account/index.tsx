@@ -86,7 +86,7 @@ export default function DeleteAccountScreen() {
                 onChangeText={onPasswordChange}
                 error={passwordError}
                 editable={!loading}
-                secureTextEntry
+                password
                 textContentType="password"
                 autoComplete="current-password"
                 returnKeyType="done"
