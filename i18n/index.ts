@@ -1,6 +1,7 @@
 import { initReactI18next } from 'react-i18next';
 
 import pl from './locales/pl';
+import { MIN_PASSWORD_LENGTH } from '@/lib/validation';
 import { getLocales } from 'expo-localization';
 import i18n from 'i18next';
 
@@ -14,6 +15,7 @@ i18n.use(initReactI18next).init({
   fallbackLng: 'pl',
   interpolation: {
     escapeValue: false,
+    defaultVariables: { minPasswordLength: MIN_PASSWORD_LENGTH },
   },
 });
 

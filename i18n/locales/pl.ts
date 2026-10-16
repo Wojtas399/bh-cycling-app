@@ -5,6 +5,15 @@ const pl = {
     showPassword: 'Pokaż hasło',
     hidePassword: 'Ukryj hasło',
   },
+  // Validation messages shared across forms (ADR 0006).
+  validation: {
+    emailRequired: 'Podaj adres e-mail.',
+    emailInvalid: 'Podaj prawidłowy adres e-mail.',
+    passwordRequired: 'Podaj hasło.',
+    passwordTooShort:
+      'Hasło musi mieć co najmniej {{minPasswordLength}} znaków.',
+    passwordsMismatch: 'Hasła nie są zgodne.',
+  },
   signUp: {
     title: 'Utwórz konto',
     subtitle: 'Zarejestruj się, aby zacząć',
