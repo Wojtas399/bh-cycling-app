@@ -33,12 +33,7 @@ const pl = {
       googleFailed: 'Rejestracja przez Google nie powiodła się.',
     },
     validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-      passwordRequired: 'Podaj hasło.',
-      passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków.',
       confirmPasswordRequired: 'Potwierdź hasło.',
-      passwordsMismatch: 'Hasła nie są zgodne.',
     },
   },
   signIn: {
@@ -56,11 +51,6 @@ const pl = {
       tooManyRequests: 'Za dużo prób logowania. Spróbuj ponownie później.',
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
-    },
-    validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-      passwordRequired: 'Podaj hasło.',
       googleFailed: 'Logowanie przez Google nie powiodło się.',
     },
   },
@@ -96,10 +86,6 @@ const pl = {
       tooManyRequests: 'Za dużo prób. Spróbuj ponownie później.',
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
-    },
-    validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
     },
   },
   tabs: {

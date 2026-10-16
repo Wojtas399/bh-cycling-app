@@ -12,8 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSignIn } from './useSignIn';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
-import Input from '@/components/Input';
-import PasswordInput from '@/components/PasswordInput';
+import FormTextField from '@/components/FormTextField';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,19 +25,13 @@ export default function SignInScreen() {
   const router = useRouter();
 
   const {
-    email,
-    password,
-    emailError,
-    passwordError,
-    error,
-    loading,
-    googleLoading,
-    disabled,
-    passwordRef,
-    onEmailChange,
-    onPasswordChange,
-    handleSignIn,
-    handleGoogleSignIn,
+    form,
+    formError,
+    busy,
+    emailSignInPending,
+    googleSignInPending,
+    submit,
+    signInWithGoogle,
   } = useSignIn();
 
   return (
@@ -78,45 +71,29 @@ export default function SignInScreen() {
             </Box>
 
             <Box width="100%" marginTop="xl">
-              <Text variant="body-s-medium">{t('signIn.email')}</Text>
-              <Box marginTop="xs">
-                <Input
-                  placeholder="you@example.com"
-                  value={email}
-                  onChangeText={onEmailChange}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordRef.current?.focus()}
-                />
-              </Box>
-              {emailError ? (
-                <Box marginTop="xs">
-                  <Text variant="body-xs-regular" color="danger">
-                    {emailError}
-                  </Text>
-                </Box>
-              ) : null}
+              <FormTextField
+                form={form}
+                name="email"
+                next="password"
+                label={t('signIn.email')}
+                placeholder="you@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="emailAddress"
+                autoComplete="email"
+              />
               <Box marginTop="md">
-                <Text variant="body-s-medium">{t('signIn.password')}</Text>
-                <Box marginTop="xs">
-                  <PasswordInput
-                    ref={passwordRef}
-                    placeholder="••••••••"
-                    value={password}
-                    onChangeText={onPasswordChange}
-                    returnKeyType="done"
-                    onSubmitEditing={handleSignIn}
-                  />
-                </Box>
-                {passwordError ? (
-                  <Box marginTop="xs">
-                    <Text variant="body-xs-regular" color="danger">
-                      {passwordError}
-                    </Text>
-                  </Box>
-                ) : null}
+                <FormTextField
+                  form={form}
+                  name="password"
+                  label={t('signIn.password')}
+                  password
+                  textContentType="password"
+                  autoComplete="current-password"
+                  returnKeyType="done"
+                  onSubmitEditing={submit}
+                />
               </Box>
             </Box>
 
@@ -134,12 +111,12 @@ export default function SignInScreen() {
             <Box width="100%" marginTop="xl">
               <Button
                 variant="primary"
-                opacity={disabled ? 0.6 : 1}
-                onPress={handleSignIn}
-                disabled={disabled}
+                opacity={busy ? 0.6 : 1}
+                onPress={submit}
+                disabled={busy}
                 activeOpacity={0.8}
               >
-                {loading ? (
+                {emailSignInPending ? (
                   <ActivityIndicator color={theme.colors.textInverse} />
                 ) : (
                   <Text variant="body-l-semibold" color="textInverse">
@@ -147,14 +124,14 @@ export default function SignInScreen() {
                   </Text>
                 )}
               </Button>
-              {error ? (
+              {formError ? (
                 <Box marginTop="sm">
                   <Text
                     variant="body-s-regular"
                     color="danger"
                     textAlign="center"
                   >
-                    {error}
+                    {formError}
                   </Text>
                 </Box>
               ) : null}
@@ -178,12 +155,12 @@ export default function SignInScreen() {
             <Button
               variant="secondary"
               marginTop="xl"
-              opacity={disabled ? 0.6 : 1}
-              onPress={handleGoogleSignIn}
-              disabled={disabled}
+              opacity={busy ? 0.6 : 1}
+              onPress={signInWithGoogle}
+              disabled={busy}
               activeOpacity={0.8}
             >
-              {googleLoading ? (
+              {googleSignInPending ? (
                 <ActivityIndicator color={theme.colors.textPrimary} />
               ) : (
                 <>
