@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useForgotPassword } from './useForgotPassword';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
-import Input from '@/components/Input';
+import FormTextField from '@/components/FormTextField';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,17 +24,15 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
 
   const {
-    email,
-    emailError,
-    error,
-    loading,
+    form,
+    formError,
+    busy,
+    submit,
+    resend,
+    backToSignIn,
     success,
+    sentEmail,
     cooldown,
-    disabled,
-    onEmailChange,
-    handleSend,
-    handleResend,
-    handleBackToSignIn,
   } = useForgotPassword();
 
   function renderResendLabel() {
@@ -64,27 +62,27 @@ export default function ForgotPasswordScreen() {
             color="textSecondary"
             textAlign="center"
           >
-            {t('forgotPassword.success.subtitle', { email })}
+            {t('forgotPassword.success.subtitle', { email: sentEmail ?? '' })}
           </Text>
         </Box>
 
-        {error && (
+        {formError ? (
           <Box width="100%" marginTop="xl">
             <Text variant="body-s-regular" color="danger" textAlign="center">
-              {error}
+              {formError}
             </Text>
           </Box>
-        )}
+        ) : null}
 
         <Box width="100%" marginTop="xl">
           <Button
             variant="secondary"
-            opacity={disabled || cooldown > 0 ? 0.6 : 1}
-            onPress={handleResend}
-            disabled={disabled || cooldown > 0}
+            opacity={busy || cooldown > 0 ? 0.6 : 1}
+            onPress={resend}
+            disabled={busy || cooldown > 0}
             activeOpacity={0.8}
           >
-            {loading ? (
+            {busy ? (
               <ActivityIndicator color={theme.colors.textPrimary} />
             ) : (
               <Text variant="body-s-medium" color="textPrimary">
@@ -95,7 +93,7 @@ export default function ForgotPasswordScreen() {
         </Box>
 
         <Box marginTop="xl">
-          <TouchableOpacity onPress={handleBackToSignIn}>
+          <TouchableOpacity onPress={backToSignIn}>
             <Text
               variant="body-s-regular"
               color="textSecondary"
@@ -127,45 +125,36 @@ export default function ForgotPasswordScreen() {
         </Box>
 
         <Box width="100%" marginTop="xl">
-          <Text variant="body-s-medium">{t('forgotPassword.email')}</Text>
-          <Box marginTop="xs">
-            <Input
-              placeholder="you@example.com"
-              value={email}
-              onChangeText={onEmailChange}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="done"
-              onSubmitEditing={handleSend}
-            />
-          </Box>
-          {emailError && (
-            <Box marginTop="xs">
-              <Text variant="body-xs-regular" color="danger">
-                {emailError}
-              </Text>
-            </Box>
-          )}
+          <FormTextField
+            form={form}
+            name="email"
+            label={t('forgotPassword.email')}
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={submit}
+          />
         </Box>
 
-        {error && (
+        {formError ? (
           <Box width="100%" marginTop="xl">
             <Text variant="body-s-regular" color="danger" textAlign="center">
-              {error}
+              {formError}
             </Text>
           </Box>
-        )}
+        ) : null}
 
         <Box width="100%" marginTop="xl">
           <Button
             variant="primary"
-            opacity={disabled ? 0.6 : 1}
-            onPress={handleSend}
-            disabled={disabled}
+            opacity={busy ? 0.6 : 1}
+            onPress={submit}
+            disabled={busy}
             activeOpacity={0.8}
           >
-            {loading ? (
+            {busy ? (
               <ActivityIndicator color={theme.colors.textInverse} />
             ) : (
               <Text variant="body-l-semibold" color="textInverse">
@@ -176,7 +165,7 @@ export default function ForgotPasswordScreen() {
         </Box>
 
         <Box marginTop="xl">
-          <TouchableOpacity onPress={handleBackToSignIn}>
+          <TouchableOpacity onPress={backToSignIn}>
             <Text
               variant="body-s-regular"
               color="textSecondary"
