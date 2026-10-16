@@ -33,12 +33,7 @@ const pl = {
       googleFailed: 'Rejestracja przez Google nie powiodła się.',
     },
     validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-      passwordRequired: 'Podaj hasło.',
-      passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków.',
       confirmPasswordRequired: 'Potwierdź hasło.',
-      passwordsMismatch: 'Hasła nie są zgodne.',
     },
   },
   signIn: {

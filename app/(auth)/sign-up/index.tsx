@@ -11,8 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSignUp } from './useSignUp';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
-import Input from '@/components/Input';
-import PasswordInput from '@/components/PasswordInput';
+import FormTextField from '@/components/FormTextField';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,21 +24,13 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   const {
-    email,
-    password,
-    confirmPassword,
-    emailError,
-    passwordError,
-    confirmPasswordError,
-    error,
-    loading,
-    googleLoading,
-    disabled,
-    onEmailChange,
-    onPasswordChange,
-    onConfirmPasswordChange,
-    handleSignUp,
-    handleGoogleSignUp,
+    form,
+    formError,
+    busy,
+    emailPending,
+    googlePending,
+    submit,
+    signUpWithGoogle,
   } = useSignUp();
 
   return (
@@ -93,81 +84,53 @@ export default function SignUpScreen() {
             </Box>
 
             <Box width="100%" marginTop="xl">
-              <Text variant="body-s-medium">{t('signUp.email')}</Text>
-              <Box marginTop="xs">
-                <Input
-                  placeholder="you@example.com"
-                  value={email}
-                  onChangeText={onEmailChange}
-                  editable={!disabled}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  returnKeyType="next"
+              <FormTextField
+                form={form}
+                name="email"
+                next="password"
+                label={t('signUp.email')}
+                placeholder="you@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="emailAddress"
+                autoComplete="email"
+              />
+
+              <Box marginTop="md">
+                <FormTextField
+                  form={form}
+                  name="password"
+                  next="confirmPassword"
+                  label={t('signUp.password')}
+                  password
+                  textContentType="newPassword"
+                  autoComplete="new-password"
                 />
               </Box>
-              {emailError ? (
-                <Box marginTop="xs">
-                  <Text variant="body-xs-regular" color="danger">
-                    {emailError}
-                  </Text>
-                </Box>
-              ) : null}
 
               <Box marginTop="md">
-                <Text variant="body-s-medium">{t('signUp.password')}</Text>
-                <Box marginTop="xs">
-                  <PasswordInput
-                    placeholder="••••••••"
-                    value={password}
-                    onChangeText={onPasswordChange}
-                    editable={!disabled}
-                    returnKeyType="next"
-                  />
-                </Box>
-                {passwordError ? (
-                  <Box marginTop="xs">
-                    <Text variant="body-xs-regular" color="danger">
-                      {passwordError}
-                    </Text>
-                  </Box>
-                ) : null}
-              </Box>
-
-              <Box marginTop="md">
-                <Text variant="body-s-medium">
-                  {t('signUp.confirmPassword')}
-                </Text>
-                <Box marginTop="xs">
-                  <PasswordInput
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChangeText={onConfirmPasswordChange}
-                    editable={!disabled}
-                    returnKeyType="done"
-                    onSubmitEditing={() => {
-                      if (!disabled) handleSignUp();
-                    }}
-                  />
-                </Box>
-                {confirmPasswordError ? (
-                  <Box marginTop="xs">
-                    <Text variant="body-xs-regular" color="danger">
-                      {confirmPasswordError}
-                    </Text>
-                  </Box>
-                ) : null}
+                <FormTextField
+                  form={form}
+                  name="confirmPassword"
+                  label={t('signUp.confirmPassword')}
+                  password
+                  textContentType="newPassword"
+                  autoComplete="new-password"
+                  returnKeyType="done"
+                  onSubmitEditing={submit}
+                />
               </Box>
             </Box>
 
-            {error ? (
+            {formError ? (
               <Box width="100%" marginTop="xl">
                 <Text
                   variant="body-s-regular"
                   color="danger"
                   textAlign="center"
                 >
-                  {error}
+                  {formError}
                 </Text>
               </Box>
             ) : null}
@@ -175,12 +138,12 @@ export default function SignUpScreen() {
             <Box width="100%" marginTop="xl">
               <Button
                 variant="primary"
-                opacity={disabled ? 0.6 : 1}
-                onPress={handleSignUp}
-                disabled={disabled}
+                opacity={busy ? 0.6 : 1}
+                onPress={submit}
+                disabled={busy}
                 activeOpacity={0.8}
               >
-                {loading ? (
+                {emailPending ? (
                   <ActivityIndicator color={theme.colors.textInverse} />
                 ) : (
                   <Text variant="body-l-semibold" color="textInverse">
@@ -208,12 +171,12 @@ export default function SignUpScreen() {
             <Button
               variant="secondary"
               marginTop="xl"
-              opacity={disabled ? 0.6 : 1}
-              onPress={handleGoogleSignUp}
-              disabled={disabled}
+              opacity={busy ? 0.6 : 1}
+              onPress={signUpWithGoogle}
+              disabled={busy}
               activeOpacity={0.8}
             >
-              {googleLoading ? (
+              {googlePending ? (
                 <ActivityIndicator color={theme.colors.textPrimary} />
               ) : (
                 <>
