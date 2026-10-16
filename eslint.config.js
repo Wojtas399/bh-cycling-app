@@ -119,7 +119,6 @@ module.exports = defineConfig([
     ignores: [
       'app/(auth)/sign-in/index.tsx', // TODO: remove when migrated (ADR 0006)
       'app/(auth)/sign-up/index.tsx', // TODO: remove when migrated (ADR 0006)
-      'app/(auth)/forgot-password/index.tsx', // TODO: remove when migrated (ADR 0006)
       'app/(app)/delete-account/index.tsx', // TODO: remove when migrated (ADR 0006)
     ],
     rules: {
