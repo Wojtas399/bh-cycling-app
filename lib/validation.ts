@@ -38,19 +38,19 @@ export function newPasswordField(
  * own error comes first, so it still shows at most one error. Pair it with
  * `deps: { [password]: [confirm] }` in the form hook.
  */
-export function passwordsMatch<P extends string, C extends string>(
-  password: P,
-  confirm: C,
-) {
-  type Input = Record<P | C, string>;
-  type Issue = v.CheckIssue<Input>;
+export function passwordsMatch<
+  T extends Record<string, unknown>,
+  P extends keyof T & string = keyof T & string,
+  C extends keyof T & string = keyof T & string,
+>(password: P, confirm: C) {
+  type Issue = v.CheckIssue<T>;
   // valibot can't prove a generic key is a valid path; `confirm` is a key of
-  // `Input` by construction.
-  type ConfirmPath = Parameters<typeof v.forward<Input, Issue, [C]>>[1];
+  // `T` by its type.
+  type ConfirmPath = Parameters<typeof v.forward<T, Issue, [C]>>[1];
 
-  return v.forward<Input, Issue, [C]>(
+  return v.forward<T, Issue, [C]>(
     v.check(
-      input => input[confirm] === input[password],
+      input => (input[confirm] as unknown) === input[password],
       msg('validation.passwordsMismatch'),
     ),
     [confirm] as ConfirmPath,
