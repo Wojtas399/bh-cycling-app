@@ -1,36 +1,42 @@
-import { useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import type { TextInput } from 'react-native';
 
 import {
   type SignInErrorMapping,
   type SignInMutation,
   mapSignInError,
 } from './signInErrors';
+import {
+  type SignInInput,
+  type SignInValues,
+  signInSchema,
+} from './signInSchema';
+import type { FormBinding } from '@/hooks/useFormTextField';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
-import { signInWithGoogle } from '@/lib/signInWithGoogle';
-import { EMAIL_REGEX } from '@/lib/validation';
+import { signInWithGoogle as googleSignInFlow } from '@/lib/signInWithGoogle';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-
-interface EmailSignInVariables {
-  email: string;
-  password: string;
-}
 
 export function useSignIn() {
   const { t } = useTranslation();
   const router = useRouter();
-  const passwordRef = useRef<TextInput>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const { control, setFocus, handleSubmit } = useForm<
+    SignInInput,
+    unknown,
+    SignInValues
+  >({
+    resolver: standardSchemaResolver(signInSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
+    defaultValues: { email: '', password: '' },
+  });
 
   const emailSignIn = useMutation({
-    mutationFn: async (variables: EmailSignInVariables) => {
+    mutationFn: async (variables: SignInValues) => {
       await auth().signInWithEmailAndPassword(
         variables.email,
         variables.password,
@@ -42,7 +48,7 @@ export function useSignIn() {
   });
 
   const googleSignIn = useMutation({
-    mutationFn: signInWithGoogle,
+    mutationFn: googleSignInFlow,
     onSuccess: outcome => {
       if (outcome === 'cancelled') return;
 
@@ -50,69 +56,7 @@ export function useSignIn() {
     },
   });
 
-  function validate(): boolean {
-    let valid = true;
-
-    if (!email.trim()) {
-      setEmailError(t('signIn.validation.emailRequired'));
-      valid = false;
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError(t('signIn.validation.emailInvalid'));
-      valid = false;
-    } else {
-      setEmailError('');
-    }
-
-    if (!password) {
-      setPasswordError(t('signIn.validation.passwordRequired'));
-      valid = false;
-    } else {
-      setPasswordError('');
-    }
-
-    return valid;
-  }
-
-  function resetMutations() {
-    emailSignIn.reset();
-    googleSignIn.reset();
-  }
-
-  function onEmailChange(text: string) {
-    setEmail(text);
-
-    if (emailError) setEmailError('');
-
-    resetMutations();
-  }
-
-  function onPasswordChange(text: string) {
-    setPassword(text);
-
-    if (passwordError) setPasswordError('');
-
-    resetMutations();
-  }
-
-  async function handleSignIn() {
-    if (emailSignIn.isPending || !validate()) return;
-
-    googleSignIn.reset();
-
-    // A failure surfaces through `emailSignIn.error`.
-    await emailSignIn
-      .mutateAsync({ email: email.trim(), password })
-      .catch(() => {});
-  }
-
-  async function handleGoogleSignIn() {
-    if (googleSignIn.isPending) return;
-
-    emailSignIn.reset();
-
-    // A failure surfaces through `googleSignIn.error`.
-    await googleSignIn.mutateAsync().catch(() => {});
-  }
+  const busy = emailSignIn.isPending || googleSignIn.isPending;
 
   function mapError(mutation: SignInMutation, e: unknown): SignInErrorMapping {
     return mapSignInError(mutation, getErrorCode(e));
@@ -125,19 +69,45 @@ export function useSignIn() {
       ? mapError('googleSignIn', googleSignIn.error)
       : null;
 
+  const form: FormBinding<SignInInput> = {
+    control,
+    setFocus,
+    busy,
+    onFieldChange: () => {
+      emailSignIn.reset();
+      googleSignIn.reset();
+    },
+    // Sign-in errors are all form errors; none shows under a field.
+    serverError: () => '',
+  };
+
+  async function submit() {
+    if (busy) return;
+
+    await handleSubmit(async values => {
+      googleSignIn.reset();
+
+      // A failure surfaces through `emailSignIn.error`.
+      await emailSignIn.mutateAsync(values).catch(() => {});
+    })();
+  }
+
+  async function signInWithGoogle() {
+    if (busy) return;
+
+    emailSignIn.reset();
+
+    // A failure surfaces through `googleSignIn.error`.
+    await googleSignIn.mutateAsync().catch(() => {});
+  }
+
   return {
-    email,
-    password,
-    emailError,
-    passwordError,
-    error: mapped ? t(mapped.key) : '',
-    loading: emailSignIn.isPending,
-    googleLoading: googleSignIn.isPending,
-    disabled: emailSignIn.isPending || googleSignIn.isPending,
-    passwordRef,
-    onEmailChange,
-    onPasswordChange,
-    handleSignIn,
-    handleGoogleSignIn,
+    form,
+    formError: mapped ? t(mapped.key) : '',
+    busy,
+    emailSignInPending: emailSignIn.isPending,
+    googleSignInPending: googleSignIn.isPending,
+    submit,
+    signInWithGoogle,
   };
 }

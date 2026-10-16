@@ -56,11 +56,6 @@ const pl = {
       tooManyRequests: 'Za dużo prób logowania. Spróbuj ponownie później.',
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
-    },
-    validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-      passwordRequired: 'Podaj hasło.',
       googleFailed: 'Logowanie przez Google nie powiodło się.',
     },
   },
