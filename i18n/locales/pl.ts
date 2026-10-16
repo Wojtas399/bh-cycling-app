@@ -193,9 +193,6 @@ const pl = {
         'Minęło zbyt dużo czasu od ostatniego potwierdzenia tożsamości. Potwierdź ją ponownie i spróbuj jeszcze raz.',
       generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
     },
-    validation: {
-      passwordRequired: 'Podaj hasło.',
-    },
   },
   home: {
     upcomingWorkouts: {

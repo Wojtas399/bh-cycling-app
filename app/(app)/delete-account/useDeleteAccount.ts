@@ -1,33 +1,52 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import {
   type DeleteAccountErrorMapping,
   mapDeleteAccountError,
 } from './deleteAccountErrors';
+import {
+  type DeleteAccountInput,
+  type DeleteAccountValues,
+  deleteAccountSchema,
+} from './deleteAccountSchema';
+import type { FormBinding } from '@/hooks/useFormTextField';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
 import { toast } from '@/lib/toast';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import {
   isErrorWithCode,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { useMutation } from '@tanstack/react-query';
+import { useNavigation } from 'expo-router';
 
 export function useDeleteAccount() {
   const { t } = useTranslation();
-
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const navigation = useNavigation();
 
   const requiresPassword = getSignInMethods(auth().currentUser).includes(
     'email',
   );
 
+  const { control, setFocus, handleSubmit } = useForm<
+    DeleteAccountInput,
+    unknown,
+    DeleteAccountValues
+  >({
+    resolver: standardSchemaResolver(deleteAccountSchema(requiresPassword)),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
+    defaultValues: { password: '' },
+  });
+
   /** Resolves to false when the user cancelled Google sign-in. */
-  async function reauthenticate(): Promise<boolean> {
+  async function reauthenticate(values: DeleteAccountValues): Promise<boolean> {
     const user = auth().currentUser;
 
     if (!user) throw new Error('no_user');
@@ -35,7 +54,7 @@ export function useDeleteAccount() {
     if (requiresPassword) {
       const credential = auth.EmailAuthProvider.credential(
         user.email ?? '',
-        password,
+        values.password,
       );
 
       await user.reauthenticateWithCredential(credential);
@@ -61,9 +80,11 @@ export function useDeleteAccount() {
   }
 
   const deleteAccount = useMutation({
-    mutationFn: async (): Promise<'deleted' | 'cancelled'> => {
+    mutationFn: async (
+      values: DeleteAccountValues,
+    ): Promise<'deleted' | 'cancelled'> => {
       try {
-        if (!(await reauthenticate())) return 'cancelled';
+        if (!(await reauthenticate(values))) return 'cancelled';
       } catch (e) {
         if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
           return 'cancelled';
@@ -94,26 +115,23 @@ export function useDeleteAccount() {
     },
   });
 
-  function onPasswordChange(text: string) {
-    setPassword(text);
+  const busy = deleteAccount.isPending;
 
-    if (passwordError) setPasswordError('');
+  // Going back is blocked while the request runs: swipe gesture, hardware
+  // back button and the header button.
+  useEffect(() => {
+    navigation.setOptions({ gestureEnabled: !busy });
 
-    deleteAccount.reset();
-  }
+    return navigation.addListener('beforeRemove', event => {
+      // Only back navigation is blocked: the auth gate must still be able to
+      // replace this screen with sign-in once the account is deleted.
+      const { type } = event.data.action;
 
-  async function handleDelete() {
-    if (deleteAccount.isPending) return;
-
-    if (requiresPassword && !password) {
-      setPasswordError(t('deleteAccount.validation.passwordRequired'));
-
-      return;
-    }
-
-    // A failure surfaces through `deleteAccount.error`.
-    await deleteAccount.mutateAsync().catch(() => {});
-  }
+      if (busy && (type === 'GO_BACK' || type === 'POP')) {
+        event.preventDefault();
+      }
+    });
+  }, [navigation, busy]);
 
   const mapped = deleteAccount.error
     ? mapDeleteAccountError(getErrorCode(deleteAccount.error))
@@ -123,13 +141,28 @@ export function useDeleteAccount() {
     return mapped && mapped.field === field ? t(mapped.key) : '';
   }
 
+  const form: FormBinding<DeleteAccountInput> = {
+    control,
+    setFocus,
+    busy,
+    onFieldChange: () => deleteAccount.reset(),
+    serverError: name => mappedError(name),
+  };
+
+  async function submit() {
+    if (busy) return;
+
+    await handleSubmit(async values => {
+      // A failure surfaces through `deleteAccount.error`.
+      await deleteAccount.mutateAsync(values).catch(() => {});
+    })();
+  }
+
   return {
-    password,
-    passwordError: passwordError || mappedError('password'),
-    error: mappedError(),
-    loading: deleteAccount.isPending,
+    form,
+    formError: mappedError(),
+    busy,
     requiresPassword,
-    onPasswordChange,
-    handleDelete,
+    submit,
   };
 }
