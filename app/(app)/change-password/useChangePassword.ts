@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
@@ -7,31 +7,41 @@ import {
   type ChangePasswordMutation,
   mapChangePasswordError,
 } from './changePasswordErrors';
+import {
+  type ChangePasswordInput,
+  type ChangePasswordValues,
+  changePasswordSchema,
+} from './changePasswordSchema';
+import type { FormBinding } from '@/hooks/useFormTextField';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { toast } from '@/lib/toast';
-import { MIN_PASSWORD_LENGTH } from '@/lib/validation';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-
-interface ChangePasswordVariables {
-  currentPassword: string;
-  newPassword: string;
-}
 
 export function useChangePassword() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [currentPasswordError, setCurrentPasswordError] = useState('');
-  const [newPasswordError, setNewPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const { control, setFocus, handleSubmit } = useForm<
+    ChangePasswordInput,
+    unknown,
+    ChangePasswordValues
+  >({
+    resolver: standardSchemaResolver(changePasswordSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
 
   const changePassword = useMutation({
-    mutationFn: async (variables: ChangePasswordVariables) => {
+    mutationFn: async (variables: ChangePasswordValues) => {
       const user = auth().currentUser;
 
       // Maps to the generic form error.
@@ -63,107 +73,7 @@ export function useChangePassword() {
     },
   });
 
-  const loading = changePassword.isPending || sendResetEmail.isPending;
-
-  function validate(): boolean {
-    let valid = true;
-
-    if (!currentPassword) {
-      setCurrentPasswordError(
-        t('changePassword.validation.currentPasswordRequired'),
-      );
-      valid = false;
-    }
-
-    if (!newPassword) {
-      setNewPasswordError(t('changePassword.validation.newPasswordRequired'));
-      valid = false;
-    } else if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setNewPasswordError(
-        t('changePassword.validation.newPasswordTooShort', {
-          count: MIN_PASSWORD_LENGTH,
-        }),
-      );
-      valid = false;
-    } else if (newPassword === currentPassword) {
-      setNewPasswordError(
-        t('changePassword.validation.newPasswordSameAsCurrent'),
-      );
-      valid = false;
-    }
-
-    if (!confirmPassword) {
-      setConfirmPasswordError(
-        t('changePassword.validation.confirmPasswordRequired'),
-      );
-      valid = false;
-    } else if (confirmPassword !== newPassword) {
-      setConfirmPasswordError(t('changePassword.validation.passwordsMismatch'));
-      valid = false;
-    }
-
-    return valid;
-  }
-
-  function resetMutations() {
-    changePassword.reset();
-    sendResetEmail.reset();
-  }
-
-  function onCurrentPasswordChange(text: string) {
-    setCurrentPassword(text);
-
-    if (currentPasswordError) setCurrentPasswordError('');
-
-    resetMutations();
-  }
-
-  function onNewPasswordChange(text: string) {
-    setNewPassword(text);
-
-    if (newPasswordError) setNewPasswordError('');
-
-    resetMutations();
-  }
-
-  function onConfirmPasswordChange(text: string) {
-    setConfirmPassword(text);
-
-    if (confirmPasswordError) setConfirmPasswordError('');
-
-    resetMutations();
-  }
-
-  async function handleSubmit() {
-    if (loading || !validate()) return;
-
-    sendResetEmail.reset();
-
-    // A failure surfaces through `changePassword.error`.
-    await changePassword
-      .mutateAsync({ currentPassword, newPassword })
-      .catch(() => {});
-  }
-
-  function handleForgotPassword() {
-    const email = auth().currentUser?.email;
-
-    if (!email || loading) return;
-
-    Alert.alert(t('changePassword.reset.confirmTitle', { email }), undefined, [
-      { text: t('changePassword.reset.cancelButton'), style: 'cancel' },
-      {
-        text: t('changePassword.reset.confirmButton'),
-        style: 'default',
-        onPress: () => {
-          if (sendResetEmail.isPending) return;
-
-          changePassword.reset();
-          sendResetEmail.mutate(email);
-        },
-      },
-    ]);
-  }
+  const busy = changePassword.isPending || sendResetEmail.isPending;
 
   function mapError(
     mutation: ChangePasswordMutation,
@@ -183,20 +93,55 @@ export function useChangePassword() {
     return mapped && mapped.field === field ? t(mapped.key) : '';
   }
 
+  const form: FormBinding<ChangePasswordInput> = {
+    control,
+    setFocus,
+    busy,
+    onFieldChange: () => {
+      changePassword.reset();
+      sendResetEmail.reset();
+    },
+    serverError: name => (name === 'confirmPassword' ? '' : mappedError(name)),
+    // Editing the new password re-checks "passwords mismatch".
+    deps: { newPassword: ['confirmPassword'] },
+  };
+
+  async function submit() {
+    if (busy) return;
+
+    await handleSubmit(async values => {
+      sendResetEmail.reset();
+
+      // A failure surfaces through `changePassword.error`.
+      await changePassword.mutateAsync(values).catch(() => {});
+    })();
+  }
+
+  function forgotPassword() {
+    const email = auth().currentUser?.email;
+
+    if (!email || busy) return;
+
+    Alert.alert(t('changePassword.reset.confirmTitle', { email }), undefined, [
+      { text: t('changePassword.reset.cancelButton'), style: 'cancel' },
+      {
+        text: t('changePassword.reset.confirmButton'),
+        style: 'default',
+        onPress: () => {
+          if (sendResetEmail.isPending) return;
+
+          changePassword.reset();
+          sendResetEmail.mutate(email);
+        },
+      },
+    ]);
+  }
+
   return {
-    currentPassword,
-    newPassword,
-    confirmPassword,
-    currentPasswordError:
-      currentPasswordError || mappedError('currentPassword'),
-    newPasswordError: newPasswordError || mappedError('newPassword'),
-    confirmPasswordError,
-    error: mappedError(),
-    loading,
-    onCurrentPasswordChange,
-    onNewPasswordChange,
-    onConfirmPasswordChange,
-    handleSubmit,
-    handleForgotPassword,
+    form,
+    formError: mappedError(),
+    busy,
+    submit,
+    forgotPassword,
   };
 }

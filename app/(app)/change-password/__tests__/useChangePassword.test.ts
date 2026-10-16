@@ -3,6 +3,7 @@ import type { AlertButton } from 'react-native';
 
 import { useChangePassword } from '../useChangePassword';
 import { toast } from '@/lib/toast';
+import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -52,8 +53,14 @@ const mockToast = jest.mocked(toast);
 
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
+const FIELDS = ['currentPassword', 'newPassword', 'confirmPassword'] as const;
+
 async function setup() {
-  return renderHookWithClient(() => useChangePassword());
+  return renderHookWithClient(() => {
+    const hook = useChangePassword();
+
+    return { ...hook, fields: useBoundFields(hook.form, FIELDS) };
+  });
 }
 
 type Hook = Awaited<ReturnType<typeof setup>>;
@@ -63,23 +70,25 @@ async function fill(
   values: { current?: string; next?: string; confirm?: string },
 ) {
   await act(async () => {
+    const { fields } = hook.result.current;
+
     if (values.current !== undefined) {
-      hook.result.current.onCurrentPasswordChange(values.current);
+      fields.currentPassword.onChangeText(values.current);
     }
 
     if (values.next !== undefined) {
-      hook.result.current.onNewPasswordChange(values.next);
+      fields.newPassword.onChangeText(values.next);
     }
 
     if (values.confirm !== undefined) {
-      hook.result.current.onConfirmPasswordChange(values.confirm);
+      fields.confirmPassword.onChangeText(values.confirm);
     }
   });
 }
 
 async function submit(hook: Hook) {
   await act(async () => {
-    await hook.result.current.handleSubmit();
+    await hook.result.current.submit();
   });
   // React Query hands the settled state to the hook on a later tick.
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
@@ -91,6 +100,10 @@ async function fillValid(hook: Hook) {
     next: 'new-password-1',
     confirm: 'new-password-1',
   });
+}
+
+function errorOf(hook: Hook, name: (typeof FIELDS)[number]) {
+  return hook.result.current.fields[name].error;
 }
 
 function pressAlertButton(callIndex: number, style: AlertButton['style']) {
@@ -107,57 +120,50 @@ describe('useChangePassword', () => {
     mockSendPasswordResetEmail.mockResolvedValue(undefined);
   });
 
+  // Per-field rules live in changePasswordSchema.test.ts; these cover timing.
   describe('validation', () => {
-    it('requires all three fields', async () => {
+    it('shows no errors before the first submit', async () => {
+      const hook = await setup();
+
+      await fill(hook, { confirm: 'other' });
+      await fill(hook, { next: 'short' });
+
+      expect(errorOf(hook, 'newPassword')).toBe('');
+      expect(errorOf(hook, 'confirmPassword')).toBe('');
+    });
+
+    it('shows schema errors on submit and does not call Firebase', async () => {
       const hook = await setup();
 
       await submit(hook);
 
-      expect(hook.result.current.currentPasswordError).toBe(
+      expect(errorOf(hook, 'currentPassword')).toBe(
         'changePassword.validation.currentPasswordRequired',
       );
-      expect(hook.result.current.newPasswordError).toBe(
+      expect(errorOf(hook, 'newPassword')).toBe(
         'changePassword.validation.newPasswordRequired',
       );
-      expect(hook.result.current.confirmPasswordError).toBe(
+      expect(errorOf(hook, 'confirmPassword')).toBe(
         'changePassword.validation.confirmPasswordRequired',
       );
       expect(mockReauthenticate).not.toHaveBeenCalled();
     });
 
-    it('rejects a new password shorter than the minimum length', async () => {
+    it('re-validates a field as it changes after a submit', async () => {
       const hook = await setup();
 
-      await fill(hook, {
-        current: 'old-password',
-        next: '1234567',
-        confirm: '1234567',
-      });
       await submit(hook);
+      await fill(hook, { next: 'short' });
 
-      expect(hook.result.current.newPasswordError).toContain(
-        'changePassword.validation.newPasswordTooShort',
-      );
-      expect(mockReauthenticate).not.toHaveBeenCalled();
+      expect(errorOf(hook, 'newPassword')).toBe('validation.passwordTooShort');
+
+      await fill(hook, { next: 'long-enough' });
+
+      expect(errorOf(hook, 'newPassword')).toBe('');
+      expect(errorOf(hook, 'currentPassword')).not.toBe('');
     });
 
-    it('rejects a new password equal to the current one', async () => {
-      const hook = await setup();
-
-      await fill(hook, {
-        current: 'same-password',
-        next: 'same-password',
-        confirm: 'same-password',
-      });
-      await submit(hook);
-
-      expect(hook.result.current.newPasswordError).toBe(
-        'changePassword.validation.newPasswordSameAsCurrent',
-      );
-      expect(mockReauthenticate).not.toHaveBeenCalled();
-    });
-
-    it('rejects a confirmation that does not match', async () => {
+    it('clears a stale mismatch when the new password is fixed', async () => {
       const hook = await setup();
 
       await fill(hook, {
@@ -167,20 +173,32 @@ describe('useChangePassword', () => {
       });
       await submit(hook);
 
-      expect(hook.result.current.confirmPasswordError).toBe(
-        'changePassword.validation.passwordsMismatch',
+      expect(errorOf(hook, 'confirmPassword')).toBe(
+        'validation.passwordsMismatch',
       );
-      expect(mockReauthenticate).not.toHaveBeenCalled();
+
+      await fill(hook, { next: 'new-password-2' });
+
+      expect(errorOf(hook, 'confirmPassword')).toBe('');
     });
 
-    it('clears a field error when that field changes', async () => {
+    it('focuses the first invalid field on submit', async () => {
       const hook = await setup();
+      const focus = { current: jest.fn(), next: jest.fn(), confirm: jest.fn() };
 
+      await act(async () => {
+        const { fields } = hook.result.current;
+
+        fields.currentPassword.ref({ focus: focus.current });
+        fields.newPassword.ref({ focus: focus.next });
+        fields.confirmPassword.ref({ focus: focus.confirm });
+      });
+      await fill(hook, { current: 'old-password' });
       await submit(hook);
-      await fill(hook, { current: 'x' });
 
-      expect(hook.result.current.currentPasswordError).toBe('');
-      expect(hook.result.current.newPasswordError).not.toBe('');
+      expect(focus.next).toHaveBeenCalled();
+      expect(focus.current).not.toHaveBeenCalled();
+      expect(focus.confirm).not.toHaveBeenCalled();
     });
   });
 
@@ -203,7 +221,31 @@ describe('useChangePassword', () => {
       expect(mockReauthenticate.mock.invocationCallOrder[0]).toBeLessThan(
         mockUpdatePassword.mock.invocationCallOrder[0],
       );
-      expect(hook.result.current.loading).toBe(false);
+      expect(hook.result.current.busy).toBe(false);
+    });
+
+    it('disables every field while the change is pending', async () => {
+      let finish!: () => void;
+
+      mockUpdatePassword.mockReturnValueOnce(
+        new Promise<void>(resolve => {
+          finish = resolve;
+        }),
+      );
+      const hook = await setup();
+
+      await fillValid(hook);
+      await act(async () => {
+        void hook.result.current.submit();
+      });
+      await waitFor(() => expect(hook.result.current.busy).toBe(true));
+
+      expect(
+        FIELDS.map(name => hook.result.current.fields[name].editable),
+      ).toEqual([false, false, false]);
+
+      await act(async () => finish());
+      await waitFor(() => expect(hook.result.current.busy).toBe(false));
     });
 
     it('shows a success toast and goes back at once, with no alert', async () => {
@@ -229,10 +271,10 @@ describe('useChangePassword', () => {
         await fillValid(hook);
         await submit(hook);
 
-        expect(hook.result.current.currentPasswordError).toBe(
+        expect(errorOf(hook, 'currentPassword')).toBe(
           'changePassword.errors.currentPasswordInvalid',
         );
-        expect(hook.result.current.error).toBe('');
+        expect(hook.result.current.formError).toBe('');
         expect(mockUpdatePassword).not.toHaveBeenCalled();
       },
     );
@@ -244,10 +286,10 @@ describe('useChangePassword', () => {
       await fillValid(hook);
       await submit(hook);
 
-      expect(hook.result.current.newPasswordError).toBe(
+      expect(errorOf(hook, 'newPassword')).toBe(
         'changePassword.errors.weakPassword',
       );
-      expect(hook.result.current.error).toBe('');
+      expect(hook.result.current.formError).toBe('');
     });
 
     it.each([
@@ -261,12 +303,12 @@ describe('useChangePassword', () => {
       await fillValid(hook);
       await submit(hook);
 
-      expect(hook.result.current.error).toBe(message);
-      expect(hook.result.current.currentPasswordError).toBe('');
+      expect(hook.result.current.formError).toBe(message);
+      expect(errorOf(hook, 'currentPassword')).toBe('');
       expect(mockAlert).not.toHaveBeenCalled();
       expect(mockToast.success).not.toHaveBeenCalled();
       expect(mockBack).not.toHaveBeenCalled();
-      expect(hook.result.current.loading).toBe(false);
+      expect(hook.result.current.busy).toBe(false);
     });
 
     it('clears the form-level error when any field changes', async () => {
@@ -277,7 +319,7 @@ describe('useChangePassword', () => {
       await submit(hook);
       await fill(hook, { next: 'another-password' });
 
-      expect(hook.result.current.error).toBe('');
+      expect(hook.result.current.formError).toBe('');
     });
 
     it('clears a mapped field error when any field changes', async () => {
@@ -288,7 +330,7 @@ describe('useChangePassword', () => {
       await submit(hook);
       await fill(hook, { confirm: 'new-password-1' });
 
-      expect(hook.result.current.newPasswordError).toBe('');
+      expect(errorOf(hook, 'newPassword')).toBe('');
     });
   });
 
@@ -296,7 +338,7 @@ describe('useChangePassword', () => {
     it('asks for confirmation with the account email before sending', async () => {
       const hook = await setup();
 
-      await act(async () => hook.result.current.handleForgotPassword());
+      await act(async () => hook.result.current.forgotPassword());
 
       expect(mockAlert).toHaveBeenCalledWith(
         'changePassword.reset.confirmTitle:{"email":"rider@example.com"}',
@@ -309,7 +351,7 @@ describe('useChangePassword', () => {
     it('sends the reset email on confirm and shows a success alert', async () => {
       const hook = await setup();
 
-      await act(async () => hook.result.current.handleForgotPassword());
+      await act(async () => hook.result.current.forgotPassword());
       await act(async () => {
         await pressAlertButton(0, 'default');
       });
@@ -333,13 +375,13 @@ describe('useChangePassword', () => {
       });
       const hook = await setup();
 
-      await act(async () => hook.result.current.handleForgotPassword());
+      await act(async () => hook.result.current.forgotPassword());
       await act(async () => {
         await pressAlertButton(0, 'default');
       });
 
       await waitFor(() =>
-        expect(hook.result.current.error).toBe(
+        expect(hook.result.current.formError).toBe(
           'changePassword.errors.networkFailed',
         ),
       );
@@ -352,12 +394,12 @@ describe('useChangePassword', () => {
       mockReauthenticate.mockRejectedValue({ code: 'auth/too-many-requests' });
       const hook = await setup();
 
-      await act(async () => hook.result.current.handleForgotPassword());
+      await act(async () => hook.result.current.forgotPassword());
       await act(async () => {
         await pressAlertButton(0, 'default');
       });
       await waitFor(() =>
-        expect(hook.result.current.error).toBe(
+        expect(hook.result.current.formError).toBe(
           'changePassword.errors.networkFailed',
         ),
       );
@@ -365,7 +407,7 @@ describe('useChangePassword', () => {
       await fillValid(hook);
       await submit(hook);
 
-      expect(hook.result.current.error).toBe(
+      expect(hook.result.current.formError).toBe(
         'changePassword.errors.tooManyRequests',
       );
     });

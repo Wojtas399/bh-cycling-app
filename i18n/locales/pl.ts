@@ -166,10 +166,8 @@ const pl = {
     validation: {
       currentPasswordRequired: 'Podaj obecne hasło.',
       newPasswordRequired: 'Podaj nowe hasło.',
-      newPasswordTooShort: 'Hasło musi mieć co najmniej {{count}} znaków.',
       newPasswordSameAsCurrent: 'Nowe hasło musi różnić się od obecnego.',
       confirmPasswordRequired: 'Potwierdź nowe hasło.',
-      passwordsMismatch: 'Hasła nie są zgodne.',
     },
   },
   deleteAccount: {
