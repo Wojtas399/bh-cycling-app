@@ -92,10 +92,6 @@ const pl = {
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
     },
-    validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-    },
   },
   tabs: {
     home: 'Główna',
