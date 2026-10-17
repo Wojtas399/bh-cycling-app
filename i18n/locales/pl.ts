@@ -292,6 +292,15 @@ const pl = {
         variabilityIndex: 'VI',
       },
     },
+    plan: {
+      title: 'Plan',
+      duration: 'Czas',
+      load: 'Obciążenie',
+      intensity: 'Intensywność',
+      work: 'Praca',
+      distance: 'Dystans',
+    },
+    description: 'Opis',
   },
   intervals: {
     title: 'Intervals.icu',
