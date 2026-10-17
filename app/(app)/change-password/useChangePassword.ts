@@ -12,7 +12,7 @@ import {
   type ChangePasswordValues,
   changePasswordSchema,
 } from './changePasswordSchema';
-import type { FormBinding } from '@/hooks/useFormTextField';
+import type { FormBinding } from '@/hooks/formBinding';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { toast } from '@/lib/toast';

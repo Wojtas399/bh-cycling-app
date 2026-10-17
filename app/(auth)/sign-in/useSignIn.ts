@@ -11,7 +11,7 @@ import {
   type SignInValues,
   signInSchema,
 } from './signInSchema';
-import type { FormBinding } from '@/hooks/useFormTextField';
+import type { FormBinding } from '@/hooks/formBinding';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle as googleSignInFlow } from '@/lib/signInWithGoogle';

@@ -37,7 +37,7 @@ A **form** is any set of inputs the user fills in and then submits to an action.
 ### Shape
 
 - The route-local form hook returns `{ form, formError, busy, submit, …secondary actions }`. It owns the resolver, the mutations, the `*Errors.ts` mapping and `deps`.
-- `form` is a **`FormBinding`**, everything a field needs from its form: `control`, `setFocus`, `busy`, `onFieldChange`, `serverError(name)` and `deps`. Screens pass it to every field unchanged.
+- `form` is a **`FormBinding`** (`hooks/formBinding.ts`), everything a field needs from its form: `control`, `setFocus`, `busy`, `onFieldChange`, `serverError(name)` and `deps`. Screens pass it to every field unchanged.
 - Each input kind has exactly one binding: a hook `hooks/useForm<Kind>Field.ts` holding the logic (`useController`, the forwarded ref, translation, error precedence, busy, `next`), plus a component `components/Form<Kind>Field.tsx` that renders it. Text fields are `useFormTextField` and `FormTextField` over `FormField`. A new input kind (numeric, select, switch) adds its own pair on the same `FormBinding` contract.
 - Screens never use `Controller`, `useController`, `FormField`, `Input` or `PasswordInput` directly.
 

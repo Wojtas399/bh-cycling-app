@@ -1,6 +1,7 @@
 import type { FieldValues, Path } from 'react-hook-form';
 
-import { type FormBinding, useFormTextField } from '@/hooks/useFormTextField';
+import type { FormBinding } from '@/hooks/formBinding';
+import { useFormTextField } from '@/hooks/useFormTextField';
 
 /**
  * Binds each named field the way `FormTextField` does, so a hook test types

@@ -8,7 +8,7 @@ import {
   type ForgotPasswordValues,
   forgotPasswordSchema,
 } from './forgotPasswordSchema';
-import type { FormBinding } from '@/hooks/useFormTextField';
+import type { FormBinding } from '@/hooks/formBinding';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';

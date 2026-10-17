@@ -11,7 +11,7 @@ import {
   type DeleteAccountValues,
   deleteAccountSchema,
 } from './deleteAccountSchema';
-import type { FormBinding } from '@/hooks/useFormTextField';
+import type { FormBinding } from '@/hooks/formBinding';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { getSignInMethods } from '@/lib/signInMethods';
