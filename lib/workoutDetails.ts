@@ -7,6 +7,7 @@ import {
   profileCeilingPct,
 } from './workoutProfile';
 import { type WorkoutStatus, workoutStatus } from './workoutStatus';
+import { type WorkoutDetailsStep, buildWorkoutSteps } from './workoutSteps';
 
 /**
  * The activity fields Workout Details asks for: what pairing needs. Completed
@@ -76,6 +77,8 @@ export interface WorkoutDetails {
   blocks: WorkoutBlock[];
   /** `null` exactly when `blocks` is empty. */
   profileSummary: WorkoutProfileSummary | null;
+  /** The Kroki tree: the doc's steps in order, repeats nested. */
+  steps: WorkoutDetailsStep[];
 }
 
 /** Builds the view model of a stored Workout as of `today`. */
@@ -98,6 +101,7 @@ export function buildWorkoutDetails(
     date,
     blocks,
     profileSummary: summariseProfile(event, blocks),
+    steps: buildWorkoutSteps(event.workout_doc?.steps, zoneConfig),
   };
 }
 
