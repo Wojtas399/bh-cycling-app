@@ -5,6 +5,8 @@ import type { WorkoutStep } from './workoutProfile';
 
 /** One plain step of the Kroki list: what to ride, and for how long. */
 export interface WorkoutDetailsPlainStep {
+  /** The step's position in the doc, e.g. `"1.0"`: unique within the tree. */
+  key: string;
   type: 'step';
   /** Set on a warm-up or cool-down, so it can be labelled without a `text`. */
   role?: 'warmup' | 'cooldown';
@@ -25,6 +27,8 @@ export interface WorkoutDetailsPlainStep {
 
 /** A repeat of the Kroki list, kept nested: `reps` times its child steps. */
 export interface WorkoutDetailsRepeat {
+  /** The repeat's position in the doc, e.g. `"1"`: unique within the tree. */
+  key: string;
   type: 'repeat';
   reps: number;
   /** Total across all reps, absent when it can't be known. */
@@ -38,9 +42,11 @@ export type WorkoutDetailsStep = WorkoutDetailsPlainStep | WorkoutDetailsRepeat;
 
 function buildPlainStep(
   step: WorkoutStep,
+  key: string,
   config: ZoneConfig,
 ): WorkoutDetailsPlainStep {
   return {
+    key,
     type: 'step',
     ...optional('role', stepRole(step)),
     ...(step.text ? { text: step.text } : {}),
@@ -80,16 +86,28 @@ function repeatDuration(
   return reps * rep.reduce((sum, seconds) => sum + seconds, 0);
 }
 
-function buildStep(step: WorkoutStep, config: ZoneConfig): WorkoutDetailsStep {
+/**
+ * Builds one node of the tree. Its key is its path of positions in the doc:
+ * the doc's steps are replaced wholesale and never reordered, so a position
+ * is a stable identity.
+ */
+function buildStep(
+  step: WorkoutStep,
+  key: string,
+  config: ZoneConfig,
+): WorkoutDetailsStep {
   // A repeat is recognised the same way the Workout Profile unrolls one.
   if (!isFiniteNumber(step.reps) || !step.steps) {
-    return buildPlainStep(step, config);
+    return buildPlainStep(step, key, config);
   }
 
   const reps = Math.max(0, step.reps);
-  const children = step.steps.map(child => buildStep(child, config));
+  const children = step.steps.map((child, index) =>
+    buildStep(child, `${key}.${index}`, config),
+  );
 
   return {
+    key,
     type: 'repeat',
     reps,
     ...optional('durationSeconds', repeatDuration(step, reps, children)),
@@ -114,5 +132,7 @@ export function buildWorkoutSteps(
   docSteps: WorkoutStep[] | null | undefined,
   config: ZoneConfig,
 ): WorkoutDetailsStep[] {
-  return (docSteps ?? []).map(step => buildStep(step, config));
+  return (docSteps ?? []).map((step, index) =>
+    buildStep(step, `${index}`, config),
+  );
 }

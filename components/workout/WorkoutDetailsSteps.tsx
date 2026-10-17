@@ -24,11 +24,8 @@ export default function WorkoutDetailsSteps({
 }: WorkoutDetailsStepsProps) {
   return (
     <Box>
-      {steps.map((step, index) => (
-        // Steps have no identity of their own: they are positions in the
-        // doc's ordered list, replaced wholesale and never reordered.
-        // eslint-disable-next-line react/no-array-index-key
-        <StepNode key={index} step={step} />
+      {steps.map(step => (
+        <StepNode key={step.key} step={step} />
       ))}
     </Box>
   );
@@ -64,9 +61,8 @@ function RepeatGroup({ repeat }: { repeat: WorkoutDetailsRepeat }) {
             })}
       </Text>
       <Box paddingLeft="sm">
-        {repeat.steps.map((child, index) => (
-          // eslint-disable-next-line react/no-array-index-key
-          <StepNode key={index} step={child} />
+        {repeat.steps.map(child => (
+          <StepNode key={child.key} step={child} />
         ))}
       </Box>
     </Box>

@@ -743,6 +743,7 @@ describe('useWorkoutDetails', () => {
 
       expect(steps).toEqual([
         {
+          key: '0',
           type: 'step',
           text: 'Tempo',
           durationSeconds: 600,
@@ -842,8 +843,15 @@ describe('useWorkoutDetails', () => {
       ]);
 
       expect(steps).toEqual([
-        { type: 'step', role: 'warmup', durationSeconds: 600, ramp: false },
         {
+          key: '0',
+          type: 'step',
+          role: 'warmup',
+          durationSeconds: 600,
+          ramp: false,
+        },
+        {
+          key: '1',
           type: 'step',
           role: 'cooldown',
           text: 'Easy spin',
@@ -870,11 +878,13 @@ describe('useWorkoutDetails', () => {
 
       expect(steps).toHaveLength(3);
       expect(steps?.[1]).toEqual({
+        key: '1',
         type: 'repeat',
         reps: 6,
         durationSeconds: 1800,
         steps: [
           {
+            key: '1.0',
             type: 'step',
             text: 'On',
             durationSeconds: 180,
@@ -883,6 +893,7 @@ describe('useWorkoutDetails', () => {
             ramp: false,
           },
           {
+            key: '1.1',
             type: 'step',
             text: 'Off',
             durationSeconds: 120,
@@ -925,6 +936,22 @@ describe('useWorkoutDetails', () => {
       });
     });
 
+    it('keys every step by its position in the doc, unique across the tree', async () => {
+      const steps = await stepsOf([
+        { warmup: true, duration: 600 },
+        {
+          reps: 2,
+          steps: [{ reps: 3, steps: [{ duration: 180 }] }, { duration: 60 }],
+        },
+      ]);
+
+      expect(steps?.[0]).toMatchObject({ key: '0' });
+      expect(steps?.[1]).toMatchObject({
+        key: '1',
+        steps: [{ key: '1.0', steps: [{ key: '1.0.0' }] }, { key: '1.1' }],
+      });
+    });
+
     it("totals a repeat's duration from its reps when the doc gives none", async () => {
       const steps = await stepsOf([
         {
@@ -950,6 +977,7 @@ describe('useWorkoutDetails', () => {
 
       expect(steps).toEqual([
         {
+          key: '0',
           type: 'step',
           text: 'Free ride',
           durationSeconds: 900,

@@ -4,7 +4,7 @@ import type { WorkoutDetailsPlainStep } from '../workoutSteps';
 function step(
   overrides: Partial<WorkoutDetailsPlainStep>,
 ): WorkoutDetailsPlainStep {
-  return { type: 'step', ramp: false, ...overrides };
+  return { key: '0', type: 'step', ramp: false, ...overrides };
 }
 
 describe('formatStepTarget', () => {
