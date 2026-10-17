@@ -13,8 +13,28 @@ import { type WorkoutDetailsStep, buildWorkoutSteps } from './workoutSteps';
  * The activity fields Workout Details asks for: what pairing needs. Completed
  * mode extends it with the summary metrics it shows.
  */
-export const WORKOUT_DETAILS_ACTIVITY_FIELDS =
-  'id,start_date_local,type,paired_event_id';
+export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
+  'id',
+  'start_date_local',
+  'type',
+  'paired_event_id',
+  'moving_time',
+  'distance',
+  'elapsed_time',
+  'icu_training_load',
+  'icu_intensity',
+  'icu_average_watts',
+  'icu_weighted_avg_watts',
+  'icu_variability_index',
+  'average_heartrate',
+  'max_heartrate',
+  'average_cadence',
+  'total_elevation_gain',
+  'calories',
+  'icu_joules',
+  'average_speed',
+  'compliance',
+].join(',');
 
 /**
  * The Activity paired to the event, matched on `paired_event_id` only, as on
@@ -79,6 +99,77 @@ export interface WorkoutDetails {
   profileSummary: WorkoutProfileSummary | null;
   /** The Kroki tree: the doc's steps in order, repeats nested. */
   steps: WorkoutDetailsStep[];
+  /** Plan vs wykonanie, `null` in planned mode. */
+  comparison: WorkoutComparison | null;
+  /** The Activity's summary metrics, `null` in planned mode. */
+  activityMetrics: ActivityMetric[] | null;
+}
+
+/**
+ * A summary metric of the paired Activity. Units as intervals.icu sends them:
+ * times in s, distance and elevation in m, intensity in % (IF × 100), power
+ * in W, heart rate in bpm, cadence in rpm, calories in kcal, speed in m/s and
+ * the variability index as a ratio.
+ */
+export type ActivityMetricKey =
+  | 'movingTime'
+  | 'distance'
+  | 'load'
+  | 'intensity'
+  | 'averagePower'
+  | 'normalizedPower'
+  | 'averageHeartRate'
+  | 'maxHeartRate'
+  | 'cadence'
+  | 'elevationGain'
+  | 'calories'
+  | 'averageSpeed'
+  | 'elapsedTime'
+  | 'variabilityIndex';
+
+export interface ActivityMetric {
+  metric: ActivityMetricKey;
+  value: number;
+}
+
+/** Where each Activity metric comes from, in display order. */
+const ACTIVITY_METRIC_FIELDS: [ActivityMetricKey, keyof IntervalsActivity][] = [
+  ['movingTime', 'moving_time'],
+  ['distance', 'distance'],
+  ['load', 'icu_training_load'],
+  ['intensity', 'icu_intensity'],
+  ['averagePower', 'icu_average_watts'],
+  ['normalizedPower', 'icu_weighted_avg_watts'],
+  ['averageHeartRate', 'average_heartrate'],
+  ['maxHeartRate', 'max_heartrate'],
+  ['cadence', 'average_cadence'],
+  ['elevationGain', 'total_elevation_gain'],
+  ['calories', 'calories'],
+  ['averageSpeed', 'average_speed'],
+  ['elapsedTime', 'elapsed_time'],
+  ['variabilityIndex', 'icu_variability_index'],
+];
+
+/** A metric with the same meaning and unit on the plan and the Activity. */
+export type ComparisonMetric = 'duration' | 'load' | 'intensity' | 'work';
+
+/**
+ * One like-for-like row of Plan vs wykonanie. Units: duration in s, intensity
+ * in % (IF × 100), work in kJ.
+ */
+export interface ComparisonRow {
+  metric: ComparisonMetric;
+  planned: number;
+  actual: number;
+  /** `actual − planned`. */
+  difference: number;
+}
+
+export interface WorkoutComparison {
+  /** Only the metrics present on both sides, in display order. */
+  rows: ComparisonRow[];
+  /** intervals.icu's compliance in %, `null` unless a non-negative number. */
+  compliance: number | null;
 }
 
 /** Builds the view model of a stored Workout as of `today`. */
@@ -102,6 +193,57 @@ export function buildWorkoutDetails(
     blocks,
     profileSummary: summariseProfile(event, blocks),
     steps: buildWorkoutSteps(event.workout_doc?.steps, zoneConfig),
+    comparison: activity ? compareWithPlan(event, activity) : null,
+    activityMetrics: activity ? summariseActivity(activity) : null,
+  };
+}
+
+/** The Activity's summary metrics it actually has; absent ones are dropped. */
+function summariseActivity(activity: IntervalsActivity): ActivityMetric[] {
+  return ACTIVITY_METRIC_FIELDS.flatMap(([metric, field]) => {
+    const value = activity[field];
+
+    return isFiniteNumber(value) ? [{ metric, value }] : [];
+  });
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function toKj(joules: number | undefined): number | undefined {
+  return isFiniteNumber(joules) ? joules / 1000 : undefined;
+}
+
+function compareWithPlan(
+  event: IntervalsCalendarEvent,
+  activity: IntervalsActivity,
+): WorkoutComparison {
+  const pairs: [ComparisonMetric, number | undefined, number | undefined][] = [
+    [
+      'duration',
+      event.moving_time ?? event.workout_doc?.duration,
+      activity.moving_time,
+    ],
+    ['load', event.icu_training_load, activity.icu_training_load],
+    ['intensity', event.icu_intensity, activity.icu_intensity],
+    ['work', toKj(event.joules), toKj(activity.icu_joules)],
+  ];
+
+  const rows = pairs.flatMap(([metric, planned, actual]) =>
+    isFiniteNumber(planned) && isFiniteNumber(actual)
+      ? [{ metric, planned, actual, difference: actual - planned }]
+      : [],
+  );
+
+  // intervals.icu sends null when it hasn't calculated compliance and a
+  // negative number when the athlete asked to ignore it.
+  const { compliance } = activity;
+
+  return {
+    rows,
+    compliance:
+      isFiniteNumber(compliance) && compliance >= 0 ? compliance : null,
   };
 }
 

@@ -8,6 +8,8 @@ import Button from '@/components/Button';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
+import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
+import WorkoutComparisonCard from '@/components/workout/WorkoutComparisonCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
@@ -106,6 +108,13 @@ function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
             summary={details.profileSummary}
           />
         </WorkoutDetailsCard>
+      )}
+
+      {details.comparison && (
+        <WorkoutComparisonCard comparison={details.comparison} />
+      )}
+      {details.activityMetrics && (
+        <WorkoutActivityCard metrics={details.activityMetrics} />
       )}
 
       {details.steps.length > 0 && <KrokiCard steps={details.steps} />}
