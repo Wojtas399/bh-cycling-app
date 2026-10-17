@@ -1,8 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import Box from '@/components/Box';
-import Button from '@/components/Button';
-import Text from '@/components/Text';
+import MessageWithAction from '@/components/MessageWithAction';
 import { useRouter } from 'expo-router';
 
 /**
@@ -16,18 +14,10 @@ export default function IntervalsConnectPrompt() {
   const router = useRouter();
 
   return (
-    <Box padding="lg" alignItems="center" gap="base">
-      <Text variant="body-l-regular" color="textSecondary" textAlign="center">
-        {t('message')}
-      </Text>
-      <Button
-        variant="secondary"
-        onPress={() => router.push('/(app)/(tabs)/settings')}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-      >
-        <Text variant="body-l-semibold">{t('action')}</Text>
-      </Button>
-    </Box>
+    <MessageWithAction
+      message={t('message')}
+      actionLabel={t('action')}
+      onAction={() => router.push('/(app)/(tabs)/settings')}
+    />
   );
 }
