@@ -12,6 +12,7 @@ const passwordSchema = v.object({
  * is validated. Same shape as `passwordSchema`, because a form binding needs
  * one value type.
  */
+// Not `v.object({})`: one `FormBinding<DeleteAccountInput>` needs both schemas to share a value type.
 const googleSchema = v.object({ password: v.string() });
 
 export function deleteAccountSchema(requiresPassword: boolean) {
