@@ -1,9 +1,6 @@
-import {
-  type Zone,
-  type ZoneConfig,
-  bandForZone,
-  zoneForFtpPercent,
-} from './powerZones';
+import { isFiniteNumber } from './isFiniteNumber';
+import { resolvePowerTarget } from './powerTarget';
+import type { Zone, ZoneConfig } from './powerZones';
 
 /**
  * A target value as it arrives on a Workout Doc step: power, heart rate or
@@ -85,10 +82,6 @@ const MIN_WIDTH_FRACTION = 0.01;
  */
 const MIN_DRAWABLE_DURATION_SHARE = 0.5;
 
-function isUsableNumber(value: number | undefined): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
 /**
  * Splits the profile width between the steps in proportion to their duration,
  * lifting anything narrower than `MIN_WIDTH_FRACTION` up to that floor and
@@ -132,36 +125,23 @@ function toWidthFractions(durations: number[]): number[] {
 }
 
 /**
- * Resolves a step's Power Target to a %FTP span. `power_zone` targets expand to
- * that zone's band; `%ftp` targets are already in the working unit.
+ * Resolves a step's Power Target to the band it is drawn at, its lowest and
+ * highest %FTP, floored at zero so nothing is drawn below the axis.
  */
 function resolveBand(
   target: StepTarget | undefined,
   config: ZoneConfig,
 ): StepBand | null {
-  if (target?.units === 'power_zone' && isUsableNumber(target.value)) {
-    return bandForZone(target.value, config);
-  }
+  const power = resolvePowerTarget(target, config);
 
-  if (target?.units !== '%ftp') return null;
+  if (!power) return null;
 
-  // A step may carry a range, a single value, or both; the range wins because
-  // it is the wider truth, and a lone value is a band of zero height.
-  const range = [target.start, target.end].filter(isUsableNumber);
-  const bounds =
-    range.length > 0 ? range : [target.value].filter(isUsableNumber);
+  const { start, end } = power.ftpPct;
 
-  if (bounds.length === 0) return null;
-
-  const minPct = Math.max(0, Math.min(...bounds));
-  const maxPct = Math.max(0, Math.max(...bounds));
-
-  // A band can straddle two zones, so it is coloured by its middle: the same
-  // average power that decides which zone the effort trains.
   return {
-    minPct,
-    maxPct,
-    zone: zoneForFtpPercent((minPct + maxPct) / 2, config),
+    minPct: Math.max(0, Math.min(start, end)),
+    maxPct: Math.max(0, Math.max(start, end)),
+    zone: power.zone,
   };
 }
 
@@ -172,7 +152,7 @@ function resolveBand(
  */
 function unrollRepeats(steps: WorkoutStep[]): WorkoutStep[] {
   return steps.flatMap(step => {
-    if (!isUsableNumber(step.reps) || !step.steps) return [step];
+    if (!isFiniteNumber(step.reps) || !step.steps) return [step];
 
     const rep = unrollRepeats(step.steps);
 
@@ -204,7 +184,7 @@ export function buildWorkoutProfile(
     .filter(
       (step): step is { duration: number; band: StepBand } =>
         step.band !== null &&
-        isUsableNumber(step.duration) &&
+        isFiniteNumber(step.duration) &&
         step.duration > 0,
     );
 
@@ -216,7 +196,7 @@ export function buildWorkoutProfile(
   );
   const totalSeconds = steps.reduce(
     (sum, step) =>
-      isUsableNumber(step.duration) && step.duration > 0
+      isFiniteNumber(step.duration) && step.duration > 0
         ? sum + step.duration
         : sum,
     0,

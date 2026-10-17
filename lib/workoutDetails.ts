@@ -1,4 +1,5 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
+import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
 import type { ZoneConfig } from './powerZones';
 import {
@@ -84,15 +85,16 @@ export interface WorkoutProfileSummary {
 }
 
 /**
- * The planned metrics of a Workout, in intervals.icu's units. A metric
- * intervals.icu doesn't supply is absent, never zero.
+ * The planned metrics of a Workout: duration in s, intensity in % (IF × 100),
+ * work in kJ and distance in m. A metric intervals.icu doesn't supply is
+ * absent, never zero.
  */
 export interface WorkoutPlanMetrics {
   durationSeconds?: number;
   load?: number;
   /** IF × 100. */
   intensityPct?: number;
-  workJoules?: number;
+  workKj?: number;
   /** Present only when the plan has a distance above zero. */
   distanceMeters?: number;
 }
@@ -230,10 +232,6 @@ function summariseActivity(activity: IntervalsActivity): ActivityMetric[] {
   });
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
 function toKj(joules: number | undefined): number | undefined {
   return isFiniteNumber(joules) ? joules / 1000 : undefined;
 }
@@ -310,25 +308,20 @@ function buildPlanMetrics({
   distance,
   workout_doc,
 }: IntervalsCalendarEvent): WorkoutPlanMetrics {
-  const durationSeconds = isPresent(moving_time)
+  const durationSeconds = isFiniteNumber(moving_time)
     ? moving_time
     : workout_doc?.duration;
   const distanceMeters = [distance, workout_doc?.distance].find(
-    metres => isPresent(metres) && metres > 0,
+    metres => isFiniteNumber(metres) && metres > 0,
   );
 
   return withoutAbsent({
     durationSeconds,
     load: icu_training_load,
     intensityPct: icu_intensity,
-    workJoules: joules,
+    workKj: toKj(joules),
     distanceMeters,
   });
-}
-
-/** A metric intervals.icu actually supplied: a finite number, not null. */
-function isPresent(value: number | null | undefined): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
 }
 
 /** Drops the metrics that are absent, so none reads as zero or a dash. */
@@ -336,6 +329,6 @@ function withoutAbsent<T extends Record<string, number | null | undefined>>(
   metrics: T,
 ): { [K in keyof T]?: number } {
   return Object.fromEntries(
-    Object.entries(metrics).filter(([, value]) => isPresent(value)),
+    Object.entries(metrics).filter(([, value]) => isFiniteNumber(value)),
   ) as { [K in keyof T]?: number };
 }

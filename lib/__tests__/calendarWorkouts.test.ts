@@ -1,4 +1,5 @@
 import {
+  daysSinceMonday,
   eachDate,
   endOfMonth,
   endOfWeek,
@@ -10,6 +11,15 @@ import {
 import { toLocalDateString } from '../localDate';
 
 describe('calendarWorkouts', () => {
+  describe('daysSinceMonday', () => {
+    it('counts Monday as 0 and Sunday as 6', () => {
+      // 2026-10-12 is a Monday.
+      expect(daysSinceMonday(new Date(2026, 9, 12))).toBe(0);
+      expect(daysSinceMonday(new Date(2026, 9, 14))).toBe(2);
+      expect(daysSinceMonday(new Date(2026, 9, 18))).toBe(6);
+    });
+  });
+
   describe('month boundaries', () => {
     it('spans the first to the last day of the month', () => {
       const midFebruary = new Date(2028, 1, 15, 18);

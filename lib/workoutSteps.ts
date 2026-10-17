@@ -1,22 +1,12 @@
-import {
-  type Zone,
-  type ZoneConfig,
-  bandForZone,
-  zoneForFtpPercent,
-} from './powerZones';
-import type { StepTarget, WorkoutStep } from './workoutProfile';
-
-/**
- * A target as a span, in its step's order: a range or ramp runs `start` to
- * `end`, and a single value has `start === end`.
- */
-export interface StepSpan {
-  start: number;
-  end: number;
-}
+import { isFiniteNumber } from './isFiniteNumber';
+import { type StepSpan, resolvePowerTarget, toSpan } from './powerTarget';
+import type { Zone, ZoneConfig } from './powerZones';
+import type { WorkoutStep } from './workoutProfile';
 
 /** One plain step of the Kroki list: what to ride, and for how long. */
 export interface WorkoutDetailsPlainStep {
+  /** The step's position in the doc, e.g. `"1.0"`: unique within the tree. */
+  key: string;
   type: 'step';
   /** Set on a warm-up or cool-down, so it can be labelled without a `text`. */
   role?: 'warmup' | 'cooldown';
@@ -37,6 +27,8 @@ export interface WorkoutDetailsPlainStep {
 
 /** A repeat of the Kroki list, kept nested: `reps` times its child steps. */
 export interface WorkoutDetailsRepeat {
+  /** The repeat's position in the doc, e.g. `"1"`: unique within the tree. */
+  key: string;
   type: 'repeat';
   reps: number;
   /** Total across all reps, absent when it can't be known. */
@@ -48,71 +40,20 @@ export interface WorkoutDetailsRepeat {
 /** One node of the Kroki tree. */
 export type WorkoutDetailsStep = WorkoutDetailsPlainStep | WorkoutDetailsRepeat;
 
-function isUsableNumber(value: number | undefined): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-/**
- * Reads a target as a span. A range (or ramp) wins over a single value, as in
- * the Workout Profile; a range with one end missing collapses to the other.
- */
-function toSpan(target: StepTarget | undefined): StepSpan | undefined {
-  if (!target) return undefined;
-
-  const start = isUsableNumber(target.start) ? target.start : undefined;
-  const end = isUsableNumber(target.end) ? target.end : undefined;
-
-  if (start !== undefined || end !== undefined) {
-    return { start: start ?? end!, end: end ?? start! };
-  }
-
-  if (isUsableNumber(target.value)) {
-    return { start: target.value, end: target.value };
-  }
-
-  return undefined;
-}
-
-/**
- * The step's power target in %FTP and the zone it is coloured by. A
- * `power_zone` target reads as that zone's band; a `%ftp` span is coloured by
- * its middle, as in the Workout Profile. Any other unit has no %FTP reading.
- */
-function resolvePower(
-  target: StepTarget | undefined,
-  config: ZoneConfig,
-): Pick<WorkoutDetailsPlainStep, 'zone' | 'ftpPct'> {
-  if (target?.units === 'power_zone' && isUsableNumber(target.value)) {
-    const band = bandForZone(target.value, config);
-
-    return {
-      zone: band.zone,
-      ftpPct: { start: band.minPct, end: band.maxPct },
-    };
-  }
-
-  const ftpPct = target?.units === '%ftp' ? toSpan(target) : undefined;
-
-  if (!ftpPct) return {};
-
-  return {
-    zone: zoneForFtpPercent((ftpPct.start + ftpPct.end) / 2, config),
-    ftpPct,
-  };
-}
-
 function buildPlainStep(
   step: WorkoutStep,
+  key: string,
   config: ZoneConfig,
 ): WorkoutDetailsPlainStep {
   return {
+    key,
     type: 'step',
     ...optional('role', stepRole(step)),
     ...(step.text ? { text: step.text } : {}),
-    ...(isUsableNumber(step.duration)
+    ...(isFiniteNumber(step.duration)
       ? { durationSeconds: step.duration }
       : {}),
-    ...resolvePower(step.power, config),
+    ...(resolvePowerTarget(step.power, config) ?? {}),
     ...optional('watts', toSpan(step._power)),
     ...optional('cadenceRpm', toSpan(step.cadence)),
     ramp: step.ramp === true,
@@ -136,25 +77,37 @@ function repeatDuration(
   reps: number,
   children: WorkoutDetailsStep[],
 ): number | undefined {
-  if (isUsableNumber(step.duration)) return step.duration;
+  if (isFiniteNumber(step.duration)) return step.duration;
 
   const rep = children.map(child => child.durationSeconds);
 
-  if (rep.length === 0 || !rep.every(isUsableNumber)) return undefined;
+  if (rep.length === 0 || !rep.every(isFiniteNumber)) return undefined;
 
   return reps * rep.reduce((sum, seconds) => sum + seconds, 0);
 }
 
-function buildStep(step: WorkoutStep, config: ZoneConfig): WorkoutDetailsStep {
+/**
+ * Builds one node of the tree. Its key is its path of positions in the doc:
+ * the doc's steps are replaced wholesale and never reordered, so a position
+ * is a stable identity.
+ */
+function buildStep(
+  step: WorkoutStep,
+  key: string,
+  config: ZoneConfig,
+): WorkoutDetailsStep {
   // A repeat is recognised the same way the Workout Profile unrolls one.
-  if (!isUsableNumber(step.reps) || !step.steps) {
-    return buildPlainStep(step, config);
+  if (!isFiniteNumber(step.reps) || !step.steps) {
+    return buildPlainStep(step, key, config);
   }
 
   const reps = Math.max(0, step.reps);
-  const children = step.steps.map(child => buildStep(child, config));
+  const children = step.steps.map((child, index) =>
+    buildStep(child, `${key}.${index}`, config),
+  );
 
   return {
+    key,
     type: 'repeat',
     reps,
     ...optional('durationSeconds', repeatDuration(step, reps, children)),
@@ -179,5 +132,7 @@ export function buildWorkoutSteps(
   docSteps: WorkoutStep[] | null | undefined,
   config: ZoneConfig,
 ): WorkoutDetailsStep[] {
-  return (docSteps ?? []).map(step => buildStep(step, config));
+  return (docSteps ?? []).map((step, index) =>
+    buildStep(step, `${index}`, config),
+  );
 }
