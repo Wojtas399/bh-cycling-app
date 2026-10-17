@@ -630,7 +630,7 @@ describe('useWorkoutDetails', () => {
         durationSeconds: 4500,
         load: 82,
         intensityPct: 86.05,
-        workJoules: 1_150_000,
+        workKj: 1150,
         distanceMeters: 42_500,
       });
     });

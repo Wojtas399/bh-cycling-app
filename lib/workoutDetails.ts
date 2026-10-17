@@ -84,15 +84,16 @@ export interface WorkoutProfileSummary {
 }
 
 /**
- * The planned metrics of a Workout, in intervals.icu's units. A metric
- * intervals.icu doesn't supply is absent, never zero.
+ * The planned metrics of a Workout: duration in s, intensity in % (IF × 100),
+ * work in kJ and distance in m. A metric intervals.icu doesn't supply is
+ * absent, never zero.
  */
 export interface WorkoutPlanMetrics {
   durationSeconds?: number;
   load?: number;
   /** IF × 100. */
   intensityPct?: number;
-  workJoules?: number;
+  workKj?: number;
   /** Present only when the plan has a distance above zero. */
   distanceMeters?: number;
 }
@@ -321,7 +322,7 @@ function buildPlanMetrics({
     durationSeconds,
     load: icu_training_load,
     intensityPct: icu_intensity,
-    workJoules: joules,
+    workKj: toKj(joules),
     distanceMeters,
   });
 }

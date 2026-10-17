@@ -47,7 +47,7 @@ function planRows({
   durationSeconds,
   load,
   intensityPct,
-  workJoules,
+  workKj,
   distanceMeters,
 }: WorkoutPlanMetrics): PlanMetric[] {
   const rows: (PlanMetric | null)[] = [
@@ -58,8 +58,8 @@ function planRows({
     intensityPct !== undefined
       ? { key: 'intensity', value: `${Math.round(intensityPct)}%` }
       : null,
-    workJoules !== undefined
-      ? { key: 'work', value: `${Math.round(workJoules / 1000)} kJ` }
+    workKj !== undefined
+      ? { key: 'work', value: `${Math.round(workKj)} kJ` }
       : null,
     distanceMeters !== undefined
       ? { key: 'distance', value: formatKilometres(distanceMeters) }
