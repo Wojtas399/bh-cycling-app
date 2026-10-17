@@ -28,8 +28,8 @@ export default function SignInScreen() {
     form,
     formError,
     busy,
-    emailSignInPending,
-    googleSignInPending,
+    emailPending,
+    googlePending,
     submit,
     signInWithGoogle,
   } = useSignIn();
@@ -116,7 +116,7 @@ export default function SignInScreen() {
                 disabled={busy}
                 activeOpacity={0.8}
               >
-                {emailSignInPending ? (
+                {emailPending ? (
                   <ActivityIndicator color={theme.colors.textInverse} />
                 ) : (
                   <Text variant="body-l-semibold" color="textInverse">
@@ -160,7 +160,7 @@ export default function SignInScreen() {
               disabled={busy}
               activeOpacity={0.8}
             >
-              {googleSignInPending ? (
+              {googlePending ? (
                 <ActivityIndicator color={theme.colors.textPrimary} />
               ) : (
                 <>

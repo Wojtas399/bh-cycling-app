@@ -181,7 +181,7 @@ describe('useSignIn', () => {
       });
       await waitFor(() => expect(hook.result.current.busy).toBe(true));
 
-      expect(hook.result.current.emailSignInPending).toBe(true);
+      expect(hook.result.current.emailPending).toBe(true);
       expect(
         FIELDS.map(name => hook.result.current.fields[name].editable),
       ).toEqual([false, false]);
@@ -293,7 +293,7 @@ describe('useSignIn', () => {
       });
       await waitFor(() => expect(hook.result.current.busy).toBe(true));
 
-      expect(hook.result.current.googleSignInPending).toBe(true);
+      expect(hook.result.current.googlePending).toBe(true);
       expect(hook.result.current.fields.email.editable).toBe(false);
 
       await act(async () => finish());

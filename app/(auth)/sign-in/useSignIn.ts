@@ -105,8 +105,8 @@ export function useSignIn() {
     form,
     formError: mapped ? t(mapped.key) : '',
     busy,
-    emailSignInPending: emailSignIn.isPending,
-    googleSignInPending: googleSignIn.isPending,
+    emailPending: emailSignIn.isPending,
+    googlePending: googleSignIn.isPending,
     submit,
     signInWithGoogle,
   };
