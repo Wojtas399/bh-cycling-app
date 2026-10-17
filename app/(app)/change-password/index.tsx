@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useChangePassword } from './useChangePassword';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
-import FormField from '@/components/FormField';
+import FormTextField from '@/components/FormTextField';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
@@ -21,21 +21,7 @@ export default function ChangePasswordScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
-  const {
-    currentPassword,
-    newPassword,
-    confirmPassword,
-    currentPasswordError,
-    newPasswordError,
-    confirmPasswordError,
-    error,
-    loading,
-    onCurrentPasswordChange,
-    onNewPasswordChange,
-    onConfirmPasswordChange,
-    handleSubmit,
-    handleForgotPassword,
-  } = useChangePassword();
+  const { form, formError, busy, submit, forgotPassword } = useChangePassword();
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
@@ -52,56 +38,50 @@ export default function ChangePasswordScreen() {
           }}
           keyboardShouldPersistTaps="handled"
         >
-          <FormField
+          <FormTextField
+            form={form}
+            name="currentPassword"
+            next="newPassword"
             label={t('currentPassword')}
-            value={currentPassword}
-            onChangeText={onCurrentPasswordChange}
-            error={currentPasswordError}
-            editable={!loading}
             password
             textContentType="password"
             autoComplete="current-password"
-            returnKeyType="next"
           />
 
           <Box marginTop="md">
-            <FormField
+            <FormTextField
+              form={form}
+              name="newPassword"
+              next="confirmPassword"
               label={t('newPassword')}
-              value={newPassword}
-              onChangeText={onNewPasswordChange}
-              error={newPasswordError}
-              editable={!loading}
               password
               textContentType="newPassword"
               autoComplete="new-password"
-              returnKeyType="next"
             />
           </Box>
 
           <Box marginTop="md">
-            <FormField
+            <FormTextField
+              form={form}
+              name="confirmPassword"
               label={t('confirmPassword')}
-              value={confirmPassword}
-              onChangeText={onConfirmPasswordChange}
-              error={confirmPasswordError}
-              editable={!loading}
               password
               textContentType="newPassword"
               autoComplete="new-password"
               returnKeyType="done"
-              onSubmitEditing={handleSubmit}
+              onSubmitEditing={submit}
             />
           </Box>
 
           <Box marginTop="xl">
             <Button
               variant="primary"
-              opacity={loading ? 0.6 : 1}
-              onPress={handleSubmit}
-              disabled={loading}
+              opacity={busy ? 0.6 : 1}
+              onPress={submit}
+              disabled={busy}
               activeOpacity={0.8}
             >
-              {loading ? (
+              {busy ? (
                 <ActivityIndicator color={theme.colors.textInverse} />
               ) : (
                 <Text variant="body-l-semibold" color="textInverse">
@@ -109,14 +89,14 @@ export default function ChangePasswordScreen() {
                 </Text>
               )}
             </Button>
-            {error ? (
+            {formError ? (
               <Box marginTop="sm">
                 <Text
                   variant="body-s-regular"
                   color="danger"
                   textAlign="center"
                 >
-                  {error}
+                  {formError}
                 </Text>
               </Box>
             ) : null}
@@ -124,8 +104,8 @@ export default function ChangePasswordScreen() {
 
           <Box alignItems="center" marginTop="xl">
             <TouchableOpacity
-              onPress={handleForgotPassword}
-              disabled={loading}
+              onPress={forgotPassword}
+              disabled={busy}
               hitSlop={8}
             >
               <Text variant="body-s-regular" color="textSecondary">

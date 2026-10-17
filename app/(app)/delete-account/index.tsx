@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -11,47 +10,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDeleteAccount } from './useDeleteAccount';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
-import FormField from '@/components/FormField';
+import FormTextField from '@/components/FormTextField';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import { useNavigation } from 'expo-router';
 
 export default function DeleteAccountScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'deleteAccount' });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
 
-  const {
-    password,
-    passwordError,
-    error,
-    loading,
-    requiresPassword,
-    onPasswordChange,
-    handleDelete,
-  } = useDeleteAccount();
-
-  // Going back is blocked while the request runs: swipe gesture, hardware
-  // back button and the header button.
-  useEffect(() => {
-    navigation.setOptions({ gestureEnabled: !loading });
-
-    return navigation.addListener('beforeRemove', event => {
-      // Only back navigation is blocked: the auth gate must still be able to
-      // replace this screen with sign-in once the account is deleted.
-      const { type } = event.data.action;
-
-      if (loading && (type === 'GO_BACK' || type === 'POP')) {
-        event.preventDefault();
-      }
-    });
-  }, [navigation, loading]);
+  const { form, formError, busy, requiresPassword, submit } =
+    useDeleteAccount();
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <ScreenHeader title={t('title')} backDisabled={loading} />
+      <ScreenHeader title={t('title')} backDisabled={busy} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -80,17 +54,15 @@ export default function DeleteAccountScreen() {
 
           <Box marginTop="xl">
             {requiresPassword ? (
-              <FormField
+              <FormTextField
+                form={form}
+                name="password"
                 label={t('password')}
-                value={password}
-                onChangeText={onPasswordChange}
-                error={passwordError}
-                editable={!loading}
                 password
                 textContentType="password"
                 autoComplete="current-password"
                 returnKeyType="done"
-                onSubmitEditing={handleDelete}
+                onSubmitEditing={submit}
               />
             ) : (
               <Text variant="body-s-regular" color="textSecondary">
@@ -102,25 +74,25 @@ export default function DeleteAccountScreen() {
           <Box marginTop="xl">
             <Button
               backgroundColor="danger"
-              opacity={loading ? 0.6 : 1}
-              onPress={handleDelete}
-              disabled={loading}
+              opacity={busy ? 0.6 : 1}
+              onPress={submit}
+              disabled={busy}
               activeOpacity={0.8}
             >
-              {loading ? (
+              {busy ? (
                 <ActivityIndicator color={theme.colors.white} />
               ) : (
                 <Text variant="body-l-semibold">{t('deleteButton')}</Text>
               )}
             </Button>
-            {error ? (
+            {formError ? (
               <Box marginTop="sm">
                 <Text
                   variant="body-s-regular"
                   color="danger"
                   textAlign="center"
                 >
-                  {error}
+                  {formError}
                 </Text>
               </Box>
             ) : null}

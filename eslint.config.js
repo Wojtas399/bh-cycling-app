@@ -3,6 +3,27 @@ const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
 
+// Each restricted path is listed once here, because a later config block that
+// sets 'no-restricted-imports' replaces the whole list rather than merging it.
+const sonnerPath = {
+  name: 'sonner-native',
+  message: "Import from '@/lib/toast' instead (ADR 0004).",
+};
+const rhfBindingPath = {
+  name: 'react-hook-form',
+  importNames: ['Controller', 'useController'],
+  message: 'Bind fields through a hooks/useForm<Kind>Field.ts hook (ADR 0006).',
+};
+const formFieldPaths = [
+  '@/components/FormField',
+  '@/components/Input',
+  '@/components/PasswordInput',
+].map(name => ({
+  name,
+  message:
+    'Screens build forms with FormTextField (ADR 0006). A live, non-form input may disable this inline with a reason.',
+}));
+
 module.exports = defineConfig([
   expoConfig,
   eslintPluginPrettierRecommended,
@@ -70,17 +91,42 @@ module.exports = defineConfig([
       ],
 
       // Library wrappers (ADR 0004): only the wrapper module may import the library.
+      // Form fields (ADR 0006): only the binding hooks may use useController.
       'no-restricted-imports': [
         'error',
+        { paths: [sonnerPath, rhfBindingPath] },
+      ],
+
+      // Forms (ADR 0006): watch() is incompatible with the React Compiler.
+      'no-restricted-syntax': [
+        'error',
         {
-          paths: [
-            {
-              name: 'sonner-native',
-              message: "Import from '@/lib/toast' instead (ADR 0004).",
-            },
-          ],
+          selector: "CallExpression[callee.property.name='watch']",
+          message:
+            'Use useWatch or useFormState instead of watch() (ADR 0006).',
+        },
+        {
+          selector:
+            "VariableDeclarator[init.callee.name=/^use(App)?Form$/] > ObjectPattern > Property[key.name='watch']",
+          message:
+            'Use useWatch or useFormState instead of watch() (ADR 0006).',
         },
       ],
+    },
+  },
+  {
+    files: ['app/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [sonnerPath, rhfBindingPath, ...formFieldPaths] },
+      ],
+    },
+  },
+  {
+    files: ['hooks/useForm*Field.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [sonnerPath] }],
     },
   },
   {

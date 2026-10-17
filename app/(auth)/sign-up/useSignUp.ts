@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -6,31 +5,29 @@ import {
   type SignUpMutation,
   mapSignUpError,
 } from './signUpErrors';
+import {
+  type SignUpInput,
+  type SignUpValues,
+  signUpSchema,
+} from './signUpSchema';
+import type { FormBinding } from '@/hooks/formBinding';
+import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle } from '@/lib/signInWithGoogle';
-import { EMAIL_REGEX, MIN_PASSWORD_LENGTH } from '@/lib/validation';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-
-interface EmailSignUpVariables {
-  email: string;
-  password: string;
-}
 
 export function useSignUp() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const { control, setFocus, handleSubmit } = useAppForm(signUpSchema, {
+    defaultValues: { email: '', password: '', confirmPassword: '' },
+  });
 
   const emailSignUp = useMutation({
-    mutationFn: async (variables: EmailSignUpVariables) => {
+    mutationFn: async (variables: SignUpValues) => {
       await auth().createUserWithEmailAndPassword(
         variables.email,
         variables.password,
@@ -50,90 +47,7 @@ export function useSignUp() {
     },
   });
 
-  function validate(): boolean {
-    let valid = true;
-
-    if (!email.trim()) {
-      setEmailError(t('signUp.validation.emailRequired'));
-      valid = false;
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError(t('signUp.validation.emailInvalid'));
-      valid = false;
-    } else {
-      setEmailError('');
-    }
-
-    if (!password) {
-      setPasswordError(t('signUp.validation.passwordRequired'));
-      valid = false;
-    } else if (password.length < MIN_PASSWORD_LENGTH) {
-      setPasswordError(t('signUp.validation.passwordTooShort'));
-      valid = false;
-    } else {
-      setPasswordError('');
-    }
-
-    if (!confirmPassword) {
-      setConfirmPasswordError(t('signUp.validation.confirmPasswordRequired'));
-      valid = false;
-    } else if (confirmPassword !== password) {
-      setConfirmPasswordError(t('signUp.validation.passwordsMismatch'));
-      valid = false;
-    } else {
-      setConfirmPasswordError('');
-    }
-
-    return valid;
-  }
-
-  function resetMutations() {
-    emailSignUp.reset();
-    googleSignUp.reset();
-  }
-
-  function onEmailChange(text: string) {
-    setEmail(text);
-
-    if (emailError) setEmailError('');
-
-    resetMutations();
-  }
-
-  function onPasswordChange(text: string) {
-    setPassword(text);
-
-    if (passwordError) setPasswordError('');
-
-    resetMutations();
-  }
-
-  function onConfirmPasswordChange(text: string) {
-    setConfirmPassword(text);
-
-    if (confirmPasswordError) setConfirmPasswordError('');
-
-    resetMutations();
-  }
-
-  async function handleGoogleSignUp() {
-    if (googleSignUp.isPending) return;
-
-    emailSignUp.reset();
-
-    // A failure surfaces through `googleSignUp.error`.
-    await googleSignUp.mutateAsync().catch(() => {});
-  }
-
-  async function handleSignUp() {
-    if (emailSignUp.isPending || !validate()) return;
-
-    googleSignUp.reset();
-
-    // A failure surfaces through `emailSignUp.error`.
-    await emailSignUp
-      .mutateAsync({ email: email.trim(), password })
-      .catch(() => {});
-  }
+  const busy = emailSignUp.isPending || googleSignUp.isPending;
 
   function mapError(mutation: SignUpMutation, e: unknown): SignUpErrorMapping {
     return mapSignUpError(mutation, getErrorCode(e));
@@ -146,21 +60,47 @@ export function useSignUp() {
       ? mapError('googleSignUp', googleSignUp.error)
       : null;
 
+  const form: FormBinding<SignUpInput> = {
+    control,
+    setFocus,
+    busy,
+    onFieldChange: () => {
+      emailSignUp.reset();
+      googleSignUp.reset();
+    },
+    // Every sign-up server error is a form error.
+    serverError: () => '',
+    // Editing the password re-checks "passwords mismatch".
+    deps: { password: ['confirmPassword'] },
+  };
+
+  async function submit() {
+    if (busy) return;
+
+    await handleSubmit(async values => {
+      googleSignUp.reset();
+
+      // A failure surfaces through `emailSignUp.error`.
+      await emailSignUp.mutateAsync(values).catch(() => {});
+    })();
+  }
+
+  async function signUpWithGoogle() {
+    if (busy) return;
+
+    emailSignUp.reset();
+
+    // A failure surfaces through `googleSignUp.error`.
+    await googleSignUp.mutateAsync().catch(() => {});
+  }
+
   return {
-    email,
-    password,
-    confirmPassword,
-    emailError,
-    passwordError,
-    confirmPasswordError,
-    error: mapped ? t(mapped.key) : '',
-    loading: emailSignUp.isPending,
-    googleLoading: googleSignUp.isPending,
-    disabled: emailSignUp.isPending || googleSignUp.isPending,
-    onEmailChange,
-    onPasswordChange,
-    onConfirmPasswordChange,
-    handleSignUp,
-    handleGoogleSignUp,
+    form,
+    formError: mapped ? t(mapped.key) : '',
+    busy,
+    emailPending: emailSignUp.isPending,
+    googlePending: googleSignUp.isPending,
+    submit,
+    signUpWithGoogle,
   };
 }

@@ -5,6 +5,15 @@ const pl = {
     showPassword: 'Pokaż hasło',
     hidePassword: 'Ukryj hasło',
   },
+  // Validation messages shared across forms (ADR 0006).
+  validation: {
+    emailRequired: 'Podaj adres e-mail.',
+    emailInvalid: 'Podaj prawidłowy adres e-mail.',
+    passwordRequired: 'Podaj hasło.',
+    passwordTooShort:
+      'Hasło musi mieć co najmniej {{minPasswordLength}} znaków.',
+    passwordsMismatch: 'Hasła nie są zgodne.',
+  },
   signUp: {
     title: 'Utwórz konto',
     subtitle: 'Zarejestruj się, aby zacząć',
@@ -24,12 +33,7 @@ const pl = {
       googleFailed: 'Rejestracja przez Google nie powiodła się.',
     },
     validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-      passwordRequired: 'Podaj hasło.',
-      passwordTooShort: 'Hasło musi mieć co najmniej 8 znaków.',
       confirmPasswordRequired: 'Potwierdź hasło.',
-      passwordsMismatch: 'Hasła nie są zgodne.',
     },
   },
   signIn: {
@@ -47,11 +51,6 @@ const pl = {
       tooManyRequests: 'Za dużo prób logowania. Spróbuj ponownie później.',
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
-    },
-    validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
-      passwordRequired: 'Podaj hasło.',
       googleFailed: 'Logowanie przez Google nie powiodło się.',
     },
   },
@@ -87,10 +86,6 @@ const pl = {
       tooManyRequests: 'Za dużo prób. Spróbuj ponownie później.',
       networkFailed: 'Brak połączenia z internetem.',
       generic: 'Wystąpił błąd. Spróbuj ponownie.',
-    },
-    validation: {
-      emailRequired: 'Podaj adres e-mail.',
-      emailInvalid: 'Podaj prawidłowy adres e-mail.',
     },
   },
   tabs: {
@@ -157,10 +152,8 @@ const pl = {
     validation: {
       currentPasswordRequired: 'Podaj obecne hasło.',
       newPasswordRequired: 'Podaj nowe hasło.',
-      newPasswordTooShort: 'Hasło musi mieć co najmniej {{count}} znaków.',
       newPasswordSameAsCurrent: 'Nowe hasło musi różnić się od obecnego.',
       confirmPasswordRequired: 'Potwierdź nowe hasło.',
-      passwordsMismatch: 'Hasła nie są zgodne.',
     },
   },
   deleteAccount: {
@@ -185,9 +178,6 @@ const pl = {
       reauthRequired:
         'Minęło zbyt dużo czasu od ostatniego potwierdzenia tożsamości. Potwierdź ją ponownie i spróbuj jeszcze raz.',
       generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
-    },
-    validation: {
-      passwordRequired: 'Podaj hasło.',
     },
   },
   home: {

@@ -1,9 +1,7 @@
 import type { ParseKeys } from 'i18next';
 
 /** An i18n key for a sign-in failure. */
-type SignInErrorKey =
-  | Extract<ParseKeys, `signIn.errors.${string}`>
-  | 'signIn.validation.googleFailed';
+type SignInErrorKey = Extract<ParseKeys, `signIn.errors.${string}`>;
 
 export type SignInMutation = 'emailSignIn' | 'googleSignIn';
 
@@ -17,7 +15,7 @@ export function mapSignInError(
   code: string,
 ): SignInErrorMapping {
   if (mutation === 'googleSignIn') {
-    return { key: 'signIn.validation.googleFailed' };
+    return { key: 'signIn.errors.googleFailed' };
   }
 
   switch (code) {

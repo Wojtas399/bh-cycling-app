@@ -2,9 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { mapForgotPasswordError } from './forgotPasswordErrors';
+import {
+  type ForgotPasswordInput,
+  forgotPasswordSchema,
+} from './forgotPasswordSchema';
+import type { FormBinding } from '@/hooks/formBinding';
+import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
-import { EMAIL_REGEX } from '@/lib/validation';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
@@ -14,9 +19,13 @@ export function useForgotPassword() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const { control, setFocus, handleSubmit } = useAppForm(forgotPasswordSchema, {
+    defaultValues: { email: '' },
+  });
+
+  // The parsed email of the last successful send. Resend reuses it, not the
+  // field, and its presence means the success state is showing.
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -40,8 +49,8 @@ export function useForgotPassword() {
     mutationFn: async (address: string) => {
       await auth().sendPasswordResetEmail(address);
     },
-    onSuccess: () => {
-      setSuccess(true);
+    onSuccess: (_data, address) => {
+      setSentEmail(address);
       startCooldown();
     },
   });
@@ -52,47 +61,34 @@ export function useForgotPassword() {
     };
   }, []);
 
-  function validate(): boolean {
-    if (!email.trim()) {
-      setEmailError(t('forgotPassword.validation.emailRequired'));
+  const busy = sendReset.isPending;
 
-      return false;
-    }
+  const form: FormBinding<ForgotPasswordInput> = {
+    control,
+    setFocus,
+    busy,
+    onFieldChange: () => sendReset.reset(),
+    // Every forgot-password server error is a form error.
+    serverError: () => '',
+  };
 
-    if (!EMAIL_REGEX.test(email.trim())) {
-      setEmailError(t('forgotPassword.validation.emailInvalid'));
+  async function submit() {
+    if (busy) return;
 
-      return false;
-    }
-
-    setEmailError('');
-
-    return true;
+    await handleSubmit(async values => {
+      // A failure surfaces through `sendReset.error`.
+      await sendReset.mutateAsync(values.email).catch(() => {});
+    })();
   }
 
-  function onEmailChange(text: string) {
-    setEmail(text);
-
-    if (emailError) setEmailError('');
-
-    sendReset.reset();
-  }
-
-  async function handleSend() {
-    if (sendReset.isPending || !validate()) return;
+  async function resend() {
+    if (!sentEmail || cooldown > 0 || busy) return;
 
     // A failure surfaces through `sendReset.error`.
-    await sendReset.mutateAsync(email.trim()).catch(() => {});
+    await sendReset.mutateAsync(sentEmail).catch(() => {});
   }
 
-  async function handleResend() {
-    if (cooldown > 0 || sendReset.isPending) return;
-
-    // A failure surfaces through `sendReset.error`.
-    await sendReset.mutateAsync(email.trim()).catch(() => {});
-  }
-
-  function handleBackToSignIn() {
+  function backToSignIn() {
     if (router.canGoBack()) {
       router.back();
     } else {
@@ -101,18 +97,16 @@ export function useForgotPassword() {
   }
 
   return {
-    email,
-    emailError,
-    error: sendReset.error
+    form,
+    formError: sendReset.error
       ? t(mapForgotPasswordError(getErrorCode(sendReset.error)).key)
       : '',
-    loading: sendReset.isPending,
-    success,
+    busy,
+    submit,
+    resend,
+    backToSignIn,
+    success: sentEmail !== null,
+    sentEmail,
     cooldown,
-    disabled: sendReset.isPending,
-    onEmailChange,
-    handleSend,
-    handleResend,
-    handleBackToSignIn,
   };
 }

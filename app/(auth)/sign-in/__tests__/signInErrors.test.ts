@@ -25,7 +25,7 @@ describe('mapSignInError', () => {
     'maps Google %s to the Google failure',
     code => {
       expect(mapSignInError('googleSignIn', code)).toEqual({
-        key: 'signIn.validation.googleFailed',
+        key: 'signIn.errors.googleFailed',
       });
     },
   );
