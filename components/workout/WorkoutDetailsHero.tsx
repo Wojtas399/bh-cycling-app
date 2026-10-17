@@ -4,6 +4,7 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import WorkoutStatusPill from '@/components/workout/WorkoutStatusPill';
+import { daysSinceMonday } from '@/lib/calendarWorkouts';
 import { fromLocalDateString } from '@/lib/localDate';
 import type { WorkoutStatus } from '@/lib/workoutStatus';
 
@@ -13,8 +14,6 @@ export interface WorkoutDetailsHeroProps {
   /** Local `YYYY-MM-DD` the Workout is scheduled on. */
   date: string;
 }
-
-const MONDAY_FIRST = [6, 0, 1, 2, 3, 4, 5]; // days since Monday, by Date#getDay()
 
 /**
  * The top of Workout Details, outside any card: status pill, title and date,
@@ -38,7 +37,7 @@ export default function WorkoutDetailsHero({
           {`${labels.day({
             date,
             dayOfMonth: day.getDate(),
-            weekday: MONDAY_FIRST[day.getDay()],
+            weekday: daysSinceMonday(day),
             month: day.getMonth(),
             year: day.getFullYear(),
           })} ${day.getFullYear()}`}
