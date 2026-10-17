@@ -16,7 +16,8 @@ const BLOCK_GAP = 2;
  */
 const CAP_OPACITY = 0.4;
 
-const ZONE_COLORS: Record<Zone, keyof AppTheme['colors']> = {
+/** Theme colour of each zone, shared with anything else coloured by zone. */
+export const ZONE_COLORS: Record<Zone, keyof AppTheme['colors']> = {
   1: 'zone1',
   2: 'zone2',
   3: 'zone3',
