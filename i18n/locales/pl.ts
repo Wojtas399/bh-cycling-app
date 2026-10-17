@@ -237,8 +237,36 @@ const pl = {
     ],
     weekdaysShort: ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'],
   },
+  workoutDetails: {
+    title: 'Trening',
+    status: {
+      planned: 'Zaplanowany',
+      missed: 'Pominięty',
+      completed: 'Wykonany',
+    },
+    missedBanner:
+      'Ten trening nie został wykonany — brak sparowanej aktywności.',
+    profileLabel:
+      'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
+    steps_one: '{{count}} krok',
+    steps_few: '{{count}} kroki',
+    steps_many: '{{count}} kroków',
+    steps_other: '{{count}} kroku',
+    notFound: {
+      title: 'Trening nie istnieje',
+      body: 'Ten trening mógł zostać usunięty z Intervals.icu.',
+      back: 'Wróć',
+    },
+    error: 'Nie udało się wczytać treningu.',
+    retry: 'Spróbuj ponownie',
+    loading: 'Wczytywanie treningu',
+  },
   intervals: {
     title: 'Intervals.icu',
+    connectPrompt: {
+      message: 'Połącz konto Intervals.icu, aby zobaczyć swoje treningi.',
+      action: 'Przejdź do ustawień',
+    },
     connectButton: 'Połącz',
     disconnectButton: 'Rozłącz',
     connectedAs: 'Połączono jako {{name}}',

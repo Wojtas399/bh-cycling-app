@@ -18,6 +18,8 @@ export interface CalendarDaySheetProps {
   day: CalendarDay | null;
   workouts: CalendarWorkout[];
   onClose: () => void;
+  /** Opens a Workout's details; the caller dismisses the sheet. */
+  onWorkoutPress: (workout: CalendarWorkout) => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export default function CalendarDaySheet({
   day,
   workouts,
   onClose,
+  onWorkoutPress,
 }: CalendarDaySheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const labels = useCalendarLabels();
@@ -56,6 +59,7 @@ export default function CalendarDaySheet({
               status={workout.status}
               durationSeconds={workout.durationSeconds}
               blocks={workout.blocks}
+              onPress={() => onWorkoutPress(workout)}
             />
           ))}
         </Box>

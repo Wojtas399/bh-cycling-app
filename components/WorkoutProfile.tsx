@@ -3,8 +3,8 @@ import type { AppTheme } from '@/constants/theme';
 import type { Zone } from '@/lib/powerZones';
 import { type WorkoutBlock, profileCeilingPct } from '@/lib/workoutProfile';
 
-/** Height of the plot area. Tall enough to read a shape, short enough for a tile. */
-const PROFILE_HEIGHT = 48;
+/** Default height of the plot area. Tall enough to read a shape, short enough for a tile. */
+const DEFAULT_PROFILE_HEIGHT = 48;
 
 /** Hairline between neighbouring blocks, so repeated efforts stay countable. */
 const BLOCK_GAP = 2;
@@ -29,6 +29,8 @@ const ZONE_COLORS: Record<Zone, keyof AppTheme['colors']> = {
 export interface WorkoutProfileProps {
   /** The profile's blocks, in time order. */
   blocks: WorkoutBlock[];
+  /** Height of the plot area in points. Defaults to the tile's 48. */
+  height?: number;
 }
 
 /**
@@ -40,7 +42,10 @@ export interface WorkoutProfileProps {
  * Purely presentational — it knows the block model and the theme, and nothing
  * about intervals.icu, FTP watts, or how the blocks were parsed.
  */
-export default function WorkoutProfile({ blocks }: WorkoutProfileProps) {
+export default function WorkoutProfile({
+  blocks,
+  height = DEFAULT_PROFILE_HEIGHT,
+}: WorkoutProfileProps) {
   const ceilingPct = profileCeilingPct(blocks);
 
   // Nothing to scale against, and nothing to draw: an empty profile, or one
@@ -51,7 +56,7 @@ export default function WorkoutProfile({ blocks }: WorkoutProfileProps) {
     <Box
       flexDirection="row"
       alignItems="stretch"
-      height={PROFILE_HEIGHT}
+      height={height}
       style={{ gap: BLOCK_GAP }}
       testID="workout-profile"
     >
