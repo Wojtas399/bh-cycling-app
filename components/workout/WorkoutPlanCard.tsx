@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import Box from '@/components/Box';
-import Text from '@/components/Text';
+import MetricGrid from '@/components/workout/MetricGrid';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import { formatMetric, planMetricList } from '@/lib/formatWorkoutMetric';
 import type { WorkoutPlanMetrics } from '@/lib/workoutDetails';
@@ -24,16 +23,13 @@ export default function WorkoutPlanCard({ metrics }: WorkoutPlanCardProps) {
 
   return (
     <WorkoutDetailsCard title={t('title')}>
-      <Box flexDirection="row" flexWrap="wrap" rowGap="base">
-        {rows.map(({ metric, value }) => (
-          <Box key={metric} width="50%">
-            <Text variant="body-xs-regular" color="textSecondary">
-              {t(metric)}
-            </Text>
-            <Text variant="body-xl-regular">{formatMetric(metric, value)}</Text>
-          </Box>
-        ))}
-      </Box>
+      <MetricGrid
+        items={rows.map(({ metric, value }) => ({
+          key: metric,
+          label: t(metric),
+          value: formatMetric(metric, value),
+        }))}
+      />
     </WorkoutDetailsCard>
   );
 }
