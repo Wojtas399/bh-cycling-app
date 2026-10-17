@@ -5,23 +5,52 @@ import {
   zoneForFtpPercent,
 } from './powerZones';
 
-/** A Power Target as it arrives on a Workout Doc step. */
-export interface StepPowerTarget {
-  /** `'power_zone'` or `'%ftp'`; any other unit is not drawable. */
+/**
+ * A target value as it arrives on a Workout Doc step: power, heart rate or
+ * cadence, in whatever `units` intervals.icu attached to it.
+ */
+export interface StepTarget {
+  /**
+   * The unit the numbers are in. For power, `'power_zone'` or `'%ftp'` are
+   * drawable; any other unit (e.g. `'w'`) is not.
+   */
   units?: string;
-  /** Single-value target: the zone number for `power_zone`, else %FTP. */
+  /** Single-value target, e.g. the zone number for `power_zone`, else %FTP. */
   value?: number;
-  /** Lower end of a `%ftp` range. */
+  /** Lower end of a range, or where a ramp starts. */
   start?: number;
-  /** Upper end of a `%ftp` range. */
+  /** Upper end of a range, or where a ramp ends. */
   end?: number;
 }
 
-/** One entry of a Workout Doc's ordered `steps[]`, with repeats pre-expanded. */
+/**
+ * One entry of a Workout Doc's ordered `steps[]`. Repeats arrive nested, not
+ * expanded: a repeat is a parent step with `reps` and child `steps[]`, whose
+ * own `duration` (and `distance`) is the total across all reps, while each
+ * child's is for a single rep.
+ */
 export interface WorkoutStep {
-  /** Length of the step in seconds. */
+  /** Cue or label, e.g. `"Welcome to the..."`, or `"6x"` on a repeat. */
+  text?: string;
+  /** Length of the step in seconds; on a repeat, the total across its reps. */
   duration?: number;
-  power?: StepPowerTarget;
+  /** Length of the step in metres; on a repeat, the total across its reps. */
+  distance?: number;
+  /** How many times the child `steps[]` are ridden. Set only on a repeat. */
+  reps?: number;
+  /** The children of a repeat, for a single rep, in order. */
+  steps?: WorkoutStep[];
+  warmup?: boolean;
+  cooldown?: boolean;
+  /** The `start`/`end` of the targets are a linear ramp, not a range. */
+  ramp?: boolean;
+  freeride?: boolean;
+  maxeffort?: boolean;
+  power?: StepTarget;
+  hr?: StepTarget;
+  cadence?: StepTarget;
+  /** The power target resolved to watts, when intervals.icu resolved it. */
+  _power?: StepTarget;
 }
 
 /** One drawable block of a Workout Profile, in time order. */
@@ -88,7 +117,9 @@ function toWidthFractions(durations: number[]): number[] {
 
   for (const index of ascending) {
     scale = (1 - MIN_WIDTH_FRACTION * flooredCount) / spareSum;
+
     if (fractions[index] * scale >= MIN_WIDTH_FRACTION) break;
+
     flooredCount += 1;
     spareSum -= fractions[index];
   }
@@ -105,7 +136,7 @@ function toWidthFractions(durations: number[]): number[] {
  * that zone's band; `%ftp` targets are already in the working unit.
  */
 function resolveBand(
-  target: StepPowerTarget | undefined,
+  target: StepTarget | undefined,
   config: ZoneConfig,
 ): StepBand | null {
   if (target?.units === 'power_zone' && isUsableNumber(target.value)) {
@@ -135,15 +166,32 @@ function resolveBand(
 }
 
 /**
+ * Expands nested repeats into the steps actually ridden: each repeat becomes
+ * its children, `reps` times in order, recursively. The repeat itself is not
+ * kept, since its duration is only the total of the reps it stands for.
+ */
+function unrollRepeats(steps: WorkoutStep[]): WorkoutStep[] {
+  return steps.flatMap(step => {
+    if (!isUsableNumber(step.reps) || !step.steps) return [step];
+
+    const rep = unrollRepeats(step.steps);
+
+    return Array.from({ length: Math.max(0, step.reps) }, () => rep).flat();
+  });
+}
+
+/**
  * Turns a Workout Doc's ordered `steps[]` into the drawable block model of its
  * Workout Profile. Presentation-agnostic: it resolves units, proportions, and
  * zones, and leaves every pixel decision to the renderer.
  */
 export function buildWorkoutProfile(
-  steps: WorkoutStep[] | null | undefined,
+  docSteps: WorkoutStep[] | null | undefined,
   config: ZoneConfig,
 ): WorkoutBlock[] {
-  if (!steps || steps.length === 0) return [];
+  if (!docSteps || docSteps.length === 0) return [];
+
+  const steps = unrollRepeats(docSteps);
 
   // A step needs both a length and a power we can place on a %FTP axis. Steps
   // missing either — a free ride, an HR-targeted effort — are left out rather
