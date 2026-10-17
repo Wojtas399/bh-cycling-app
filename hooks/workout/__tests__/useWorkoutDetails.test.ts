@@ -405,6 +405,123 @@ describe('useWorkoutDetails', () => {
     });
   });
 
+  describe('plan metrics', () => {
+    async function planMetricsFor(overrides: Partial<IntervalsCalendarEvent>) {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event(overrides));
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+      return result.current.query.data?.planMetrics;
+    }
+
+    it('has every metric intervals.icu supplies, in its own units', async () => {
+      const planMetrics = await planMetricsFor({
+        moving_time: 4500,
+        icu_training_load: 82,
+        icu_intensity: 86.05,
+        joules: 1_150_000,
+        distance: 42_500,
+        workout_doc: { duration: 4400, steps: [] },
+      });
+
+      expect(planMetrics).toEqual({
+        durationSeconds: 4500,
+        load: 82,
+        intensityPct: 86.05,
+        workJoules: 1_150_000,
+        distanceMeters: 42_500,
+      });
+    });
+
+    it('falls back to the workout doc duration when the event has no moving time', async () => {
+      const planMetrics = await planMetricsFor({
+        workout_doc: { duration: 3600, steps: [] },
+      });
+
+      expect(planMetrics?.durationSeconds).toBe(3600);
+    });
+
+    it('leaves out a zero planned distance, as on a time-based ride', async () => {
+      const planMetrics = await planMetricsFor({
+        moving_time: 3600,
+        distance: 0,
+      });
+
+      expect(planMetrics).toStrictEqual({ durationSeconds: 3600 });
+    });
+
+    it('falls back to the workout doc distance when the event has none', async () => {
+      const planMetrics = await planMetricsFor({
+        workout_doc: { distance: 5000, steps: [] },
+      });
+
+      expect(planMetrics?.distanceMeters).toBe(5000);
+    });
+
+    it('leaves out every metric intervals.icu does not supply', async () => {
+      const planMetrics = await planMetricsFor({});
+
+      expect(planMetrics).toStrictEqual({});
+    });
+  });
+
+  describe('description', () => {
+    async function descriptionFor(overrides: Partial<IntervalsCalendarEvent>) {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event(overrides));
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+      return result.current.query.data;
+    }
+
+    it("is the workout doc's free text, trimmed, without the builder's step lines", async () => {
+      const details = await descriptionFor({
+        description: 'Stay seated.\n\nMain set 3x\n- 10m 90%',
+        workout_doc: { description: '  Stay seated.\n', steps: [] },
+      });
+
+      expect(details?.description).toBe('Stay seated.');
+    });
+
+    it('is absent when the notes are blank', async () => {
+      const details = await descriptionFor({
+        workout_doc: { description: ' \n ', steps: [] },
+      });
+
+      expect(details).not.toHaveProperty('description');
+    });
+
+    it('is absent when there are no notes, even if the event has step lines', async () => {
+      const details = await descriptionFor({
+        description: '- 10m 90%',
+        workout_doc: { steps: [] },
+      });
+
+      expect(details).not.toHaveProperty('description');
+    });
+
+    it('is there for a completed Workout too', async () => {
+      mockGetActivities.mockResolvedValue([
+        activity({ paired_event_id: EVENT_ID }),
+      ]);
+
+      const details = await descriptionFor({
+        workout_doc: { description: 'Stay seated.', steps: [] },
+      });
+
+      expect(details).toMatchObject({
+        mode: 'completed',
+        description: 'Stay seated.',
+      });
+    });
+  });
+
   describe('cache', () => {
     const workoutKey = ['intervals', 'athlete-1', 'workout', EVENT_ID];
 

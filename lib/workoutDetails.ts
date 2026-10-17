@@ -63,6 +63,20 @@ export interface WorkoutProfileSummary {
 }
 
 /**
+ * The planned metrics of a Workout, in intervals.icu's units. A metric
+ * intervals.icu doesn't supply is absent, never zero.
+ */
+export interface WorkoutPlanMetrics {
+  durationSeconds?: number;
+  load?: number;
+  /** IF × 100. */
+  intensityPct?: number;
+  workJoules?: number;
+  /** Present only when the plan has a distance above zero. */
+  distanceMeters?: number;
+}
+
+/**
  * The Workout Details screen's view model: numbers and structure only. Labels
  * and unit formatting are left to the screen.
  */
@@ -76,6 +90,13 @@ export interface WorkoutDetails {
   blocks: WorkoutBlock[];
   /** `null` exactly when `blocks` is empty. */
   profileSummary: WorkoutProfileSummary | null;
+  /** What the plan asks for, shown in planned mode. */
+  planMetrics: WorkoutPlanMetrics;
+  /**
+   * The Workout's free-text notes, trimmed, without the builder's step lines.
+   * Absent when there are none.
+   */
+  description?: string;
 }
 
 /** Builds the view model of a stored Workout as of `today`. */
@@ -98,7 +119,19 @@ export function buildWorkoutDetails(
     date,
     blocks,
     profileSummary: summariseProfile(event, blocks),
+    planMetrics: buildPlanMetrics(event),
+    ...notes(event),
   };
+}
+
+/**
+ * `workout_doc.description` is the free text alone; the event's own
+ * `description` also carries the step lines, so it is never used.
+ */
+function notes(event: IntervalsCalendarEvent): { description?: string } {
+  const description = event.workout_doc?.description?.trim();
+
+  return description ? { description } : {};
 }
 
 function summariseProfile(
@@ -121,4 +154,42 @@ function summariseProfile(
     stepCount: blocks.length,
     peakFtpPct: profileCeilingPct(blocks),
   };
+}
+
+function buildPlanMetrics({
+  moving_time,
+  icu_training_load,
+  icu_intensity,
+  joules,
+  distance,
+  workout_doc,
+}: IntervalsCalendarEvent): WorkoutPlanMetrics {
+  const durationSeconds = isPresent(moving_time)
+    ? moving_time
+    : workout_doc?.duration;
+  const distanceMeters = [distance, workout_doc?.distance].find(
+    metres => isPresent(metres) && metres > 0,
+  );
+
+  return withoutAbsent({
+    durationSeconds,
+    load: icu_training_load,
+    intensityPct: icu_intensity,
+    workJoules: joules,
+    distanceMeters,
+  });
+}
+
+/** A metric intervals.icu actually supplied: a finite number, not null. */
+function isPresent(value: number | null | undefined): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/** Drops the metrics that are absent, so none reads as zero or a dash. */
+function withoutAbsent<T extends Record<string, number | null | undefined>>(
+  metrics: T,
+): { [K in keyof T]?: number } {
+  return Object.fromEntries(
+    Object.entries(metrics).filter(([, value]) => isPresent(value)),
+  ) as { [K in keyof T]?: number };
 }

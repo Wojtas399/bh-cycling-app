@@ -49,6 +49,10 @@ export interface IntervalsActivity {
 
 export interface IntervalsWorkoutDoc {
   duration?: number;
+  /** The free-text notes only, without the builder's step lines. */
+  description?: string;
+  /** Planned distance in metres, usually 0 for a time-based ride. */
+  distance?: number;
   /** The workout's steps in time order, with repeats nested (see `WorkoutStep`). */
   steps?: WorkoutStep[];
 }
@@ -59,6 +63,18 @@ export interface IntervalsCalendarEvent {
   name: string;
   start_date_local: string;
   type?: string;
+  /** The full builder text: free-text notes plus the step lines. */
+  description?: string;
+  /** Planned duration in seconds. */
+  moving_time?: number;
+  /** Planned distance in metres, usually 0 for a time-based ride. */
+  distance?: number;
+  /** Planned training load. */
+  icu_training_load?: number;
+  /** Planned intensity in percent (IF × 100). */
+  icu_intensity?: number;
+  /** Planned work in joules. */
+  joules?: number;
   workout_doc?: IntervalsWorkoutDoc;
 }
 
