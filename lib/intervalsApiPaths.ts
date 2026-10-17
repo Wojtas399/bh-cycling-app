@@ -13,3 +13,10 @@ export function intervalsActivitiesPath(athleteId: string): string {
 export function intervalsCalendarEventsPath(athleteId: string): string {
   return `/athlete/${athleteId}/events`;
 }
+
+export function intervalsCalendarEventPath(
+  athleteId: string,
+  eventId: number,
+): string {
+  return `${intervalsCalendarEventsPath(athleteId)}/${eventId}`;
+}

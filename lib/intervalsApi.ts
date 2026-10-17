@@ -2,6 +2,7 @@ import {
   INTERVALS_API_BASE_URL,
   INTERVALS_CURRENT_ATHLETE_PATH,
   intervalsActivitiesPath,
+  intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
 } from './intervalsApiPaths';
 import type { AthleteZoneSettings } from './powerZones';
@@ -138,6 +139,24 @@ export function getCalendarEvents(
     intervalsCalendarEventsPath(athleteId),
     token,
     params,
+    options,
+  );
+}
+
+/**
+ * Reads one calendar event by id. A deleted or unknown event surfaces as an
+ * `IntervalsApiError` with status 404.
+ */
+export function getCalendarEvent(
+  token: string,
+  athleteId: string,
+  eventId: number,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsCalendarEvent> {
+  return request<IntervalsCalendarEvent>(
+    intervalsCalendarEventPath(athleteId, eventId),
+    token,
+    undefined,
     options,
   );
 }
