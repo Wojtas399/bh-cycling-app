@@ -102,8 +102,12 @@ export function useChangePassword() {
       sendResetEmail.reset();
     },
     serverError: name => (name === 'confirmPassword' ? '' : mappedError(name)),
-    // Editing the new password re-checks "passwords mismatch".
-    deps: { newPassword: ['confirmPassword'] },
+    // Editing the new password re-checks "passwords mismatch"; editing the
+    // current password re-checks "same as current".
+    deps: {
+      currentPassword: ['newPassword'],
+      newPassword: ['confirmPassword'],
+    },
   };
 
   async function submit() {
@@ -128,7 +132,7 @@ export function useChangePassword() {
         text: t('changePassword.reset.confirmButton'),
         style: 'default',
         onPress: () => {
-          if (sendResetEmail.isPending) return;
+          if (busy) return;
 
           changePassword.reset();
           sendResetEmail.mutate(email);

@@ -182,6 +182,27 @@ describe('useChangePassword', () => {
       expect(errorOf(hook, 'confirmPassword')).toBe('');
     });
 
+    it('re-checks "same as current" when the current password changes', async () => {
+      const hook = await setup();
+
+      await fill(hook, {
+        current: 'old-password',
+        next: 'new-password-1',
+        confirm: 'new-password-1',
+      });
+      await submit(hook);
+
+      await fill(hook, { current: 'new-password-1' });
+
+      expect(errorOf(hook, 'newPassword')).toBe(
+        'changePassword.validation.newPasswordSameAsCurrent',
+      );
+
+      await fill(hook, { current: 'old-password' });
+
+      expect(errorOf(hook, 'newPassword')).toBe('');
+    });
+
     it('focuses the first invalid field on submit', async () => {
       const hook = await setup();
       const focus = { current: jest.fn(), next: jest.fn(), confirm: jest.fn() };
