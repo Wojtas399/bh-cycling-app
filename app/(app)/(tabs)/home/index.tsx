@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutTile from '@/components/WorkoutTile';
+import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { availability, query } = useUpcomingWorkouts();
+  const openWorkout = useOpenWorkoutDetails();
 
   // Home has no error state: like a disconnect, any failed fetch hides it.
   if (
@@ -52,6 +54,7 @@ export default function HomeScreen() {
             dayLabel={t(workout.dayLabel)}
             durationSeconds={workout.durationSeconds}
             blocks={workout.blocks}
+            onPress={() => openWorkout(workout.id)}
           />
         </Box>
       ))}

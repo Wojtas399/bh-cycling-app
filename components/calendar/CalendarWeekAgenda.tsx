@@ -13,16 +13,19 @@ export interface CalendarWeekAgendaProps {
   week: Date;
   workoutsByDate: Record<string, CalendarWorkout[]>;
   onDayPress: (day: CalendarDay) => void;
+  onWorkoutPress: (workout: CalendarWorkout) => void;
 }
 
 /**
  * The weekly agenda: Monday to Sunday, each day's label followed by a card
- * per workout. Rest days show the label alone.
+ * per workout. Rest days show the label alone. Tapping a card opens that
+ * Workout; tapping elsewhere in the day opens the day sheet.
  */
 export default function CalendarWeekAgenda({
   week,
   workoutsByDate,
   onDayPress,
+  onWorkoutPress,
 }: CalendarWeekAgendaProps) {
   const labels = useCalendarLabels();
   const today = useToday();
@@ -53,6 +56,7 @@ export default function CalendarWeekAgenda({
                   status={workout.status}
                   durationSeconds={workout.durationSeconds}
                   blocks={workout.blocks}
+                  onPress={() => onWorkoutPress(workout)}
                 />
               </Box>
             ))}

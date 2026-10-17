@@ -35,14 +35,17 @@ export function endOfMonth(anchor: Date): Date {
   return new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
 }
 
-const MONDAY_OFFSET = [6, 0, 1, 2, 3, 4, 5]; // days since Monday, indexed by Date#getDay()
+/** The weekday in a Monday-first week: 0 for Monday through 6 for Sunday. */
+export function daysSinceMonday(date: Date): number {
+  return (date.getDay() + 6) % 7;
+}
 
 /** Local midnight of the week's Monday — the anchor's time of day is dropped. */
 export function startOfWeek(anchor: Date): Date {
   return new Date(
     anchor.getFullYear(),
     anchor.getMonth(),
-    anchor.getDate() - MONDAY_OFFSET[anchor.getDay()],
+    anchor.getDate() - daysSinceMonday(anchor),
   );
 }
 

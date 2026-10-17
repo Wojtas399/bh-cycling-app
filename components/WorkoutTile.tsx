@@ -1,3 +1,5 @@
+import { Pressable } from 'react-native';
+
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutProfile from '@/components/WorkoutProfile';
@@ -15,14 +17,16 @@ export interface WorkoutTileProps {
   durationSeconds?: number;
   /** The Workout Profile to draw. Empty when there is none to show. */
   blocks?: WorkoutBlock[];
+  /** Makes the whole tile a button, e.g. to open the Workout's details. */
+  onPress?: () => void;
 }
 
 /**
  * Presentational card for a single workout. Renders the title — with a status
  * dot and a day label, when given — on the top row, the duration below in
  * muted text, and the Workout Profile beneath that. Knows nothing about
- * intervals.icu, is non-interactive, and degrades to whichever parts it was
- * given.
+ * intervals.icu, is interactive only when given `onPress`, and degrades to
+ * whichever parts it was given.
  */
 export default function WorkoutTile({
   title,
@@ -30,8 +34,9 @@ export default function WorkoutTile({
   status,
   durationSeconds,
   blocks = [],
+  onPress,
 }: WorkoutTileProps) {
-  return (
+  const card = (
     <Box backgroundColor="bgSecondary" borderRadius="lg" padding="base">
       <Box
         flexDirection="row"
@@ -70,5 +75,17 @@ export default function WorkoutTile({
         </Box>
       )}
     </Box>
+  );
+
+  if (!onPress) return card;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      {card}
+    </Pressable>
   );
 }

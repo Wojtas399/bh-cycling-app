@@ -2,6 +2,7 @@ import {
   INTERVALS_API_BASE_URL,
   INTERVALS_CURRENT_ATHLETE_PATH,
   intervalsActivitiesPath,
+  intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
 } from './intervalsApiPaths';
 import type { AthleteZoneSettings } from './powerZones';
@@ -24,6 +25,11 @@ export class IntervalsApiError extends Error {
   }
 }
 
+/** True when Intervals.icu answered 404: the thing asked for doesn't exist. */
+export function isNotFoundError(error: unknown): boolean {
+  return error instanceof IntervalsApiError && error.status === 404;
+}
+
 export interface IntervalsDateRangeParams {
   oldest?: string;
   newest?: string;
@@ -44,11 +50,44 @@ export interface IntervalsActivity {
   icu_training_load?: number;
   /** The calendar event this activity fulfils, when intervals.icu paired one. */
   paired_event_id?: number;
+  /** Seconds from start to finish, stops included. */
+  elapsed_time?: number;
+  /** Intensity factor as a percentage (IF × 100). */
+  icu_intensity?: number;
+  /** W. */
+  icu_average_watts?: number;
+  /** Normalized power, W. */
+  icu_weighted_avg_watts?: number;
+  /** Variability index, a ratio (NP / average power). */
+  icu_variability_index?: number;
+  /** bpm. */
+  average_heartrate?: number;
+  /** bpm. */
+  max_heartrate?: number;
+  /** rpm. */
+  average_cadence?: number;
+  /** m. */
+  total_elevation_gain?: number;
+  /** kcal. */
+  calories?: number;
+  /** Work, J. */
+  icu_joules?: number;
+  /** m/s. */
+  average_speed?: number;
+  /**
+   * intervals.icu's plan compliance, %. `null` when not calculated, negative
+   * when the athlete asked to ignore it.
+   */
+  compliance?: number | null;
 }
 
 export interface IntervalsWorkoutDoc {
   duration?: number;
-  /** The workout's efforts in time order, with repeats already expanded. */
+  /** The free-text notes only, without the builder's step lines. */
+  description?: string;
+  /** Planned distance in metres, usually 0 for a time-based ride. */
+  distance?: number;
+  /** The workout's steps in time order, with repeats nested (see `WorkoutStep`). */
   steps?: WorkoutStep[];
 }
 
@@ -58,6 +97,18 @@ export interface IntervalsCalendarEvent {
   name: string;
   start_date_local: string;
   type?: string;
+  /** The full builder text: free-text notes plus the step lines. */
+  description?: string;
+  /** Planned duration in seconds. */
+  moving_time?: number;
+  /** Planned distance in metres, usually 0 for a time-based ride. */
+  distance?: number;
+  /** Planned training load. */
+  icu_training_load?: number;
+  /** Planned intensity in percent (IF × 100). */
+  icu_intensity?: number;
+  /** Planned work in joules. */
+  joules?: number;
   workout_doc?: IntervalsWorkoutDoc;
 }
 
@@ -138,6 +189,24 @@ export function getCalendarEvents(
     intervalsCalendarEventsPath(athleteId),
     token,
     params,
+    options,
+  );
+}
+
+/**
+ * Reads one calendar event by id. A deleted or unknown event surfaces as an
+ * `IntervalsApiError` with status 404.
+ */
+export function getCalendarEvent(
+  token: string,
+  athleteId: string,
+  eventId: number,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsCalendarEvent> {
+  return request<IntervalsCalendarEvent>(
+    intervalsCalendarEventPath(athleteId, eventId),
+    token,
+    undefined,
     options,
   );
 }

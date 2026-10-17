@@ -3,7 +3,9 @@ import {
   IntervalsAuthError,
   getActivities,
   getAthleteSettings,
+  getCalendarEvent,
   getCalendarEvents,
+  isNotFoundError,
 } from '../intervalsApi';
 
 function mockFetchOnce(response: {
@@ -85,6 +87,11 @@ describe('intervalsApi', () => {
       'getAthleteSettings',
       (signal: AbortSignal) => getAthleteSettings('token-1', { signal }),
     ],
+    [
+      'getCalendarEvent',
+      (signal: AbortSignal) =>
+        getCalendarEvent('token-1', 'athlete-1', 42, { signal }),
+    ],
   ])('%s passes the abort signal through to fetch', async (_name, call) => {
     const controller = new AbortController();
 
@@ -112,5 +119,53 @@ describe('intervalsApi', () => {
     await expect(getActivities('token-1', 'athlete-1')).rejects.toBeInstanceOf(
       IntervalsApiError,
     );
+  });
+
+  describe('getCalendarEvent', () => {
+    it('reads a single event by id with the bearer token', async () => {
+      const event = { id: 42, name: 'Sweet spot' };
+
+      mockFetchOnce({ ok: true, status: 200, json: async () => event });
+
+      const result = await getCalendarEvent('token-1', 'athlete-1', 42);
+
+      expect(result).toEqual(event);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://intervals.icu/api/v1/athlete/athlete-1/events/42',
+        { headers: { Authorization: 'Bearer token-1' } },
+      );
+    });
+
+    it('throws IntervalsAuthError on a 401 response', async () => {
+      mockFetchOnce({ ok: false, status: 401 });
+
+      await expect(
+        getCalendarEvent('bad-token', 'athlete-1', 42),
+      ).rejects.toBeInstanceOf(IntervalsAuthError);
+    });
+
+    it('throws IntervalsApiError carrying the status of a 404', async () => {
+      mockFetchOnce({ ok: false, status: 404 });
+
+      await expect(
+        getCalendarEvent('token-1', 'athlete-1', 42),
+      ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 404 });
+    });
+  });
+});
+
+describe('isNotFoundError', () => {
+  it('is true for an Intervals.icu 404', () => {
+    expect(isNotFoundError(new IntervalsApiError(404))).toBe(true);
+  });
+
+  it('is false for any other Intervals.icu failure', () => {
+    expect(isNotFoundError(new IntervalsApiError(500))).toBe(false);
+    expect(isNotFoundError(new IntervalsAuthError())).toBe(false);
+  });
+
+  it('is false for errors that are not from Intervals.icu', () => {
+    expect(isNotFoundError(new Error('Network request failed'))).toBe(false);
+    expect(isNotFoundError(null)).toBe(false);
   });
 });

@@ -12,6 +12,7 @@ import {
 import {
   getActivities,
   getAthleteSettings,
+  getCalendarEvent,
   getCalendarEvents,
 } from './intervalsApi';
 import {
@@ -22,6 +23,13 @@ import {
 } from './localDate';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { getUpcomingWorkouts } from './upcomingWorkouts';
+import {
+  type StoredWorkoutDetails,
+  WORKOUT_DETAILS_ACTIVITY_FIELDS,
+  type WorkoutDetails,
+  buildWorkoutDetails,
+  pairedActivity,
+} from './workoutDetails';
 import {
   type QueryClient,
   queryOptions,
@@ -55,6 +63,9 @@ export const intervalsKeys = {
     [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
   month: (athleteId: string | undefined, yearMonth: YearMonth) =>
     [...intervalsKeys.calendar(athleteId), 'month', yearMonth] as const,
+  /** One Workout's details, by its intervals.icu event id. */
+  workout: (athleteId: string | undefined, eventId: number) =>
+    [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
 };
 
 /**
@@ -180,6 +191,72 @@ export function monthQueryOptions(
           ]);
 
           return buildMonthWorkouts(first, events, activities, zoneConfig);
+        }
+      : skipToken,
+    select,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/** Derives a stored Workout's view model, Workout Status included. */
+export type WorkoutDetailsSelect = (
+  stored: StoredWorkoutDetails,
+) => WorkoutDetails;
+
+/**
+ * The Workout Details `select` building the view model as of `today`. Callers
+ * keep it referentially stable per `today`, like `selectMonthAsOf`.
+ */
+export function selectWorkoutDetailsAsOf(
+  today: LocalDateString,
+): WorkoutDetailsSelect {
+  return stored => buildWorkoutDetails(stored, today);
+}
+
+/**
+ * One Workout with the Activity paired to it. The event is fetched first,
+ * since the activities window is centred on its date. The query stores no
+ * status; `select` (see `selectWorkoutDetailsAsOf`) derives it, so a planned
+ * Workout turns missed at midnight without a fetch. Never reads from or
+ * writes into the month or upcoming caches. Skipped while there are no
+ * credentials.
+ */
+export function workoutDetailsQueryOptions(
+  credentials: IntervalsCredentials | null,
+  eventId: number,
+  select: WorkoutDetailsSelect,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.workout(credentials?.athleteId, eventId),
+    queryFn: credentials
+      ? async ({ signal, client }): Promise<StoredWorkoutDetails> => {
+          const zoneConfigPromise = fetchZoneConfig(client, credentials);
+          const event = await getCalendarEvent(
+            credentials.accessToken,
+            credentials.athleteId,
+            eventId,
+            { signal },
+          );
+          const date = fromLocalDateString(event.start_date_local.slice(0, 10));
+          const [activities, zoneConfig] = await Promise.all([
+            getActivities(
+              credentials.accessToken,
+              credentials.athleteId,
+              {
+                oldest: toLocalDateString(addDays(date, -PAIRING_WINDOW_DAYS)),
+                newest: toLocalDateString(addDays(date, PAIRING_WINDOW_DAYS)),
+                fields: WORKOUT_DETAILS_ACTIVITY_FIELDS,
+              },
+              { signal },
+            ),
+            zoneConfigPromise,
+          ]);
+
+          return {
+            event,
+            activity: pairedActivity(activities, eventId),
+            zoneConfig,
+          };
         }
       : skipToken,
     select,
