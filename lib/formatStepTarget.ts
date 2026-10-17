@@ -1,4 +1,5 @@
-import type { StepSpan, WorkoutDetailsPlainStep } from './workoutSteps';
+import type { StepSpan } from './powerTarget';
+import type { WorkoutDetailsPlainStep } from './workoutSteps';
 
 /**
  * Formats a span: one number when flat, else `start–end`. A ramp reads the
