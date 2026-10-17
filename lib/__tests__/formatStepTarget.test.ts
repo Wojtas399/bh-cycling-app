@@ -31,10 +31,10 @@ describe('formatStepTarget', () => {
     ).toBe('55–75% FTP · 162–217 W · 90–100 rpm');
   });
 
-  it('reads a ramp with an arrow, in the order it is ridden', () => {
+  it('reads a ramp as start–end, in the order it is ridden', () => {
     expect(
       formatStepTarget(step({ ramp: true, ftpPct: { start: 75, end: 45 } })),
-    ).toBe('75→45% FTP');
+    ).toBe('75–45% FTP');
   });
 
   it('rounds to whole numbers', () => {
