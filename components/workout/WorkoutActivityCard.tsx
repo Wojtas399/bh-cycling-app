@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
-import { formatActivityMetric } from '@/components/workout/formatWorkoutMetric';
+import { formatMetric } from '@/lib/formatWorkoutMetric';
 import type { ActivityMetric } from '@/lib/workoutDetails';
 
 export interface WorkoutActivityCardProps {
@@ -28,9 +28,7 @@ export default function WorkoutActivityCard({
             <Text variant="body-xs-regular" color="textSecondary">
               {t(`metrics.${metric}`)}
             </Text>
-            <Text variant="body-xl-regular">
-              {formatActivityMetric(metric, value)}
-            </Text>
+            <Text variant="body-xl-regular">{formatMetric(metric, value)}</Text>
           </Box>
         ))}
       </Box>

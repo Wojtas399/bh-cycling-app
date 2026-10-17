@@ -4,9 +4,9 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import {
-  formatComparisonDifference,
-  formatComparisonValue,
-} from '@/components/workout/formatWorkoutMetric';
+  formatMetric,
+  formatMetricDifference,
+} from '@/lib/formatWorkoutMetric';
 import type { WorkoutComparison } from '@/lib/workoutDetails';
 
 export interface WorkoutComparisonCardProps {
@@ -66,10 +66,10 @@ export default function WorkoutComparisonCard({
             variant="body-s-regular"
             color="textSecondary"
           >
-            {formatComparisonValue(row.metric, row.planned)}
+            {formatMetric(row.metric, row.planned)}
           </Text>
           <Text flex={1} textAlign="right" variant="body-s-medium">
-            {formatComparisonValue(row.metric, row.actual)}
+            {formatMetric(row.metric, row.actual)}
           </Text>
           <Text
             flex={1}
@@ -77,7 +77,7 @@ export default function WorkoutComparisonCard({
             variant="body-s-regular"
             color="textSecondary"
           >
-            {formatComparisonDifference(row.metric, row.difference)}
+            {formatMetricDifference(row.metric, row.difference)}
           </Text>
         </Box>
       ))}
