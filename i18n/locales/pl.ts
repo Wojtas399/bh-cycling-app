@@ -260,6 +260,15 @@ const pl = {
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie treningu',
+    plan: {
+      title: 'Plan',
+      duration: 'Czas',
+      load: 'Obciążenie',
+      intensity: 'Intensywność',
+      work: 'Praca',
+      distance: 'Dystans',
+    },
+    description: 'Opis',
   },
   intervals: {
     title: 'Intervals.icu',

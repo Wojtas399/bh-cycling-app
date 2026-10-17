@@ -8,10 +8,12 @@ import Button from '@/components/Button';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
+import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
+import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { IntervalsApiError } from '@/lib/intervalsApi';
@@ -105,6 +107,14 @@ function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
             summary={details.profileSummary}
           />
         </WorkoutDetailsCard>
+      )}
+
+      {details.mode === 'planned' && (
+        <WorkoutPlanCard metrics={details.planMetrics} />
+      )}
+
+      {details.description !== undefined && (
+        <WorkoutDescriptionCard description={details.description} />
       )}
     </Box>
   );
