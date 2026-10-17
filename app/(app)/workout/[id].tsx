@@ -19,7 +19,7 @@ import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
-import { IntervalsApiError } from '@/lib/intervalsApi';
+import { isNotFoundError } from '@/lib/intervalsApi';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -54,8 +54,7 @@ export default function WorkoutDetailsScreen() {
     if (query.data) return <WorkoutDetailsContent details={query.data} />;
 
     if (query.isError) {
-      return query.error instanceof IntervalsApiError &&
-        query.error.status === 404 ? (
+      return isNotFoundError(query.error) ? (
         <NotFound />
       ) : (
         <LoadError onRetry={() => void query.refetch()} />

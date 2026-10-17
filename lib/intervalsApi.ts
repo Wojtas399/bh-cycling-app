@@ -25,6 +25,11 @@ export class IntervalsApiError extends Error {
   }
 }
 
+/** True when Intervals.icu answered 404: the thing asked for doesn't exist. */
+export function isNotFoundError(error: unknown): boolean {
+  return error instanceof IntervalsApiError && error.status === 404;
+}
+
 export interface IntervalsDateRangeParams {
   oldest?: string;
   newest?: string;

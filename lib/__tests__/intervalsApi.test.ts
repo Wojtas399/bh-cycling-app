@@ -5,6 +5,7 @@ import {
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
+  isNotFoundError,
 } from '../intervalsApi';
 
 function mockFetchOnce(response: {
@@ -150,5 +151,21 @@ describe('intervalsApi', () => {
         getCalendarEvent('token-1', 'athlete-1', 42),
       ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 404 });
     });
+  });
+});
+
+describe('isNotFoundError', () => {
+  it('is true for an Intervals.icu 404', () => {
+    expect(isNotFoundError(new IntervalsApiError(404))).toBe(true);
+  });
+
+  it('is false for any other Intervals.icu failure', () => {
+    expect(isNotFoundError(new IntervalsApiError(500))).toBe(false);
+    expect(isNotFoundError(new IntervalsAuthError())).toBe(false);
+  });
+
+  it('is false for errors that are not from Intervals.icu', () => {
+    expect(isNotFoundError(new Error('Network request failed'))).toBe(false);
+    expect(isNotFoundError(null)).toBe(false);
   });
 });
