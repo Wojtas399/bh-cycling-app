@@ -310,6 +310,83 @@ describe('workoutProfile', () => {
     ).toBeCloseTo(1, 10);
   });
 
+  it('buildWorkoutProfile draws each rep of a nested repeat as its own blocks, in order', () => {
+    // "6x 3 min on / 2 min off" as intervals.icu sends it: the parent carries
+    // the reps and the total across them, its children a single rep.
+    const steps = [
+      { duration: 600, power: { units: 'power_zone', value: 1 } },
+      {
+        text: '6x',
+        reps: 6,
+        duration: 1800,
+        steps: [
+          { duration: 180, power: { units: '%ftp', value: 110 } },
+          { duration: 120, power: { units: '%ftp', value: 50 } },
+        ],
+      },
+      { duration: 600, power: { units: 'power_zone', value: 1 } },
+    ];
+    const on = { widthFraction: 0.06, minPct: 110, maxPct: 110, zone: 5 };
+    const off = { widthFraction: 0.04, minPct: 50, maxPct: 50, zone: 1 };
+    const easy = { widthFraction: 0.2, minPct: 0, maxPct: 55, zone: 1 };
+
+    const blocks = buildWorkoutProfile(steps, CONFIG);
+
+    expect(blocks).toHaveLength(14);
+    blocks.forEach((block, index) => {
+      const expected =
+        index === 0 || index === 13 ? easy : index % 2 === 1 ? on : off;
+
+      expect(block).toEqual({
+        ...expected,
+        widthFraction: expect.closeTo(expected.widthFraction, 10),
+      });
+    });
+  });
+
+  it('buildWorkoutProfile unrolls repeats nested inside repeats', () => {
+    // 2x [ 3x (30s on / 30s off), 5 min easy ]
+    const steps = [
+      {
+        reps: 2,
+        duration: 960,
+        steps: [
+          {
+            reps: 3,
+            duration: 180,
+            steps: [
+              { duration: 30, power: { units: 'power_zone', value: 6 } },
+              { duration: 30, power: { units: 'power_zone', value: 2 } },
+            ],
+          },
+          { duration: 300, power: { units: 'power_zone', value: 1 } },
+        ],
+      },
+    ];
+
+    const zones = buildWorkoutProfile(steps, CONFIG).map(block => block.zone);
+
+    expect(zones).toEqual([6, 2, 6, 2, 6, 2, 1, 6, 2, 6, 2, 6, 2, 1]);
+  });
+
+  it('buildWorkoutProfile does not count a repeat total on top of its reps when judging what is drawable', () => {
+    // 1200s of drawable reps against a 1000s free ride: drawable is a
+    // majority only if the repeat's own 1200s total is not counted again.
+    const steps = [
+      {
+        reps: 2,
+        duration: 1200,
+        steps: [{ duration: 600, power: { units: 'power_zone', value: 4 } }],
+      },
+      { duration: 1000, freeride: true },
+    ];
+
+    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+      { widthFraction: 0.5, minPct: 90, maxPct: 105, zone: 4 },
+      { widthFraction: 0.5, minPct: 90, maxPct: 105, zone: 4 },
+    ]);
+  });
+
   it('profileCeilingPct is the workout own maximum power, so its tallest block fills the height', () => {
     const blocks = buildWorkoutProfile(THRESHOLD_2X20, CONFIG);
     const ceiling = profileCeilingPct(blocks);

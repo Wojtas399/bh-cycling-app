@@ -49,7 +49,7 @@ export interface IntervalsActivity {
 
 export interface IntervalsWorkoutDoc {
   duration?: number;
-  /** The workout's efforts in time order, with repeats already expanded. */
+  /** The workout's steps in time order, with repeats nested (see `WorkoutStep`). */
   steps?: WorkoutStep[];
 }
 
