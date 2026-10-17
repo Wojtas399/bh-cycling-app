@@ -10,11 +10,13 @@ import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
 import WorkoutComparisonCard from '@/components/workout/WorkoutComparisonCard';
+import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
+import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { IntervalsApiError } from '@/lib/intervalsApi';
@@ -110,6 +112,10 @@ function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
         </WorkoutDetailsCard>
       )}
 
+      {details.mode === 'planned' && (
+        <WorkoutPlanCard metrics={details.planMetrics} />
+      )}
+
       {details.comparison && (
         <WorkoutComparisonCard comparison={details.comparison} />
       )}
@@ -118,6 +124,10 @@ function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
       )}
 
       {details.steps.length > 0 && <KrokiCard steps={details.steps} />}
+
+      {details.description !== undefined && (
+        <WorkoutDescriptionCard description={details.description} />
+      )}
     </Box>
   );
 }
