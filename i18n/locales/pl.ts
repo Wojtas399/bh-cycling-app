@@ -252,6 +252,14 @@ const pl = {
     steps_few: '{{count}} kroki',
     steps_many: '{{count}} kroków',
     steps_other: '{{count}} kroku',
+    kroki: {
+      title: 'Kroki',
+      step: 'Krok',
+      warmup: 'Rozgrzewka',
+      cooldown: 'Schłodzenie',
+      repeat: '{{reps}}× powtórz',
+      repeatWithTotal: '{{reps}}× powtórz · łącznie {{total}}',
+    },
     notFound: {
       title: 'Trening nie istnieje',
       body: 'Ten trening mógł zostać usunięty z Intervals.icu.',

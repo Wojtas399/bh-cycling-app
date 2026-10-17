@@ -11,6 +11,7 @@ import {
 } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import type { WorkoutStep } from '@/lib/workoutProfile';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -717,6 +718,244 @@ describe('useWorkoutDetails', () => {
         mode: 'completed',
         description: 'Stay seated.',
       });
+    });
+  });
+
+  describe('Kroki steps', () => {
+    async function stepsOf(steps: WorkoutStep[] | undefined) {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(
+        event({ workout_doc: { duration: 3600, steps } }),
+      );
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+      return result.current.query.data?.steps;
+    }
+
+    it('lists a %FTP step with its label, duration, zone and target', async () => {
+      const steps = await stepsOf([
+        // 80% FTP sits in Coggan's zone 3 (75–90%).
+        { text: 'Tempo', duration: 600, power: { units: '%ftp', value: 80 } },
+      ]);
+
+      expect(steps).toEqual([
+        {
+          type: 'step',
+          text: 'Tempo',
+          durationSeconds: 600,
+          zone: 3,
+          ftpPct: { start: 80, end: 80 },
+          ramp: false,
+        },
+      ]);
+    });
+
+    it("resolves a power-zone target to that zone's %FTP band", async () => {
+      const steps = await stepsOf([
+        { duration: 1200, power: { units: 'power_zone', value: 2 } },
+      ]);
+
+      // Coggan's zone 2 runs from 55% to 75% FTP.
+      expect(steps?.[0]).toMatchObject({
+        zone: 2,
+        ftpPct: { start: 55, end: 75 },
+      });
+    });
+
+    it("uses the athlete's own zones for a power-zone target", async () => {
+      mockGetAthleteSettings.mockResolvedValue({
+        powerZones: [50, 70, 85, 100, 115, 140, 999],
+      });
+      const steps = await stepsOf([
+        { duration: 1200, power: { units: 'power_zone', value: 4 } },
+      ]);
+
+      expect(steps?.[0]).toMatchObject({
+        zone: 4,
+        ftpPct: { start: 85, end: 100 },
+      });
+    });
+
+    it('reads a ramp as start–end, in the order it is ridden', async () => {
+      const steps = await stepsOf([
+        {
+          duration: 600,
+          ramp: true,
+          power: { units: '%ftp', start: 75, end: 45 },
+        },
+      ]);
+
+      // Coloured by its middle, 60% FTP: Coggan's zone 2.
+      expect(steps?.[0]).toMatchObject({
+        zone: 2,
+        ftpPct: { start: 75, end: 45 },
+        ramp: true,
+      });
+    });
+
+    it('reads a %FTP range as start–end', async () => {
+      const steps = await stepsOf([
+        { duration: 600, power: { units: '%ftp', start: 88, end: 94 } },
+      ]);
+
+      // Coloured by its middle, 91% FTP: Coggan's zone 4 (90–105%).
+      expect(steps?.[0]).toMatchObject({
+        zone: 4,
+        ftpPct: { start: 88, end: 94 },
+        ramp: false,
+      });
+    });
+
+    it('carries resolved watts and the cadence target when present', async () => {
+      const steps = await stepsOf([
+        {
+          duration: 300,
+          power: { units: '%ftp', value: 105 },
+          _power: { value: 263 },
+          cadence: { units: 'rpm', start: 90, end: 100 },
+        },
+        {
+          duration: 300,
+          power: { units: 'power_zone', value: 2 },
+          _power: { start: 162, end: 217 },
+          cadence: { units: 'rpm', value: 85 },
+        },
+      ]);
+
+      expect(steps?.[0]).toMatchObject({
+        watts: { start: 263, end: 263 },
+        cadenceRpm: { start: 90, end: 100 },
+      });
+      expect(steps?.[1]).toMatchObject({
+        watts: { start: 162, end: 217 },
+        cadenceRpm: { start: 85, end: 85 },
+      });
+    });
+
+    it('marks warm-up and cool-down steps so they can be labelled without a text', async () => {
+      const steps = await stepsOf([
+        { warmup: true, duration: 600 },
+        { text: 'Easy spin', cooldown: true, duration: 300 },
+      ]);
+
+      expect(steps).toEqual([
+        { type: 'step', role: 'warmup', durationSeconds: 600, ramp: false },
+        {
+          type: 'step',
+          role: 'cooldown',
+          text: 'Easy spin',
+          durationSeconds: 300,
+          ramp: false,
+        },
+      ]);
+    });
+
+    it('keeps a repeat nested, with its reps, total duration and children in order', async () => {
+      const steps = await stepsOf([
+        { warmup: true, duration: 600 },
+        {
+          text: '6x',
+          reps: 6,
+          duration: 1800,
+          steps: [
+            { text: 'On', duration: 180, power: { units: '%ftp', value: 110 } },
+            { text: 'Off', duration: 120, power: { units: '%ftp', value: 50 } },
+          ],
+        },
+        { cooldown: true, duration: 300 },
+      ]);
+
+      expect(steps).toHaveLength(3);
+      expect(steps?.[1]).toEqual({
+        type: 'repeat',
+        reps: 6,
+        durationSeconds: 1800,
+        steps: [
+          {
+            type: 'step',
+            text: 'On',
+            durationSeconds: 180,
+            zone: 5,
+            ftpPct: { start: 110, end: 110 },
+            ramp: false,
+          },
+          {
+            type: 'step',
+            text: 'Off',
+            durationSeconds: 120,
+            zone: 1,
+            ftpPct: { start: 50, end: 50 },
+            ramp: false,
+          },
+        ],
+      });
+    });
+
+    it('keeps a repeat inside a repeat nested too', async () => {
+      const steps = await stepsOf([
+        {
+          reps: 2,
+          duration: 1200,
+          steps: [
+            {
+              reps: 3,
+              duration: 540,
+              steps: [{ duration: 180, power: { units: '%ftp', value: 120 } }],
+            },
+            { duration: 60, power: { units: '%ftp', value: 50 } },
+          ],
+        },
+      ]);
+
+      expect(steps?.[0]).toMatchObject({
+        type: 'repeat',
+        reps: 2,
+        steps: [
+          {
+            type: 'repeat',
+            reps: 3,
+            durationSeconds: 540,
+            steps: [{ type: 'step', durationSeconds: 180 }],
+          },
+          { type: 'step', durationSeconds: 60 },
+        ],
+      });
+    });
+
+    it("totals a repeat's duration from its reps when the doc gives none", async () => {
+      const steps = await stepsOf([
+        {
+          reps: 4,
+          steps: [{ duration: 240 }, { duration: 60 }],
+        },
+      ]);
+
+      expect(steps?.[0]).toMatchObject({
+        type: 'repeat',
+        reps: 4,
+        durationSeconds: 1200,
+      });
+    });
+
+    it('has no steps when the Workout has none', async () => {
+      expect(await stepsOf([])).toEqual([]);
+      expect(await stepsOf(undefined)).toEqual([]);
+    });
+
+    it('leaves out watts, cadence and the target when the step has none', async () => {
+      const steps = await stepsOf([{ text: 'Free ride', duration: 900 }]);
+
+      expect(steps).toEqual([
+        {
+          type: 'step',
+          text: 'Free ride',
+          durationSeconds: 900,
+          ramp: false,
+        },
+      ]);
     });
   });
 

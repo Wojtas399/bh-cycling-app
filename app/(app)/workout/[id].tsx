@@ -15,6 +15,7 @@ import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
+import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
@@ -122,10 +123,24 @@ function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
         <WorkoutActivityCard metrics={details.activityMetrics} />
       )}
 
+      {details.steps.length > 0 && <KrokiCard steps={details.steps} />}
+
       {details.description !== undefined && (
         <WorkoutDescriptionCard description={details.description} />
       )}
     </Box>
+  );
+}
+
+function KrokiCard({ steps }: { steps: WorkoutDetails['steps'] }) {
+  const { t } = useTranslation(undefined, {
+    keyPrefix: 'workoutDetails.kroki',
+  });
+
+  return (
+    <WorkoutDetailsCard title={t('title')}>
+      <WorkoutDetailsSteps steps={steps} />
+    </WorkoutDetailsCard>
   );
 }
 
