@@ -45,6 +45,35 @@ export interface IntervalsActivity {
   icu_training_load?: number;
   /** The calendar event this activity fulfils, when intervals.icu paired one. */
   paired_event_id?: number;
+  /** Seconds from start to finish, stops included. */
+  elapsed_time?: number;
+  /** Intensity factor as a percentage (IF × 100). */
+  icu_intensity?: number;
+  /** W. */
+  icu_average_watts?: number;
+  /** Normalized power, W. */
+  icu_weighted_avg_watts?: number;
+  /** Variability index, a ratio (NP / average power). */
+  icu_variability_index?: number;
+  /** bpm. */
+  average_heartrate?: number;
+  /** bpm. */
+  max_heartrate?: number;
+  /** rpm. */
+  average_cadence?: number;
+  /** m. */
+  total_elevation_gain?: number;
+  /** kcal. */
+  calories?: number;
+  /** Work, J. */
+  icu_joules?: number;
+  /** m/s. */
+  average_speed?: number;
+  /**
+   * intervals.icu's plan compliance, %. `null` when not calculated, negative
+   * when the athlete asked to ignore it.
+   */
+  compliance?: number | null;
 }
 
 export interface IntervalsWorkoutDoc {
@@ -59,6 +88,17 @@ export interface IntervalsCalendarEvent {
   name: string;
   start_date_local: string;
   type?: string;
+  /** Free-text notes. */
+  description?: string;
+  /** Planned duration, s. */
+  moving_time?: number;
+  /** Planned distance, m. */
+  distance?: number;
+  icu_training_load?: number;
+  /** Planned intensity factor as a percentage (IF × 100). */
+  icu_intensity?: number;
+  /** Planned work, J. */
+  joules?: number;
   workout_doc?: IntervalsWorkoutDoc;
 }
 
