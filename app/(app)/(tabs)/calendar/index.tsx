@@ -11,6 +11,7 @@ import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
 import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
@@ -53,7 +54,7 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
     >
-      {(workoutsByDate, onDayPress) => (
+      {({ workoutsByDate, onDayPress }) => (
         <CalendarMonthGrid
           month={month}
           workoutsByDate={workoutsByDate}
@@ -78,11 +79,12 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
     >
-      {(workoutsByDate, onDayPress) => (
+      {({ workoutsByDate, onDayPress, onWorkoutPress }) => (
         <CalendarWeekAgenda
           week={week}
           workoutsByDate={workoutsByDate}
           onDayPress={onDayPress}
+          onWorkoutPress={onWorkoutPress}
         />
       )}
     </CalendarLayout>
@@ -95,11 +97,16 @@ interface CalendarLayoutProps extends ViewProps {
   range: CalendarRangeView;
   onPrevious: () => void;
   onNext: () => void;
-  /** The loaded view; `onDayPress` opens the day sheet. */
-  children: (
-    workoutsByDate: Record<string, CalendarWorkout[]>,
-    onDayPress: (day: CalendarDay) => void,
-  ) => ReactNode;
+  /** The loaded view. */
+  children: (view: LoadedViewProps) => ReactNode;
+}
+
+interface LoadedViewProps {
+  workoutsByDate: Record<string, CalendarWorkout[]>;
+  /** Opens the day sheet. */
+  onDayPress: (day: CalendarDay) => void;
+  /** Opens the Workout's details, dismissing the day sheet if it is open. */
+  onWorkoutPress: (workout: CalendarWorkout) => void;
 }
 
 /**
@@ -118,6 +125,14 @@ function CalendarLayout({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const sheet = useDaySheet(query.data);
+  const openWorkout = useOpenWorkoutDetails();
+
+  // The day sheet is a native Expo UI sheet (ADR 0003) that would otherwise
+  // linger above the pushed screen, so it is dismissed as the push happens.
+  function handleWorkoutPress(workout: CalendarWorkout) {
+    sheet.close();
+    openWorkout(workout.id);
+  }
 
   if (availability === 'unavailable') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
@@ -140,7 +155,13 @@ function CalendarLayout({
       />
 
       <CalendarBody state={bodyState(query)}>
-        {workoutsByDate => children(workoutsByDate, sheet.open)}
+        {workoutsByDate =>
+          children({
+            workoutsByDate,
+            onDayPress: sheet.open,
+            onWorkoutPress: handleWorkoutPress,
+          })
+        }
       </CalendarBody>
 
       <CalendarDaySheet
@@ -148,6 +169,7 @@ function CalendarLayout({
         day={sheet.day}
         workouts={sheet.workouts}
         onClose={sheet.close}
+        onWorkoutPress={handleWorkoutPress}
       />
     </Box>
   );
