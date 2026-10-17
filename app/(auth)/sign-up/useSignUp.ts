@@ -1,4 +1,3 @@
-import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -12,10 +11,10 @@ import {
   signUpSchema,
 } from './signUpSchema';
 import type { FormBinding } from '@/hooks/formBinding';
+import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle } from '@/lib/signInWithGoogle';
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
@@ -23,15 +22,7 @@ export function useSignUp() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { control, setFocus, handleSubmit } = useForm<
-    SignUpInput,
-    unknown,
-    SignUpValues
-  >({
-    resolver: standardSchemaResolver(signUpSchema),
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-    shouldFocusError: true,
+  const { control, setFocus, handleSubmit } = useAppForm(signUpSchema, {
     defaultValues: { email: '', password: '', confirmPassword: '' },
   });
 

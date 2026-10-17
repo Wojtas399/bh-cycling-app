@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -12,12 +11,12 @@ import {
   deleteAccountSchema,
 } from './deleteAccountSchema';
 import type { FormBinding } from '@/hooks/formBinding';
+import { useAppForm } from '@/hooks/useAppForm';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
 import { toast } from '@/lib/toast';
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import {
   isErrorWithCode,
   statusCodes,
@@ -33,17 +32,12 @@ export function useDeleteAccount() {
     'email',
   );
 
-  const { control, setFocus, handleSubmit } = useForm<
-    DeleteAccountInput,
-    unknown,
-    DeleteAccountValues
-  >({
-    resolver: standardSchemaResolver(deleteAccountSchema(requiresPassword)),
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-    shouldFocusError: true,
-    defaultValues: { password: '' },
-  });
+  const { control, setFocus, handleSubmit } = useAppForm(
+    deleteAccountSchema(requiresPassword),
+    {
+      defaultValues: { password: '' },
+    },
+  );
 
   /** Resolves to false when the user cancelled Google sign-in. */
   async function reauthenticate(values: DeleteAccountValues): Promise<boolean> {

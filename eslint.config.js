@@ -107,7 +107,7 @@ module.exports = defineConfig([
         },
         {
           selector:
-            "VariableDeclarator[init.callee.name='useForm'] > ObjectPattern > Property[key.name='watch']",
+            "VariableDeclarator[init.callee.name=/^use(App)?Form$/] > ObjectPattern > Property[key.name='watch']",
           message:
             'Use useWatch or useFormState instead of watch() (ADR 0006).',
         },

@@ -1,4 +1,3 @@
-import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
@@ -13,10 +12,10 @@ import {
   changePasswordSchema,
 } from './changePasswordSchema';
 import type { FormBinding } from '@/hooks/formBinding';
+import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { toast } from '@/lib/toast';
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
@@ -24,15 +23,7 @@ export function useChangePassword() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const { control, setFocus, handleSubmit } = useForm<
-    ChangePasswordInput,
-    unknown,
-    ChangePasswordValues
-  >({
-    resolver: standardSchemaResolver(changePasswordSchema),
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-    shouldFocusError: true,
+  const { control, setFocus, handleSubmit } = useAppForm(changePasswordSchema, {
     defaultValues: {
       currentPassword: '',
       newPassword: '',
