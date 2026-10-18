@@ -1,31 +1,44 @@
-import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
-import { type LocalDateString, toLocalDateString } from './localDate';
-import type { ZoneConfig } from './powerZones';
 import {
-  type CalendarWorkout,
-  type StoredWorkout,
-  joinWorkouts,
-  workoutStatus,
-} from './workoutStatus';
-
-/** Workouts keyed by local `YYYY-MM-DD`; a day with none maps to `[]`. */
-export type WorkoutsByDate = Record<string, CalendarWorkout[]>;
+  type CalendarItemsByDate,
+  type StoredCalendarItem,
+  calendarItemDate,
+  joinCalendarItems,
+  withWorkoutStatus,
+} from './calendarItems';
+import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
+import { type LocalDateString, addDays, toLocalDateString } from './localDate';
+import type { ZoneConfig } from './powerZones';
 
 /**
- * The activity fields the Calendar needs to join against events — a slim
- * projection, not the full activity payload Home's other flows use.
+ * The Activity fields Home and the Calendar need: the pairing link to join
+ * against events, and what an Unplanned Activity's tile shows. A slim
+ * projection, not the full Activity payload Workout Details reads.
  */
-export const ACTIVITY_FIELDS = 'id,start_date_local,type,paired_event_id';
+export const ACTIVITY_FIELDS =
+  'id,start_date_local,type,paired_event_id,name,moving_time,distance,icu_training_load';
 
 /**
- * An activity can be paired to an event scheduled on a different day (ridden
- * a day late, or a Thursday session done early on Wednesday), so the
- * activities query reaches this many days past each edge of the range —
- * otherwise a workout planned on a range's first or last day would read as
- * `missed`/`planned` despite being completed just outside it. The fetch is a
- * slim field projection, so the extra days are cheap.
+ * An Activity can be paired to an event scheduled on a different day (ridden
+ * a day late, or a Thursday session done early on Wednesday), and the two
+ * show as one item on the Activity's day. So both queries reach this many
+ * days past each edge of the range: Activities, or a workout planned on a
+ * range's first or last day would read as `missed`/`planned` despite being
+ * completed just outside it; and events, or a Workout planned just outside
+ * the range but ridden inside it would be missing. Activities are a slim
+ * field projection, so the extra days are cheap.
  */
 export const PAIRING_WINDOW_DAYS = 7;
+
+/** The `oldest`/`newest` to fetch for `first..last`, a pairing window wider. */
+export function pairingWindow(
+  first: Date,
+  last: Date,
+): { oldest: LocalDateString; newest: LocalDateString } {
+  return {
+    oldest: toLocalDateString(addDays(first, -PAIRING_WINDOW_DAYS)),
+    newest: toLocalDateString(addDays(last, PAIRING_WINDOW_DAYS)),
+  };
+}
 
 export function startOfMonth(anchor: Date): Date {
   return new Date(anchor.getFullYear(), anchor.getMonth(), 1);
@@ -99,54 +112,54 @@ export function eachDate(oldest: Date, newest: Date): string[] {
 }
 
 /**
- * What a month query stores: every day of the month with its workouts, none
- * of them holding a status yet, and the IDs of the events completed by an
- * activity. The status depends on today, so it's derived when read.
+ * What a month query stores: every day of the month with its items, no
+ * Workout holding a status yet, and the IDs of the events completed by an
+ * Activity. The status depends on today, so it's derived when read.
  */
 export interface StoredMonth {
-  workoutsByDate: Record<string, StoredWorkout[]>;
+  itemsByDate: Record<string, StoredCalendarItem[]>;
   completedEventIds: number[];
 }
 
-/** The month's workouts by day, every day of the month present. */
-export function buildMonthWorkouts(
+/**
+ * The month's items by day, every day of the month present. Items whose day
+ * falls outside it — fetched only for the pairing window — are dropped.
+ */
+export function buildMonthItems(
   month: Date,
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
   zoneConfig: ZoneConfig,
 ): StoredMonth {
-  const workoutsByDate: StoredMonth['workoutsByDate'] = {};
+  const itemsByDate: StoredMonth['itemsByDate'] = {};
 
   for (const date of eachDate(startOfMonth(month), endOfMonth(month))) {
-    workoutsByDate[date] = [];
+    itemsByDate[date] = [];
   }
 
-  const { workouts, completedEventIds } = joinWorkouts(
+  const { items, completedEventIds } = joinCalendarItems(
     events,
     activities,
     zoneConfig,
   );
 
-  for (const workout of workouts) {
-    workoutsByDate[workout.date]?.push(workout);
+  for (const item of items) {
+    itemsByDate[calendarItemDate(item)]?.push(item);
   }
 
-  return { workoutsByDate, completedEventIds };
+  return { itemsByDate, completedEventIds };
 }
 
-/** Gives every stored workout its Workout Status as of `today`. */
-export function withWorkoutStatuses(
-  { workoutsByDate, completedEventIds }: StoredMonth,
+/** Gives every stored Workout its Workout Status as of `today`. */
+export function withItemStatuses(
+  { itemsByDate, completedEventIds }: StoredMonth,
   today: LocalDateString,
-): WorkoutsByDate {
+): CalendarItemsByDate {
   const completed = new Set(completedEventIds);
-  const result: WorkoutsByDate = {};
+  const result: CalendarItemsByDate = {};
 
-  for (const [date, workouts] of Object.entries(workoutsByDate)) {
-    result[date] = workouts.map(workout => ({
-      ...workout,
-      status: workoutStatus(workout, completed, today),
-    }));
+  for (const [date, items] of Object.entries(itemsByDate)) {
+    result[date] = items.map(item => withWorkoutStatus(item, completed, today));
   }
 
   return result;

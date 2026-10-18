@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 
 import BottomSheet from '@/components/BottomSheet';
 import Box from '@/components/Box';
+import CalendarItemTile from '@/components/CalendarItemTile';
 import Text from '@/components/Text';
-import WorkoutTile from '@/components/WorkoutTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import type { CalendarDay } from '@/lib/calendarGrid';
+import { type CalendarItem, calendarItemKey } from '@/lib/calendarItems';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarDaySheetProps {
@@ -16,21 +17,22 @@ export interface CalendarDaySheetProps {
    * while it slides out; `null` only before the first open.
    */
   day: CalendarDay | null;
-  workouts: CalendarWorkout[];
+  items: CalendarItem[];
   onClose: () => void;
   /** Opens a Workout's details; the caller dismisses the sheet. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
 }
 
 /**
- * Bottom sheet with one day's workouts, scrollable when there are several,
+ * Bottom sheet with one day's items — Workouts and Unplanned Activities in
+ * one list — scrollable when there are several,
  * or an empty-state message on a rest day. Shows only what it's given — the
  * caller reads the day straight from data already on screen.
  */
 export default function CalendarDaySheet({
   visible,
   day,
-  workouts,
+  items,
   onClose,
   onWorkoutPress,
 }: CalendarDaySheetProps) {
@@ -46,20 +48,17 @@ export default function CalendarDaySheet({
       title={labels.day(day)}
       testID="calendar-day-sheet"
     >
-      {workouts.length === 0 ? (
+      {items.length === 0 ? (
         <Text variant="body-l-regular" color="textSecondary">
           {t('emptyDay')}
         </Text>
       ) : (
         <Box gap="md">
-          {workouts.map(workout => (
-            <WorkoutTile
-              key={workout.id}
-              title={workout.name}
-              status={workout.status}
-              durationSeconds={workout.durationSeconds}
-              blocks={workout.blocks}
-              onPress={() => onWorkoutPress(workout)}
+          {items.map(item => (
+            <CalendarItemTile
+              key={calendarItemKey(item)}
+              item={item}
+              onWorkoutPress={onWorkoutPress}
             />
           ))}
         </Box>

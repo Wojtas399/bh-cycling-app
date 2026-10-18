@@ -4,7 +4,8 @@ import { upcomingQueryOptions } from '@/lib/intervalsQueries';
 import { useQuery } from '@tanstack/react-query';
 
 /**
- * Today's and tomorrow's workouts. `today` follows the clock, so a session
+ * Home's items for today and tomorrow: Workouts, and today's Unplanned
+ * Activities. `today` follows the clock, so a session
  * that runs past midnight fetches the new day. The screen gates on
  * `availability` and branches on the raw `query`.
  */

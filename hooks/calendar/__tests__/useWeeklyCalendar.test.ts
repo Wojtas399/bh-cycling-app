@@ -3,6 +3,7 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   endOfMonth,
   endOfWeek,
+  pairingWindow,
   startOfMonth,
   startOfWeek,
   toYearMonth,
@@ -79,19 +80,13 @@ describe('useWeeklyCalendar', () => {
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',
-      {
-        oldest: toLocalDateString(startOfMonth(monday)),
-        newest: toLocalDateString(endOfMonth(monday)),
-      },
+      pairingWindow(startOfMonth(monday), endOfMonth(monday)),
       expect.anything(),
     );
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',
-      {
-        oldest: toLocalDateString(startOfMonth(endOfWeek(now))),
-        newest: toLocalDateString(endOfMonth(endOfWeek(now))),
-      },
+      pairingWindow(startOfMonth(endOfWeek(now)), endOfMonth(endOfWeek(now))),
       expect.anything(),
     );
   });
