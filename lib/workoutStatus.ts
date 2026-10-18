@@ -1,5 +1,6 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
+import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
@@ -61,7 +62,7 @@ export function joinWorkouts(
       id: event.id,
       name: event.name,
       date,
-      durationSeconds: event.workout_doc?.duration,
+      durationSeconds: plannedDurationSeconds(event),
       blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
     }),
   );

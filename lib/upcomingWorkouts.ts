@@ -4,6 +4,7 @@ import {
   toLocalDateString,
   toSortedDatedWorkoutEvents,
 } from './localDate';
+import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
@@ -36,7 +37,7 @@ export function getUpcomingWorkouts(
       id: event.id,
       name: event.name,
       dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
-      durationSeconds: event.workout_doc?.duration,
+      durationSeconds: plannedDurationSeconds(event),
       blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
     }));
 }
