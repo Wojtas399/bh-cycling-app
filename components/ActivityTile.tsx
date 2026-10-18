@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import type { UnplannedActivity } from '@/lib/calendarItems';
+import { type UnplannedActivity, activityMetrics } from '@/lib/calendarItems';
 import { formatMetric } from '@/lib/formatWorkoutMetric';
 import { sportIcon } from '@/lib/sportIcon';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,12 +27,11 @@ export default function ActivityTile({
 }: ActivityTileProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityTile' });
   const theme = useAppTheme();
-  const { durationSeconds, distanceMeters, load } = activity;
-  const metrics = [
-    durationSeconds !== undefined && formatMetric('duration', durationSeconds),
-    distanceMeters !== undefined && formatMetric('distance', distanceMeters),
-    load !== undefined && t('load', { load: formatMetric('load', load) }),
-  ].filter(metric => metric !== false);
+  const metrics = activityMetrics(activity).map(({ metric, value }) =>
+    metric === 'load'
+      ? t('load', { load: formatMetric(metric, value) })
+      : formatMetric(metric, value),
+  );
 
   return (
     <Box

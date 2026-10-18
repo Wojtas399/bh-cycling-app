@@ -183,7 +183,7 @@ const pl = {
   home: {
     upcomingWorkouts: {
       title: 'Dziś i jutro',
-      empty: 'Brak zaplanowanych treningów na dziś i jutro.',
+      empty: 'Brak treningów i aktywności na dziś i jutro.',
       today: 'Dziś',
       tomorrow: 'Jutro',
     },

@@ -1,4 +1,5 @@
 import {
+  activityMetrics,
   calendarItemDate,
   calendarItemKey,
   joinCalendarItems,
@@ -270,5 +271,37 @@ describe('withWorkoutStatus', () => {
     };
 
     expect(withWorkoutStatus(item, new Set(), TODAY)).toEqual(item);
+  });
+});
+
+describe('activityMetrics', () => {
+  it('lists duration, distance and load in that order', () => {
+    expect(
+      activityMetrics({
+        id: 'a1',
+        name: 'Zwift',
+        type: 'VirtualRide',
+        date: '2026-10-14',
+        load: 26,
+        distanceMeters: 14000,
+        durationSeconds: 1620,
+      }),
+    ).toEqual([
+      { metric: 'duration', value: 1620 },
+      { metric: 'distance', value: 14000 },
+      { metric: 'load', value: 26 },
+    ]);
+  });
+
+  it('leaves out the metrics the Activity has none of', () => {
+    expect(
+      activityMetrics({
+        id: 'a1',
+        name: 'Gym',
+        type: 'WeightTraining',
+        date: '2026-10-14',
+        durationSeconds: 2700,
+      }),
+    ).toEqual([{ metric: 'duration', value: 2700 }]);
   });
 });

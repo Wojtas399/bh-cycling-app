@@ -186,3 +186,27 @@ export function withWorkoutStatus(
     },
   };
 }
+
+/** A metric an Unplanned Activity's tile can show. */
+export interface ActivityMetric {
+  metric: 'duration' | 'distance' | 'load';
+  /** In s, m, or load points. */
+  value: number;
+}
+
+/** The Activity's tile metrics, in display order, each only when present. */
+export function activityMetrics({
+  durationSeconds,
+  distanceMeters,
+  load,
+}: UnplannedActivity): ActivityMetric[] {
+  const metrics: [ActivityMetric['metric'], number | undefined][] = [
+    ['duration', durationSeconds],
+    ['distance', distanceMeters],
+    ['load', load],
+  ];
+
+  return metrics.flatMap(([metric, value]) =>
+    value === undefined ? [] : [{ metric, value }],
+  );
+}
