@@ -2,6 +2,7 @@ import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   type IntervalsCalendarEvent,
+  getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
@@ -16,6 +17,7 @@ jest.mock('@/hooks/useIntervalsConnection', () => ({
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getCalendarEvents: jest.fn(),
+  getActivities: jest.fn(),
   getAthleteSettings: jest.fn(),
 }));
 
@@ -26,6 +28,7 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockGetActivities = getActivities as jest.Mock;
 
 function mockConnection(
   overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
@@ -62,6 +65,7 @@ describe('useUpcomingWorkouts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetAthleteSettings.mockResolvedValue({});
+    mockGetActivities.mockResolvedValue([]);
   });
 
   it('is unavailable and makes no API call when not connected', async () => {
@@ -72,6 +76,7 @@ describe('useUpcomingWorkouts', () => {
     expect(result.current.availability).toBe('unavailable');
     expect(result.current.query.isPending).toBe(true);
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
+    expect(mockGetActivities).not.toHaveBeenCalled();
     expect(mockGetAthleteSettings).not.toHaveBeenCalled();
   });
 
@@ -94,7 +99,7 @@ describe('useUpcomingWorkouts', () => {
     expect(result.current.query.isPending).toBe(true);
   });
 
-  it("caches today's workouts under the athlete and today's date", async () => {
+  it("caches today's items under the athlete and today's date", async () => {
     mockConnected();
     mockGetCalendarEvents.mockResolvedValue([todayEvent()]);
 
@@ -104,7 +109,17 @@ describe('useUpcomingWorkouts', () => {
 
     await waitFor(() =>
       expect(result.current.query.data).toEqual([
-        { id: 1, name: 'Intervals', dayLabel: 'today', blocks: [] },
+        {
+          kind: 'workout',
+          dayLabel: 'today',
+          workout: {
+            id: 1,
+            name: 'Intervals',
+            date: toLocalDateString(new Date()),
+            status: 'planned',
+            blocks: [],
+          },
+        },
       ]),
     );
     expect(

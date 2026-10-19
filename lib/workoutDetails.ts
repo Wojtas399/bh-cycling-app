@@ -1,6 +1,7 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
+import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import {
   type WorkoutBlock,
@@ -241,11 +242,7 @@ function compareWithPlan(
   activity: IntervalsActivity,
 ): WorkoutComparison {
   const pairs: [ComparisonMetric, number | undefined, number | undefined][] = [
-    [
-      'duration',
-      event.moving_time ?? event.workout_doc?.duration,
-      activity.moving_time,
-    ],
+    ['duration', plannedDurationSeconds(event), activity.moving_time],
     ['load', event.icu_training_load, activity.icu_training_load],
     ['intensity', event.icu_intensity, activity.icu_intensity],
     ['work', toKj(event.joules), toKj(activity.icu_joules)],
@@ -300,23 +297,15 @@ function summariseProfile(
   };
 }
 
-function buildPlanMetrics({
-  moving_time,
-  icu_training_load,
-  icu_intensity,
-  joules,
-  distance,
-  workout_doc,
-}: IntervalsCalendarEvent): WorkoutPlanMetrics {
-  const durationSeconds = isFiniteNumber(moving_time)
-    ? moving_time
-    : workout_doc?.duration;
+function buildPlanMetrics(event: IntervalsCalendarEvent): WorkoutPlanMetrics {
+  const { icu_training_load, icu_intensity, joules, distance, workout_doc } =
+    event;
   const distanceMeters = [distance, workout_doc?.distance].find(
     metres => isFiniteNumber(metres) && metres > 0,
   );
 
   return withoutAbsent({
-    durationSeconds,
+    durationSeconds: plannedDurationSeconds(event),
     load: icu_training_load,
     intensityPct: icu_intensity,
     workKj: toKj(joules),

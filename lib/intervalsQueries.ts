@@ -1,13 +1,13 @@
+import type { CalendarItemsByDate } from './calendarItems';
 import {
   ACTIVITY_FIELDS,
-  PAIRING_WINDOW_DAYS,
   type StoredMonth,
-  type WorkoutsByDate,
   type YearMonth,
-  buildMonthWorkouts,
+  buildMonthItems,
   endOfMonth,
   fromYearMonth,
-  withWorkoutStatuses,
+  pairingWindow,
+  withItemStatuses,
 } from './calendarWorkouts';
 import {
   getActivities,
@@ -22,7 +22,7 @@ import {
   toLocalDateString,
 } from './localDate';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
-import { getUpcomingWorkouts } from './upcomingWorkouts';
+import { getUpcomingItems } from './upcomingWorkouts';
 import {
   type StoredWorkoutDetails,
   WORKOUT_DETAILS_ACTIVITY_FIELDS,
@@ -105,8 +105,10 @@ export function athleteSettingsQueryOptions({
 }
 
 /**
- * Workouts planned for `today` and the day after. Skipped while there are no
- * credentials.
+ * Home's items for `today` and the day after (see `getUpcomingItems`). Events
+ * and Activities are fetched a pairing window past each edge, since a paired
+ * Workout shows on its Activity's day. `today` is in the key, so the statuses
+ * are derived in the fetch. Skipped while there are no credentials.
  */
 export function upcomingQueryOptions(
   credentials: IntervalsCredentials | null,
@@ -116,19 +118,26 @@ export function upcomingQueryOptions(
     queryKey: intervalsKeys.upcoming(credentials?.athleteId, today),
     queryFn: credentials
       ? async ({ signal, client }) => {
-          const tomorrow = addDays(fromLocalDateString(today), 1);
+          const first = fromLocalDateString(today);
+          const window = pairingWindow(first, addDays(first, 1));
 
-          const [events, zoneConfig] = await Promise.all([
+          const [events, activities, zoneConfig] = await Promise.all([
             getCalendarEvents(
               credentials.accessToken,
               credentials.athleteId,
-              { oldest: today, newest: toLocalDateString(tomorrow) },
+              window,
+              { signal },
+            ),
+            getActivities(
+              credentials.accessToken,
+              credentials.athleteId,
+              { ...window, fields: ACTIVITY_FIELDS },
               { signal },
             ),
             fetchZoneConfig(client, credentials),
           ]);
 
-          return getUpcomingWorkouts(events, new Date(), zoneConfig);
+          return getUpcomingItems(events, activities, today, zoneConfig);
         }
       : skipToken,
     ...WORKOUTS_FRESHNESS,
@@ -136,7 +145,7 @@ export function upcomingQueryOptions(
 }
 
 /** Derives a stored month's Workout Statuses for display. */
-export type MonthSelect = (month: StoredMonth) => WorkoutsByDate;
+export type MonthSelect = (month: StoredMonth) => CalendarItemsByDate;
 
 /**
  * The month `select` deriving each Workout Status as of `today`. Callers keep
@@ -144,16 +153,17 @@ export type MonthSelect = (month: StoredMonth) => WorkoutsByDate;
  * recomputed when the data or the day changes.
  */
 export function selectMonthAsOf(today: LocalDateString): MonthSelect {
-  return month => withWorkoutStatuses(month, today);
+  return month => withItemStatuses(month, today);
 }
 
 /**
- * One Calendar month's workouts by day, every day of it present. Activities
- * are fetched a pairing window past each edge, so a workout completed just
- * outside the month still reads as completed. The query stores the workouts
- * without a status; `select` (see `selectMonthAsOf`) derives each Workout
- * Status, so a planned workout turns missed at midnight without a fetch.
- * Skipped while there are no credentials.
+ * One Calendar month's items by day — Workouts and Unplanned Activities —
+ * every day of it present. Events and Activities are both fetched a pairing
+ * window past each edge (see `PAIRING_WINDOW_DAYS`), since a paired Workout
+ * shows on its Activity's day. The query stores the Workouts without a
+ * status; `select` (see `selectMonthAsOf`) derives each Workout Status, so a
+ * planned workout turns missed at midnight without a fetch. Skipped while
+ * there are no credentials.
  */
 export function monthQueryOptions(
   credentials: IntervalsCredentials | null,
@@ -165,32 +175,25 @@ export function monthQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }) => {
           const first = fromYearMonth(yearMonth);
-          const last = endOfMonth(first);
+          const window = pairingWindow(first, endOfMonth(first));
 
           const [events, activities, zoneConfig] = await Promise.all([
             getCalendarEvents(
               credentials.accessToken,
               credentials.athleteId,
-              {
-                oldest: toLocalDateString(first),
-                newest: toLocalDateString(last),
-              },
+              window,
               { signal },
             ),
             getActivities(
               credentials.accessToken,
               credentials.athleteId,
-              {
-                oldest: toLocalDateString(addDays(first, -PAIRING_WINDOW_DAYS)),
-                newest: toLocalDateString(addDays(last, PAIRING_WINDOW_DAYS)),
-                fields: ACTIVITY_FIELDS,
-              },
+              { ...window, fields: ACTIVITY_FIELDS },
               { signal },
             ),
             fetchZoneConfig(client, credentials),
           ]);
 
-          return buildMonthWorkouts(first, events, activities, zoneConfig);
+          return buildMonthItems(first, events, activities, zoneConfig);
         }
       : skipToken,
     select,
@@ -243,8 +246,7 @@ export function workoutDetailsQueryOptions(
               credentials.accessToken,
               credentials.athleteId,
               {
-                oldest: toLocalDateString(addDays(date, -PAIRING_WINDOW_DAYS)),
-                newest: toLocalDateString(addDays(date, PAIRING_WINDOW_DAYS)),
+                ...pairingWindow(date, date),
                 fields: WORKOUT_DETAILS_ACTIVITY_FIELDS,
               },
               { signal },

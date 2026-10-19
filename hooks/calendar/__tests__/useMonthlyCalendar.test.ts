@@ -1,6 +1,10 @@
 import { useMonthlyCalendar } from '../useMonthlyCalendar';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import { endOfMonth, startOfMonth } from '@/lib/calendarWorkouts';
+import {
+  endOfMonth,
+  pairingWindow,
+  startOfMonth,
+} from '@/lib/calendarWorkouts';
 import {
   getActivities,
   getAthleteSettings,
@@ -64,10 +68,7 @@ describe('useMonthlyCalendar', () => {
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',
-      {
-        oldest: toLocalDateString(startOfMonth(now)),
-        newest: toLocalDateString(endOfMonth(now)),
-      },
+      pairingWindow(startOfMonth(now), endOfMonth(now)),
       expect.anything(),
     );
   });

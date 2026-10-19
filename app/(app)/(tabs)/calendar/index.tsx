@@ -18,6 +18,7 @@ import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
+import type { CalendarItemsByDate } from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
@@ -54,10 +55,10 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
     >
-      {({ workoutsByDate, onDayPress }) => (
+      {({ itemsByDate, onDayPress }) => (
         <CalendarMonthGrid
           month={month}
-          workoutsByDate={workoutsByDate}
+          itemsByDate={itemsByDate}
           onDayPress={onDayPress}
         />
       )}
@@ -79,10 +80,10 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
     >
-      {({ workoutsByDate, onDayPress, onWorkoutPress }) => (
+      {({ itemsByDate, onDayPress, onWorkoutPress }) => (
         <CalendarWeekAgenda
           week={week}
-          workoutsByDate={workoutsByDate}
+          itemsByDate={itemsByDate}
           onDayPress={onDayPress}
           onWorkoutPress={onWorkoutPress}
         />
@@ -102,7 +103,7 @@ interface CalendarLayoutProps extends ViewProps {
 }
 
 interface LoadedViewProps {
-  workoutsByDate: Record<string, CalendarWorkout[]>;
+  itemsByDate: CalendarItemsByDate;
   /** Opens the day sheet. */
   onDayPress: (day: CalendarDay) => void;
   /** Opens the Workout's details, dismissing the day sheet if it is open. */
@@ -155,9 +156,9 @@ function CalendarLayout({
       />
 
       <CalendarBody state={bodyState(query)}>
-        {workoutsByDate =>
+        {itemsByDate =>
           children({
-            workoutsByDate,
+            itemsByDate,
             onDayPress: sheet.open,
             onWorkoutPress: handleWorkoutPress,
           })
@@ -167,7 +168,7 @@ function CalendarLayout({
       <CalendarDaySheet
         visible={sheet.visible}
         day={sheet.day}
-        workouts={sheet.workouts}
+        items={sheet.items}
         onClose={sheet.close}
         onWorkoutPress={handleWorkoutPress}
       />
@@ -178,7 +179,7 @@ function CalendarLayout({
 /** Data wins over an error, so a failed refetch keeps the view on screen. */
 function bodyState(query: CalendarRangeView['query']): CalendarBodyState {
   if (query.data) {
-    return { status: 'ready', workoutsByDate: query.data };
+    return { status: 'ready', itemsByDate: query.data };
   }
 
   return query.isError ? { status: 'error' } : { status: 'loading' };

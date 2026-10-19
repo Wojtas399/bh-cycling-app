@@ -1,33 +1,33 @@
 import { useCallback, useState } from 'react';
 
 import type { CalendarDay } from '@/lib/calendarGrid';
-import type { CalendarWorkout } from '@/lib/workoutStatus';
+import type { CalendarItem, CalendarItemsByDate } from '@/lib/calendarItems';
 
 export interface DaySheetController {
   visible: boolean;
   /** The last day opened; stays set after closing so the sheet can slide out. */
   day: CalendarDay | null;
-  workouts: CalendarWorkout[];
+  items: CalendarItem[];
   open: (day: CalendarDay) => void;
   close: () => void;
 }
 
-const NO_WORKOUTS: CalendarWorkout[] = [];
+const NO_ITEMS: CalendarItem[] = [];
 
 /**
- * Which day's sheet is open. The workouts are read from `workoutsByDate` on
+ * Which day's sheet is open. The items are read from `itemsByDate` on
  * every render rather than copied, and the sheet is closed whenever it is
  * `undefined` (a range reload, a disconnect).
  */
 export function useDaySheet(
-  workoutsByDate: Record<string, CalendarWorkout[]> | undefined,
+  itemsByDate: CalendarItemsByDate | undefined,
 ): DaySheetController {
   const [day, setDay] = useState<CalendarDay | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   // A reload or disconnect hides the sheet; it must not pop back open when
   // the data returns.
-  if (workoutsByDate === undefined && isOpen) {
+  if (itemsByDate === undefined && isOpen) {
     setIsOpen(false);
   }
 
@@ -40,7 +40,7 @@ export function useDaySheet(
   return {
     visible: isOpen,
     day,
-    workouts: (day && workoutsByDate?.[day.date]) || NO_WORKOUTS,
+    items: (day && itemsByDate?.[day.date]) || NO_ITEMS,
     open,
     close,
   };

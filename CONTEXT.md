@@ -9,8 +9,12 @@ A training session planned on the athlete's Intervals.icu calendar, with a date 
 _Avoid_: Event, session, training
 
 **Activity**:
-A ride the athlete actually recorded on Intervals.icu. An Activity that fulfils a Workout is paired to it.
+A session the athlete actually recorded on Intervals.icu, of any sport: a ride, a run, a strength session. An Activity that fulfils a Workout is paired to it, and the two show as one item on the Activity's day — even when the Workout was planned for another day — as on Intervals.icu.
 _Avoid_: Ride, completed workout
+
+**Unplanned Activity**:
+An Activity not paired to any Workout, e.g. a spontaneous Zwift ride. It shows on its own day alongside that day's Workouts. It has no Workout Status: status describes a plan, and there is none.
+_Avoid_: Free ride (a kind of planned Workout), extra workout, unpaired ride
 
 **Workout Status**:
 The tri-state of a planned workout: `completed` (a matching Activity exists), `planned` (in the future, no matching Activity yet), or `missed` (in the past, no matching Activity). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.

@@ -1,8 +1,11 @@
+import type { CalendarItem } from '../calendarItems';
 import { type MonthResult, combineMonthResults } from '../combineMonthResults';
-import type { CalendarWorkout } from '../workoutStatus';
 
-function workout(id: number, date: string): CalendarWorkout {
-  return { id, name: `Workout ${id}`, date, status: 'planned', blocks: [] };
+function workout(id: number, date: string): CalendarItem {
+  return {
+    kind: 'workout',
+    workout: { id, name: `Workout ${id}`, date, status: 'planned', blocks: [] },
+  };
 }
 
 function month(overrides: Partial<MonthResult> = {}): MonthResult {
@@ -18,7 +21,7 @@ function month(overrides: Partial<MonthResult> = {}): MonthResult {
 const JUNE_10 = workout(1, '2026-06-10');
 
 /** Every day of June 2026, with one workout on the 10th. */
-const JUNE: Record<string, CalendarWorkout[]> = Object.fromEntries(
+const JUNE: Record<string, CalendarItem[]> = Object.fromEntries(
   Array.from({ length: 30 }, (_, index) => {
     const date = `2026-06-${String(index + 1).padStart(2, '0')}`;
 
@@ -65,7 +68,7 @@ describe('combineMonthResults', () => {
 
   it('merges a week spanning two months and slices it to the week', () => {
     const july3 = workout(2, '2026-07-03');
-    const july: Record<string, CalendarWorkout[]> = {
+    const july: Record<string, CalendarItem[]> = {
       '2026-07-01': [],
       '2026-07-02': [],
       '2026-07-03': [july3],

@@ -4,6 +4,7 @@ import {
 } from '../useCalendarRange';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
+import { calendarItemKey } from '@/lib/calendarItems';
 import * as calendarWorkouts from '@/lib/calendarWorkouts';
 import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
 import {
@@ -102,7 +103,7 @@ const visibleMonthKey = intervalsKeys.month(
   toYearMonth(new Date()),
 );
 
-const EMPTY_MONTH = { workoutsByDate: {}, completedEventIds: [] };
+const EMPTY_MONTH = { itemsByDate: {}, completedEventIds: [] };
 
 /** Marks the visible month as last fetched `ageMs` ago. */
 function ageVisibleMonth(client: QueryClient, ageMs: number) {
@@ -195,11 +196,14 @@ describe('useCalendarRange', () => {
     await waitFor(() => expect(result.current.query.data).toBeDefined());
     expect(result.current.query.data?.[today]).toEqual([
       {
-        id: 1,
-        name: 'Sample workout',
-        date: today,
-        status: 'planned',
-        blocks: [],
+        kind: 'workout',
+        workout: {
+          id: 1,
+          name: 'Sample workout',
+          date: today,
+          status: 'planned',
+          blocks: [],
+        },
       },
     ]);
   });
@@ -224,7 +228,9 @@ describe('useCalendarRange', () => {
     );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(result.current.query.data?.[today][0].status).toBe('completed');
+    expect(result.current.query.data?.[today]).toMatchObject([
+      { workout: { status: 'completed' } },
+    ]);
   });
 
   it('does not refetch when navigating back to a month already loaded', async () => {
@@ -268,14 +274,18 @@ describe('useCalendarRange', () => {
     await act(async () => result.current.refresh());
 
     await waitFor(() => expect(result.current.refreshing).toBe(true));
-    expect(result.current.query.data?.[today].map(w => w.id)).toEqual([1]);
+    expect(result.current.query.data?.[today].map(calendarItemKey)).toEqual([
+      'workout-1',
+    ]);
 
     await act(async () => {
       resolveRefresh([event({ id: 2 })]);
     });
 
     await waitFor(() => expect(result.current.refreshing).toBe(false));
-    expect(result.current.query.data?.[today].map(w => w.id)).toEqual([2]);
+    expect(result.current.query.data?.[today].map(calendarItemKey)).toEqual([
+      'workout-2',
+    ]);
     expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
   });
 
@@ -440,13 +450,17 @@ describe('useCalendarRange', () => {
     );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(result.current.query.data?.[today][0].status).toBe('planned');
+    expect(result.current.query.data?.[today]).toMatchObject([
+      { workout: { status: 'planned' } },
+    ]);
 
     mockUseToday.mockReturnValue(toLocalDateString(addDays(new Date(), 1)));
     await rerender({});
 
     await waitFor(() =>
-      expect(result.current.query.data?.[today][0].status).toBe('missed'),
+      expect(result.current.query.data?.[today]).toMatchObject([
+        { workout: { status: 'missed' } },
+      ]),
     );
     expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1);
   });
@@ -454,7 +468,7 @@ describe('useCalendarRange', () => {
   it('does not derive the statuses again while today stays the same', async () => {
     mockConnected();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const derive = jest.spyOn(calendarWorkouts, 'withWorkoutStatuses');
+    const derive = jest.spyOn(calendarWorkouts, 'withItemStatuses');
 
     const { result, rerender } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),

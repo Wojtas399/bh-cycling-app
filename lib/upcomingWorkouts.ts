@@ -1,42 +1,50 @@
-import type { IntervalsCalendarEvent } from './intervalsApi';
 import {
+  type CalendarItem,
+  calendarItemDate,
+  joinCalendarItems,
+  withWorkoutStatus,
+} from './calendarItems';
+import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
+import {
+  type LocalDateString,
   addDays,
+  fromLocalDateString,
   toLocalDateString,
-  toSortedDatedWorkoutEvents,
 } from './localDate';
 import type { ZoneConfig } from './powerZones';
-import { type WorkoutBlock, buildWorkoutProfile } from './workoutProfile';
 
-export { toLocalDateString } from './localDate';
+/** An item on Home, labelled with the day it shows on. */
+export type UpcomingItem = CalendarItem & { dayLabel: 'today' | 'tomorrow' };
 
-export interface UpcomingWorkout {
-  id: number;
-  name: string;
-  dayLabel: 'today' | 'tomorrow';
-  durationSeconds?: number;
-  /**
-   * The workout's drawable Workout Profile, empty whenever there is no honest
-   * shape to draw — an unstructured ride, or one targeted by anything other
-   * than power. Callers degrade to the title and duration alone.
-   */
-  blocks: WorkoutBlock[];
-}
-
-export function getUpcomingWorkouts(
+/**
+ * Home's items for `today` and the day after, in order: each Workout with its
+ * Workout Status, on its Activity's day when paired, and today's Unplanned
+ * Activities among them. Tomorrow holds only Workouts.
+ */
+export function getUpcomingItems(
   events: IntervalsCalendarEvent[],
-  now: Date,
+  activities: IntervalsActivity[],
+  today: LocalDateString,
   zoneConfig: ZoneConfig,
-): UpcomingWorkout[] {
-  const today = toLocalDateString(now);
-  const tomorrow = toLocalDateString(addDays(now, 1));
+): UpcomingItem[] {
+  const tomorrow = toLocalDateString(addDays(fromLocalDateString(today), 1));
+  const { items, completedEventIds } = joinCalendarItems(
+    events,
+    activities,
+    zoneConfig,
+  );
+  const completed = new Set(completedEventIds);
 
-  return toSortedDatedWorkoutEvents(events)
-    .filter(({ date }) => date === today || date === tomorrow)
-    .map(({ event, date }) => ({
-      id: event.id,
-      name: event.name,
-      dayLabel: date === today ? ('today' as const) : ('tomorrow' as const),
-      durationSeconds: event.workout_doc?.duration,
-      blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
-    }));
+  return items.flatMap((item): UpcomingItem[] => {
+    const date = calendarItemDate(item);
+    const withStatus = withWorkoutStatus(item, completed, today);
+
+    if (date === today) return [{ ...withStatus, dayLabel: 'today' }];
+
+    if (date === tomorrow && item.kind === 'workout') {
+      return [{ ...withStatus, dayLabel: 'tomorrow' }];
+    }
+
+    return [];
+  });
 }

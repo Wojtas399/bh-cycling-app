@@ -3,11 +3,12 @@ import { ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import CalendarItemTile from '@/components/CalendarItemTile';
 import Text from '@/components/Text';
-import WorkoutTile from '@/components/WorkoutTile';
 import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
+import { calendarItemKey } from '@/lib/calendarItems';
 
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
@@ -47,14 +48,12 @@ export default function HomeScreen() {
         </Text>
       )}
 
-      {query.data?.map(workout => (
-        <Box key={workout.id} marginTop="md">
-          <WorkoutTile
-            title={workout.name}
-            dayLabel={t(workout.dayLabel)}
-            durationSeconds={workout.durationSeconds}
-            blocks={workout.blocks}
-            onPress={() => openWorkout(workout.id)}
+      {query.data?.map(item => (
+        <Box key={calendarItemKey(item)} marginTop="md">
+          <CalendarItemTile
+            item={item}
+            dayLabel={t(item.dayLabel)}
+            onWorkoutPress={workout => openWorkout(workout.id)}
           />
         </Box>
       ))}

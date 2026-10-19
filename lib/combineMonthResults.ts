@@ -1,8 +1,9 @@
-import { type WorkoutsByDate, eachDate } from './calendarWorkouts';
+import type { CalendarItemsByDate } from './calendarItems';
+import { eachDate } from './calendarWorkouts';
 
 /** The slice of one month's query result the Calendar combines. */
 export interface MonthResult {
-  data: WorkoutsByDate | undefined;
+  data: CalendarItemsByDate | undefined;
   isError: boolean;
   isFetching: boolean;
   isRefetching: boolean;
@@ -10,8 +11,8 @@ export interface MonthResult {
 
 /** The visible range's months, shaped like a single query. */
 export interface CombinedMonthResult {
-  /** The range's workouts by day, once every month has data. */
-  data: WorkoutsByDate | undefined;
+  /** The range's items by day, once every month has data. */
+  data: CalendarItemsByDate | undefined;
   /** Some month has no data yet. */
   isPending: boolean;
   /** Some month failed with no data to fall back on. */
@@ -31,10 +32,10 @@ export function combineMonthResults(
 ): (results: MonthResult[]) => CombinedMonthResult {
   return results => {
     const isPending = results.some(result => result.data === undefined);
-    let data: WorkoutsByDate | undefined;
+    let data: CalendarItemsByDate | undefined;
 
     if (!isPending) {
-      const merged: WorkoutsByDate = Object.assign(
+      const merged: CalendarItemsByDate = Object.assign(
         {},
         ...results.map(result => result.data),
       );

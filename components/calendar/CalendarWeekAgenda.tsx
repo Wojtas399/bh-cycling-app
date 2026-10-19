@@ -1,29 +1,31 @@
 import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
+import CalendarItemTile from '@/components/CalendarItemTile';
 import Text from '@/components/Text';
-import WorkoutTile from '@/components/WorkoutTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useToday } from '@/hooks/useToday';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
+import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarWeekAgendaProps {
   /** Any date in the week to lay out. */
   week: Date;
-  workoutsByDate: Record<string, CalendarWorkout[]>;
+  itemsByDate: CalendarItemsByDate;
   onDayPress: (day: CalendarDay) => void;
   onWorkoutPress: (workout: CalendarWorkout) => void;
 }
 
 /**
  * The weekly agenda: Monday to Sunday, each day's label followed by a card
- * per workout. Rest days show the label alone. Tapping a card opens that
- * Workout; tapping elsewhere in the day opens the day sheet.
+ * per item — Workouts and Unplanned Activities in one list. Rest days show
+ * the label alone. Tapping a Workout opens it; tapping elsewhere in the day,
+ * an Activity included, opens the day sheet.
  */
 export default function CalendarWeekAgenda({
   week,
-  workoutsByDate,
+  itemsByDate,
   onDayPress,
   onWorkoutPress,
 }: CalendarWeekAgendaProps) {
@@ -49,15 +51,9 @@ export default function CalendarWeekAgenda({
               {labels.day(day)}
             </Text>
 
-            {(workoutsByDate[day.date] ?? []).map(workout => (
-              <Box key={workout.id} marginTop="sm">
-                <WorkoutTile
-                  title={workout.name}
-                  status={workout.status}
-                  durationSeconds={workout.durationSeconds}
-                  blocks={workout.blocks}
-                  onPress={() => onWorkoutPress(workout)}
-                />
+            {(itemsByDate[day.date] ?? []).map(item => (
+              <Box key={calendarItemKey(item)} marginTop="sm">
+                <CalendarItemTile item={item} onWorkoutPress={onWorkoutPress} />
               </Box>
             ))}
           </TouchableOpacity>

@@ -11,26 +11,32 @@ import {
   type CalendarGridCell,
   getMonthGrid,
 } from '@/lib/calendarGrid';
-import type { CalendarWorkout } from '@/lib/workoutStatus';
+import {
+  type CalendarItem,
+  type CalendarItemsByDate,
+  calendarItemKey,
+} from '@/lib/calendarItems';
 
 const DAY_NUMBER_SIZE = 32;
 const CELL_MIN_HEIGHT = 52;
+const MARKER_SIZE = 6;
 
 export interface CalendarMonthGridProps {
   /** Any date in the month to lay out. */
   month: Date;
-  workoutsByDate: Record<string, CalendarWorkout[]>;
+  itemsByDate: CalendarItemsByDate;
   onDayPress: (day: CalendarDay) => void;
 }
 
 /**
- * The monthly grid: Monday-first weeks with a status dot per workout under
- * each day. Days from the neighbouring months are dimmed, dot-less, and not
+ * The monthly grid: Monday-first weeks with a marker per item under each
+ * day — a status dot per Workout, a hollow green ring per Unplanned Activity
+ * ("done, not planned"). Days from the neighbouring months are dimmed, dot-less, and not
  * tappable — their data was never fetched.
  */
 export default function CalendarMonthGrid({
   month,
-  workoutsByDate,
+  itemsByDate,
   onDayPress,
 }: CalendarMonthGridProps) {
   const labels = useCalendarLabels();
@@ -59,7 +65,7 @@ export default function CalendarMonthGrid({
               <GridCell
                 key={cell.date}
                 cell={cell}
-                workouts={workoutsByDate[cell.date] ?? []}
+                items={itemsByDate[cell.date] ?? []}
                 isToday={cell.date === today}
                 onDayPress={onDayPress}
               />
@@ -75,12 +81,12 @@ export default function CalendarMonthGrid({
 
 interface GridCellProps {
   cell: CalendarGridCell;
-  workouts: CalendarWorkout[];
+  items: CalendarItem[];
   isToday: boolean;
   onDayPress: (day: CalendarDay) => void;
 }
 
-function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
+function GridCell({ cell, items, isToday, onDayPress }: GridCellProps) {
   return (
     <TouchableOpacity
       style={{ flex: 1 }}
@@ -106,7 +112,7 @@ function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
           </Text>
         </Box>
 
-        {workouts.length > 0 && (
+        {items.length > 0 && (
           <Box
             flexDirection="row"
             flexWrap="wrap"
@@ -114,9 +120,25 @@ function GridCell({ cell, workouts, isToday, onDayPress }: GridCellProps) {
             gap="xs"
             marginTop="xs"
           >
-            {workouts.map(workout => (
-              <WorkoutStatusDot key={workout.id} status={workout.status} />
-            ))}
+            {items.map(item =>
+              item.kind === 'workout' ? (
+                <WorkoutStatusDot
+                  key={calendarItemKey(item)}
+                  status={item.workout.status}
+                  size={MARKER_SIZE}
+                />
+              ) : (
+                <Box
+                  key={calendarItemKey(item)}
+                  width={MARKER_SIZE}
+                  height={MARKER_SIZE}
+                  borderRadius="full"
+                  borderWidth={1}
+                  borderColor="workoutDone"
+                  testID="unplanned-activity-ring"
+                />
+              ),
+            )}
           </Box>
         )}
       </CellFrame>

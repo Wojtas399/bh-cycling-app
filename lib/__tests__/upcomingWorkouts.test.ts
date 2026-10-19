@@ -1,6 +1,10 @@
-import type { IntervalsCalendarEvent } from '../intervalsApi';
+import { calendarItemKey } from '../calendarItems';
+import type {
+  IntervalsActivity,
+  IntervalsCalendarEvent,
+} from '../intervalsApi';
 import { resolveZoneConfig } from '../powerZones';
-import { getUpcomingWorkouts } from '../upcomingWorkouts';
+import { getUpcomingItems } from '../upcomingWorkouts';
 
 function event(
   overrides: Partial<IntervalsCalendarEvent>,
@@ -14,221 +18,143 @@ function event(
   };
 }
 
-const NOW = new Date(2026, 6, 25, 10, 0, 0); // 2026-07-25, local
+function activity(overrides: Partial<IntervalsActivity>): IntervalsActivity {
+  return {
+    id: 'a1',
+    name: 'Zwift',
+    type: 'VirtualRide',
+    start_date_local: '2026-07-25T07:00:00',
+    moving_time: 1620,
+    distance: 14000,
+    ...overrides,
+  };
+}
+
+const TODAY = '2026-07-25';
 const ZONE_CONFIG = resolveZoneConfig();
 
-describe('getUpcomingWorkouts', () => {
-  it('excludes non-WORKOUT categories', () => {
-    const events = [
-      event({ id: 1, category: 'RACE', name: 'Race day' }),
-      event({ id: 2, category: 'NOTE', name: 'Note' }),
-      event({ id: 3, category: 'WORKOUT', name: 'Intervals' }),
-    ];
+function keysAndLabels(
+  events: IntervalsCalendarEvent[],
+  activities: IntervalsActivity[],
+) {
+  return getUpcomingItems(events, activities, TODAY, ZONE_CONFIG).map(item => [
+    calendarItemKey(item),
+    item.dayLabel,
+  ]);
+}
 
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result).toEqual([
-      { id: 3, name: 'Intervals', dayLabel: 'today', blocks: [] },
+describe('getUpcomingItems', () => {
+  it("lists today's and tomorrow's Workouts in order, labelled by day", () => {
+    expect(
+      keysAndLabels(
+        [
+          event({ id: 1, start_date_local: '2026-07-26T07:00:00' }),
+          event({ id: 2, start_date_local: '2026-07-25T18:00:00' }),
+          event({ id: 3, start_date_local: '2026-07-25T06:00:00' }),
+          event({ id: 4, start_date_local: '2026-07-24T08:00:00' }),
+          event({ id: 5, start_date_local: '2026-07-27T08:00:00' }),
+        ],
+        [],
+      ),
+    ).toEqual([
+      ['workout-3', 'today'],
+      ['workout-2', 'today'],
+      ['workout-1', 'tomorrow'],
     ]);
   });
 
-  it('includes events scheduled for today and tomorrow', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Today ride',
-        start_date_local: '2026-07-25T08:00:00',
-      }),
-      event({
-        id: 2,
-        name: 'Tomorrow ride',
-        start_date_local: '2026-07-26T08:00:00',
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result).toEqual([
-      { id: 1, name: 'Today ride', dayLabel: 'today', blocks: [] },
-      { id: 2, name: 'Tomorrow ride', dayLabel: 'tomorrow', blocks: [] },
+  it("lists today's Unplanned Activities among today's Workouts", () => {
+    expect(
+      keysAndLabels(
+        [event({ id: 1, start_date_local: '2026-07-25T08:00:00' })],
+        [
+          activity({ id: 'zwift', start_date_local: '2026-07-25T07:00:00' }),
+          activity({
+            id: 'yesterday',
+            start_date_local: '2026-07-24T07:00:00',
+          }),
+        ],
+      ),
+    ).toEqual([
+      ['activity-zwift', 'today'],
+      ['workout-1', 'today'],
     ]);
   });
 
-  it('excludes events outside the today/tomorrow window', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Yesterday ride',
-        start_date_local: '2026-07-24T08:00:00',
-      }),
-      event({
-        id: 2,
-        name: 'Day after tomorrow ride',
-        start_date_local: '2026-07-27T08:00:00',
-      }),
-    ];
+  it('gives each Workout its Workout Status as of today', () => {
+    const items = getUpcomingItems(
+      [
+        event({ id: 1, start_date_local: '2026-07-25T08:00:00' }),
+        event({ id: 2, start_date_local: '2026-07-25T09:00:00' }),
+      ],
+      [
+        activity({
+          paired_event_id: 1,
+          start_date_local: '2026-07-25T08:05:00',
+        }),
+      ],
+      TODAY,
+      ZONE_CONFIG,
+    );
 
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result).toEqual([]);
+    expect(items).toMatchObject([
+      { kind: 'workout', workout: { id: 1, status: 'completed' } },
+      { kind: 'workout', workout: { id: 2, status: 'planned' } },
+    ]);
   });
 
-  it('labels events correctly as today or tomorrow', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Morning ride',
-        start_date_local: '2026-07-25T06:00:00',
-      }),
-      event({
-        id: 2,
-        name: 'Evening ride',
-        start_date_local: '2026-07-26T20:00:00',
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result.find(w => w.id === 1)?.dayLabel).toBe('today');
-    expect(result.find(w => w.id === 2)?.dayLabel).toBe('tomorrow');
+  it('shows a Workout ridden early on today, not tomorrow', () => {
+    expect(
+      keysAndLabels(
+        [event({ id: 1, start_date_local: '2026-07-26T08:00:00' })],
+        [
+          activity({
+            paired_event_id: 1,
+            start_date_local: '2026-07-25T07:00:00',
+          }),
+        ],
+      ),
+    ).toEqual([['workout-1', 'today']]);
   });
 
-  it('sorts results chronologically', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Later today',
-        start_date_local: '2026-07-25T18:00:00',
-      }),
-      event({
-        id: 2,
-        name: 'Tomorrow morning',
-        start_date_local: '2026-07-26T07:00:00',
-      }),
-      event({
-        id: 3,
-        name: 'Earlier today',
-        start_date_local: '2026-07-25T06:00:00',
-      }),
-    ];
+  it('leaves out a Workout planned today but ridden yesterday', () => {
+    expect(
+      keysAndLabels(
+        [event({ id: 1, start_date_local: '2026-07-25T08:00:00' })],
+        [
+          activity({
+            paired_event_id: 1,
+            start_date_local: '2026-07-24T07:00:00',
+          }),
+        ],
+      ),
+    ).toEqual([]);
+  });
 
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
+  it('shows a Workout planned yesterday but ridden today on today', () => {
+    expect(
+      keysAndLabels(
+        [event({ id: 1, start_date_local: '2026-07-24T08:00:00' })],
+        [
+          activity({
+            paired_event_id: 1,
+            start_date_local: '2026-07-25T07:00:00',
+          }),
+        ],
+      ),
+    ).toEqual([['workout-1', 'today']]);
+  });
 
-    expect(result.map(w => w.id)).toEqual([3, 1, 2]);
+  it('holds only Workouts tomorrow', () => {
+    expect(
+      keysAndLabels(
+        [],
+        [activity({ id: 'odd', start_date_local: '2026-07-26T07:00:00' })],
+      ),
+    ).toEqual([]);
   });
 
   it('returns an empty list when nothing matches', () => {
-    const result = getUpcomingWorkouts([], NOW, ZONE_CONFIG);
-
-    expect(result).toEqual([]);
-  });
-
-  it('attaches durationSeconds from the workout_doc when present', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Structured ride',
-        start_date_local: '2026-07-25T08:00:00',
-        workout_doc: { duration: 3600 },
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result[0].durationSeconds).toBe(3600);
-  });
-
-  it('maps workouts lacking a workout_doc without a duration', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Unstructured ride',
-        start_date_local: '2026-07-25T08:00:00',
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result[0].durationSeconds).toBeUndefined();
-  });
-
-  it('attaches the blocks of the workout profile when the doc carries steps', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Threshold intervals',
-        start_date_local: '2026-07-25T08:00:00',
-        workout_doc: {
-          duration: 1800,
-          steps: [
-            { duration: 600, power: { units: '%ftp', value: 50 } },
-            { duration: 600, power: { units: '%ftp', start: 95, end: 105 } },
-            { duration: 600, power: { units: 'power_zone', value: 2 } },
-          ],
-        },
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result[0].blocks).toEqual([
-      { widthFraction: 1 / 3, minPct: 50, maxPct: 50, zone: 1 },
-      { widthFraction: 1 / 3, minPct: 95, maxPct: 105, zone: 4 },
-      { widthFraction: 1 / 3, minPct: 55, maxPct: 75, zone: 2 },
-    ]);
-  });
-
-  it('builds the blocks against the zone config it is given', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Zone 2 ride',
-        start_date_local: '2026-07-25T08:00:00',
-        workout_doc: {
-          duration: 3600,
-          steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
-        },
-      }),
-    ];
-
-    const customConfig = resolveZoneConfig({ powerZones: [60, 80, 95] });
-
-    const result = getUpcomingWorkouts(events, NOW, customConfig);
-
-    expect(result[0].blocks).toEqual([
-      { widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 },
-    ]);
-  });
-
-  it('maps a workout whose steps are not drawable with an empty profile', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Free ride',
-        start_date_local: '2026-07-25T08:00:00',
-        workout_doc: { duration: 3600, steps: [{ duration: 3600 }] },
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result[0].name).toBe('Free ride');
-    expect(result[0].durationSeconds).toBe(3600);
-    expect(result[0].blocks).toEqual([]);
-  });
-
-  it('maps a workout with no steps at all with an empty profile', () => {
-    const events = [
-      event({
-        id: 1,
-        name: 'Unstructured ride',
-        start_date_local: '2026-07-25T08:00:00',
-        workout_doc: { duration: 3600 },
-      }),
-    ];
-
-    const result = getUpcomingWorkouts(events, NOW, ZONE_CONFIG);
-
-    expect(result[0].blocks).toEqual([]);
+    expect(getUpcomingItems([], [], TODAY, ZONE_CONFIG)).toEqual([]);
   });
 });
