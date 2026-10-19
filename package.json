@@ -22,7 +22,8 @@
     "preset": "jest-expo",
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/functions/"
+      "/functions/",
+      "/.claude/"
     ]
   },
   "dependencies": {
