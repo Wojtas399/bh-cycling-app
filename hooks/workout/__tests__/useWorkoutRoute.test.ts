@@ -171,6 +171,41 @@ describe('useWorkoutRoute', () => {
     expect(client.getQueryState(otherKey)?.dataUpdatedAt).toBe(before);
   });
 
+  it('refetches a failed Route on refetchIfFailed', async () => {
+    mockConnected();
+    mockGetActivityMap.mockRejectedValueOnce(new IntervalsApiError(500));
+
+    const { result } = await renderRoute();
+
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+
+    await act(() => result.current.refetchIfFailed());
+
+    expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    expect(result.current.query.data).not.toBeNull();
+  });
+
+  it('does nothing on refetchIfFailed once the Route has loaded', async () => {
+    mockConnected();
+
+    const { result } = await renderRoute();
+
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+    let settled = false;
+    const pending = result.current.refetchIfFailed().then(() => {
+      settled = true;
+    });
+
+    // Resolves immediately: by the next microtask, with no request in flight.
+    await Promise.resolve();
+    expect(settled).toBe(true);
+    await act(() => pending);
+
+    expect(mockGetActivityMap).toHaveBeenCalledTimes(1);
+  });
+
   it('is cleared when Intervals.icu is disconnected', async () => {
     mockConnected();
 
