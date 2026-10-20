@@ -306,7 +306,6 @@ export function routeQueryOptions(
           }
         : skipToken,
     staleTime: Infinity,
-    refetchOnWindowFocus: false,
   });
 }
 

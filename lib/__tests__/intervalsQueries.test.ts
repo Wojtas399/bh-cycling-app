@@ -141,11 +141,8 @@ describe('routeQueryOptions', () => {
     expect(routeQueryOptions(null, 'i42').queryFn).toBe(skipToken);
   });
 
-  it('keeps a loaded Route fresh forever and never refetches it on focus', () => {
-    const options = routeQueryOptions(CREDENTIALS, 'i42');
-
-    expect(options.staleTime).toBe(Infinity);
-    expect(options.refetchOnWindowFocus).toBe(false);
+  it('keeps a loaded Route fresh forever', () => {
+    expect(routeQueryOptions(CREDENTIALS, 'i42').staleTime).toBe(Infinity);
   });
 });
 

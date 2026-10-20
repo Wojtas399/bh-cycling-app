@@ -1,7 +1,5 @@
-import { useCallback } from 'react';
-
 import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
-import { intervalsKeys, routeQueryOptions } from '@/lib/intervalsQueries';
+import { routeQueryOptions } from '@/lib/intervalsQueries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -15,29 +13,22 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 export function useWorkoutRoute(activityId: string | null) {
   const { credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
+  const options = routeQueryOptions(credentials, activityId);
+  const { queryKey } = options;
 
-  const query = useQuery(routeQueryOptions(credentials, activityId));
-
-  const athleteId = credentials?.athleteId;
+  const query = useQuery(options);
 
   // Goes through the client rather than `query.refetch`, as in
   // `useWorkoutDetails`, so the tracked query result isn't widened.
-  const refetch = useCallback(
-    () =>
-      queryClient.refetchQueries({
-        queryKey: intervalsKeys.route(athleteId, activityId),
-        exact: true,
-      }),
-    [activityId, athleteId, queryClient],
-  );
+  function refetch() {
+    return queryClient.refetchQueries({ queryKey, exact: true });
+  }
 
-  const refetchIfFailed = useCallback(async () => {
-    const queryKey = intervalsKeys.route(athleteId, activityId);
-
+  async function refetchIfFailed() {
     if (queryClient.getQueryState(queryKey)?.status !== 'error') return;
 
     await queryClient.refetchQueries({ queryKey, exact: true });
-  }, [activityId, athleteId, queryClient]);
+  }
 
   return { query, refetch, refetchIfFailed };
 }
