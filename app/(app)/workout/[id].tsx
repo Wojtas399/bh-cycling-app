@@ -7,6 +7,7 @@ import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import MessageWithAction from '@/components/MessageWithAction';
 import ScreenHeader from '@/components/ScreenHeader';
+import RouteBanner from '@/components/workout/RouteBanner';
 import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
 import WorkoutComparisonCard from '@/components/workout/WorkoutComparisonCard';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
@@ -17,7 +18,6 @@ import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton'
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
-import WorkoutRouteBanner from '@/components/workout/WorkoutRouteBanner';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
@@ -34,12 +34,9 @@ export default function WorkoutDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useWorkoutDetails(Number(id));
-  // The same Route query the banner reads, so a refresh can retry it.
-  const route = useWorkoutRoute(
-    query.data?.mode === 'completed'
-      ? (query.data.route?.activityId ?? null)
-      : null,
-  );
+  // The same Route query the banner reads, so a refresh can retry it. The
+  // summary is `null` in planned mode, so this is skipped there.
+  const route = useWorkoutRoute(query.data?.route?.activityId ?? null);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +57,9 @@ export default function WorkoutDetailsScreen() {
 
     if (availability === 'unavailable') return <IntervalsConnectPrompt />;
 
-    if (query.data) return <WorkoutDetailsContent details={query.data} />;
+    if (query.data) {
+      return <WorkoutDetailsContent eventId={id} details={query.data} />;
+    }
 
     if (query.isError) {
       return isNotFoundError(query.error) ? (
@@ -102,11 +101,18 @@ export default function WorkoutDetailsScreen() {
  * The loaded Workout, Variant A: hero, then stacked cards. The mode-specific
  * metrics, Kroki and Opis cards slot in below the profile.
  */
-function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
+function WorkoutDetailsContent({
+  eventId,
+  details,
+}: {
+  eventId: string;
+  details: WorkoutDetails;
+}) {
   return (
     <Box gap="md">
-      {details.mode === 'completed' && details.route && (
-        <WorkoutRouteBanner summary={details.route} />
+      {/* `route` is `null` in planned mode. */}
+      {details.route && (
+        <RouteBanner eventId={eventId} summary={details.route} />
       )}
 
       <WorkoutDetailsHero

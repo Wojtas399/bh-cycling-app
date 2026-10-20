@@ -2,24 +2,28 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
 import Box from '@/components/Box';
-import MessageWithAction from '@/components/MessageWithAction';
 import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
+import RouteLoadError from '@/components/workout/RouteLoadError';
+import RouteSkeleton from '@/components/workout/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
-import { formatMetric } from '@/lib/formatWorkoutMetric';
 import type { Route } from '@/lib/route';
+import { formatRouteDistance } from '@/lib/routeChips';
 import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 const BANNER_HEIGHT = 240;
 
 /** Keeps the Route clear of the banner's edges and of the pill below it. */
 const CAMERA_PADDING = { top: 28, right: 28, bottom: 48, left: 28 };
 
-/** The pill: dark, so it reads over any part of the map. */
-const PILL_BACKGROUND = 'rgba(10, 10, 10, 0.8)';
+interface RouteBannerProps {
+  /** Workout Details' event id, which keys the full-screen map too. */
+  eventId: string;
+  summary: WorkoutRouteSummary;
+}
 
 /**
  * The Route banner at the top of a completed Workout: a 240 px static map,
@@ -28,18 +32,23 @@ const PILL_BACKGROUND = 'rgba(10, 10, 10, 0.8)';
  * with no data shows a retry of the Route alone, at the same height; data wins
  * over an error, so a failed refresh keeps the map on screen.
  */
-export default function WorkoutRouteBanner({
-  summary,
-}: {
-  summary: WorkoutRouteSummary;
-}) {
+export default function RouteBanner({ eventId, summary }: RouteBannerProps) {
   const { query, refetch } = useWorkoutRoute(summary.activityId);
+  const bleed = useBleedStyle();
 
-  if (query.data) return <Banner route={query.data} summary={summary} />;
+  if (query.data) {
+    return <Banner eventId={eventId} route={query.data} summary={summary} />;
+  }
 
-  if (query.isError) return <BannerError onRetry={() => void refetch()} />;
+  if (query.isError) {
+    return (
+      <Box backgroundColor="bgSecondary" justifyContent="center" style={bleed}>
+        <RouteLoadError onRetry={() => void refetch()} />
+      </Box>
+    );
+  }
 
-  if (query.isPending) return <BannerSkeleton />;
+  if (query.isPending) return <RouteSkeleton style={bleed} />;
 
   // No Route (`null`): the banner steps aside.
   return null;
@@ -56,61 +65,26 @@ function useBleedStyle() {
   };
 }
 
-function BannerSkeleton() {
-  // The screen's own loading label, as the Workout Details skeleton uses.
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
-  const bleed = useBleedStyle();
-
-  return (
-    <Box
-      backgroundColor="bgTertiary"
-      style={bleed}
-      accessible
-      accessibilityLabel={t('loading')}
-      accessibilityState={{ busy: true }}
-    />
-  );
-}
-
-function BannerError({ onRetry }: { onRetry: () => void }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
-  const bleed = useBleedStyle();
-
-  return (
-    <Box backgroundColor="bgSecondary" justifyContent="center" style={bleed}>
-      <MessageWithAction
-        message={t('route.error')}
-        actionLabel={t('retry')}
-        onAction={onRetry}
-      />
-    </Box>
-  );
-}
-
 function Banner({
+  eventId,
   route,
   summary,
-}: {
-  route: Route;
-  summary: WorkoutRouteSummary;
-}) {
+}: RouteBannerProps & { route: Route }) {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.route',
   });
   const theme = useAppTheme();
   const bleed = useBleedStyle();
   const router = useRouter();
-  // Workout Details' event id, which keys the full-screen map too.
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const distance =
-    summary.distanceMeters !== undefined
-      ? formatMetric('distance', summary.distanceMeters)
-      : undefined;
+  const distance = formatRouteDistance(summary);
 
   return (
     <Pressable
       onPress={() =>
-        router.push({ pathname: '/workout/[id]/map', params: { id } })
+        router.push({
+          pathname: '/workout/[id]/map',
+          params: { id: eventId },
+        })
       }
       accessibilityRole="button"
       accessibilityLabel={
@@ -126,6 +100,7 @@ function Banner({
         style={{ flex: 1 }}
       >
         <RouteMap route={route} padding={CAMERA_PADDING} interactive={false} />
+        {/* The pill: dark, so it reads over any part of the map. */}
         <View
           style={{
             position: 'absolute',
@@ -137,7 +112,7 @@ function Banner({
             paddingHorizontal: 12,
             paddingVertical: 6,
             borderRadius: 999,
-            backgroundColor: PILL_BACKGROUND,
+            backgroundColor: theme.colors.overlay,
           }}
         >
           <Ionicons

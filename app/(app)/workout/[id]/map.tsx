@@ -7,26 +7,39 @@ import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import MessageWithAction from '@/components/MessageWithAction';
 import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
+import RouteLoadError from '@/components/workout/RouteLoadError';
+import RouteSkeleton from '@/components/workout/RouteSkeleton';
 import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
-import { formatMetric } from '@/lib/formatWorkoutMetric';
 import { isNotFoundError } from '@/lib/intervalsApi';
-import { formatLocalTime } from '@/lib/localDateTime';
 import type { Route } from '@/lib/route';
+import { formatRouteDistance, routeChips } from '@/lib/routeChips';
 import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const CLOSE_SIZE = 44;
+const CLOSE_ICON_SIZE = 20;
 /** The ✕'s distance below the safe area's top edge. */
 const CLOSE_OFFSET = 8;
 /** The chips' distance above the safe area's bottom edge. */
 const CHIPS_OFFSET = 24;
 /** Room the chips row takes: two lines of text plus padding. */
 const CHIPS_HEIGHT = 72;
+const CHIPS_GAP = 8;
+/** The screen's horizontal margin for the ✕ and the chips. */
 const EDGE = 16;
+/** The gap between the map's accessibility image and the ✕ or the chips. */
+const IMAGE_GAP = 8;
+/** How far past the ✕ and the chips the camera keeps the Route. */
+const CAMERA_CLEARANCE = 24;
+/** The camera's room at the screen's sides. */
+const CAMERA_SIDE_PADDING = 32;
+/** The attribution ⓘ's distance from the screen's bottom-right corner. */
+const ATTRIBUTION_INSET = 8;
+const SKELETON_STYLE = { flex: 1 };
 
 /**
  * The full-screen Route map, slid up over Workout Details as a headerless
@@ -34,7 +47,7 @@ const EDGE = 16;
  * (a deep link), it shows its own skeleton and error states. The ✕, Android
  * back and the iOS two-finger escape gesture close it.
  */
-export default function WorkoutRouteMapScreen() {
+export default function RouteMapScreen() {
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -48,7 +61,9 @@ export default function WorkoutRouteMapScreen() {
   }
 
   function body() {
-    if (details.availability === 'loading') return <MapSkeleton />;
+    if (details.availability === 'loading') {
+      return <RouteSkeleton style={SKELETON_STYLE} />;
+    }
 
     if (details.availability === 'unavailable') {
       return (
@@ -60,7 +75,7 @@ export default function WorkoutRouteMapScreen() {
 
     if (details.query.data) {
       return summary ? (
-        <RouteBody summary={summary} />
+        <RouteBody summary={summary} onClose={close} />
       ) : (
         <Centered>
           <WorkoutNotFound />
@@ -84,7 +99,7 @@ export default function WorkoutRouteMapScreen() {
       );
     }
 
-    return <MapSkeleton />;
+    return <RouteSkeleton style={SKELETON_STYLE} />;
   }
 
   return (
@@ -114,7 +129,11 @@ export default function WorkoutRouteMapScreen() {
           borderColor: theme.colors.borderStrong,
         }}
       >
-        <Ionicons name="close" size={20} color={theme.colors.textPrimary} />
+        <Ionicons
+          name="close"
+          size={CLOSE_ICON_SIZE}
+          color={theme.colors.textPrimary}
+        />
       </Pressable>
 
       {body()}
@@ -123,31 +142,37 @@ export default function WorkoutRouteMapScreen() {
 }
 
 /** The Route's states, once the details have a route summary. */
-function RouteBody({ summary }: { summary: WorkoutRouteSummary }) {
+function RouteBody({
+  summary,
+  onClose,
+}: {
+  summary: WorkoutRouteSummary;
+  onClose: () => void;
+}) {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { query, refetch } = useWorkoutRoute(summary.activityId);
 
   if (query.data)
     return <FullScreenRoute route={query.data} summary={summary} />;
 
-  if (query.isPending) return <MapSkeleton />;
+  if (query.isPending) return <RouteSkeleton style={SKELETON_STYLE} />;
 
   if (query.isError) {
     return (
       <Centered>
-        <MessageWithAction
-          message={t('route.error')}
-          actionLabel={t('retry')}
-          onAction={() => void refetch()}
-        />
+        <RouteLoadError onRetry={() => void refetch()} />
       </Centered>
     );
   }
 
-  // The Activity turned out to have no Route.
+  // The Workout exists, but its Activity turned out to have no Route.
   return (
     <Centered>
-      <WorkoutNotFound />
+      <MessageWithAction
+        message={t('route.missing')}
+        actionLabel={t('notFound.back')}
+        onAction={onClose}
+      />
     </Centered>
   );
 }
@@ -163,21 +188,9 @@ function FullScreenRoute({
     keyPrefix: 'workoutDetails.routeMap',
   });
   const insets = useSafeAreaInsets();
-  const distance =
-    summary.distanceMeters !== undefined
-      ? formatMetric('distance', summary.distanceMeters)
-      : undefined;
-  // A chip with no value is left out.
-  const chips: { label: string; value: string }[] = (
-    [
-      [t('distance'), distance],
-      [t('start'), formatLocalTime(summary.startLocal)],
-      [
-        t('finish'),
-        summary.finishLocal && formatLocalTime(summary.finishLocal),
-      ],
-    ] satisfies [string, string | undefined][]
-  ).flatMap(([label, value]) => (value ? [{ label, value }] : []));
+  const distance = formatRouteDistance(summary);
+  const chips = routeChips(summary);
+  const closeBottom = insets.top + CLOSE_OFFSET + CLOSE_SIZE;
   const chipsTop = insets.bottom + CHIPS_OFFSET + CHIPS_HEIGHT;
 
   return (
@@ -196,10 +209,10 @@ function FullScreenRoute({
         style={{
           position: 'absolute',
           zIndex: 1,
-          top: insets.top + CLOSE_OFFSET + CLOSE_SIZE + 8,
+          top: closeBottom + IMAGE_GAP,
           left: 0,
           right: 0,
-          bottom: chipsTop + 8,
+          bottom: chipsTop + IMAGE_GAP,
         }}
       />
 
@@ -213,21 +226,21 @@ function FullScreenRoute({
             right: EDGE,
             bottom: insets.bottom + CHIPS_OFFSET,
             flexDirection: 'row',
-            gap: 8,
+            gap: CHIPS_GAP,
           }}
         >
-          {chips.map(({ label, value }) => (
+          {chips.map(({ chip, value }) => (
             <Box
-              key={label}
+              key={chip}
               flex={1}
               backgroundColor="bgTertiary"
               borderRadius="lg"
               padding="md"
               accessible
-              accessibilityLabel={t('chip', { label, value })}
+              accessibilityLabel={t('chip', { label: t(chip), value })}
             >
               <Text variant="body-xs-regular" color="textSecondary">
-                {label}
+                {t(chip)}
               </Text>
               <Text variant="body-l-semibold">{value}</Text>
             </Box>
@@ -236,38 +249,27 @@ function FullScreenRoute({
       )}
 
       {/*
-        Last in the tree, so its attribution ⓘ (kept focusable, default
-        label) comes after the chips; the other layers are drawn above it.
+        Last in the tree, so its attribution ⓘ (kept focusable while the
+        map's contents are hidden) comes after the chips; the other layers
+        are drawn above it.
       */}
       <View style={StyleSheet.absoluteFill}>
         <RouteMap
           route={route}
           interactive
           padding={{
-            top: insets.top + CLOSE_OFFSET + CLOSE_SIZE + 24,
-            right: 32,
-            bottom: chipsTop + 24,
-            left: 32,
+            top: closeBottom + CAMERA_CLEARANCE,
+            right: CAMERA_SIDE_PADDING,
+            bottom: chipsTop + CAMERA_CLEARANCE,
+            left: CAMERA_SIDE_PADDING,
           }}
-          attributionPosition={{ bottom: 8, right: 8 }}
+          attributionPosition={{
+            bottom: ATTRIBUTION_INSET,
+            right: ATTRIBUTION_INSET,
+          }}
         />
       </View>
     </>
-  );
-}
-
-function MapSkeleton() {
-  // The screen's own loading label, as the banner skeleton uses.
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
-
-  return (
-    <Box
-      flex={1}
-      backgroundColor="bgTertiary"
-      accessible
-      accessibilityLabel={t('loading')}
-      accessibilityState={{ busy: true }}
-    />
   );
 }
 

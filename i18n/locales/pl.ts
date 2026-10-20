@@ -278,6 +278,7 @@ const pl = {
       pill: '{{distance}} · Pokaż mapę',
       hint: 'Otwiera mapę na pełnym ekranie',
       error: 'Nie udało się wczytać trasy.',
+      missing: 'Ten trening nie ma zapisanej trasy.',
     },
     comparison: {
       title: 'Plan vs wykonanie',
@@ -327,6 +328,7 @@ const pl = {
       start: 'Start',
       finish: 'Meta',
       chip: '{{label}}, {{value}}',
+      attribution: 'Informacje o mapie',
     },
   },
   intervals: {
