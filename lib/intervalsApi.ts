@@ -2,6 +2,7 @@ import {
   INTERVALS_API_BASE_URL,
   INTERVALS_CURRENT_ATHLETE_PATH,
   intervalsActivitiesPath,
+  intervalsActivityMapPath,
   intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
 } from './intervalsApiPaths';
@@ -79,6 +80,21 @@ export interface IntervalsActivity {
    * when the athlete asked to ignore it.
    */
   compliance?: number | null;
+  /** The streams recorded for the Activity; `latlng` means it has GPS. */
+  stream_types?: string[];
+  /** Ridden on a trainer. intervals.icu omits it when it's false. */
+  trainer?: boolean;
+}
+
+/**
+ * An Activity's GPS track, as verified against the real API. The response
+ * also carries `route` and `weather`, which the app doesn't use.
+ */
+export interface IntervalsActivityMap {
+  /** [lat, lng] pairs, not thinned (same count as the latlng stream). */
+  latlngs?: ([number, number] | null)[] | null;
+  /** [[minLat, minLng], [maxLat, maxLng]]. */
+  bounds?: [[number, number], [number, number]] | null;
 }
 
 export interface IntervalsWorkoutDoc {
@@ -205,6 +221,23 @@ export function getCalendarEvent(
 ): Promise<IntervalsCalendarEvent> {
   return request<IntervalsCalendarEvent>(
     intervalsCalendarEventPath(athleteId, eventId),
+    token,
+    undefined,
+    options,
+  );
+}
+
+/**
+ * Reads an Activity's GPS track. An Activity without one, or unknown, surfaces
+ * as an `IntervalsApiError` with status 404.
+ */
+export function getActivityMap(
+  token: string,
+  activityId: string,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsActivityMap> {
+  return request<IntervalsActivityMap>(
+    intervalsActivityMapPath(activityId),
     token,
     undefined,
     options,

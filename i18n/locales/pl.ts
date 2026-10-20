@@ -271,6 +271,14 @@ const pl = {
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie treningu',
+    route: {
+      title: 'Trasa',
+      titleWithDistance: 'Trasa, {{distance}}',
+      showMap: 'Pokaż mapę',
+      pill: '{{distance}} · Pokaż mapę',
+      hint: 'Otwiera mapę na pełnym ekranie',
+      loading: 'Wczytywanie trasy',
+    },
     comparison: {
       title: 'Plan vs wykonanie',
       titleWithCompliance: 'Plan vs wykonanie · zgodność {{compliance}}%',

@@ -20,3 +20,8 @@ export function intervalsCalendarEventPath(
 ): string {
   return `${intervalsCalendarEventsPath(athleteId)}/${eventId}`;
 }
+
+/** An Activity's GPS track. Activity ids aren't scoped by athlete. */
+export function intervalsActivityMapPath(activityId: string): string {
+  return `/activity/${activityId}/map`;
+}
