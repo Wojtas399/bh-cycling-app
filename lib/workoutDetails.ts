@@ -1,6 +1,10 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
+import {
+  type LocalDateTimeString,
+  addSecondsToLocalDateTime,
+} from './localDateTime';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { activityHasRoute } from './route';
@@ -146,6 +150,13 @@ export interface WorkoutRouteSummary {
    * Absent when not finite.
    */
   distanceMeters?: number;
+  /** The Activity's `start_date_local`, a local date-time with no zone. */
+  startLocal: LocalDateTimeString;
+  /**
+   * Start + `elapsed_time` (stops included), the same local format. Absent
+   * when `elapsed_time` isn't a finite number.
+   */
+  finishLocal?: LocalDateTimeString;
 }
 
 /**
@@ -249,9 +260,16 @@ function summariseRoute(
 ): WorkoutRouteSummary | null {
   if (!activityHasRoute(activity)) return null;
 
-  return isFiniteNumber(activity.distance)
-    ? { activityId: activity.id, distanceMeters: activity.distance }
-    : { activityId: activity.id };
+  const { id, distance, start_date_local, elapsed_time } = activity;
+
+  return {
+    activityId: id,
+    ...(isFiniteNumber(distance) && { distanceMeters: distance }),
+    startLocal: start_date_local,
+    ...(isFiniteNumber(elapsed_time) && {
+      finishLocal: addSecondsToLocalDateTime(start_date_local, elapsed_time),
+    }),
+  };
 }
 
 /** The Activity's summary metrics it actually has; absent ones are dropped. */

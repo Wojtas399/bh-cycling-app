@@ -15,13 +15,14 @@ import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
+import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import WorkoutRouteBanner from '@/components/workout/WorkoutRouteBanner';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { isNotFoundError } from '@/lib/intervalsApi';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 /**
  * Workout Details: one Workout, pushed over the tabs from any Workout tile.
@@ -55,7 +56,7 @@ export default function WorkoutDetailsScreen() {
 
     if (query.isError) {
       return isNotFoundError(query.error) ? (
-        <NotFound />
+        <WorkoutNotFound />
       ) : (
         <LoadError onRetry={() => void query.refetch()} />
       );
@@ -144,22 +145,6 @@ function KrokiCard({ steps }: { steps: WorkoutDetails['steps'] }) {
     <WorkoutDetailsCard title={t('title')}>
       <WorkoutDetailsSteps steps={steps} />
     </WorkoutDetailsCard>
-  );
-}
-
-function NotFound() {
-  const { t } = useTranslation(undefined, {
-    keyPrefix: 'workoutDetails.notFound',
-  });
-  const router = useRouter();
-
-  return (
-    <MessageWithAction
-      title={t('title')}
-      message={t('body')}
-      actionLabel={t('back')}
-      onAction={() => router.back()}
-    />
   );
 }
 

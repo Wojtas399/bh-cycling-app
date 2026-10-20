@@ -16,5 +16,17 @@ export default function AppLayout() {
     });
   }, [router]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {/* Slides up over Workout Details. On Android, where a full-screen
+          modal is an ordinary push, the animation gives the same slide up. */}
+      <Stack.Screen
+        name="workout/[id]/map"
+        options={{
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+    </Stack>
+  );
 }

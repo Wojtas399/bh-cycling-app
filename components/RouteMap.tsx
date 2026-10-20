@@ -7,6 +7,7 @@ import {
   GeoJSONSource,
   Layer,
   Map,
+  type MapProps,
   type StyleSpecification,
   type ViewPadding,
 } from '@maplibre/maplibre-react-native';
@@ -25,6 +26,8 @@ interface RouteMapProps {
   padding: ViewPadding;
   /** Pan and zoom when true; no gestures at all when false. Never rotates or tilts. */
   interactive: boolean;
+  /** Where the attribution ⓘ sits; MapLibre's default corner when absent. */
+  attributionPosition?: MapProps['attributionPosition'];
 }
 
 /** Draws a Route on a dark map: a glowing orange line with green start and red finish dots. */
@@ -32,6 +35,7 @@ export default function RouteMap({
   route,
   padding,
   interactive,
+  attributionPosition,
 }: RouteMapProps) {
   const { colors } = useAppTheme();
   const { line, markers, bounds } = routeMapData(route);
@@ -49,6 +53,7 @@ export default function RouteMap({
       compass={false}
       logo={false}
       attribution
+      attributionPosition={attributionPosition}
     >
       <Camera initialViewState={{ bounds, padding }} />
 

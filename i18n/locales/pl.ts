@@ -320,6 +320,15 @@ const pl = {
       distance: 'Dystans',
     },
     description: 'Opis',
+    routeMap: {
+      map: 'Mapa trasy',
+      mapWithDistance: 'Mapa trasy, {{distance}}',
+      distance: 'Dystans',
+      start: 'Start',
+      finish: 'Meta',
+      chip: '{{label}}, {{value}}',
+      error: 'Nie udało się wczytać trasy.',
+    },
   },
   intervals: {
     title: 'Intervals.icu',

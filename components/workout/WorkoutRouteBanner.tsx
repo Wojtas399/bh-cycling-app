@@ -10,6 +10,7 @@ import { formatMetric } from '@/lib/formatWorkoutMetric';
 import type { Route } from '@/lib/route';
 import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 const BANNER_HEIGHT = 240;
 
@@ -79,14 +80,19 @@ function Banner({
   });
   const theme = useAppTheme();
   const bleed = useBleedStyle();
+  const router = useRouter();
+  // Workout Details' event id, which keys the full-screen map too.
+  const { id } = useLocalSearchParams<{ id: string }>();
   const distance =
     summary.distanceMeters !== undefined
       ? formatMetric('distance', summary.distanceMeters)
       : undefined;
 
   return (
-    // Tapping opens the full-screen map, which a later ticket adds.
     <Pressable
+      onPress={() =>
+        router.push({ pathname: '/workout/[id]/map', params: { id } })
+      }
       accessibilityRole="button"
       accessibilityLabel={
         distance ? t('titleWithDistance', { distance }) : t('title')
