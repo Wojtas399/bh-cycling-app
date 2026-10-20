@@ -20,6 +20,7 @@ import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import WorkoutRouteBanner from '@/components/workout/WorkoutRouteBanner';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
+import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
 import { isNotFoundError } from '@/lib/intervalsApi';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useLocalSearchParams } from 'expo-router';
@@ -33,6 +34,12 @@ export default function WorkoutDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useWorkoutDetails(Number(id));
+  // The same Route query the banner reads, so a refresh can retry it.
+  const route = useWorkoutRoute(
+    query.data?.mode === 'completed'
+      ? (query.data.route?.activityId ?? null)
+      : null,
+  );
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +48,8 @@ export default function WorkoutDetailsScreen() {
     setRefreshing(true);
 
     try {
-      await refetch();
+      // A loaded Route is never fetched again; a failed one is retried.
+      await Promise.all([refetch(), route.refetchIfFailed()]);
     } finally {
       setRefreshing(false);
     }

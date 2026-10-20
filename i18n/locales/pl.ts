@@ -277,7 +277,7 @@ const pl = {
       showMap: 'Pokaż mapę',
       pill: '{{distance}} · Pokaż mapę',
       hint: 'Otwiera mapę na pełnym ekranie',
-      loading: 'Wczytywanie trasy',
+      error: 'Nie udało się wczytać trasy.',
     },
     comparison: {
       title: 'Plan vs wykonanie',
