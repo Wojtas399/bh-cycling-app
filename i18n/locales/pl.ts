@@ -327,7 +327,6 @@ const pl = {
       start: 'Start',
       finish: 'Meta',
       chip: '{{label}}, {{value}}',
-      error: 'Nie udało się wczytać trasy.',
     },
   },
   intervals: {

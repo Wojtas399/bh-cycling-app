@@ -136,7 +136,7 @@ function RouteBody({ summary }: { summary: WorkoutRouteSummary }) {
     return (
       <Centered>
         <MessageWithAction
-          message={t('routeMap.error')}
+          message={t('route.error')}
           actionLabel={t('retry')}
           onAction={() => void refetch()}
         />
@@ -257,9 +257,8 @@ function FullScreenRoute({
 }
 
 function MapSkeleton() {
-  const { t } = useTranslation(undefined, {
-    keyPrefix: 'workoutDetails.route',
-  });
+  // The screen's own loading label, as the banner skeleton uses.
+  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
 
   return (
     <Box
