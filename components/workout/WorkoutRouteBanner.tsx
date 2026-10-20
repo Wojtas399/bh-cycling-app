@@ -1,0 +1,130 @@
+import { useTranslation } from 'react-i18next';
+import { Pressable, View } from 'react-native';
+
+import Box from '@/components/Box';
+import RouteMap from '@/components/RouteMap';
+import Text from '@/components/Text';
+import { useAppTheme } from '@/constants/theme';
+import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
+import { formatMetric } from '@/lib/formatWorkoutMetric';
+import type { Route } from '@/lib/route';
+import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
+import { Ionicons } from '@expo/vector-icons';
+
+const BANNER_HEIGHT = 240;
+
+/** Keeps the Route clear of the banner's edges and of the pill below it. */
+const CAMERA_PADDING = { top: 28, right: 28, bottom: 48, left: 28 };
+
+/** The pill: dark, so it reads over any part of the map. */
+const PILL_BACKGROUND = 'rgba(10, 10, 10, 0.8)';
+
+/**
+ * The Route banner at the top of a completed Workout: a 240 px static map,
+ * edge to edge, with a distance pill. A skeleton holds its place while the
+ * Route loads; it disappears when there turns out to be no Route.
+ */
+export default function WorkoutRouteBanner({
+  summary,
+}: {
+  summary: WorkoutRouteSummary;
+}) {
+  const { query } = useWorkoutRoute(summary.activityId);
+
+  if (query.data) return <Banner route={query.data} summary={summary} />;
+
+  if (query.isPending) return <BannerSkeleton />;
+
+  // No Route (`null`), or a failure: the banner steps aside.
+  return null;
+}
+
+/** Cancels the scroll content's horizontal and top padding. */
+function useBleedStyle() {
+  const theme = useAppTheme();
+
+  return {
+    height: BANNER_HEIGHT,
+    marginHorizontal: -theme.spacing.sm,
+    marginTop: -theme.spacing.base,
+  };
+}
+
+function BannerSkeleton() {
+  const { t } = useTranslation(undefined, {
+    keyPrefix: 'workoutDetails.route',
+  });
+  const bleed = useBleedStyle();
+
+  return (
+    <Box
+      backgroundColor="bgTertiary"
+      style={bleed}
+      accessible
+      accessibilityLabel={t('loading')}
+      accessibilityState={{ busy: true }}
+    />
+  );
+}
+
+function Banner({
+  route,
+  summary,
+}: {
+  route: Route;
+  summary: WorkoutRouteSummary;
+}) {
+  const { t } = useTranslation(undefined, {
+    keyPrefix: 'workoutDetails.route',
+  });
+  const theme = useAppTheme();
+  const bleed = useBleedStyle();
+  const distance =
+    summary.distanceMeters !== undefined
+      ? formatMetric('distance', summary.distanceMeters)
+      : undefined;
+
+  return (
+    // Tapping opens the full-screen map, which a later ticket adds.
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        distance ? t('titleWithDistance', { distance }) : t('title')
+      }
+      accessibilityHint={t('hint')}
+      style={bleed}
+    >
+      <View
+        pointerEvents="none"
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+        style={{ flex: 1 }}
+      >
+        <RouteMap route={route} padding={CAMERA_PADDING} interactive={false} />
+        <View
+          style={{
+            position: 'absolute',
+            right: 12,
+            bottom: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 999,
+            backgroundColor: PILL_BACKGROUND,
+          }}
+        >
+          <Ionicons
+            name="map-outline"
+            size={14}
+            color={theme.colors.textPrimary}
+          />
+          <Text variant="body-xs-medium">
+            {distance ? t('pill', { distance }) : t('showMap')}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}

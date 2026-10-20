@@ -16,6 +16,7 @@ import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
+import WorkoutRouteBanner from '@/components/workout/WorkoutRouteBanner';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { isNotFoundError } from '@/lib/intervalsApi';
@@ -95,6 +96,10 @@ export default function WorkoutDetailsScreen() {
 function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
   return (
     <Box gap="md">
+      {details.mode === 'completed' && details.route && (
+        <WorkoutRouteBanner summary={details.route} />
+      )}
+
       <WorkoutDetailsHero
         status={details.status}
         title={details.title}
