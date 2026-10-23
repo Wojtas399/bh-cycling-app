@@ -212,6 +212,8 @@ describe('joinCalendarItems', () => {
   it.each([
     ['type', { type: undefined }],
     ['name', { name: undefined }],
+    ['type (null)', { type: null as unknown as undefined }],
+    ['name (null)', { name: null as unknown as undefined }],
   ])(
     'lists an Activity missing only its %s as a Strava Activity',
     (_field, overrides) => {

@@ -157,7 +157,7 @@ export function calendarItemKey(item: StoredCalendarItem): string {
 
 /**
  * The list returns a Strava Activity without a `type` or `name`, so missing
- * either marks one.
+ * either (absent or `null`) marks one.
  */
 function toUnplannedActivity({
   id,
@@ -176,7 +176,7 @@ function toUnplannedActivity({
     load: positive(icu_training_load),
   };
 
-  return name === undefined || type === undefined
+  return name == null || type == null
     ? { ...activity, isStravaActivity: true }
     : { ...activity, name, type };
 }
