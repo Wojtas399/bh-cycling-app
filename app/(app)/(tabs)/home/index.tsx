@@ -1,14 +1,19 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import CalendarItemTile from '@/components/CalendarItemTile';
+import NoteCard from '@/components/NoteCard';
+import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
 import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
-import { calendarItemKey } from '@/lib/calendarItems';
+import { useNoteSheet } from '@/hooks/useNoteSheet';
+import type { Note } from '@/lib/notes';
+import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
@@ -18,6 +23,14 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { availability, query } = useUpcomingWorkouts();
   const openWorkout = useOpenWorkoutDetails();
+  const notes = useMemo(
+    () =>
+      query.data?.flatMap((item): Note[] =>
+        item.kind === 'note' ? [item.note] : [],
+      ),
+    [query.data],
+  );
+  const noteSheet = useNoteSheet(notes);
 
   // Home has no error state: like a disconnect, any failed fetch hides it.
   if (
@@ -49,14 +62,24 @@ export default function HomeScreen() {
       )}
 
       {query.data?.map(item => (
-        <Box key={calendarItemKey(item)} marginTop="md">
-          <CalendarItemTile
-            item={item}
-            dayLabel={t(item.dayLabel)}
-            onWorkoutPress={workout => openWorkout(workout.id)}
-          />
+        <Box key={upcomingItemKey(item)} marginTop="md">
+          {item.kind === 'note' ? (
+            <NoteCard
+              note={item.note}
+              when={t(item.dayLabel)}
+              onPress={() => noteSheet.open(item.note.id)}
+            />
+          ) : (
+            <CalendarItemTile
+              item={item}
+              dayLabel={t(item.dayLabel)}
+              onWorkoutPress={workout => openWorkout(workout.id)}
+            />
+          )}
         </Box>
       ))}
+
+      <NoteDetailSheet sheet={noteSheet} />
     </Box>
   );
 }

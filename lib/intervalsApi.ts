@@ -36,6 +36,11 @@ export interface IntervalsDateRangeParams {
   newest?: string;
 }
 
+export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
+  /** Only events of this category, e.g. `'NOTE'`. */
+  category?: string;
+}
+
 export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
   /** Comma-separated field projection, e.g. `'id,start_date_local,type,paired_event_id'`. */
   fields?: string;
@@ -110,10 +115,24 @@ export interface IntervalsWorkoutDoc {
 export interface IntervalsCalendarEvent {
   id: number;
   category: string;
+  /**
+   * On a Note it may also be `null`, `""` or missing; `toNotes` guards for
+   * that, so Workout code can keep treating it as a string.
+   */
   name: string;
   start_date_local: string;
+  /**
+   * The local midnight after the event's last day (exclusive), e.g. start + 1
+   * day for a one-day Note.
+   */
+  end_date_local?: string | null;
+  /** A hex colour such as `'#ff0000'`, or `null` for none. */
+  color?: string | null;
   type?: string;
-  /** The full builder text: free-text notes plus the step lines. */
+  /**
+   * The full builder text: free-text notes plus the step lines. On a Note,
+   * its text, which may be `null`, `""` or missing.
+   */
   description?: string;
   /** Planned duration in seconds. */
   moving_time?: number;
@@ -136,7 +155,7 @@ export interface IntervalsRequestOptions {
 async function request<T>(
   path: string,
   token: string,
-  params?: IntervalsDateRangeParams,
+  params?: IntervalsCalendarEventsParams,
   { signal }: IntervalsRequestOptions = {},
 ): Promise<T> {
   const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
@@ -198,7 +217,7 @@ export function getAthleteSettings(
 export function getCalendarEvents(
   token: string,
   athleteId: string,
-  params?: IntervalsDateRangeParams,
+  params?: IntervalsCalendarEventsParams,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsCalendarEvent[]> {
   return request<IntervalsCalendarEvent[]>(

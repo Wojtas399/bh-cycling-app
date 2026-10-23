@@ -188,6 +188,29 @@ const pl = {
       tomorrow: 'Jutro',
     },
   },
+  note: {
+    /** The title of a Note without a name. */
+    untitled: 'Notatka',
+    empty: 'Brak treści',
+    /** A Note button's screen-reader label. */
+    accessibilityLabel: 'Notatka: {{title}}, {{when}}',
+    /** Monday first, like the Calendar's weekdays. */
+    weekdaysShort: ['pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.'],
+    monthsShort: [
+      'sty',
+      'lut',
+      'mar',
+      'kwi',
+      'maj',
+      'cze',
+      'lip',
+      'sie',
+      'wrz',
+      'paź',
+      'lis',
+      'gru',
+    ],
+  },
   activityTile: {
     load: 'Obciążenie {{load}}',
   },

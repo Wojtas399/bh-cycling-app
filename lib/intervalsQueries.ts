@@ -23,6 +23,7 @@ import {
   fromLocalDateString,
   toLocalDateString,
 } from './localDate';
+import { noteWindow, toNotes } from './notes';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
@@ -116,8 +117,10 @@ export function athleteSettingsQueryOptions({
 /**
  * Home's items for `today` and the day after (see `getUpcomingItems`). Events
  * and Activities are fetched a pairing window past each edge, since a paired
- * Workout shows on its Activity's day. `today` is in the key, so the statuses
- * are derived in the fetch. Skipped while there are no credentials.
+ * Workout shows on its Activity's day. Notes come from their own call, reaching
+ * back `NOTE_LOOK_BACK_DAYS` for one that started earlier; if it fails, the
+ * query fails. `today` is in the key, so the statuses are derived in the
+ * fetch. Skipped while there are no credentials.
  */
 export function upcomingQueryOptions(
   credentials: IntervalsCredentials | null,
@@ -128,25 +131,39 @@ export function upcomingQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }) => {
           const first = fromLocalDateString(today);
-          const window = pairingWindow(first, addDays(first, 1));
+          const last = addDays(first, 1);
+          const window = pairingWindow(first, last);
 
-          const [events, activities, zoneConfig] = await Promise.all([
-            getCalendarEvents(
-              credentials.accessToken,
-              credentials.athleteId,
-              window,
-              { signal },
-            ),
-            getActivities(
-              credentials.accessToken,
-              credentials.athleteId,
-              { ...window, fields: ACTIVITY_FIELDS },
-              { signal },
-            ),
-            fetchZoneConfig(client, credentials),
-          ]);
+          const [events, activities, zoneConfig, noteEvents] =
+            await Promise.all([
+              getCalendarEvents(
+                credentials.accessToken,
+                credentials.athleteId,
+                window,
+                { signal },
+              ),
+              getActivities(
+                credentials.accessToken,
+                credentials.athleteId,
+                { ...window, fields: ACTIVITY_FIELDS },
+                { signal },
+              ),
+              fetchZoneConfig(client, credentials),
+              getCalendarEvents(
+                credentials.accessToken,
+                credentials.athleteId,
+                { ...noteWindow(first, last), category: 'NOTE' },
+                { signal },
+              ),
+            ]);
 
-          return getUpcomingItems(events, activities, today, zoneConfig);
+          return getUpcomingItems(
+            events,
+            activities,
+            toNotes(noteEvents),
+            today,
+            zoneConfig,
+          );
         }
       : skipToken,
     ...WORKOUTS_FRESHNESS,

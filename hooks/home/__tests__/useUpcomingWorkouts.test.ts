@@ -6,7 +6,7 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { toLocalDateString } from '@/lib/localDate';
+import { addDays, toLocalDateString } from '@/lib/localDate';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
 
@@ -130,6 +130,71 @@ describe('useUpcomingWorkouts', () => {
         toLocalDateString(new Date()),
       ]),
     ).toBe(result.current.query.data);
+  });
+
+  it('fetches the Notes from 31 days before today to tomorrow', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockResolvedValue([]);
+
+    const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
+
+    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      {
+        oldest: toLocalDateString(addDays(new Date(), -31)),
+        newest: toLocalDateString(addDays(new Date(), 1)),
+        category: 'NOTE',
+      },
+      expect.anything(),
+    );
+  });
+
+  it("lists today's Notes from the Notes call after today's Workouts", async () => {
+    mockConnected();
+    const today = toLocalDateString(new Date());
+    const note: IntervalsCalendarEvent = {
+      id: 9,
+      category: 'NOTE',
+      name: 'Odżywianie',
+      description: 'Dużo węgli',
+      start_date_local: `${today}T00:00:00`,
+    };
+
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE' ? [note] : [todayEvent()],
+    );
+
+    const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
+
+    await waitFor(() =>
+      expect(result.current.query.data).toMatchObject([
+        { kind: 'workout', dayLabel: 'today', workout: { id: 1 } },
+        {
+          kind: 'note',
+          dayLabel: 'today',
+          note: { id: 9, name: 'Odżywianie', description: 'Dużo węgli' },
+        },
+      ]),
+    );
+  });
+
+  it('fails when the Notes call fails', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) => {
+        if (params.category === 'NOTE') throw new Error('notes down');
+
+        return [todayEvent()];
+      },
+    );
+
+    const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
+
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+    expect(result.current.query.data).toBeUndefined();
   });
 
   it('is empty when connected but no events match', async () => {
