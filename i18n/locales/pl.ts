@@ -211,6 +211,19 @@ const pl = {
       'gru',
     ],
   },
+  /** An Activity's sport, by `sportLabel(type)`. */
+  sport: {
+    ride: 'Jazda rowerem',
+    run: 'Bieg',
+    walk: 'Marsz',
+    swim: 'Pływanie',
+    strength: 'Trening siłowy',
+    rowing: 'Wiosłowanie',
+    winter: 'Sporty zimowe',
+    yoga: 'Joga i pilates',
+    /** A sport `sportLabel` doesn't know. */
+    other: 'Aktywność',
+  },
   activityTile: {
     load: 'Obciążenie {{load}}',
     /** A Strava Activity's title: intervals.icu doesn't share its name. */
