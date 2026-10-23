@@ -2,6 +2,7 @@ import {
   IntervalsApiError,
   IntervalsAuthError,
   getActivities,
+  getActivity,
   getActivityMap,
   getAthleteSettings,
   getCalendarEvent,
@@ -109,6 +110,11 @@ describe('intervalsApi', () => {
         getCalendarEvent('token-1', 'athlete-1', 42, { signal }),
     ],
     [
+      'getActivity',
+      (signal: AbortSignal) =>
+        getActivity('token-1', 'i42', { intervals: true }, { signal }),
+    ],
+    [
       'getActivityMap',
       (signal: AbortSignal) => getActivityMap('token-1', 'i42', { signal }),
     ],
@@ -170,6 +176,39 @@ describe('intervalsApi', () => {
       await expect(
         getCalendarEvent('token-1', 'athlete-1', 42),
       ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 404 });
+    });
+  });
+
+  describe('getActivity', () => {
+    it('reads one Activity with its intervals and the bearer token', async () => {
+      const activity = { id: 'i42', name: 'Morning ride', type: 'Ride' };
+
+      mockFetchOnce({ ok: true, status: 200, json: async () => activity });
+
+      const result = await getActivity('token-1', 'i42', { intervals: true });
+
+      expect(result).toEqual(activity);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://intervals.icu/api/v1/activity/i42?intervals=true',
+        { headers: { Authorization: 'Bearer token-1' } },
+      );
+    });
+
+    it('throws IntervalsAuthError on a 401 response', async () => {
+      mockFetchOnce({ ok: false, status: 401 });
+
+      await expect(getActivity('bad-token', 'i42')).rejects.toBeInstanceOf(
+        IntervalsAuthError,
+      );
+    });
+
+    it('throws IntervalsApiError carrying the status of a 404', async () => {
+      mockFetchOnce({ ok: false, status: 404 });
+
+      await expect(getActivity('token-1', 'i1')).rejects.toMatchObject({
+        name: 'IntervalsApiError',
+        status: 404,
+      });
     });
   });
 

@@ -1,9 +1,6 @@
+import type { ActivityMetricKey } from './activitySummary';
 import { formatDuration } from './formatDuration';
-import type {
-  ActivityMetricKey,
-  ComparisonMetric,
-  WorkoutPlanMetrics,
-} from './workoutDetails';
+import type { ComparisonMetric, WorkoutPlanMetrics } from './workoutDetails';
 
 /** A metric of the Plan card. */
 export type PlanMetricKey =

@@ -1,3 +1,4 @@
+import { buildActivityDetails } from '../activityDetails';
 import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
@@ -8,6 +9,7 @@ import {
   getCalendarEvents,
 } from '../intervalsApi';
 import {
+  activityDetailsQueryOptions,
   athleteSettingsQueryOptions,
   intervalsKeys,
   monthQueryOptions,
@@ -94,6 +96,12 @@ describe('intervalsKeys', () => {
       'route',
       'i42',
     ]);
+    expect(intervalsKeys.activity('athlete-1', 'i42')).toEqual([
+      'intervals',
+      'athlete-1',
+      'activity',
+      'i42',
+    ]);
   });
 });
 
@@ -120,6 +128,32 @@ describe('freshness', () => {
 
     expect(options.staleTime).toBe(FIVE_MINUTES);
     expect(options.refetchOnWindowFocus).toBe(true);
+  });
+
+  it("lets an Activity's details go stale after 5 minutes and refetch on focus", () => {
+    const options = activityDetailsQueryOptions(
+      CREDENTIALS,
+      'i42',
+      buildActivityDetails,
+    );
+
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
+  });
+});
+
+describe('activityDetailsQueryOptions', () => {
+  it("keys the Activity by its id under the athlete's prefix", () => {
+    expect(
+      activityDetailsQueryOptions(CREDENTIALS, 'i42', buildActivityDetails)
+        .queryKey,
+    ).toEqual(['intervals', 'athlete-1', 'activity', 'i42']);
+  });
+
+  it('is skipped without credentials', () => {
+    expect(
+      activityDetailsQueryOptions(null, 'i42', buildActivityDetails).queryFn,
+    ).toBe(skipToken);
   });
 });
 

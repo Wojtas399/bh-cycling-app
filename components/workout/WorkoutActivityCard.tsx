@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 
 import MetricGrid from '@/components/workout/MetricGrid';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
+import type { ActivityMetric } from '@/lib/activitySummary';
 import { formatMetric } from '@/lib/formatWorkoutMetric';
-import type { ActivityMetric } from '@/lib/workoutDetails';
 
 export interface WorkoutActivityCardProps {
   metrics: ActivityMetric[];
