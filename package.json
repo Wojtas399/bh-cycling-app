@@ -24,6 +24,10 @@
       "/node_modules/",
       "/functions/",
       "/.claude/"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|marked|github-slugger))",
+      "/node_modules/react-native-reanimated/plugin/"
     ]
   },
   "dependencies": {
@@ -63,6 +67,7 @@
     "react-i18next": "^17.0.8",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-marked": "8.3.2",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
