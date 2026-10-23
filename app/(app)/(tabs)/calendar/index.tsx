@@ -2,6 +2,7 @@ import { type ReactNode, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import NoteDetailSheet from '@/components/NoteDetailSheet';
 import CalendarBody, {
   type CalendarBodyState,
 } from '@/components/calendar/CalendarBody';
@@ -13,6 +14,7 @@ import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
+import { useCalendarNoteSheet } from '@/hooks/calendar/useCalendarNoteSheet';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
@@ -20,6 +22,7 @@ import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type { CalendarItemsByDate } from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
+import type { Note } from '@/lib/notes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 /**
@@ -55,10 +58,11 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
     >
-      {({ itemsByDate, onDayPress }) => (
+      {({ itemsByDate, notes, onDayPress }) => (
         <CalendarMonthGrid
           month={month}
           itemsByDate={itemsByDate}
+          notes={notes}
           onDayPress={onDayPress}
         />
       )}
@@ -80,12 +84,14 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
     >
-      {({ itemsByDate, onDayPress, onWorkoutPress }) => (
+      {({ itemsByDate, notes, onDayPress, onWorkoutPress, onNotePress }) => (
         <CalendarWeekAgenda
           week={week}
           itemsByDate={itemsByDate}
+          notes={notes}
           onDayPress={onDayPress}
           onWorkoutPress={onWorkoutPress}
+          onNotePress={onNotePress}
         />
       )}
     </CalendarLayout>
@@ -104,15 +110,20 @@ interface CalendarLayoutProps extends ViewProps {
 
 interface LoadedViewProps {
   itemsByDate: CalendarItemsByDate;
+  /** The whole Notes overlapping the range, in `id` order. */
+  notes: Note[];
   /** Opens the day sheet. */
   onDayPress: (day: CalendarDay) => void;
   /** Opens the Workout's details, dismissing the day sheet if it is open. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
+  /** Opens the Note Detail Sheet straight from the view (no day sheet). */
+  onNotePress: (note: Note) => void;
 }
 
 /**
  * Everything the two views share: the header (toggle, refresh, range
- * navigation), the loading/error/ready body, and the day sheet.
+ * navigation), the loading/error/ready body, the day sheet and the Note
+ * Detail Sheet.
  */
 function CalendarLayout({
   view,
@@ -126,6 +137,7 @@ function CalendarLayout({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const sheet = useDaySheet(query.data);
+  const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.close);
   const openWorkout = useOpenWorkoutDetails();
 
   // The day sheet is a native Expo UI sheet (ADR 0003) that would otherwise
@@ -156,11 +168,13 @@ function CalendarLayout({
       />
 
       <CalendarBody state={bodyState(query)}>
-        {itemsByDate =>
+        {({ itemsByDate, notes }) =>
           children({
             itemsByDate,
+            notes,
             onDayPress: sheet.open,
             onWorkoutPress: handleWorkoutPress,
+            onNotePress: note => noteSheet.open(note.id),
           })
         }
       </CalendarBody>
@@ -169,9 +183,14 @@ function CalendarLayout({
         visible={sheet.visible}
         day={sheet.day}
         items={sheet.items}
+        notes={sheet.notes}
+        isEmpty={sheet.isEmpty}
         onClose={sheet.close}
         onWorkoutPress={handleWorkoutPress}
+        onNotePress={note => noteSheet.openFromDaySheet(note.id)}
       />
+
+      <NoteDetailSheet sheet={noteSheet} />
     </Box>
   );
 }
@@ -179,7 +198,7 @@ function CalendarLayout({
 /** Data wins over an error, so a failed refetch keeps the view on screen. */
 function bodyState(query: CalendarRangeView['query']): CalendarBodyState {
   if (query.data) {
-    return { status: 'ready', itemsByDate: query.data };
+    return { status: 'ready', data: query.data };
   }
 
   return query.isError ? { status: 'error' } : { status: 'loading' };

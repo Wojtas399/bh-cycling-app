@@ -1,10 +1,10 @@
-import { calendarItemKey } from '../calendarItems';
 import type {
   IntervalsActivity,
   IntervalsCalendarEvent,
 } from '../intervalsApi';
+import type { Note } from '../notes';
 import { resolveZoneConfig } from '../powerZones';
-import { getUpcomingItems } from '../upcomingWorkouts';
+import { getUpcomingItems, upcomingItemKey } from '../upcomingWorkouts';
 
 function event(
   overrides: Partial<IntervalsCalendarEvent>,
@@ -30,17 +30,29 @@ function activity(overrides: Partial<IntervalsActivity>): IntervalsActivity {
   };
 }
 
+function note(overrides: Partial<Note>): Note {
+  return {
+    id: 1,
+    name: 'Wolne',
+    description: null,
+    color: null,
+    start: '2026-07-25',
+    end: '2026-07-26',
+    ...overrides,
+  };
+}
+
 const TODAY = '2026-07-25';
 const ZONE_CONFIG = resolveZoneConfig();
 
 function keysAndLabels(
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
+  notes: Note[] = [],
 ) {
-  return getUpcomingItems(events, activities, TODAY, ZONE_CONFIG).map(item => [
-    calendarItemKey(item),
-    item.dayLabel,
-  ]);
+  return getUpcomingItems(events, activities, notes, TODAY, ZONE_CONFIG).map(
+    item => [upcomingItemKey(item), item.dayLabel],
+  );
 }
 
 describe('getUpcomingItems', () => {
@@ -93,6 +105,7 @@ describe('getUpcomingItems', () => {
           start_date_local: '2026-07-25T08:05:00',
         }),
       ],
+      [],
       TODAY,
       ZONE_CONFIG,
     );
@@ -155,6 +168,91 @@ describe('getUpcomingItems', () => {
   });
 
   it('returns an empty list when nothing matches', () => {
-    expect(getUpcomingItems([], [], TODAY, ZONE_CONFIG)).toEqual([]);
+    expect(getUpcomingItems([], [], [], TODAY, ZONE_CONFIG)).toEqual([]);
+  });
+
+  describe('Notes', () => {
+    it("lists today's and tomorrow's Notes after each day's items", () => {
+      expect(
+        keysAndLabels(
+          [
+            event({ id: 1, start_date_local: '2026-07-25T08:00:00' }),
+            event({ id: 2, start_date_local: '2026-07-26T08:00:00' }),
+          ],
+          [activity({ id: 'zwift', start_date_local: '2026-07-25T07:00:00' })],
+          [
+            note({ id: 10, start: '2026-07-25', end: '2026-07-26' }),
+            note({ id: 11, start: '2026-07-26', end: '2026-07-27' }),
+          ],
+        ),
+      ).toEqual([
+        ['activity-zwift', 'today'],
+        ['workout-1', 'today'],
+        ['note-10', 'today'],
+        ['workout-2', 'tomorrow'],
+        ['note-11', 'tomorrow'],
+      ]);
+    });
+
+    it('shows a Note that started earlier and still covers today under today', () => {
+      expect(
+        keysAndLabels(
+          [],
+          [],
+          [note({ id: 5, start: '2026-07-20', end: '2026-07-26' })],
+        ),
+      ).toEqual([['note-5', 'today']]);
+    });
+
+    it('shows a Note covering today and tomorrow once, under today', () => {
+      expect(
+        keysAndLabels(
+          [],
+          [],
+          [note({ id: 5, start: '2026-07-25', end: '2026-07-28' })],
+        ),
+      ).toEqual([['note-5', 'today']]);
+    });
+
+    it('lists several Notes of a day in id order', () => {
+      expect(
+        keysAndLabels(
+          [],
+          [],
+          [
+            note({ id: 1, start: '2026-07-20', end: '2026-07-26' }),
+            note({ id: 2, start: '2026-07-25', end: '2026-07-26' }),
+            note({ id: 3, start: '2026-07-26', end: '2026-07-27' }),
+            note({ id: 4, start: '2026-07-26', end: '2026-07-28' }),
+          ],
+        ),
+      ).toEqual([
+        ['note-1', 'today'],
+        ['note-2', 'today'],
+        ['note-3', 'tomorrow'],
+        ['note-4', 'tomorrow'],
+      ]);
+    });
+
+    it('leaves out a Note that ended yesterday or starts later', () => {
+      expect(
+        keysAndLabels(
+          [],
+          [],
+          [
+            note({ id: 1, start: '2026-07-24', end: '2026-07-25' }),
+            note({ id: 2, start: '2026-07-27', end: '2026-07-28' }),
+          ],
+        ),
+      ).toEqual([]);
+    });
+
+    it('carries the Note itself', () => {
+      const wolne = note({ id: 9 });
+
+      expect(getUpcomingItems([], [], [wolne], TODAY, ZONE_CONFIG)).toEqual([
+        { kind: 'note', note: wolne, dayLabel: 'today' },
+      ]);
+    });
   });
 });

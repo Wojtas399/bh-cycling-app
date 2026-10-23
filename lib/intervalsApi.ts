@@ -36,6 +36,23 @@ export interface IntervalsDateRangeParams {
   newest?: string;
 }
 
+/**
+ * The calendar event categories the app reads. intervals.icu has more (races,
+ * holidays, …), which arrive as plain strings on `IntervalsCalendarEvent`.
+ */
+export const EVENT_CATEGORY = {
+  workout: 'WORKOUT',
+  note: 'NOTE',
+} as const;
+
+export type EventCategory =
+  (typeof EVENT_CATEGORY)[keyof typeof EVENT_CATEGORY];
+
+export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
+  /** Only events of this category. */
+  category?: EventCategory;
+}
+
 export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
   /** Comma-separated field projection, e.g. `'id,start_date_local,type,paired_event_id'`. */
   fields?: string;
@@ -109,11 +126,26 @@ export interface IntervalsWorkoutDoc {
 
 export interface IntervalsCalendarEvent {
   id: number;
+  /** An `EventCategory`, or one of the others the app ignores. */
   category: string;
+  /**
+   * On a Note it may also be `null`, `""` or missing; `toNotes` reads events
+   * as `NoteEvent`, which says so, so Workout code can keep it a string.
+   */
   name: string;
   start_date_local: string;
+  /**
+   * The local midnight after the event's last day (exclusive), e.g. start + 1
+   * day for a one-day Note.
+   */
+  end_date_local?: string | null;
+  /** A hex colour such as `'#ff0000'`, or `null` for none. */
+  color?: string | null;
   type?: string;
-  /** The full builder text: free-text notes plus the step lines. */
+  /**
+   * The full builder text: free-text notes plus the step lines. On a Note,
+   * its text, which may be `null`, `""` or missing.
+   */
   description?: string;
   /** Planned duration in seconds. */
   moving_time?: number;
@@ -133,18 +165,24 @@ export interface IntervalsRequestOptions {
   signal?: AbortSignal;
 }
 
+/** The query parameters some endpoint accepts; each public call takes only its own. */
+type IntervalsQueryParams =
+  | IntervalsCalendarEventsParams
+  | IntervalsActivitiesParams;
+
 async function request<T>(
   path: string,
   token: string,
-  params?: IntervalsDateRangeParams,
+  params?: IntervalsQueryParams,
   { signal }: IntervalsRequestOptions = {},
 ): Promise<T> {
   const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
 
   if (params) {
-    for (const [key, value] of Object.entries(
-      params as Record<string, string | undefined>,
-    )) {
+    for (const [key, value] of Object.entries(params) as [
+      string,
+      string | undefined,
+    ][]) {
       if (value !== undefined) url.searchParams.set(key, value);
     }
   }
@@ -198,7 +236,7 @@ export function getAthleteSettings(
 export function getCalendarEvents(
   token: string,
   athleteId: string,
-  params?: IntervalsDateRangeParams,
+  params?: IntervalsCalendarEventsParams,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsCalendarEvent[]> {
   return request<IntervalsCalendarEvent[]>(

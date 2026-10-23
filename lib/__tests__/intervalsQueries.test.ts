@@ -447,7 +447,7 @@ describe('monthQueryOptions', () => {
     await client.fetchQuery(options);
 
     const stored = client.getQueryData<StoredMonth>(options.queryKey)!;
-    const selected = options.select!(stored);
+    const selected = options.select!(stored).itemsByDate;
 
     expect(selected['2026-02-01']).toEqual([]);
     expect(selected['2026-02-10']).toMatchObject([
@@ -466,7 +466,7 @@ describe('monthQueryOptions', () => {
       selectMonthAsOf('2026-02-12'),
     );
 
-    expect(nextDay.select!(stored)['2026-02-11']).toMatchObject([
+    expect(nextDay.select!(stored).itemsByDate['2026-02-11']).toMatchObject([
       { workout: { status: 'missed' } },
     ]);
   });
@@ -495,6 +495,118 @@ describe('monthQueryOptions', () => {
         },
       },
     ]);
+  });
+
+  it("fetches the month's Notes from 31 days before it to its last day", async () => {
+    const client = createQueryClient();
+
+    await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
+    );
+
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      { oldest: '2026-01-01', newest: '2026-02-28', category: 'NOTE' },
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it('stores the whole Notes overlapping the month, in id order, apart from the days', async () => {
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE'
+          ? [
+              noteEvent({
+                id: 7,
+                start_date_local: '2026-02-20T00:00:00',
+              }),
+              // Started in the look-back, still covers 1–2 February.
+              noteEvent({
+                id: 3,
+                name: 'Obóz',
+                start_date_local: '2026-01-28T00:00:00',
+                end_date_local: '2026-02-03T00:00:00',
+              }),
+              // Ended before the month began.
+              noteEvent({
+                id: 5,
+                start_date_local: '2026-01-10T00:00:00',
+                end_date_local: '2026-01-12T00:00:00',
+              }),
+            ]
+          : [],
+    );
+
+    const client = createQueryClient();
+    const stored = await client.fetchQuery(
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
+    );
+
+    expect(stored.notes).toEqual([
+      {
+        id: 3,
+        name: 'Obóz',
+        description: null,
+        color: null,
+        start: '2026-01-28',
+        end: '2026-02-03',
+      },
+      expect.objectContaining({
+        id: 7,
+        start: '2026-02-20',
+        end: '2026-02-21',
+      }),
+    ]);
+    expect(Object.values(stored.itemsByDate).flat()).toEqual([]);
+  });
+
+  it('passes the Notes through select beside the items by day', async () => {
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE'
+          ? [noteEvent({ id: 7, start_date_local: '2026-02-20T00:00:00' })]
+          : [
+              {
+                id: 1,
+                category: 'WORKOUT',
+                name: 'Past',
+                start_date_local: '2026-02-10T08:00:00',
+              },
+            ],
+    );
+
+    const client = createQueryClient();
+    const options = monthQueryOptions(
+      CREDENTIALS,
+      '2026-02',
+      selectMonthAsOf(TODAY),
+    );
+    const stored = await client.fetchQuery(options);
+    const selected = options.select!(stored);
+
+    expect(selected.notes).toMatchObject([{ id: 7 }]);
+    expect(selected.itemsByDate['2026-02-10']).toMatchObject([
+      { workout: { status: 'missed' } },
+    ]);
+  });
+
+  it('fails when the Notes call fails', async () => {
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) => {
+        if (params.category === 'NOTE') throw new Error('notes down');
+
+        return [];
+      },
+    );
+
+    const client = createQueryClient();
+
+    await expect(
+      client.fetchQuery(
+        monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
+      ),
+    ).rejects.toThrow('notes down');
   });
 
   it('stores only the items whose day falls in the month', async () => {
@@ -554,6 +666,18 @@ function ride(overrides: Partial<IntervalsActivity>): IntervalsActivity {
     start_date_local: '2026-02-11T08:00:00',
     moving_time: 3600,
     distance: 30000,
+    ...overrides,
+  };
+}
+
+function noteEvent(
+  overrides: Partial<IntervalsCalendarEvent>,
+): IntervalsCalendarEvent {
+  return {
+    id: 1,
+    category: 'NOTE',
+    name: 'Notatka',
+    start_date_local: '2026-02-11T00:00:00',
     ...overrides,
   };
 }

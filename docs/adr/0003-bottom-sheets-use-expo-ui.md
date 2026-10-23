@@ -25,3 +25,11 @@ Considered and rejected:
 - On iOS, swipe and backdrop-tap dismissal can't be configured separately.
 - `@expo/ui` ships breaking changes in patch releases, so its version is pinned exactly and upgraded on purpose.
 - Jest can't drive the native sheet, so tests use a shared `__mocks__/@expo/ui.tsx`.
+
+## Amendment: full-height variant
+
+The Note Detail Sheet shows a Note's text, which can be a long briefing. A sheet capped at 70% of the window is too cramped to read it, so the primitive gains a `fullHeight` variant for reading long content, and an optional `subtitle` line under the title. The content-sized body capped at 70% stays the default for every other sheet.
+
+- `fullHeight` passes `snapPoints={['full']}` to the Expo UI sheet. On Android that skips the partly expanded state and fills the height. The body drops `RNHostView`'s `matchContents`, takes a fixed height (the window minus the top safe area), and scrolls in a `flex: 1` ScrollView.
+- Dismissal is unchanged: swipe, backdrop tap, Android back and ✕.
+- It is still a native modal, so it covers the tab bar. Sheets still don't stack; a screen moving from one sheet to another closes the first.

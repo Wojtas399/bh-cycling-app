@@ -59,6 +59,21 @@ describe('intervalsApi', () => {
     );
   });
 
+  it('getCalendarEvents sends the category as a query param', async () => {
+    mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+
+    await getCalendarEvents('token-1', 'athlete-1', {
+      oldest: '2026-09-22',
+      newest: '2026-10-24',
+      category: 'NOTE',
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://intervals.icu/api/v1/athlete/athlete-1/events?oldest=2026-09-22&newest=2026-10-24&category=NOTE',
+      { headers: { Authorization: 'Bearer token-1' } },
+    );
+  });
+
   it('getAthleteSettings reads the token owner athlete and returns typed data on 200', async () => {
     const settings = { powerZones: [55, 75, 90, 105, 120, 150, 200] };
 

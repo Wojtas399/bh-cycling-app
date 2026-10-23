@@ -188,6 +188,29 @@ const pl = {
       tomorrow: 'Jutro',
     },
   },
+  note: {
+    /** The title of a Note without a name. */
+    untitled: 'Notatka',
+    empty: 'Brak treści',
+    /** A Note button's screen-reader label. */
+    accessibilityLabel: 'Notatka: {{title}}, {{when}}',
+    /** Monday first, like the Calendar's weekdays. */
+    weekdaysShort: ['pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.'],
+    monthsShort: [
+      'sty',
+      'lut',
+      'mar',
+      'kwi',
+      'maj',
+      'cze',
+      'lip',
+      'sie',
+      'wrz',
+      'paź',
+      'lis',
+      'gru',
+    ],
+  },
   activityTile: {
     load: 'Obciążenie {{load}}',
   },
@@ -199,6 +222,23 @@ const pl = {
     refresh: 'Odśwież',
     error: 'Nie udało się wczytać kalendarza.',
     emptyDay: 'Brak treningów w tym dniu.',
+    /** The day sheet's section of Note cards. */
+    notes: 'Notatki',
+    /** A month-grid day's screen-reader summary, after the day's label. */
+    dayCounts: {
+      workouts_one: '{{count}} trening',
+      workouts_few: '{{count}} treningi',
+      workouts_many: '{{count}} treningów',
+      workouts_other: '{{count}} treningu',
+      activities_one: '{{count}} aktywność',
+      activities_few: '{{count}} aktywności',
+      activities_many: '{{count}} aktywności',
+      activities_other: '{{count}} aktywności',
+      notes_one: '{{count}} notatka',
+      notes_few: '{{count}} notatki',
+      notes_many: '{{count}} notatek',
+      notes_other: '{{count}} notatki',
+    },
     monthNames: [
       'Styczeń',
       'Luty',

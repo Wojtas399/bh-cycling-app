@@ -72,7 +72,7 @@ describe('useWeeklyCalendar', () => {
     expect(toLocalDateString(result.current.week)).toBe(
       toLocalDateString(monday),
     );
-    expect(Object.keys(result.current.query.data ?? {})).toEqual(
+    expect(Object.keys(result.current.query.data?.itemsByDate ?? {})).toEqual(
       Array.from({ length: 7 }, (_, index) =>
         toLocalDateString(addDays(monday, index)),
       ),

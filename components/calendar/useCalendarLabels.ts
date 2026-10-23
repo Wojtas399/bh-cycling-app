@@ -6,6 +6,8 @@ import type { CalendarDay } from '@/lib/calendarGrid';
 export interface CalendarLabels {
   /** Short weekday names, Monday first: "Pn" … "Nd". */
   weekdaysShort: readonly string[];
+  /** Month names as they read after a day number, January first. */
+  monthNamesGenitive: readonly string[];
   /** "Październik 2026". */
   month: (anchor: Date) => string;
   /** "5 – 11 października 2026", or "28 września – 4 października 2026". */
@@ -30,6 +32,7 @@ export function useCalendarLabels(): CalendarLabels {
 
     return {
       weekdaysShort,
+      monthNamesGenitive,
       month: anchor =>
         `${monthNames[anchor.getMonth()]} ${anchor.getFullYear()}`,
       week: days => {
