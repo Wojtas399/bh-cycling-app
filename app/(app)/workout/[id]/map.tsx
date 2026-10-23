@@ -12,11 +12,10 @@ import RouteSkeleton from '@/components/workout/RouteSkeleton';
 import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import { useAppTheme } from '@/constants/theme';
+import { useActivityRoute } from '@/hooks/useActivityRoute';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
-import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
-import type { Route } from '@/lib/route';
+import type { Route, RouteSummary } from '@/lib/route';
 import { formatRouteDistance, routeChips } from '@/lib/routeChips';
-import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -141,11 +140,11 @@ function RouteBody({
   summary,
   onClose,
 }: {
-  summary: WorkoutRouteSummary;
+  summary: RouteSummary;
   onClose: () => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
-  const { query, refetch } = useWorkoutRoute(summary.activityId);
+  const { query, refetch } = useActivityRoute(summary.activityId);
 
   if (query.data)
     return <FullScreenRoute route={query.data} summary={summary} />;
@@ -177,7 +176,7 @@ function FullScreenRoute({
   summary,
 }: {
   route: Route;
-  summary: WorkoutRouteSummary;
+  summary: RouteSummary;
 }) {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.routeMap',

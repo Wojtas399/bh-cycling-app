@@ -1,6 +1,6 @@
 import { formatMetric } from './formatWorkoutMetric';
 import { formatLocalTime } from './localDateTime';
-import type { WorkoutRouteSummary } from './workoutDetails';
+import type { RouteSummary } from './route';
 
 /** A chip along the bottom of the full-screen Route map. */
 export type RouteChip = 'distance' | 'start' | 'finish';
@@ -10,7 +10,7 @@ export type RouteChip = 'distance' | 'start' | 'finish';
  * Wykonanie card. `undefined` when the summary has none.
  */
 export function formatRouteDistance(
-  summary: Pick<WorkoutRouteSummary, 'distanceMeters'>,
+  summary: Pick<RouteSummary, 'distanceMeters'>,
 ): string | undefined {
   return summary.distanceMeters === undefined
     ? undefined
@@ -22,7 +22,7 @@ export function formatRouteDistance(
  * and the finish time (both `H:mm`). A chip whose value is absent is left out.
  */
 export function routeChips(
-  summary: WorkoutRouteSummary,
+  summary: RouteSummary,
 ): { chip: RouteChip; value: string }[] {
   const values: [RouteChip, string | undefined][] = [
     ['distance', formatRouteDistance(summary)],
