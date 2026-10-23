@@ -1,4 +1,4 @@
-import type { IntervalsCalendarEvent } from './intervalsApi';
+import { EVENT_CATEGORY, type IntervalsCalendarEvent } from './intervalsApi';
 
 /** A local calendar date, `YYYY-MM-DD`. */
 export type LocalDateString = string;
@@ -41,7 +41,7 @@ export function toSortedDatedWorkoutEvents(
   events: IntervalsCalendarEvent[],
 ): DatedWorkoutEvent[] {
   return events
-    .filter(event => event.category === 'WORKOUT')
+    .filter(event => event.category === EVENT_CATEGORY.workout)
     .map(event => ({ event, date: event.start_date_local.slice(0, 10) }))
     .sort((a, b) =>
       a.event.start_date_local.localeCompare(b.event.start_date_local),

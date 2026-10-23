@@ -64,8 +64,7 @@ describe('layoutNoteRow', () => {
     const rest = note({ id: 2, start: '2026-10-06', end: '2026-10-07' });
     const race = note({ id: 3, start: '2026-10-08', end: '2026-10-09' });
 
-    // Passed out of order: lanes follow ids, not the input order.
-    const { segments } = layoutNoteRow(SECOND_ROW, OCTOBER, [race, rest, camp]);
+    const { segments } = layoutNoteRow(SECOND_ROW, OCTOBER, [camp, rest, race]);
 
     expect(
       segments.map(({ note: { id }, lane, firstColumn, lastColumn }) => ({

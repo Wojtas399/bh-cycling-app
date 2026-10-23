@@ -28,7 +28,8 @@ export function upcomingItemKey(item: UpcomingItem): string {
 /**
  * Home's items for `today` and the day after, in order: each Workout with its
  * Workout Status, on its Activity's day when paired, and today's Unplanned
- * Activities among them; then that day's Notes, in `id` order. Tomorrow holds
+ * Activities among them; then that day's Notes, in `id` order, as `notes`
+ * must already be (`toNotes` gives them so). Tomorrow holds
  * only Workouts and Notes. A Note shows once: under today if it covers today,
  * else under tomorrow if it starts then.
  */
@@ -60,13 +61,11 @@ export function getUpcomingItems(
     }
   }
 
-  const byId = [...notes].sort((a, b) => a.id - b.id);
-
-  for (const note of notesOn(byId, today)) {
+  for (const note of notesOn(notes, today)) {
     todays.push({ kind: 'note', note, dayLabel: 'today' });
   }
 
-  for (const note of byId) {
+  for (const note of notes) {
     if (note.start === tomorrow) {
       tomorrows.push({ kind: 'note', note, dayLabel: 'tomorrow' });
     }

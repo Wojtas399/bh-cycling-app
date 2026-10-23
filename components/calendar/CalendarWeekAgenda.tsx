@@ -5,6 +5,7 @@ import Box from '@/components/Box';
 import CalendarItemTile from '@/components/CalendarItemTile';
 import Text from '@/components/Text';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
@@ -155,7 +156,8 @@ interface NoteButtonProps {
 /** A multi-day Note above the week: its title and short range on its fill. */
 function NoteBanner({ note, when, onPress }: NoteButtonProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
-  const title = note.name ?? t('untitled');
+  const noteTitle = useNoteTitle();
+  const title = noteTitle(note);
   const color = noteLabelColor(note.color);
 
   return (
@@ -190,7 +192,8 @@ function NoteBanner({ note, when, onPress }: NoteButtonProps) {
 /** A single-day Note under its day's label: a colour dot and its title. */
 function NoteChip({ note, when, onPress }: NoteButtonProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
-  const title = note.name ?? t('untitled');
+  const noteTitle = useNoteTitle();
+  const title = noteTitle(note);
 
   return (
     <TouchableOpacity

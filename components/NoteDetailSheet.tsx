@@ -4,8 +4,9 @@ import BottomSheet from '@/components/BottomSheet';
 import NoteMarkdown from '@/components/NoteMarkdown';
 import Text from '@/components/Text';
 import type { NoteSheetController } from '@/hooks/useNoteSheet';
+import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { formatNoteDates } from '@/lib/noteDates';
-import { stripNoteHtml } from '@/lib/noteHtml';
+import { stripNoteHtml } from '@/lib/stripNoteHtml';
 
 export interface NoteDetailSheetProps {
   sheet: NoteSheetController;
@@ -19,6 +20,7 @@ export interface NoteDetailSheetProps {
  */
 export default function NoteDetailSheet({ sheet }: NoteDetailSheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
+  const noteTitle = useNoteTitle();
   const { note } = sheet;
   const text = note?.description ? stripNoteHtml(note.description).trim() : '';
 
@@ -27,7 +29,7 @@ export default function NoteDetailSheet({ sheet }: NoteDetailSheetProps) {
       visible={sheet.visible}
       onClose={sheet.close}
       fullHeight
-      title={note ? (note.name ?? t('untitled')) : undefined}
+      title={note ? noteTitle(note) : undefined}
       subtitle={
         note
           ? formatNoteDates(note, {

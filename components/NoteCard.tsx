@@ -4,6 +4,7 @@ import { Pressable } from 'react-native';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
+import { useNoteTitle } from '@/hooks/useNoteTitle';
 import type { Note } from '@/lib/notes';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -35,7 +36,8 @@ export default function NoteCard({
 }: NoteCardProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
   const theme = useAppTheme();
-  const title = note.name ?? t('untitled');
+  const noteTitle = useNoteTitle();
+  const title = noteTitle(note);
 
   return (
     <Pressable

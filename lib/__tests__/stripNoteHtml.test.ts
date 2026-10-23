@@ -1,4 +1,4 @@
-import { stripNoteHtml } from '@/lib/noteHtml';
+import { stripNoteHtml } from '@/lib/stripNoteHtml';
 
 describe('stripNoteHtml', () => {
   it('removes a tag and keeps its inner text', () => {

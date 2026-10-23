@@ -28,8 +28,8 @@ export const NOTE_LANES = 2;
 /**
  * Lays one month-grid row's Notes out as bars. `row` is the row's 7 dates,
  * Monday first; `monthDates` the month's own dates, as days of the
- * neighbouring months stay empty. Each Note overlapping the row, in `id`
- * order, takes the lowest lane free across its whole span in the row; a Note
+ * neighbouring months stay empty. `notes` must be in `id` order (as
+ * `toNotes` gives them). Each Note overlapping the row, in that order, takes the lowest lane free across its whole span in the row; a Note
  * past the drawn lanes adds 1 to "+N" on each day it covers in the row.
  */
 export function layoutNoteRow(
@@ -43,7 +43,7 @@ export function layoutNoteRow(
   /** For each lane, which columns are taken. */
   const lanes: boolean[][] = [];
 
-  for (const note of [...notes].sort((a, b) => a.id - b.id)) {
+  for (const note of notes) {
     const columns = row
       .map((date, column) => ({ date, column }))
       .filter(

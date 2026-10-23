@@ -36,9 +36,21 @@ export interface IntervalsDateRangeParams {
   newest?: string;
 }
 
+/**
+ * The calendar event categories the app reads. intervals.icu has more (races,
+ * holidays, …), which arrive as plain strings on `IntervalsCalendarEvent`.
+ */
+export const EVENT_CATEGORY = {
+  workout: 'WORKOUT',
+  note: 'NOTE',
+} as const;
+
+export type EventCategory =
+  (typeof EVENT_CATEGORY)[keyof typeof EVENT_CATEGORY];
+
 export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
-  /** Only events of this category, e.g. `'NOTE'`. */
-  category?: string;
+  /** Only events of this category. */
+  category?: EventCategory;
 }
 
 export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
@@ -114,10 +126,11 @@ export interface IntervalsWorkoutDoc {
 
 export interface IntervalsCalendarEvent {
   id: number;
+  /** An `EventCategory`, or one of the others the app ignores. */
   category: string;
   /**
-   * On a Note it may also be `null`, `""` or missing; `toNotes` guards for
-   * that, so Workout code can keep treating it as a string.
+   * On a Note it may also be `null`, `""` or missing; `toNotes` reads events
+   * as `NoteEvent`, which says so, so Workout code can keep it a string.
    */
   name: string;
   start_date_local: string;
@@ -152,18 +165,24 @@ export interface IntervalsRequestOptions {
   signal?: AbortSignal;
 }
 
+/** The query parameters some endpoint accepts; each public call takes only its own. */
+type IntervalsQueryParams =
+  | IntervalsCalendarEventsParams
+  | IntervalsActivitiesParams;
+
 async function request<T>(
   path: string,
   token: string,
-  params?: IntervalsCalendarEventsParams,
+  params?: IntervalsQueryParams,
   { signal }: IntervalsRequestOptions = {},
 ): Promise<T> {
   const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
 
   if (params) {
-    for (const [key, value] of Object.entries(
-      params as Record<string, string | undefined>,
-    )) {
+    for (const [key, value] of Object.entries(params) as [
+      string,
+      string | undefined,
+    ][]) {
       if (value !== undefined) url.searchParams.set(key, value);
     }
   }

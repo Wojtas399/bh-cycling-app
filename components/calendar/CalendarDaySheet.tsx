@@ -8,8 +8,8 @@ import Text from '@/components/Text';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import type { CalendarDay } from '@/lib/calendarGrid';
 import { type CalendarItem, calendarItemKey } from '@/lib/calendarItems';
-import { formatNoteRange } from '@/lib/noteDates';
-import { type Note, isMultiDay } from '@/lib/notes';
+import { daySheetNoteDates } from '@/lib/noteDates';
+import type { Note } from '@/lib/notes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarDaySheetProps {
@@ -87,17 +87,19 @@ export default function CalendarDaySheet({
           ) : null}
 
           {notes.map(note => {
-            const range = isMultiDay(note)
-              ? formatNoteRange(note, labels.monthNamesGenitive)
-              : undefined;
+            const { when, subtitle } = daySheetNoteDates(
+              note,
+              labels.day(day),
+              labels.monthNamesGenitive,
+            );
 
             return (
               <NoteCard
                 key={note.id}
                 note={note}
-                when={range ?? labels.day(day)}
+                when={when}
                 showWhen={false}
-                subtitle={range}
+                subtitle={subtitle}
                 onPress={() => onNotePress(note)}
               />
             );

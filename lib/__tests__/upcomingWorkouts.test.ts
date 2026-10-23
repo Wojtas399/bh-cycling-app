@@ -181,8 +181,8 @@ describe('getUpcomingItems', () => {
           ],
           [activity({ id: 'zwift', start_date_local: '2026-07-25T07:00:00' })],
           [
-            note({ id: 11, start: '2026-07-26', end: '2026-07-27' }),
             note({ id: 10, start: '2026-07-25', end: '2026-07-26' }),
+            note({ id: 11, start: '2026-07-26', end: '2026-07-27' }),
           ],
         ),
       ).toEqual([
@@ -220,9 +220,9 @@ describe('getUpcomingItems', () => {
           [],
           [],
           [
-            note({ id: 3, start: '2026-07-26', end: '2026-07-27' }),
-            note({ id: 2, start: '2026-07-25', end: '2026-07-26' }),
             note({ id: 1, start: '2026-07-20', end: '2026-07-26' }),
+            note({ id: 2, start: '2026-07-25', end: '2026-07-26' }),
+            note({ id: 3, start: '2026-07-26', end: '2026-07-27' }),
             note({ id: 4, start: '2026-07-26', end: '2026-07-28' }),
           ],
         ),

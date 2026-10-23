@@ -7,15 +7,21 @@ import Text from '@/components/Text';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useAppTheme } from '@/constants/theme';
+import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
-import { dayCounts } from '@/lib/calendarDayCounts';
+import { dayCounts, formatDayLabel } from '@/lib/calendarDayCounts';
 import {
   type CalendarDay,
   type CalendarGridCell,
   getMonthGrid,
 } from '@/lib/calendarGrid';
 import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
-import { eachDate, endOfMonth, startOfMonth } from '@/lib/calendarWorkouts';
+import {
+  type CalendarData,
+  eachDate,
+  endOfMonth,
+  startOfMonth,
+} from '@/lib/calendarWorkouts';
 import {
   type NoteBarSegment,
   type NoteRowLayout,
@@ -58,6 +64,7 @@ export default function CalendarMonthGrid({
 }: CalendarMonthGridProps) {
   const labels = useCalendarLabels();
   const today = useToday();
+  const data = useMemo(() => ({ itemsByDate, notes }), [itemsByDate, notes]);
   const rows = useMemo(() => {
     const monthDates = eachDate(startOfMonth(month), endOfMonth(month));
 
@@ -92,8 +99,7 @@ export default function CalendarMonthGrid({
           key={week[0].date}
           week={week}
           layout={layout}
-          itemsByDate={itemsByDate}
-          notes={notes}
+          data={data}
           today={today}
           onDayPress={onDayPress}
         />
@@ -105,8 +111,7 @@ export default function CalendarMonthGrid({
 interface GridRowProps {
   week: CalendarGridCell[];
   layout: NoteRowLayout;
-  itemsByDate: CalendarItemsByDate;
-  notes: Note[];
+  data: CalendarData;
   today: string;
   onDayPress: (day: CalendarDay) => void;
 }
@@ -116,14 +121,7 @@ interface GridRowProps {
  * a bar and its label run unbroken across cells. Each cell reserves the
  * bars' height under its day number.
  */
-function GridRow({
-  week,
-  layout,
-  itemsByDate,
-  notes,
-  today,
-  onDayPress,
-}: GridRowProps) {
+function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
   const theme = useAppTheme();
   const laneCount = Math.max(0, ...layout.segments.map(s => s.lane + 1));
   const barsHeight =
@@ -136,8 +134,7 @@ function GridRow({
           <GridCell
             key={cell.date}
             cell={cell}
-            itemsByDate={itemsByDate}
-            notes={notes}
+            data={data}
             barsHeight={barsHeight}
             overflow={layout.overflowByDate[cell.date] ?? 0}
             isToday={cell.date === today}
@@ -176,7 +173,7 @@ function NoteBar({
 }: {
   segment: NoteBarSegment;
 }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'note' });
+  const noteTitle = useNoteTitle();
   const theme = useAppTheme();
   const radius = theme.borderRadii.sm;
 
@@ -213,7 +210,7 @@ function NoteBar({
             paddingHorizontal: BAR_END_INSET,
           }}
         >
-          {note.name ?? t('untitled')}
+          {noteTitle(note)}
         </Text>
       </View>
     </View>
@@ -222,8 +219,7 @@ function NoteBar({
 
 interface GridCellProps {
   cell: CalendarGridCell;
-  itemsByDate: CalendarItemsByDate;
-  notes: Note[];
+  data: CalendarData;
   /** The height the row's Note bars take under the day number. */
   barsHeight: number;
   /** The "+N": the day's Notes that didn't fit a lane. */
@@ -234,15 +230,14 @@ interface GridCellProps {
 
 function GridCell({
   cell,
-  itemsByDate,
-  notes,
+  data,
   barsHeight,
   overflow,
   isToday,
   onDayPress,
 }: GridCellProps) {
-  const items = itemsByDate[cell.date] ?? [];
-  const label = useDayLabel(cell, itemsByDate, notes);
+  const items = data.itemsByDate[cell.date] ?? [];
+  const label = useDayLabel(cell, data);
 
   return (
     <TouchableOpacity
@@ -318,26 +313,16 @@ function GridCell({
   );
 }
 
-/**
- * "Poniedziałek, 5 października. 2 treningi, 1 aktywność, 3 notatki" — the
- * day and what it holds, zero counts left out.
- */
-function useDayLabel(
-  cell: CalendarGridCell,
-  itemsByDate: CalendarItemsByDate,
-  notes: Note[],
-): string {
+/** The day's screen-reader label (see `formatDayLabel`). */
+function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.dayCounts' });
   const labels = useCalendarLabels();
-  const counts = dayCounts({ itemsByDate, notes }, cell.date);
-  const parts = [
-    counts.workouts > 0 && t('workouts', { count: counts.workouts }),
-    counts.activities > 0 && t('activities', { count: counts.activities }),
-    counts.notes > 0 && t('notes', { count: counts.notes }),
-  ].filter(part => typeof part === 'string');
-  const day = labels.day(cell);
 
-  return parts.length > 0 ? `${day}. ${parts.join(', ')}` : day;
+  return formatDayLabel(labels.day(cell), dayCounts(data, cell.date), {
+    workouts: count => t('workouts', { count }),
+    activities: count => t('activities', { count }),
+    notes: count => t('notes', { count }),
+  });
 }
 
 /** A day from a neighbouring month: dimmed, empty, not tappable. */

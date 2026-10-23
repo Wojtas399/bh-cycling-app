@@ -1,4 +1,8 @@
-import { dayCounts } from '../calendarDayCounts';
+import {
+  type DayCountLabels,
+  dayCounts,
+  formatDayLabel,
+} from '../calendarDayCounts';
 import type { CalendarItem } from '../calendarItems';
 import type { CalendarData } from '../calendarWorkouts';
 import type { Note } from '../notes';
@@ -67,5 +71,43 @@ describe('dayCounts', () => {
       activities: 0,
       notes: 0,
     });
+  });
+});
+
+describe('formatDayLabel', () => {
+  const COUNTS: DayCountLabels = {
+    workouts: count => `${count} treningi`,
+    activities: count => `${count} aktywności`,
+    notes: count => `${count} notatki`,
+  };
+
+  it('follows the day with every count it holds', () => {
+    expect(
+      formatDayLabel(
+        'Poniedziałek, 5 października',
+        { workouts: 2, activities: 3, notes: 4 },
+        COUNTS,
+      ),
+    ).toBe('Poniedziałek, 5 października. 2 treningi, 3 aktywności, 4 notatki');
+  });
+
+  it('leaves the zero counts out', () => {
+    expect(
+      formatDayLabel(
+        'Poniedziałek, 5 października',
+        { workouts: 0, activities: 3, notes: 0 },
+        COUNTS,
+      ),
+    ).toBe('Poniedziałek, 5 października. 3 aktywności');
+  });
+
+  it('is just the day when it holds nothing', () => {
+    expect(
+      formatDayLabel(
+        'Poniedziałek, 5 października',
+        { workouts: 0, activities: 0, notes: 0 },
+        COUNTS,
+      ),
+    ).toBe('Poniedziałek, 5 października');
   });
 });

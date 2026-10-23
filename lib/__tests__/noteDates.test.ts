@@ -1,4 +1,5 @@
 import {
+  daySheetNoteDates,
   formatNoteDates,
   formatNoteRange,
   formatNoteShortRange,
@@ -77,5 +78,25 @@ describe('formatNoteShortRange', () => {
     expect(formatNoteShortRange(note('2026-09-30', '2026-10-03'))).toBe(
       '30.09 – 2.10',
     );
+  });
+});
+
+describe('daySheetNoteDates', () => {
+  const months = pl.calendar.monthNamesGenitive;
+  const DAY = 'Wtorek, 20 października';
+
+  it('dates a one-day Note by the sheet’s day, with no subtitle', () => {
+    expect(
+      daySheetNoteDates(note('2026-10-20', '2026-10-21'), DAY, months),
+    ).toEqual({ when: DAY, subtitle: undefined });
+  });
+
+  it('dates a multi-day Note by its range, shown as the subtitle too', () => {
+    expect(
+      daySheetNoteDates(note('2026-10-19', '2026-10-23'), DAY, months),
+    ).toEqual({
+      when: '19 – 22 października',
+      subtitle: '19 – 22 października',
+    });
   });
 });

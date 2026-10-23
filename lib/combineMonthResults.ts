@@ -1,7 +1,7 @@
 import type { CalendarItemsByDate } from './calendarItems';
 import { type CalendarData, eachDate } from './calendarWorkouts';
 import { toLocalDateString } from './localDate';
-import { type Note, notesOverlapping } from './notes';
+import { type Note, byNoteId, notesOverlapping } from './notes';
 
 /** The slice of one month's query result the Calendar combines. */
 export interface MonthResult {
@@ -57,7 +57,8 @@ export function combineMonthResults(
       }
 
       const notes = notesOverlapping(
-        [...notesById.values()].sort((a, b) => a.id - b.id),
+        // Merging months loses the order each one had, so sort again.
+        [...notesById.values()].sort(byNoteId),
         toLocalDateString(start),
         toLocalDateString(end),
       );

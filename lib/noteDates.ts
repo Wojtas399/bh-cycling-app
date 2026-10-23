@@ -15,27 +15,17 @@ export interface NoteDateLabels {
  */
 export function formatNoteDates(note: Note, labels: NoteDateLabels): string {
   const first = fromLocalDateString(note.start);
-  const day = (date: Date) => date.getDate();
-  const month = (date: Date) => labels.monthsShort[date.getMonth()];
+  const dayMonth = (date: Date) =>
+    `${date.getDate()} ${labels.monthsShort[date.getMonth()]}`;
 
   if (!isMultiDay(note)) {
     // getDay() counts from Sunday; the labels start on Monday.
     const weekday = labels.weekdaysShort[(first.getDay() + 6) % 7];
 
-    return `${weekday}, ${day(first)} ${month(first)}`;
+    return `${weekday}, ${dayMonth(first)}`;
   }
 
-  const last = fromLocalDateString(noteLastDay(note));
-
-  if (first.getFullYear() !== last.getFullYear()) {
-    return `${day(first)} ${month(first)} ${first.getFullYear()} – ${day(last)} ${month(last)} ${last.getFullYear()}`;
-  }
-
-  if (first.getMonth() !== last.getMonth()) {
-    return `${day(first)} ${month(first)} – ${day(last)} ${month(last)}`;
-  }
-
-  return `${day(first)}–${day(last)} ${month(last)}`;
+  return formatDayRange(note, dayMonth, '–');
 }
 
 /**
@@ -48,20 +38,61 @@ export function formatNoteRange(
   note: Note,
   monthNamesGenitive: readonly string[],
 ): string {
+  return formatDayRange(
+    note,
+    date => `${date.getDate()} ${monthNamesGenitive[date.getMonth()]}`,
+    ' – ',
+  );
+}
+
+/** How a Note's card in the day sheet dates it. */
+export interface DaySheetNoteDates {
+  /** What a screen reader announces with the title. */
+  when: string;
+  /** The muted line under the title, a multi-day Note's range only. */
+  subtitle: string | undefined;
+}
+
+/**
+ * A one-day Note in the day sheet is dated by the sheet's day (`dayLabel`),
+ * already its title, so it shows no subtitle; a multi-day one by its range
+ * (see `formatNoteRange`), shown under its title as well.
+ */
+export function daySheetNoteDates(
+  note: Note,
+  dayLabel: string,
+  monthNamesGenitive: readonly string[],
+): DaySheetNoteDates {
+  if (!isMultiDay(note)) return { when: dayLabel, subtitle: undefined };
+
+  const range = formatNoteRange(note, monthNamesGenitive);
+
+  return { when: range, subtitle: range };
+}
+
+/**
+ * A Note's first to last day, naming only what changes: each year when it
+ * spans two, each month when it spans two, else the month once, after the
+ * last day, with `sameMonthDash` between the days ("20–24 paź").
+ * `dayMonth` writes a day and its month.
+ */
+function formatDayRange(
+  note: Note,
+  dayMonth: (date: Date) => string,
+  sameMonthDash: string,
+): string {
   const first = fromLocalDateString(note.start);
   const last = fromLocalDateString(noteLastDay(note));
-  const dayOfMonth = (date: Date) =>
-    `${date.getDate()} ${monthNamesGenitive[date.getMonth()]}`;
 
   if (first.getFullYear() !== last.getFullYear()) {
-    return `${dayOfMonth(first)} ${first.getFullYear()} – ${dayOfMonth(last)} ${last.getFullYear()}`;
+    return `${dayMonth(first)} ${first.getFullYear()} – ${dayMonth(last)} ${last.getFullYear()}`;
   }
 
   if (first.getMonth() !== last.getMonth()) {
-    return `${dayOfMonth(first)} – ${dayOfMonth(last)}`;
+    return `${dayMonth(first)} – ${dayMonth(last)}`;
   }
 
-  return `${first.getDate()} – ${dayOfMonth(last)}`;
+  return `${first.getDate()}${sameMonthDash}${dayMonth(last)}`;
 }
 
 /**

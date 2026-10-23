@@ -1,4 +1,4 @@
-import type { IntervalsCalendarEvent } from './intervalsApi';
+import { EVENT_CATEGORY, type IntervalsCalendarEvent } from './intervalsApi';
 import {
   type LocalDateString,
   addDays,
@@ -32,28 +32,44 @@ function nextDay(date: LocalDateString): LocalDateString {
 }
 
 /**
- * The NOTE-category events as Notes, in `id` (creation) order, as
- * intervals.icu orders them. A missing `end`, or one no later than the start,
- * makes the Note cover its start day only.
+ * A calendar event as `toNotes` reads it: on a Note, intervals.icu may send
+ * the name and text as `null`, `""` or not at all, where Workouts always
+ * carry a string. Every `IntervalsCalendarEvent` is one.
  */
-export function toNotes(events: IntervalsCalendarEvent[]): Note[] {
+export type NoteEvent = Omit<IntervalsCalendarEvent, 'name' | 'description'> & {
+  name?: string | null;
+  description?: string | null;
+};
+
+/** Orders Notes by `id`, i.e. by creation. */
+export function byNoteId(a: Note, b: Note): number {
+  return a.id - b.id;
+}
+
+/**
+ * The NOTE-category events as Notes, in `id` (creation) order. Every `Note[]`
+ * in the app starts here, so functions taking Notes may rely on that order;
+ * only merging lists (see `combineMonthResults`) has to sort again. A missing
+ * `end`, or one no later than the start, makes the Note cover its start day
+ * only.
+ */
+export function toNotes(events: NoteEvent[]): Note[] {
   return events
-    .filter(event => event.category === 'NOTE')
+    .filter(event => event.category === EVENT_CATEGORY.note)
     .map((event): Note => {
       const start = event.start_date_local.slice(0, 10);
       const end = event.end_date_local?.slice(0, 10);
 
       return {
         id: event.id,
-        // A Note's name and text can be null even where the type says string.
-        name: textOrNull(event.name as string | null | undefined),
-        description: textOrNull(event.description as string | null | undefined),
+        name: textOrNull(event.name),
+        description: textOrNull(event.description),
         color: textOrNull(event.color),
         start,
         end: end && end > start ? end : nextDay(start),
       };
     })
-    .sort((a, b) => a.id - b.id);
+    .sort(byNoteId);
 }
 
 /**
