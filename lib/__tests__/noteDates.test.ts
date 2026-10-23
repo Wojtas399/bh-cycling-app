@@ -1,4 +1,8 @@
-import { formatNoteDates, formatNoteRange } from '../noteDates';
+import {
+  formatNoteDates,
+  formatNoteRange,
+  formatNoteShortRange,
+} from '../noteDates';
 import type { Note } from '../notes';
 import pl from '@/i18n/locales/pl';
 
@@ -58,6 +62,20 @@ describe('formatNoteRange', () => {
   it('names both years for a range across years', () => {
     expect(formatNoteRange(note('2026-12-30', '2027-01-03'), months)).toBe(
       '30 grudnia 2026 – 2 stycznia 2027',
+    );
+  });
+});
+
+describe('formatNoteShortRange', () => {
+  it('shows the inclusive first and last day as day.month', () => {
+    expect(formatNoteShortRange(note('2026-10-24', '2026-10-28'))).toBe(
+      '24.10 – 27.10',
+    );
+  });
+
+  it('pads the month but not the day', () => {
+    expect(formatNoteShortRange(note('2026-09-30', '2026-10-03'))).toBe(
+      '30.09 – 2.10',
     );
   });
 });

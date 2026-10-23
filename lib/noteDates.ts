@@ -63,3 +63,14 @@ export function formatNoteRange(
 
   return `${first.getDate()} – ${dayOfMonth(last)}`;
 }
+
+/**
+ * A multi-day Note's inclusive range as the week banner shows it: day and
+ * zero-padded month, "24.10 – 27.10", "30.09 – 2.10".
+ */
+export function formatNoteShortRange(note: Note): string {
+  const short = (date: Date) =>
+    `${date.getDate()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+  return `${short(fromLocalDateString(note.start))} – ${short(fromLocalDateString(noteLastDay(note)))}`;
+}

@@ -84,12 +84,14 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
     >
-      {({ itemsByDate, onDayPress, onWorkoutPress }) => (
+      {({ itemsByDate, notes, onDayPress, onWorkoutPress, onNotePress }) => (
         <CalendarWeekAgenda
           week={week}
           itemsByDate={itemsByDate}
+          notes={notes}
           onDayPress={onDayPress}
           onWorkoutPress={onWorkoutPress}
+          onNotePress={onNotePress}
         />
       )}
     </CalendarLayout>
@@ -114,6 +116,8 @@ interface LoadedViewProps {
   onDayPress: (day: CalendarDay) => void;
   /** Opens the Workout's details, dismissing the day sheet if it is open. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
+  /** Opens the Note Detail Sheet straight from the view (no day sheet). */
+  onNotePress: (note: Note) => void;
 }
 
 /**
@@ -170,6 +174,7 @@ function CalendarLayout({
             notes,
             onDayPress: sheet.open,
             onWorkoutPress: handleWorkoutPress,
+            onNotePress: note => noteSheet.open(note.id),
           })
         }
       </CalendarBody>
