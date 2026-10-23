@@ -16,6 +16,10 @@ _Avoid_: Ride, completed workout
 An Activity not paired to any Workout, e.g. a spontaneous Zwift ride. It shows on its own day alongside that day's Workouts. It has no Workout Status: status describes a plan, and there is none.
 _Avoid_: Free ride (a kind of planned Workout), extra workout, unpaired ride
 
+**Route**:
+The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
+_Avoid_: Workout route, track, GPS trace
+
 **Workout Status**:
 The tri-state of a planned workout: `completed` (a matching Activity exists), `planned` (in the future, no matching Activity yet), or `missed` (in the past, no matching Activity). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.
 _Avoid_: Completion state, sync status

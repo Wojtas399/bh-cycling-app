@@ -271,6 +271,15 @@ const pl = {
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie treningu',
+    route: {
+      title: 'Trasa',
+      titleWithDistance: 'Trasa, {{distance}}',
+      showMap: 'Pokaż mapę',
+      pill: '{{distance}} · Pokaż mapę',
+      hint: 'Otwiera mapę na pełnym ekranie',
+      error: 'Nie udało się wczytać trasy.',
+      missing: 'Ten trening nie ma zapisanej trasy.',
+    },
     comparison: {
       title: 'Plan vs wykonanie',
       titleWithCompliance: 'Plan vs wykonanie · zgodność {{compliance}}%',
@@ -312,6 +321,15 @@ const pl = {
       distance: 'Dystans',
     },
     description: 'Opis',
+    routeMap: {
+      map: 'Mapa trasy',
+      mapWithDistance: 'Mapa trasy, {{distance}}',
+      distance: 'Dystans',
+      start: 'Start',
+      finish: 'Meta',
+      chip: '{{label}}, {{value}}',
+      attribution: 'Informacje o mapie',
+    },
   },
   intervals: {
     title: 'Intervals.icu',

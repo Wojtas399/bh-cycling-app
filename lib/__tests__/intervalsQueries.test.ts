@@ -11,12 +11,14 @@ import {
   athleteSettingsQueryOptions,
   intervalsKeys,
   monthQueryOptions,
+  routeQueryOptions,
   selectMonthAsOf,
   upcomingQueryOptions,
 } from '../intervalsQueries';
 import { toLocalDateString } from '../localDate';
 import { resolveZoneConfig } from '../powerZones';
 import { createQueryClient } from '../queryClient';
+import { skipToken } from '@tanstack/react-query';
 
 jest.mock('../handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
@@ -86,6 +88,12 @@ describe('intervalsKeys', () => {
       'month',
       '2026-06',
     ]);
+    expect(intervalsKeys.route('athlete-1', 'i42')).toEqual([
+      'intervals',
+      'athlete-1',
+      'route',
+      'i42',
+    ]);
   });
 });
 
@@ -112,6 +120,29 @@ describe('freshness', () => {
 
     expect(options.staleTime).toBe(FIVE_MINUTES);
     expect(options.refetchOnWindowFocus).toBe(true);
+  });
+});
+
+describe('routeQueryOptions', () => {
+  it("keys the Route by the Activity id under the athlete's prefix", () => {
+    expect(routeQueryOptions(CREDENTIALS, 'i42').queryKey).toEqual([
+      'intervals',
+      'athlete-1',
+      'route',
+      'i42',
+    ]);
+  });
+
+  it('is skipped without an Activity id', () => {
+    expect(routeQueryOptions(CREDENTIALS, null).queryFn).toBe(skipToken);
+  });
+
+  it('is skipped without credentials', () => {
+    expect(routeQueryOptions(null, 'i42').queryFn).toBe(skipToken);
+  });
+
+  it('keeps a loaded Route fresh forever', () => {
+    expect(routeQueryOptions(CREDENTIALS, 'i42').staleTime).toBe(Infinity);
   });
 });
 

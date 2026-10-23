@@ -11,9 +11,11 @@ import {
 } from './calendarWorkouts';
 import {
   getActivities,
+  getActivityMap,
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
+  isNotFoundError,
 } from './intervalsApi';
 import {
   type LocalDateString,
@@ -22,6 +24,7 @@ import {
   toLocalDateString,
 } from './localDate';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
+import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
 import {
   type StoredWorkoutDetails,
@@ -66,6 +69,12 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
+  /**
+   * One Activity's Route, by its intervals.icu id. The id is `null` only in
+   * the key of a query skipped for want of one.
+   */
+  route: (athleteId: string | undefined, activityId: string | null) =>
+    [...intervalsKeys.athlete(athleteId), 'route', activityId] as const,
 };
 
 /**
@@ -263,6 +272,40 @@ export function workoutDetailsQueryOptions(
       : skipToken,
     select,
     ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * One Activity's Route, simplified for drawing. A 404 means intervals.icu has
+ * no track for it, which resolves to `null` ("no Route"), not an error; so
+ * does a track with fewer than 2 usable points. A recorded track never
+ * changes, so a loaded Route stays fresh forever and is never refetched on
+ * foreground. Retries, `gcTime` and 401 routing are the global defaults.
+ * Skipped without credentials or an Activity id.
+ */
+export function routeQueryOptions(
+  credentials: IntervalsCredentials | null,
+  activityId: string | null,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.route(credentials?.athleteId, activityId),
+    queryFn:
+      credentials && activityId !== null
+        ? async ({ signal }): Promise<Route | null> => {
+            try {
+              return toRoute(
+                await getActivityMap(credentials.accessToken, activityId, {
+                  signal,
+                }),
+              );
+            } catch (error) {
+              if (isNotFoundError(error)) return null;
+
+              throw error;
+            }
+          }
+        : skipToken,
+    staleTime: Infinity,
   });
 }
 

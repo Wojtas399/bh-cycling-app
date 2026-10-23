@@ -100,6 +100,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-build-properties',
     '@react-native-firebase/app',
     '@react-native-google-signin/google-signin',
+    '@maplibre/maplibre-react-native',
   ],
   experiments: {
     typedRoutes: true,

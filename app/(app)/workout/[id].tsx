@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
-import MessageWithAction from '@/components/MessageWithAction';
 import ScreenHeader from '@/components/ScreenHeader';
+import RouteBanner from '@/components/workout/RouteBanner';
 import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
 import WorkoutComparisonCard from '@/components/workout/WorkoutComparisonCard';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
@@ -15,12 +15,13 @@ import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
+import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
-import { isNotFoundError } from '@/lib/intervalsApi';
+import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 /**
  * Workout Details: one Workout, pushed over the tabs from any Workout tile.
@@ -31,6 +32,9 @@ export default function WorkoutDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useWorkoutDetails(Number(id));
+  // The same Route query the banner reads, so a refresh can retry it. The
+  // summary is `null` in planned mode, so this is skipped there.
+  const route = useWorkoutRoute(query.data?.route?.activityId ?? null);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -39,7 +43,8 @@ export default function WorkoutDetailsScreen() {
     setRefreshing(true);
 
     try {
-      await refetch();
+      // A loaded Route is never fetched again; a failed one is retried.
+      await Promise.all([refetch(), route.refetchIfFailed()]);
     } finally {
       setRefreshing(false);
     }
@@ -50,13 +55,16 @@ export default function WorkoutDetailsScreen() {
 
     if (availability === 'unavailable') return <IntervalsConnectPrompt />;
 
-    if (query.data) return <WorkoutDetailsContent details={query.data} />;
+    if (query.data) {
+      return <WorkoutDetailsContent eventId={id} details={query.data} />;
+    }
 
     if (query.isError) {
-      return isNotFoundError(query.error) ? (
-        <NotFound />
-      ) : (
-        <LoadError onRetry={() => void query.refetch()} />
+      return (
+        <WorkoutLoadError
+          error={query.error}
+          onRetry={() => void query.refetch()}
+        />
       );
     }
 
@@ -92,9 +100,20 @@ export default function WorkoutDetailsScreen() {
  * The loaded Workout, Variant A: hero, then stacked cards. The mode-specific
  * metrics, Kroki and Opis cards slot in below the profile.
  */
-function WorkoutDetailsContent({ details }: { details: WorkoutDetails }) {
+function WorkoutDetailsContent({
+  eventId,
+  details,
+}: {
+  eventId: string;
+  details: WorkoutDetails;
+}) {
   return (
     <Box gap="md">
+      {/* `route` is `null` in planned mode. */}
+      {details.route && (
+        <RouteBanner eventId={eventId} summary={details.route} />
+      )}
+
       <WorkoutDetailsHero
         status={details.status}
         title={details.title}
@@ -139,33 +158,5 @@ function KrokiCard({ steps }: { steps: WorkoutDetails['steps'] }) {
     <WorkoutDetailsCard title={t('title')}>
       <WorkoutDetailsSteps steps={steps} />
     </WorkoutDetailsCard>
-  );
-}
-
-function NotFound() {
-  const { t } = useTranslation(undefined, {
-    keyPrefix: 'workoutDetails.notFound',
-  });
-  const router = useRouter();
-
-  return (
-    <MessageWithAction
-      title={t('title')}
-      message={t('body')}
-      actionLabel={t('back')}
-      onAction={() => router.back()}
-    />
-  );
-}
-
-function LoadError({ onRetry }: { onRetry: () => void }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
-
-  return (
-    <MessageWithAction
-      message={t('error')}
-      actionLabel={t('retry')}
-      onAction={onRetry}
-    />
   );
 }

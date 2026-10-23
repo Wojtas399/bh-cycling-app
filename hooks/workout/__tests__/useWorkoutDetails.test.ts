@@ -667,6 +667,123 @@ describe('useWorkoutDetails', () => {
     });
   });
 
+  describe('route summary', () => {
+    const OUTDOOR_STREAMS = ['time', 'watts', 'latlng'];
+
+    async function routeFor(
+      paired: Partial<IntervalsActivity> | null,
+      overrides: Partial<IntervalsCalendarEvent> = {},
+    ) {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event(overrides));
+      mockGetActivities.mockResolvedValue(
+        paired ? [activity({ paired_event_id: EVENT_ID, ...paired })] : [],
+      );
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+      return result.current.query.data?.route;
+    }
+
+    it('carries the Activity id and distance for an outdoor GPS ride', async () => {
+      expect(
+        await routeFor({
+          id: 'i77',
+          distance: 42_300,
+          stream_types: OUTDOOR_STREAMS,
+        }),
+      ).toEqual(
+        expect.objectContaining({ activityId: 'i77', distanceMeters: 42_300 }),
+      );
+    });
+
+    it('leaves out a distance that is not a finite number', async () => {
+      expect(
+        await routeFor({
+          id: 'i77',
+          distance: Number.NaN,
+          stream_types: OUTDOOR_STREAMS,
+        }),
+      ).not.toHaveProperty('distanceMeters');
+    });
+
+    it('carries the start time and finishes start + elapsed time later', async () => {
+      expect(
+        await routeFor({
+          stream_types: OUTDOOR_STREAMS,
+          start_date_local: `${TODAY}T07:05:00`,
+          elapsed_time: 5700,
+        }),
+      ).toEqual(
+        expect.objectContaining({
+          startLocal: `${TODAY}T07:05:00`,
+          finishLocal: `${TODAY}T08:40:00`,
+        }),
+      );
+    });
+
+    it('finishes on the next day when the ride crosses midnight', async () => {
+      expect(
+        await routeFor({
+          stream_types: OUTDOOR_STREAMS,
+          start_date_local: `${TODAY}T23:30:00`,
+          elapsed_time: 3600,
+        }),
+      ).toEqual(
+        expect.objectContaining({ finishLocal: '2026-10-18T00:30:00' }),
+      );
+    });
+
+    it('has no finish time without a finite elapsed time', async () => {
+      const route = await routeFor({
+        stream_types: OUTDOOR_STREAMS,
+        start_date_local: `${TODAY}T07:05:00`,
+        elapsed_time: undefined,
+      });
+
+      expect(route).toEqual(
+        expect.objectContaining({ startLocal: `${TODAY}T07:05:00` }),
+      );
+      expect(route).not.toHaveProperty('finishLocal');
+    });
+
+    it('is null for a trainer ride', async () => {
+      expect(
+        await routeFor({ stream_types: OUTDOOR_STREAMS, trainer: true }),
+      ).toBeNull();
+    });
+
+    it('is null for a VirtualRide', async () => {
+      expect(
+        await routeFor({ stream_types: OUTDOOR_STREAMS, type: 'VirtualRide' }),
+      ).toBeNull();
+    });
+
+    it('is null when the Activity has no stream types', async () => {
+      expect(await routeFor({ stream_types: undefined })).toBeNull();
+    });
+
+    it('is null in planned mode', async () => {
+      expect(
+        await routeFor(null, { start_date_local: '2026-10-18T08:00:00' }),
+      ).toBeNull();
+    });
+
+    it('requests the stream types and trainer flag with the activities', async () => {
+      await routeFor(null);
+
+      const fields = (
+        mockGetActivities.mock.calls[0][2].fields as string
+      ).split(',');
+
+      expect(fields).toEqual(
+        expect.arrayContaining(['stream_types', 'trainer']),
+      );
+    });
+  });
+
   describe('description', () => {
     async function descriptionFor(overrides: Partial<IntervalsCalendarEvent>) {
       mockConnected();

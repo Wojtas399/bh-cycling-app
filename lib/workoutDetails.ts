@@ -1,8 +1,13 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
+import {
+  type LocalDateTimeString,
+  addSecondsToLocalDateTime,
+} from './localDateTime';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
+import { activityHasRoute } from './route';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -36,6 +41,8 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
   'icu_joules',
   'average_speed',
   'compliance',
+  'stream_types',
+  'trainer',
 ].join(',');
 
 /**
@@ -127,6 +134,29 @@ export interface WorkoutDetails {
    * Absent when there are none.
    */
   description?: string;
+  /**
+   * What the Route banner needs, `null` in planned mode and whenever the
+   * paired Activity has no Route (see `activityHasRoute`).
+   */
+  route: WorkoutRouteSummary | null;
+}
+
+/** The paired Activity's Route, as Workout Details knows it before fetching. */
+export interface WorkoutRouteSummary {
+  /** The paired Activity's id, which keys the Route query. */
+  activityId: string;
+  /**
+   * The Activity's `distance` in m, the same value as the Wykonanie card.
+   * Absent when not finite.
+   */
+  distanceMeters?: number;
+  /** The Activity's `start_date_local`, a local date-time with no zone. */
+  startLocal: LocalDateTimeString;
+  /**
+   * Start + `elapsed_time` (stops included), the same local format. Absent
+   * when `elapsed_time` isn't a finite number.
+   */
+  finishLocal?: LocalDateTimeString;
 }
 
 /**
@@ -221,6 +251,24 @@ export function buildWorkoutDetails(
     activityMetrics: activity ? summariseActivity(activity) : null,
     planMetrics: buildPlanMetrics(event),
     ...notes(event),
+    route: activity ? summariseRoute(activity) : null,
+  };
+}
+
+function summariseRoute(
+  activity: IntervalsActivity,
+): WorkoutRouteSummary | null {
+  if (!activityHasRoute(activity)) return null;
+
+  const { id, distance, start_date_local, elapsed_time } = activity;
+
+  return {
+    activityId: id,
+    ...(isFiniteNumber(distance) && { distanceMeters: distance }),
+    startLocal: start_date_local,
+    ...(isFiniteNumber(elapsed_time) && {
+      finishLocal: addSecondsToLocalDateTime(start_date_local, elapsed_time),
+    }),
   };
 }
 
