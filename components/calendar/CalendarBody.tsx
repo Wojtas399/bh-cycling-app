@@ -5,20 +5,20 @@ import { ActivityIndicator, ScrollView } from 'react-native';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
-import type { CalendarItemsByDate } from '@/lib/calendarItems';
+import type { CalendarData } from '@/lib/calendarWorkouts';
 
 export type CalendarBodyState =
   | { status: 'loading' }
   | { status: 'error' }
   | {
       status: 'ready';
-      itemsByDate: CalendarItemsByDate;
+      data: CalendarData;
     };
 
 export interface CalendarBodyProps {
   state: CalendarBodyState;
   /** The loaded view, rendered in the scroll area once the state is ready. */
-  children: (itemsByDate: CalendarItemsByDate) => ReactNode;
+  children: (data: CalendarData) => ReactNode;
 }
 
 /** The Calendar's content area: a spinner, an error message, or the loaded view. */
@@ -53,7 +53,7 @@ export default function CalendarBody({ state, children }: CalendarBodyProps) {
             paddingBottom: theme.spacing.xl,
           }}
         >
-          {children(state.itemsByDate)}
+          {children(state.data)}
         </ScrollView>
       );
   }

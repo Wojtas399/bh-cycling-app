@@ -7,6 +7,7 @@ import {
 } from './calendarItems';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { type LocalDateString, addDays, toLocalDateString } from './localDate';
+import { type Note, notesOverlapping } from './notes';
 import type { ZoneConfig } from './powerZones';
 
 /**
@@ -114,26 +115,40 @@ export function eachDate(oldest: Date, newest: Date): string[] {
 /**
  * What a month query stores: every day of the month with its items, no
  * Workout holding a status yet, and the IDs of the events completed by an
- * Activity. The status depends on today, so it's derived when read.
+ * Activity. The status depends on today, so it's derived when read. The
+ * Notes overlapping the month are kept whole, apart from the days, so a
+ * multi-day Note is one Note however many days it covers.
  */
 export interface StoredMonth {
   itemsByDate: Record<string, StoredCalendarItem[]>;
   completedEventIds: number[];
+  /** In `id` order, unclipped: one may start before or end after the month. */
+  notes: Note[];
+}
+
+/** What the Calendar shows for a month or a range: items by day, and Notes. */
+export interface CalendarData {
+  itemsByDate: CalendarItemsByDate;
+  /** The whole Notes overlapping the range, in `id` order. */
+  notes: Note[];
 }
 
 /**
- * The month's items by day, every day of the month present. Items whose day
- * falls outside it — fetched only for the pairing window — are dropped.
+ * The month's items by day, every day of the month present, and the Notes
+ * overlapping it. Items whose day falls outside it — fetched only for the
+ * pairing window — are dropped, as are Notes that don't reach into it.
  */
 export function buildMonthItems(
   month: Date,
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
+  notes: Note[],
   zoneConfig: ZoneConfig,
 ): StoredMonth {
   const itemsByDate: StoredMonth['itemsByDate'] = {};
+  const dates = eachDate(startOfMonth(month), endOfMonth(month));
 
-  for (const date of eachDate(startOfMonth(month), endOfMonth(month))) {
+  for (const date of dates) {
     itemsByDate[date] = [];
   }
 
@@ -147,7 +162,11 @@ export function buildMonthItems(
     itemsByDate[calendarItemDate(item)]?.push(item);
   }
 
-  return { itemsByDate, completedEventIds };
+  return {
+    itemsByDate,
+    completedEventIds,
+    notes: notesOverlapping(notes, dates[0], dates[dates.length - 1]),
+  };
 }
 
 /** Gives every stored Workout its Workout Status as of `today`. */

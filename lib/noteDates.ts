@@ -37,3 +37,29 @@ export function formatNoteDates(note: Note, labels: NoteDateLabels): string {
 
   return `${day(first)}–${day(last)} ${month(last)}`;
 }
+
+/**
+ * A multi-day Note's inclusive range in full month names, as a screen reader
+ * and the day sheet's card say it: "24 – 27 października", or naming each
+ * month or year that changes ("30 października – 2 listopada",
+ * "30 grudnia 2026 – 2 stycznia 2027"). `monthNamesGenitive` is January first.
+ */
+export function formatNoteRange(
+  note: Note,
+  monthNamesGenitive: readonly string[],
+): string {
+  const first = fromLocalDateString(note.start);
+  const last = fromLocalDateString(noteLastDay(note));
+  const dayOfMonth = (date: Date) =>
+    `${date.getDate()} ${monthNamesGenitive[date.getMonth()]}`;
+
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${dayOfMonth(first)} ${first.getFullYear()} – ${dayOfMonth(last)} ${last.getFullYear()}`;
+  }
+
+  if (first.getMonth() !== last.getMonth()) {
+    return `${dayOfMonth(first)} – ${dayOfMonth(last)}`;
+  }
+
+  return `${first.getDate()} – ${dayOfMonth(last)}`;
+}

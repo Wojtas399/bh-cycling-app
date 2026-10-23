@@ -62,9 +62,9 @@ describe('useMonthlyCalendar', () => {
     const now = new Date();
 
     expect(result.current.month).toEqual(startOfMonth(now));
-    expect(Object.keys(result.current.query.data ?? {})).toHaveLength(
-      endOfMonth(now).getDate(),
-    );
+    expect(
+      Object.keys(result.current.query.data?.itemsByDate ?? {}),
+    ).toHaveLength(endOfMonth(now).getDate());
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',

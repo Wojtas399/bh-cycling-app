@@ -1,5 +1,7 @@
 import { calendarRefreshStatus } from '../calendarRefreshStatus';
 
+const LOADED = { itemsByDate: {}, notes: [] };
+
 describe('calendarRefreshStatus', () => {
   it('is disabled while the first load is in flight', () => {
     expect(
@@ -14,13 +16,13 @@ describe('calendarRefreshStatus', () => {
   });
 
   it('is idle once data is loaded', () => {
-    expect(calendarRefreshStatus({ data: {}, isError: false }, false)).toBe(
+    expect(calendarRefreshStatus({ data: LOADED, isError: false }, false)).toBe(
       'idle',
     );
   });
 
   it('is refreshing while a refresh the athlete asked for is in flight', () => {
-    expect(calendarRefreshStatus({ data: {}, isError: false }, true)).toBe(
+    expect(calendarRefreshStatus({ data: LOADED, isError: false }, true)).toBe(
       'refreshing',
     );
     expect(

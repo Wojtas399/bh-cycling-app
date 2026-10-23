@@ -103,7 +103,7 @@ const visibleMonthKey = intervalsKeys.month(
   toYearMonth(new Date()),
 );
 
-const EMPTY_MONTH = { itemsByDate: {}, completedEventIds: [] };
+const EMPTY_MONTH = { itemsByDate: {}, completedEventIds: [], notes: [] };
 
 /** Marks the visible month as last fetched `ageMs` ago. */
 function ageVisibleMonth(client: QueryClient, ageMs: number) {
@@ -122,6 +122,16 @@ function clientWithMonthFetched(ageMs: number) {
 }
 
 const SIX_MINUTES = 6 * 60_000;
+
+/**
+ * How many times a month was fetched: each fetch makes one events call for
+ * its items and one for its Notes, so only the former are counted.
+ */
+function monthFetches(): number {
+  return mockGetCalendarEvents.mock.calls.filter(
+    ([, , params]) => params.category === undefined,
+  ).length;
+}
 
 describe('useCalendarRange', () => {
   beforeEach(() => {
@@ -194,7 +204,7 @@ describe('useCalendarRange', () => {
     );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(result.current.query.data?.[today]).toEqual([
+    expect(result.current.query.data?.itemsByDate[today]).toEqual([
       {
         kind: 'workout',
         workout: {
@@ -206,6 +216,78 @@ describe('useCalendarRange', () => {
         },
       },
     ]);
+  });
+
+  it("fetches each month's Notes from 31 days before it to its last day", async () => {
+    mockConnected();
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+
+    const first = startOfMonth(new Date());
+
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      {
+        oldest: toLocalDateString(addDays(first, -31)),
+        newest: toLocalDateString(endOfMonth(first)),
+        category: 'NOTE',
+      },
+      expect.anything(),
+    );
+  });
+
+  it('has the Notes covering the visible month, one from the month before included', async () => {
+    mockConnected();
+    const first = startOfMonth(new Date());
+    const lastMonth = toLocalDateString(addDays(first, -3));
+    const second = toLocalDateString(addDays(first, 2));
+
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE'
+          ? [
+              event({
+                id: 9,
+                category: 'NOTE',
+                name: 'Obóz',
+                start_date_local: `${lastMonth}T00:00:00`,
+                end_date_local: `${second}T00:00:00`,
+              }),
+            ]
+          : [],
+    );
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(result.current.query.data?.notes).toMatchObject([
+      { id: 9, name: 'Obóz', start: lastMonth, end: second },
+    ]);
+  });
+
+  it('is an error when the Notes call fails', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) => {
+        if (params.category === 'NOTE') throw new Error('notes down');
+
+        return [event({ id: 1 })];
+      },
+    );
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+    expect(result.current.query.data).toBeUndefined();
   });
 
   it('marks a workout completed when a paired activity is returned', async () => {
@@ -228,7 +310,7 @@ describe('useCalendarRange', () => {
     );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(result.current.query.data?.[today]).toMatchObject([
+    expect(result.current.query.data?.itemsByDate[today]).toMatchObject([
       { workout: { status: 'completed' } },
     ]);
   });
@@ -244,13 +326,13 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.goToNext());
     await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
+    expect(monthFetches()).toBe(2);
 
     await act(async () => result.current.goToPrevious());
 
     // Back to the loaded month: its data is there at once, with no new fetch.
     expect(result.current.query.data).toBeDefined();
-    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
+    expect(monthFetches()).toBe(2);
   });
 
   it('keeps the data visible while a refresh is in flight, then shows the new data', async () => {
@@ -274,19 +356,19 @@ describe('useCalendarRange', () => {
     await act(async () => result.current.refresh());
 
     await waitFor(() => expect(result.current.refreshing).toBe(true));
-    expect(result.current.query.data?.[today].map(calendarItemKey)).toEqual([
-      'workout-1',
-    ]);
+    expect(
+      result.current.query.data?.itemsByDate[today].map(calendarItemKey),
+    ).toEqual(['workout-1']);
 
     await act(async () => {
       resolveRefresh([event({ id: 2 })]);
     });
 
     await waitFor(() => expect(result.current.refreshing).toBe(false));
-    expect(result.current.query.data?.[today].map(calendarItemKey)).toEqual([
-      'workout-2',
-    ]);
-    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
+    expect(
+      result.current.query.data?.itemsByDate[today].map(calendarItemKey),
+    ).toEqual(['workout-2']);
+    expect(monthFetches()).toBe(2);
   });
 
   it('keeps the data when a refresh fails', async () => {
@@ -306,7 +388,7 @@ describe('useCalendarRange', () => {
     await act(async () => result.current.refresh());
     await waitFor(() => expect(result.current.refreshing).toBe(false));
 
-    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
+    expect(monthFetches()).toBe(2);
     expect(result.current.query.isError).toBe(false);
     expect(result.current.query.data).toEqual(before);
   });
@@ -324,11 +406,11 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.refresh());
     await waitFor(() => expect(result.current.refreshing).toBe(false));
-    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(3);
+    expect(monthFetches()).toBe(3);
 
     await act(async () => result.current.goToPrevious());
 
-    await waitFor(() => expect(mockGetCalendarEvents).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(monthFetches()).toBe(4));
     // A background refetch shows the old data meanwhile.
     expect(result.current.query.data).toBeDefined();
   });
@@ -349,7 +431,7 @@ describe('useCalendarRange', () => {
 
     await act(async () => focusManager.setFocused(true));
 
-    await waitFor(() => expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(monthFetches()).toBe(1));
   });
 
   it('does not refetch a fresh month when the app returns to the foreground', async () => {
@@ -450,7 +532,7 @@ describe('useCalendarRange', () => {
     );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(result.current.query.data?.[today]).toMatchObject([
+    expect(result.current.query.data?.itemsByDate[today]).toMatchObject([
       { workout: { status: 'planned' } },
     ]);
 
@@ -458,11 +540,11 @@ describe('useCalendarRange', () => {
     await rerender({});
 
     await waitFor(() =>
-      expect(result.current.query.data?.[today]).toMatchObject([
+      expect(result.current.query.data?.itemsByDate[today]).toMatchObject([
         { workout: { status: 'missed' } },
       ]),
     );
-    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1);
+    expect(monthFetches()).toBe(1);
   });
 
   it('does not derive the statuses again while today stays the same', async () => {

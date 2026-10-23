@@ -9,16 +9,30 @@ import { Ionicons } from '@expo/vector-icons';
 
 export interface NoteCardProps {
   note: Note;
-  /** When the Note applies, e.g. "Dziś". */
+  /** When the Note applies, e.g. "Dziś", as the card shows and announces it. */
   when: string;
+  /**
+   * Whether `when` shows beside the title. Off where the day is already on
+   * screen (the day sheet), which still announces it.
+   */
+  showWhen?: boolean;
+  /** A muted line under the title, e.g. a multi-day Note's range. */
+  subtitle?: string;
   onPress: () => void;
 }
 
 /**
  * A title-only card for one Note, in `WorkoutTile`'s card language: the title
- * (or "Notatka"), when it applies and a chevron. Tapping it opens the Note.
+ * (or "Notatka"), an optional subtitle, when it applies and a chevron.
+ * Tapping it opens the Note.
  */
-export default function NoteCard({ note, when, onPress }: NoteCardProps) {
+export default function NoteCard({
+  note,
+  when,
+  showWhen = true,
+  subtitle,
+  onPress,
+}: NoteCardProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
   const theme = useAppTheme();
   const title = note.name ?? t('untitled');
@@ -38,12 +52,21 @@ export default function NoteCard({ note, when, onPress }: NoteCardProps) {
         justifyContent="space-between"
         alignItems="center"
       >
-        <Text variant="body-l-semibold" numberOfLines={1} style={{ flex: 1 }}>
-          {title}
-        </Text>
-        <Text variant="body-s-regular" color="textSecondary" marginLeft="sm">
-          {when}
-        </Text>
+        <Box flex={1}>
+          <Text variant="body-l-semibold" numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text variant="body-s-regular" color="textSecondary" marginTop="xs">
+              {subtitle}
+            </Text>
+          ) : null}
+        </Box>
+        {showWhen ? (
+          <Text variant="body-s-regular" color="textSecondary" marginLeft="sm">
+            {when}
+          </Text>
+        ) : null}
         <Ionicons
           name="chevron-forward"
           size={18}

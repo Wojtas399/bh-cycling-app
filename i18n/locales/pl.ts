@@ -222,6 +222,8 @@ const pl = {
     refresh: 'Odśwież',
     error: 'Nie udało się wczytać kalendarza.',
     emptyDay: 'Brak treningów w tym dniu.',
+    /** The day sheet's section of Note cards. */
+    notes: 'Notatki',
     monthNames: [
       'Styczeń',
       'Luty',

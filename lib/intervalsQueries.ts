@@ -1,6 +1,6 @@
-import type { CalendarItemsByDate } from './calendarItems';
 import {
   ACTIVITY_FIELDS,
+  type CalendarData,
   type StoredMonth,
   type YearMonth,
   buildMonthItems,
@@ -170,8 +170,8 @@ export function upcomingQueryOptions(
   });
 }
 
-/** Derives a stored month's Workout Statuses for display. */
-export type MonthSelect = (month: StoredMonth) => CalendarItemsByDate;
+/** Derives a stored month's Workout Statuses for display; Notes pass through. */
+export type MonthSelect = (month: StoredMonth) => CalendarData;
 
 /**
  * The month `select` deriving each Workout Status as of `today`. Callers keep
@@ -179,14 +179,19 @@ export type MonthSelect = (month: StoredMonth) => CalendarItemsByDate;
  * recomputed when the data or the day changes.
  */
 export function selectMonthAsOf(today: LocalDateString): MonthSelect {
-  return month => withItemStatuses(month, today);
+  return month => ({
+    itemsByDate: withItemStatuses(month, today),
+    notes: month.notes,
+  });
 }
 
 /**
  * One Calendar month's items by day — Workouts and Unplanned Activities —
- * every day of it present. Events and Activities are both fetched a pairing
- * window past each edge (see `PAIRING_WINDOW_DAYS`), since a paired Workout
- * shows on its Activity's day. The query stores the Workouts without a
+ * every day of it present, and the Notes overlapping it. Events and
+ * Activities are both fetched a pairing window past each edge (see
+ * `PAIRING_WINDOW_DAYS`), since a paired Workout shows on its Activity's day.
+ * Notes come from their own call, reaching back `NOTE_LOOK_BACK_DAYS` for one
+ * that started earlier; if it fails, the month fails. The query stores the Workouts without a
  * status; `select` (see `selectMonthAsOf`) derives each Workout Status, so a
  * planned workout turns missed at midnight without a fetch. Skipped while
  * there are no credentials.
@@ -201,25 +206,39 @@ export function monthQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }) => {
           const first = fromYearMonth(yearMonth);
-          const window = pairingWindow(first, endOfMonth(first));
+          const last = endOfMonth(first);
+          const window = pairingWindow(first, last);
 
-          const [events, activities, zoneConfig] = await Promise.all([
-            getCalendarEvents(
-              credentials.accessToken,
-              credentials.athleteId,
-              window,
-              { signal },
-            ),
-            getActivities(
-              credentials.accessToken,
-              credentials.athleteId,
-              { ...window, fields: ACTIVITY_FIELDS },
-              { signal },
-            ),
-            fetchZoneConfig(client, credentials),
-          ]);
+          const [events, activities, zoneConfig, noteEvents] =
+            await Promise.all([
+              getCalendarEvents(
+                credentials.accessToken,
+                credentials.athleteId,
+                window,
+                { signal },
+              ),
+              getActivities(
+                credentials.accessToken,
+                credentials.athleteId,
+                { ...window, fields: ACTIVITY_FIELDS },
+                { signal },
+              ),
+              fetchZoneConfig(client, credentials),
+              getCalendarEvents(
+                credentials.accessToken,
+                credentials.athleteId,
+                { ...noteWindow(first, last), category: 'NOTE' },
+                { signal },
+              ),
+            ]);
 
-          return buildMonthItems(first, events, activities, zoneConfig);
+          return buildMonthItems(
+            first,
+            events,
+            activities,
+            toNotes(noteEvents),
+            zoneConfig,
+          );
         }
       : skipToken,
     select,
