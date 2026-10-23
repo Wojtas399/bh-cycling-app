@@ -224,6 +224,21 @@ const pl = {
     emptyDay: 'Brak treningów w tym dniu.',
     /** The day sheet's section of Note cards. */
     notes: 'Notatki',
+    /** A month-grid day's screen-reader summary, after the day's label. */
+    dayCounts: {
+      workouts_one: '{{count}} trening',
+      workouts_few: '{{count}} treningi',
+      workouts_many: '{{count}} treningów',
+      workouts_other: '{{count}} treningu',
+      activities_one: '{{count}} aktywność',
+      activities_few: '{{count}} aktywności',
+      activities_many: '{{count}} aktywności',
+      activities_other: '{{count}} aktywności',
+      notes_one: '{{count}} notatka',
+      notes_few: '{{count}} notatki',
+      notes_many: '{{count}} notatek',
+      notes_other: '{{count}} notatki',
+    },
     monthNames: [
       'Styczeń',
       'Luty',

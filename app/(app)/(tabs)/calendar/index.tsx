@@ -58,10 +58,11 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
     >
-      {({ itemsByDate, onDayPress }) => (
+      {({ itemsByDate, notes, onDayPress }) => (
         <CalendarMonthGrid
           month={month}
           itemsByDate={itemsByDate}
+          notes={notes}
           onDayPress={onDayPress}
         />
       )}
