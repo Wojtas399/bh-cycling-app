@@ -3,14 +3,14 @@ import { routeQueryOptions } from '@/lib/intervalsQueries';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 /**
- * The Route of a Workout's paired Activity, by the Activity's intervals.icu
- * id (`WorkoutDetails.route.activityId`). Skipped for a `null` id. `data` is
- * `null` when the Activity turns out to have no Route. `refetch` refetches
- * this query alone; `refetchIfFailed` does too, but only when it's in error,
- * and otherwise resolves immediately, so pull-to-refresh never downloads a
- * loaded Route again.
+ * The Route of an Activity, by its intervals.icu id
+ * (`RouteSummary.activityId`). Skipped for a `null` id. `data` is `null` when
+ * the Activity turns out to have no Route. `refetch` refetches this query
+ * alone; `refetchIfFailed` does too, but only when it's in error, and
+ * otherwise resolves immediately, so pull-to-refresh never downloads a loaded
+ * Route again.
  */
-export function useWorkoutRoute(activityId: string | null) {
+export function useActivityRoute(activityId: string | null) {
   const { credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
   const options = routeQueryOptions(credentials, activityId);

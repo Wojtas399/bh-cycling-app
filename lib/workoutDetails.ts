@@ -1,13 +1,10 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
-import {
-  type LocalDateTimeString,
-  addSecondsToLocalDateTime,
-} from './localDateTime';
+import { addSecondsToLocalDateTime } from './localDateTime';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
-import { activityHasRoute } from './route';
+import { type RouteSummary, activityHasRoute } from './route';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -138,25 +135,7 @@ export interface WorkoutDetails {
    * What the Route banner needs, `null` in planned mode and whenever the
    * paired Activity has no Route (see `activityHasRoute`).
    */
-  route: WorkoutRouteSummary | null;
-}
-
-/** The paired Activity's Route, as Workout Details knows it before fetching. */
-export interface WorkoutRouteSummary {
-  /** The paired Activity's id, which keys the Route query. */
-  activityId: string;
-  /**
-   * The Activity's `distance` in m, the same value as the Wykonanie card.
-   * Absent when not finite.
-   */
-  distanceMeters?: number;
-  /** The Activity's `start_date_local`, a local date-time with no zone. */
-  startLocal: LocalDateTimeString;
-  /**
-   * Start + `elapsed_time` (stops included), the same local format. Absent
-   * when `elapsed_time` isn't a finite number.
-   */
-  finishLocal?: LocalDateTimeString;
+  route: RouteSummary | null;
 }
 
 /**
@@ -255,9 +234,7 @@ export function buildWorkoutDetails(
   };
 }
 
-function summariseRoute(
-  activity: IntervalsActivity,
-): WorkoutRouteSummary | null {
+function summariseRoute(activity: IntervalsActivity): RouteSummary | null {
   if (!activityHasRoute(activity)) return null;
 
   const { id, distance, start_date_local, elapsed_time } = activity;

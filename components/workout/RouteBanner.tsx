@@ -7,12 +7,11 @@ import Text from '@/components/Text';
 import RouteLoadError from '@/components/workout/RouteLoadError';
 import RouteSkeleton from '@/components/workout/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
-import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
-import type { Route } from '@/lib/route';
+import { useActivityRoute } from '@/hooks/useActivityRoute';
+import type { Route, RouteSummary } from '@/lib/route';
 import { formatRouteDistance } from '@/lib/routeChips';
-import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 
 const BANNER_HEIGHT = 240;
 
@@ -20,24 +19,24 @@ const BANNER_HEIGHT = 240;
 const CAMERA_PADDING = { top: 28, right: 28, bottom: 48, left: 28 };
 
 interface RouteBannerProps {
-  /** Workout Details' event id, which keys the full-screen map too. */
-  eventId: string;
-  summary: WorkoutRouteSummary;
+  /** Where a tap goes: the host screen's own full-screen Route map. */
+  mapHref: Href;
+  summary: RouteSummary;
 }
 
 /**
- * The Route banner at the top of a completed Workout: a 240 px static map,
- * edge to edge, with a distance pill. A skeleton holds its place while the
- * Route loads; it disappears when there turns out to be no Route. A failure
- * with no data shows a retry of the Route alone, at the same height; data wins
- * over an error, so a failed refresh keeps the map on screen.
+ * The Route banner at the top of a details screen: a 240 px static map, edge
+ * to edge, with a distance pill. A skeleton holds its place while the Route
+ * loads; it disappears when there turns out to be no Route. A failure with no
+ * data shows a retry of the Route alone, at the same height; data wins over an
+ * error, so a failed refresh keeps the map on screen.
  */
-export default function RouteBanner({ eventId, summary }: RouteBannerProps) {
-  const { query, refetch } = useWorkoutRoute(summary.activityId);
+export default function RouteBanner({ mapHref, summary }: RouteBannerProps) {
+  const { query, refetch } = useActivityRoute(summary.activityId);
   const bleed = useBleedStyle();
 
   if (query.data) {
-    return <Banner eventId={eventId} route={query.data} summary={summary} />;
+    return <Banner mapHref={mapHref} route={query.data} summary={summary} />;
   }
 
   if (query.isError) {
@@ -66,7 +65,7 @@ function useBleedStyle() {
 }
 
 function Banner({
-  eventId,
+  mapHref,
   route,
   summary,
 }: RouteBannerProps & { route: Route }) {
@@ -80,12 +79,7 @@ function Banner({
 
   return (
     <Pressable
-      onPress={() =>
-        router.push({
-          pathname: '/workout/[id]/map',
-          params: { id: eventId },
-        })
-      }
+      onPress={() => router.push(mapHref)}
       accessibilityRole="button"
       accessibilityLabel={
         distance ? t('titleWithDistance', { distance }) : t('title')

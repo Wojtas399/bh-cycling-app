@@ -18,8 +18,8 @@ import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
+import { useActivityRoute } from '@/hooks/useActivityRoute';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
-import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -34,7 +34,7 @@ export default function WorkoutDetailsScreen() {
   const { availability, query, refetch } = useWorkoutDetails(Number(id));
   // The same Route query the banner reads, so a refresh can retry it. The
   // summary is `null` in planned mode, so this is skipped there.
-  const route = useWorkoutRoute(query.data?.route?.activityId ?? null);
+  const route = useActivityRoute(query.data?.route?.activityId ?? null);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -111,7 +111,10 @@ function WorkoutDetailsContent({
     <Box gap="md">
       {/* `route` is `null` in planned mode. */}
       {details.route && (
-        <RouteBanner eventId={eventId} summary={details.route} />
+        <RouteBanner
+          mapHref={{ pathname: '/workout/[id]/map', params: { id: eventId } }}
+          summary={details.route}
+        />
       )}
 
       <WorkoutDetailsHero

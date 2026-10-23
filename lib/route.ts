@@ -1,4 +1,5 @@
 import type { IntervalsActivity, IntervalsActivityMap } from './intervalsApi';
+import type { LocalDateTimeString } from './localDateTime';
 
 /**
  * The GPS track of an Activity: where the athlete actually rode.
@@ -8,6 +9,27 @@ export interface Route {
   points: [lat: number, lng: number][];
   /** `[[minLat, minLng], [maxLat, maxLng]]`. */
   bounds: [[minLat: number, minLng: number], [maxLat: number, maxLng: number]];
+}
+
+/**
+ * An Activity's Route, as a details screen knows it before fetching: what the
+ * Route banner and the full-screen map need besides the Route itself.
+ */
+export interface RouteSummary {
+  /** The Activity's id, which keys the Route query. */
+  activityId: string;
+  /**
+   * The Activity's `distance` in m, the same value as its summary metrics.
+   * Absent when not finite.
+   */
+  distanceMeters?: number;
+  /** The Activity's `start_date_local`, a local date-time with no zone. */
+  startLocal: LocalDateTimeString;
+  /**
+   * Start + `elapsed_time` (stops included), the same local format. Absent
+   * when `elapsed_time` isn't a finite number.
+   */
+  finishLocal?: LocalDateTimeString;
 }
 
 /**
