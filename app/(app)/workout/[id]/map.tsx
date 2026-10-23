@@ -9,11 +9,11 @@ import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
 import RouteLoadError from '@/components/workout/RouteLoadError';
 import RouteSkeleton from '@/components/workout/RouteSkeleton';
+import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
-import { isNotFoundError } from '@/lib/intervalsApi';
 import type { Route } from '@/lib/route';
 import { formatRouteDistance, routeChips } from '@/lib/routeChips';
 import type { WorkoutRouteSummary } from '@/lib/workoutDetails';
@@ -86,15 +86,10 @@ export default function RouteMapScreen() {
     if (details.query.isError) {
       return (
         <Centered>
-          {isNotFoundError(details.query.error) ? (
-            <WorkoutNotFound />
-          ) : (
-            <MessageWithAction
-              message={t('workoutDetails.error')}
-              actionLabel={t('workoutDetails.retry')}
-              onAction={() => void details.refetch()}
-            />
-          )}
+          <WorkoutLoadError
+            error={details.query.error}
+            onRetry={() => void details.refetch()}
+          />
         </Centered>
       );
     }
@@ -191,7 +186,8 @@ function FullScreenRoute({
   const distance = formatRouteDistance(summary);
   const chips = routeChips(summary);
   const closeBottom = insets.top + CLOSE_OFFSET + CLOSE_SIZE;
-  const chipsTop = insets.bottom + CHIPS_OFFSET + CHIPS_HEIGHT;
+  // The room kept clear above the screen's bottom edge for the chips.
+  const chipsReserved = insets.bottom + CHIPS_OFFSET + CHIPS_HEIGHT;
 
   return (
     <>
@@ -212,7 +208,7 @@ function FullScreenRoute({
           top: closeBottom + IMAGE_GAP,
           left: 0,
           right: 0,
-          bottom: chipsTop + IMAGE_GAP,
+          bottom: chipsReserved + IMAGE_GAP,
         }}
       />
 
@@ -260,7 +256,7 @@ function FullScreenRoute({
           padding={{
             top: closeBottom + CAMERA_CLEARANCE,
             right: CAMERA_SIDE_PADDING,
-            bottom: chipsTop + CAMERA_CLEARANCE,
+            bottom: chipsReserved + CAMERA_CLEARANCE,
             left: CAMERA_SIDE_PADDING,
           }}
           attributionPosition={{

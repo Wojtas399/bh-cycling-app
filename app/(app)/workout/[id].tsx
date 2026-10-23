@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
-import MessageWithAction from '@/components/MessageWithAction';
 import ScreenHeader from '@/components/ScreenHeader';
 import RouteBanner from '@/components/workout/RouteBanner';
 import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
@@ -16,12 +15,11 @@ import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
-import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
+import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import { useAppTheme } from '@/constants/theme';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { useWorkoutRoute } from '@/hooks/workout/useWorkoutRoute';
-import { isNotFoundError } from '@/lib/intervalsApi';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -62,10 +60,11 @@ export default function WorkoutDetailsScreen() {
     }
 
     if (query.isError) {
-      return isNotFoundError(query.error) ? (
-        <WorkoutNotFound />
-      ) : (
-        <LoadError onRetry={() => void query.refetch()} />
+      return (
+        <WorkoutLoadError
+          error={query.error}
+          onRetry={() => void query.refetch()}
+        />
       );
     }
 
@@ -159,17 +158,5 @@ function KrokiCard({ steps }: { steps: WorkoutDetails['steps'] }) {
     <WorkoutDetailsCard title={t('title')}>
       <WorkoutDetailsSteps steps={steps} />
     </WorkoutDetailsCard>
-  );
-}
-
-function LoadError({ onRetry }: { onRetry: () => void }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
-
-  return (
-    <MessageWithAction
-      message={t('error')}
-      actionLabel={t('retry')}
-      onAction={onRetry}
-    />
   );
 }
