@@ -213,6 +213,8 @@ const pl = {
   },
   activityTile: {
     load: 'Obciążenie {{load}}',
+    /** A Strava Activity's title: intervals.icu doesn't share its name. */
+    stravaActivity: 'Aktywność ze Stravy',
   },
   calendar: {
     monthly: 'Miesięczny',

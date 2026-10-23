@@ -181,6 +181,39 @@ describe('useUpcomingWorkouts', () => {
     );
   });
 
+  it("lists today's Strava Activity, as the list returns it, unpaired after today's Workout", async () => {
+    mockConnected();
+    const today = toLocalDateString(new Date());
+
+    mockGetCalendarEvents.mockResolvedValue([todayEvent()]);
+    mockGetActivities.mockResolvedValue([
+      { id: '20679555658', start_date_local: `${today}T18:00:00` },
+    ]);
+
+    const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
+
+    await waitFor(() =>
+      expect(result.current.query.data).toEqual([
+        {
+          kind: 'workout',
+          dayLabel: 'today',
+          workout: {
+            id: 1,
+            name: 'Intervals',
+            date: today,
+            status: 'planned',
+            blocks: [],
+          },
+        },
+        {
+          kind: 'activity',
+          dayLabel: 'today',
+          activity: { id: '20679555658', isStravaActivity: true, date: today },
+        },
+      ]),
+    );
+  });
+
   it('fails when the Notes call fails', async () => {
     mockConnected();
     mockGetCalendarEvents.mockImplementation(

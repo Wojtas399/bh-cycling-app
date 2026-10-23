@@ -60,8 +60,13 @@ export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
 
 export interface IntervalsActivity {
   id: string;
-  name: string;
-  type: string;
+  /**
+   * Absent, like `type`, on a Strava Activity: intervals.icu can't share an
+   * Activity it received from Strava, so the list returns it without either.
+   */
+  name?: string;
+  /** intervals.icu's sport type, e.g. `Ride`, `VirtualRide`, `Run`. */
+  type?: string;
   start_date_local: string;
   moving_time: number;
   distance: number;

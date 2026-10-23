@@ -315,6 +315,36 @@ describe('useCalendarRange', () => {
     ]);
   });
 
+  it('lists a Strava Activity, as the list returns it, on its day without pairing it', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockResolvedValue([event({ id: 42 })]);
+    mockGetActivities.mockResolvedValue([
+      { id: '20679555658', start_date_local: `${today}T18:00:00` },
+    ]);
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(result.current.query.data?.itemsByDate[today]).toEqual([
+      {
+        kind: 'workout',
+        workout: {
+          id: 42,
+          name: 'Sample workout',
+          date: today,
+          status: 'planned',
+          blocks: [],
+        },
+      },
+      {
+        kind: 'activity',
+        activity: { id: '20679555658', isStravaActivity: true, date: today },
+      },
+    ]);
+  });
+
   it('does not refetch when navigating back to a month already loaded', async () => {
     mockConnected();
 

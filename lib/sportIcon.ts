@@ -20,7 +20,13 @@ const SPORT_ICONS: [RegExp, SportIconName][] = [
   [/Yoga|Pilates/, 'body'],
 ];
 
-/** The Ionicons glyph for an Activity's sport, `fitness` when unknown. */
+/** The glyph for a sport that isn't known, or an Activity with none. */
+export const GENERIC_SPORT_ICON: SportIconName = 'fitness';
+
+/** The Ionicons glyph for an Activity's sport, the generic one when unknown. */
 export function sportIcon(type: string): SportIconName {
-  return SPORT_ICONS.find(([pattern]) => pattern.test(type))?.[1] ?? 'fitness';
+  return (
+    SPORT_ICONS.find(([pattern]) => pattern.test(type))?.[1] ??
+    GENERIC_SPORT_ICON
+  );
 }
