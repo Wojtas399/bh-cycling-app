@@ -47,7 +47,7 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
 
 /**
  * The Activity paired to the event, matched on `paired_event_id` only, as on
- * the Calendar: an Activity without it (a Strava stub) never pairs. When
+ * the Calendar: an Activity without it (a Strava Activity) never pairs. When
  * several are paired, the earliest ridden wins.
  */
 export function pairedActivity(

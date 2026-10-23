@@ -227,7 +227,7 @@ describe('useWorkoutDetails', () => {
       );
     });
 
-    it('never pairs an Activity without paired_event_id, such as a Strava stub', async () => {
+    it('never pairs an Activity without paired_event_id, such as a Strava Activity', async () => {
       mockConnected();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-10-16T08:00:00' }),
