@@ -8,11 +8,11 @@ import CalendarItemTile from '@/components/CalendarItemTile';
 import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
-import { useOpenActivityDetails } from '@/components/activity/useOpenActivityDetails';
-import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
+import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
+import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 

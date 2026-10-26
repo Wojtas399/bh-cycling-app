@@ -3,7 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
-import { useOpenActivityDetails } from '@/components/activity/useOpenActivityDetails';
 import CalendarBody, {
   type CalendarBodyState,
 } from '@/components/calendar/CalendarBody';
@@ -13,13 +12,14 @@ import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
 import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
-import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
+import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useCalendarNoteSheet } from '@/hooks/calendar/useCalendarNoteSheet';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
+import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type {
   CalendarItemsByDate,
