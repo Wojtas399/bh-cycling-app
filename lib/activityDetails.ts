@@ -159,12 +159,18 @@ export function buildActivityDetails(
 const MIN_PROFILE_SEGMENTS = 2;
 
 /**
+ * Time the Profile spans but doesn't draw: a zero-height block, so the bars
+ * either side keep their place on the time axis. Its zone is never seen.
+ */
+const GAP_BAND = { minPct: 0, maxPct: 0, zone: 1 } as const;
+
+/**
  * The Activity Profile: each detected interval with a power intensity as one
- * flat block, as wide as its share of the time drawn. intervals.icu's
- * intervals tile the whole elapsed time, so that's the elapsed span; an
- * interval without power, a zone or a duration is left out rather than
- * guessed at, and the rest close up. Fewer than two blocks is no shape at all
- * (a steady ride, no power, no intervals), so nothing is drawn.
+ * flat block, as wide as its share of the elapsed span, from the first
+ * interval's start to the last one's end. An interval without power or a zone
+ * isn't guessed at: its time is left as an empty gap, so the rest stay where
+ * they happened. Fewer than two drawn blocks is no shape at all (a steady
+ * ride, no power, no intervals), so nothing is drawn.
  */
 function activityProfileOf({
   icu_intervals,
@@ -172,26 +178,42 @@ function activityProfileOf({
   Extract<ActivityDetails, { isStravaActivity: false }>,
   'blocks' | 'profileSummary'
 > {
-  const segments = (icu_intervals ?? []).flatMap(toProfileSegment);
+  const timed = (icu_intervals ?? [])
+    .flatMap(toTimedInterval)
+    .sort((a, b) => a.start - b.start);
+  const segments = timed.filter(isProfileSegment);
 
   if (segments.length < MIN_PROFILE_SEGMENTS) {
     return { blocks: [], profileSummary: null };
   }
 
-  segments.sort((a, b) => a.start - b.start);
+  const spanStart = timed[0].start;
+  const spanEnd = Math.max(...timed.map(({ end }) => end));
+  const durationSeconds = spanEnd - spanStart;
+  const widthOf = (seconds: number) => seconds / durationSeconds;
+  const blocks: WorkoutBlock[] = [];
+  let drawnUntil = spanStart;
 
-  const durationSeconds = segments.reduce(
-    (total, { duration }) => total + duration,
-    0,
-  );
+  for (const { start, end, intensity, zone } of segments) {
+    if (start > drawnUntil) {
+      blocks.push({ widthFraction: widthOf(start - drawnUntil), ...GAP_BAND });
+    }
 
-  return {
-    blocks: segments.map(({ duration, intensity, zone }) => ({
-      widthFraction: duration / durationSeconds,
+    blocks.push({
+      widthFraction: widthOf(end - start),
       minPct: intensity,
       maxPct: intensity,
       zone,
-    })),
+    });
+    drawnUntil = end;
+  }
+
+  if (spanEnd > drawnUntil) {
+    blocks.push({ widthFraction: widthOf(spanEnd - drawnUntil), ...GAP_BAND });
+  }
+
+  return {
+    blocks,
     profileSummary: {
       durationSeconds,
       segmentCount: segments.length,
@@ -202,34 +224,46 @@ function activityProfileOf({
   };
 }
 
-interface ProfileSegment {
+/** An interval with a usable time span, with its power if it has one. */
+interface TimedInterval {
   start: number;
-  duration: number;
-  intensity: number;
-  zone: Zone;
+  end: number;
+  intensity: number | null;
+  zone: Zone | null;
 }
 
-/** An interval as a drawable segment, or none when it can't be drawn. */
-function toProfileSegment({
+/** A timed interval with the power to be drawn. */
+type ProfileSegment = TimedInterval & { intensity: number; zone: Zone };
+
+/** An interval on the time axis, or none when its times are unusable. */
+function toTimedInterval({
   start_time,
   end_time,
   intensity,
   zone,
-}: StoredActivityInterval): ProfileSegment[] {
+}: StoredActivityInterval): TimedInterval[] {
   if (
-    start_time == null ||
-    end_time == null ||
-    !Number.isFinite(intensity) ||
-    !isZone(zone)
+    !Number.isFinite(start_time) ||
+    !Number.isFinite(end_time) ||
+    (end_time as number) <= (start_time as number)
   ) {
     return [];
   }
 
-  const duration = end_time - start_time;
+  const hasPower = Number.isFinite(intensity) && isZone(zone);
 
-  return duration > 0
-    ? [{ start: start_time, duration, intensity: intensity as number, zone }]
-    : [];
+  return [
+    {
+      start: start_time as number,
+      end: end_time as number,
+      intensity: hasPower ? (intensity as number) : null,
+      zone: hasPower ? zone : null,
+    },
+  ];
+}
+
+function isProfileSegment(interval: TimedInterval): interval is ProfileSegment {
+  return interval.intensity !== null && interval.zone !== null;
 }
 
 function isZone(zone: number | null | undefined): zone is Zone {

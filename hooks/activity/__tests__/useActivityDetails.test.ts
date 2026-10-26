@@ -234,7 +234,7 @@ describe('useActivityDetails', () => {
       expect(details.profileSummary).toBeNull();
     });
 
-    it('leaves out an interval without power and closes up around it', async () => {
+    it('leaves an interval without power as an empty gap, over the whole elapsed span', async () => {
       const details = await shownDetailsOf(
         activity({
           icu_intervals: [
@@ -246,11 +246,12 @@ describe('useActivityDetails', () => {
       );
 
       expect(details.blocks).toEqual([
-        { widthFraction: 1 / 3, minPct: 60, maxPct: 60, zone: 2 },
-        { widthFraction: 2 / 3, minPct: 105, maxPct: 105, zone: 5 },
+        { widthFraction: 0.25, minPct: 60, maxPct: 60, zone: 2 },
+        { widthFraction: 0.25, minPct: 0, maxPct: 0, zone: 1 },
+        { widthFraction: 0.5, minPct: 105, maxPct: 105, zone: 5 },
       ]);
       expect(details.profileSummary).toEqual({
-        durationSeconds: 1800,
+        durationSeconds: 2400,
         segmentCount: 2,
         peakFtpPct: 105,
       });
