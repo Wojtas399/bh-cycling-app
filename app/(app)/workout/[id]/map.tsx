@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import RouteMapScreen from '@/components/workout/RouteMapScreen';
+import RouteMapScreen from '@/components/route/RouteMapScreen';
 import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
@@ -26,7 +26,7 @@ export default function WorkoutRouteMapScreen() {
           />
         ) : null
       }
-      missingMessage={t('route.missing')}
+      missingMessage={t('routeMissing')}
     />
   );
 }

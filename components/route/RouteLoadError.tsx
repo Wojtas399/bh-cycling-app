@@ -4,11 +4,11 @@ import MessageWithAction from '@/components/MessageWithAction';
 
 /** A failed Route, with a retry of the Route alone. */
 export default function RouteLoadError({ onRetry }: { onRetry: () => void }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
+  const { t } = useTranslation(undefined, { keyPrefix: 'route' });
 
   return (
     <MessageWithAction
-      message={t('route.error')}
+      message={t('error')}
       actionLabel={t('retry')}
       onAction={onRetry}
     />

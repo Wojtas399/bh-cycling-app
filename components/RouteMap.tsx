@@ -53,9 +53,7 @@ export default function RouteMap({
   attributionPosition = DEFAULT_ATTRIBUTION_POSITION,
 }: RouteMapProps) {
   const { colors } = useAppTheme();
-  const { t } = useTranslation(undefined, {
-    keyPrefix: 'workoutDetails.routeMap',
-  });
+  const { t } = useTranslation(undefined, { keyPrefix: 'route.map' });
   const mapRef = useRef<MapRef>(null);
   const { line, markers, bounds } = routeMapData(route);
 

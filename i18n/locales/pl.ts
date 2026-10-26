@@ -327,15 +327,8 @@ const pl = {
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie treningu',
-    route: {
-      title: 'Trasa',
-      titleWithDistance: 'Trasa, {{distance}}',
-      showMap: 'Pokaż mapę',
-      pill: '{{distance}} · Pokaż mapę',
-      hint: 'Otwiera mapę na pełnym ekranie',
-      error: 'Nie udało się wczytać trasy.',
-      missing: 'Ten trening nie ma zapisanej trasy.',
-    },
+    /** The full-screen map of a Workout with no Route. */
+    routeMissing: 'Ten trening nie ma zapisanej trasy.',
     comparison: {
       title: 'Plan vs wykonanie',
       titleWithCompliance: 'Plan vs wykonanie · zgodność {{compliance}}%',
@@ -377,9 +370,22 @@ const pl = {
       distance: 'Dystans',
     },
     description: 'Opis',
-    routeMap: {
-      map: 'Mapa trasy',
-      mapWithDistance: 'Mapa trasy, {{distance}}',
+  },
+  /** An Activity's Route, shared by Workout Details and Activity Details. */
+  route: {
+    /** The banner at the top of a details screen. */
+    title: 'Trasa',
+    titleWithDistance: 'Trasa, {{distance}}',
+    showMap: 'Pokaż mapę',
+    pill: '{{distance}} · Pokaż mapę',
+    hint: 'Otwiera mapę na pełnym ekranie',
+    error: 'Nie udało się wczytać trasy.',
+    retry: 'Spróbuj ponownie',
+    loading: 'Wczytywanie trasy',
+    /** The full-screen Route map. */
+    map: {
+      label: 'Mapa trasy',
+      labelWithDistance: 'Mapa trasy, {{distance}}',
       distance: 'Dystans',
       start: 'Start',
       finish: 'Meta',

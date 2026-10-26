@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import MessageWithBack from '@/components/MessageWithBack';
 import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
-import RouteMapScreen from '@/components/workout/RouteMapScreen';
+import RouteMapScreen from '@/components/route/RouteMapScreen';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { routeOf } from '@/lib/activityDetails';
 import { useLocalSearchParams } from 'expo-router';

@@ -4,8 +4,8 @@ import { Pressable, View } from 'react-native';
 import Box from '@/components/Box';
 import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
-import RouteLoadError from '@/components/workout/RouteLoadError';
-import RouteSkeleton from '@/components/workout/RouteSkeleton';
+import RouteLoadError from '@/components/route/RouteLoadError';
+import RouteSkeleton from '@/components/route/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
 import type { Route, RouteSummary } from '@/lib/route';
@@ -69,9 +69,7 @@ function Banner({
   route,
   summary,
 }: RouteBannerProps & { route: Route }) {
-  const { t } = useTranslation(undefined, {
-    keyPrefix: 'workoutDetails.route',
-  });
+  const { t } = useTranslation(undefined, { keyPrefix: 'route' });
   const theme = useAppTheme();
   const bleed = useBleedStyle();
   const router = useRouter();

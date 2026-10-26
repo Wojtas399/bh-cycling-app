@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
-import RouteBanner from '@/components/workout/RouteBanner';
+import RouteBanner from '@/components/route/RouteBanner';
 import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
 import WorkoutComparisonCard from '@/components/workout/WorkoutComparisonCard';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';

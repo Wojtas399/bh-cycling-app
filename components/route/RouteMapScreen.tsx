@@ -8,8 +8,8 @@ import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import MessageWithBack from '@/components/MessageWithBack';
 import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
-import RouteLoadError from '@/components/workout/RouteLoadError';
-import RouteSkeleton from '@/components/workout/RouteSkeleton';
+import RouteLoadError from '@/components/route/RouteLoadError';
+import RouteSkeleton from '@/components/route/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
 import type { IntervalsAvailability } from '@/hooks/useIntervalsAvailability';
@@ -180,9 +180,7 @@ function FullScreenRoute({
   route: Route;
   summary: RouteSummary;
 }) {
-  const { t } = useTranslation(undefined, {
-    keyPrefix: 'workoutDetails.routeMap',
-  });
+  const { t } = useTranslation(undefined, { keyPrefix: 'route.map' });
   const insets = useSafeAreaInsets();
   const distance = formatRouteDistance(summary);
   const chips = routeChips(summary);
@@ -200,7 +198,7 @@ function FullScreenRoute({
         accessible
         accessibilityRole="image"
         accessibilityLabel={
-          distance ? t('mapWithDistance', { distance }) : t('map')
+          distance ? t('labelWithDistance', { distance }) : t('label')
         }
         pointerEvents="none"
         style={{
