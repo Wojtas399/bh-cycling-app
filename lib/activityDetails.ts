@@ -8,6 +8,7 @@ import type {
   IntervalsActivityInterval,
 } from './intervalsApi';
 import type { LocalDateTimeString } from './localDateTime';
+import type { Zone } from './powerZones';
 import type { RouteSummary } from './route';
 import type { WorkoutBlock } from './workoutProfile';
 
@@ -147,12 +148,92 @@ export function buildActivityDetails(
     title: activity.name?.trim() || null,
     type: activity.type,
     startLocal: activity.start_date_local,
-    blocks: [],
-    profileSummary: null,
+    ...activityProfileOf(activity),
     metrics: summariseActivity(activity),
     ...descriptionOf(activity),
     route: null,
   };
+}
+
+/** Fewest drawn intervals that make an Activity Profile worth showing. */
+const MIN_PROFILE_SEGMENTS = 2;
+
+/**
+ * The Activity Profile: each detected interval with a power intensity as one
+ * flat block, as wide as its share of the time drawn. intervals.icu's
+ * intervals tile the whole elapsed time, so that's the elapsed span; an
+ * interval without power, a zone or a duration is left out rather than
+ * guessed at, and the rest close up. Fewer than two blocks is no shape at all
+ * (a steady ride, no power, no intervals), so nothing is drawn.
+ */
+function activityProfileOf({
+  icu_intervals,
+}: StoredActivity): Pick<
+  Extract<ActivityDetails, { isStravaActivity: false }>,
+  'blocks' | 'profileSummary'
+> {
+  const segments = (icu_intervals ?? []).flatMap(toProfileSegment);
+
+  if (segments.length < MIN_PROFILE_SEGMENTS) {
+    return { blocks: [], profileSummary: null };
+  }
+
+  segments.sort((a, b) => a.start - b.start);
+
+  const durationSeconds = segments.reduce(
+    (total, { duration }) => total + duration,
+    0,
+  );
+
+  return {
+    blocks: segments.map(({ duration, intensity, zone }) => ({
+      widthFraction: duration / durationSeconds,
+      minPct: intensity,
+      maxPct: intensity,
+      zone,
+    })),
+    profileSummary: {
+      durationSeconds,
+      segmentCount: segments.length,
+      peakFtpPct: Math.round(
+        Math.max(...segments.map(({ intensity }) => intensity)),
+      ),
+    },
+  };
+}
+
+interface ProfileSegment {
+  start: number;
+  duration: number;
+  intensity: number;
+  zone: Zone;
+}
+
+/** An interval as a drawable segment, or none when it can't be drawn. */
+function toProfileSegment({
+  start_time,
+  end_time,
+  intensity,
+  zone,
+}: StoredActivityInterval): ProfileSegment[] {
+  if (
+    start_time == null ||
+    end_time == null ||
+    !Number.isFinite(intensity) ||
+    !isZone(zone)
+  ) {
+    return [];
+  }
+
+  const duration = end_time - start_time;
+
+  return duration > 0
+    ? [{ start: start_time, duration, intensity: intensity as number, zone }]
+    : [];
+}
+
+function isZone(zone: number | null | undefined): zone is Zone {
+  return zone != null && Number.isInteger(zone) && zone >= 1 && zone <= 7;
 }
 
 function descriptionOf({ description }: StoredActivity): {

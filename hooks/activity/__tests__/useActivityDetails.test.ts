@@ -169,6 +169,94 @@ describe('useActivityDetails', () => {
     );
   });
 
+  describe('Activity Profile', () => {
+    it('draws each interval as one flat block, as wide as its share of the elapsed time, in its zone', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 0, end_time: 600, intensity: 55, zone: 1 },
+            { start_time: 600, end_time: 1800, intensity: 96.4, zone: 4 },
+            { start_time: 1800, end_time: 2400, intensity: 121, zone: 6 },
+          ],
+        }),
+      );
+
+      expect(details.blocks).toEqual([
+        { widthFraction: 0.25, minPct: 55, maxPct: 55, zone: 1 },
+        { widthFraction: 0.5, minPct: 96.4, maxPct: 96.4, zone: 4 },
+        { widthFraction: 0.25, minPct: 121, maxPct: 121, zone: 6 },
+      ]);
+    });
+
+    it('sums up its elapsed span, segment count and rounded peak', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 0, end_time: 1200, intensity: 64.2, zone: 2 },
+            { start_time: 1200, end_time: 1500, intensity: 178.6, zone: 7 },
+            { start_time: 1500, end_time: 9300, intensity: 71, zone: 2 },
+          ],
+        }),
+      );
+
+      expect(details.profileSummary).toEqual({
+        durationSeconds: 9300,
+        segmentCount: 3,
+        peakFtpPct: 179,
+      });
+    });
+
+    it.each([
+      ['no intervals', undefined],
+      ['an empty interval list', []],
+      [
+        'one steady block',
+        [{ start_time: 0, end_time: 5400, intensity: 72, zone: 2 }],
+      ],
+      [
+        'no power',
+        [
+          { start_time: 0, end_time: 1800, intensity: null, zone: null },
+          { start_time: 1800, end_time: 3600, intensity: null, zone: null },
+        ],
+      ],
+      [
+        'only one interval with power',
+        [
+          { start_time: 0, end_time: 1800, intensity: 88, zone: 3 },
+          { start_time: 1800, end_time: 3600, intensity: null, zone: null },
+        ],
+      ],
+    ])('is not drawn with %s', async (_, icu_intervals) => {
+      const details = await shownDetailsOf(activity({ icu_intervals }));
+
+      expect(details.blocks).toEqual([]);
+      expect(details.profileSummary).toBeNull();
+    });
+
+    it('leaves out an interval without power and closes up around it', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 0, end_time: 600, intensity: 60, zone: 2 },
+            { start_time: 600, end_time: 1200, intensity: null, zone: null },
+            { start_time: 1200, end_time: 2400, intensity: 105, zone: 5 },
+          ],
+        }),
+      );
+
+      expect(details.blocks).toEqual([
+        { widthFraction: 1 / 3, minPct: 60, maxPct: 60, zone: 2 },
+        { widthFraction: 2 / 3, minPct: 105, maxPct: 105, zone: 5 },
+      ]);
+      expect(details.profileSummary).toEqual({
+        durationSeconds: 1800,
+        segmentCount: 2,
+        peakFtpPct: 105,
+      });
+    });
+  });
+
   describe('metrics', () => {
     it('lists every summary metric the Activity has, in display order', async () => {
       const details = await shownDetailsOf(
