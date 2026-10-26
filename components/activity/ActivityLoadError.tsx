@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
 import MessageWithAction from '@/components/MessageWithAction';
+import MessageWithBack from '@/components/MessageWithBack';
 import { isNotFoundError } from '@/lib/intervalsApi';
-import { useRouter } from 'expo-router';
 
 /**
  * A failed Activity: not found on intervals.icu, with a way back, or any
@@ -16,15 +16,12 @@ export default function ActivityLoadError({
   onRetry: () => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
-  const router = useRouter();
 
   if (isNotFoundError(error)) {
     return (
-      <MessageWithAction
+      <MessageWithBack
         title={t('notFound.title')}
         message={t('notFound.body')}
-        actionLabel={t('notFound.back')}
-        onAction={() => router.back()}
       />
     );
   }

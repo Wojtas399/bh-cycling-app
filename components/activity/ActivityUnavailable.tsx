@@ -1,21 +1,12 @@
 import { useTranslation } from 'react-i18next';
 
-import MessageWithAction from '@/components/MessageWithAction';
-import { useRouter } from 'expo-router';
+import MessageWithBack from '@/components/MessageWithBack';
 
 /** A Strava Activity, which intervals.icu can't share, with a way back. */
 export default function ActivityUnavailable() {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'activityDetails.unavailable',
   });
-  const router = useRouter();
 
-  return (
-    <MessageWithAction
-      title={t('title')}
-      message={t('body')}
-      actionLabel={t('back')}
-      onAction={() => router.back()}
-    />
-  );
+  return <MessageWithBack title={t('title')} message={t('body')} />;
 }

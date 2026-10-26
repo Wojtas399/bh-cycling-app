@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
-import MessageWithAction from '@/components/MessageWithAction';
+import MessageWithBack from '@/components/MessageWithBack';
 import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
 import RouteLoadError from '@/components/workout/RouteLoadError';
@@ -92,11 +92,7 @@ export default function RouteMapScreen({
 
     if (summary !== undefined) {
       return summary ? (
-        <RouteBody
-          summary={summary}
-          missingMessage={missingMessage}
-          onClose={close}
-        />
+        <RouteBody summary={summary} missingMessage={missingMessage} />
       ) : (
         <Centered>{noSummary}</Centered>
       );
@@ -150,13 +146,10 @@ export default function RouteMapScreen({
 function RouteBody({
   summary,
   missingMessage,
-  onClose,
 }: {
   summary: RouteSummary;
   missingMessage: string;
-  onClose: () => void;
 }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { query, refetch } = useActivityRoute(summary.activityId);
 
   if (query.data)
@@ -175,11 +168,7 @@ function RouteBody({
   // The details exist, but the Activity turned out to have no Route.
   return (
     <Centered>
-      <MessageWithAction
-        message={missingMessage}
-        actionLabel={t('notFound.back')}
-        onAction={onClose}
-      />
+      <MessageWithBack message={missingMessage} />
     </Centered>
   );
 }

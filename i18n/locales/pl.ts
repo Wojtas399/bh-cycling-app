@@ -1,6 +1,8 @@
 const pl = {
   common: {
     back: 'Wstecz',
+    /** The button out of a screen with nothing to show. */
+    goBack: 'Wróć',
     close: 'Zamknij',
     showPassword: 'Pokaż hasło',
     hidePassword: 'Ukryj hasło',
@@ -321,7 +323,6 @@ const pl = {
     notFound: {
       title: 'Trening nie istnieje',
       body: 'Ten trening mógł zostać usunięty z Intervals.icu.',
-      back: 'Wróć',
     },
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
@@ -399,13 +400,11 @@ const pl = {
     notFound: {
       title: 'Aktywność nie istnieje',
       body: 'Ta aktywność mogła zostać usunięta z Intervals.icu.',
-      back: 'Wróć',
     },
     /** A Strava Activity, which intervals.icu can't share. */
     unavailable: {
       title: 'Aktywność niedostępna',
       body: 'To aktywność ze Stravy. Intervals.icu nie udostępnia jej szczegółów innym aplikacjom.',
-      back: 'Wróć',
     },
     error: 'Nie udało się wczytać aktywności.',
     retry: 'Spróbuj ponownie',

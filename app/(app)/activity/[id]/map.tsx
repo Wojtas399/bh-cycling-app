@@ -1,18 +1,17 @@
 import { useTranslation } from 'react-i18next';
 
-import MessageWithAction from '@/components/MessageWithAction';
+import MessageWithBack from '@/components/MessageWithBack';
 import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
 import RouteMapScreen from '@/components/workout/RouteMapScreen';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { routeOf } from '@/lib/activityDetails';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
 /** The full-screen Route map of an Unplanned Activity. */
 export default function ActivityRouteMapScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const details = useActivityDetails(id);
   const { data, isError, error } = details.query;
 
@@ -24,11 +23,7 @@ export default function ActivityRouteMapScreen() {
         data?.isStravaActivity ? (
           <ActivityUnavailable />
         ) : (
-          <MessageWithAction
-            message={t('routeMissing')}
-            actionLabel={t('notFound.back')}
-            onAction={() => router.back()}
-          />
+          <MessageWithBack message={t('routeMissing')} />
         )
       }
       detailsError={
