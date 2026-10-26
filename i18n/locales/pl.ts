@@ -386,6 +386,25 @@ const pl = {
       attribution: 'Informacje o mapie',
     },
   },
+  activityDetails: {
+    title: 'Aktywność',
+    /** The card of the Activity's summary metrics. */
+    summary: 'Podsumowanie',
+    notFound: {
+      title: 'Aktywność nie istnieje',
+      body: 'Ta aktywność mogła zostać usunięta z Intervals.icu.',
+      back: 'Wróć',
+    },
+    /** A Strava Activity, which intervals.icu can't share. */
+    unavailable: {
+      title: 'Aktywność niedostępna',
+      body: 'To aktywność ze Stravy. Intervals.icu nie udostępnia jej szczegółów innym aplikacjom.',
+      back: 'Wróć',
+    },
+    error: 'Nie udało się wczytać aktywności.',
+    retry: 'Spróbuj ponownie',
+    loading: 'Wczytywanie aktywności',
+  },
   intervals: {
     title: 'Intervals.icu',
     connectPrompt: {
