@@ -24,6 +24,10 @@ _Avoid_: Stub, hidden activity
 The screen for one Unplanned Activity, a recorded session with no plan behind it. It's a sibling of Workout Details, not one of its modes.
 _Avoid_: Unpaired workout details, activity mode
 
+**Activity Profile**:
+The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone.
+_Avoid_: Workout Profile, which is the planned shape
+
 **Route**:
 The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
 _Avoid_: Workout route, track, GPS trace
