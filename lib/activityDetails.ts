@@ -8,7 +8,7 @@ import type {
   IntervalsActivityInterval,
 } from './intervalsApi';
 import type { LocalDateTimeString } from './localDateTime';
-import type { Zone } from './powerZones';
+import { type Zone, isZone } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
 import type { WorkoutBlock } from './workoutProfile';
 
@@ -264,10 +264,6 @@ function toTimedInterval({
 
 function isProfileSegment(interval: TimedInterval): interval is ProfileSegment {
   return interval.intensity !== null && interval.zone !== null;
-}
-
-function isZone(zone: number | null | undefined): zone is Zone {
-  return zone != null && Number.isInteger(zone) && zone >= 1 && zone <= 7;
 }
 
 function descriptionOf({ description }: StoredActivity): {

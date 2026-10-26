@@ -1,5 +1,10 @@
 export type Zone = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
+/** Whether `zone` is one of Z1–Z7. */
+export function isZone(zone: number | null | undefined): zone is Zone {
+  return zone != null && Number.isInteger(zone) && zone >= 1 && zone <= 7;
+}
+
 export interface ZoneBand {
   zone: Zone;
   /** Lower edge of the band, in %FTP. Exclusive; 0 for Z1. */

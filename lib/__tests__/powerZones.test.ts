@@ -1,5 +1,6 @@
 import {
   bandForZone,
+  isZone,
   resolveZoneConfig,
   zoneForFtpPercent,
 } from '../powerZones';
@@ -17,6 +18,14 @@ const COGGAN_CONFIG = [
 const CUSTOM_CEILINGS = [60, 80, 95, 110, 130, 160, 220];
 
 describe('powerZones', () => {
+  it.each([1, 4, 7])('isZone accepts zone %s', zone => {
+    expect(isZone(zone)).toBe(true);
+  });
+
+  it.each([0, 8, 2.5, NaN, null, undefined])('isZone rejects %s', zone => {
+    expect(isZone(zone)).toBe(false);
+  });
+
   it('resolveZoneConfig falls back to the standard Coggan bands when settings are absent', () => {
     expect(resolveZoneConfig()).toEqual(COGGAN_CONFIG);
   });
