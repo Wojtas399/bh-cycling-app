@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
@@ -12,6 +13,11 @@ export interface ActivityTileProps {
   activity: UnplannedActivity;
   /** Omitted where the surrounding screen already shows the day. */
   dayLabel?: string;
+  /**
+   * Opens the Activity's details. Ignored for a Strava Activity, which has
+   * none, so its tile is never a button.
+   */
+  onPress?: () => void;
 }
 
 /**
@@ -19,12 +25,14 @@ export interface ActivityTileProps {
  * a sport icon where a Workout has its status dot, the title and day label,
  * and a metrics line — e.g. `27m · 14,0 km · Obciążenie 26` — of whichever
  * metrics the Activity has. A Strava Activity has no name or sport, so it
- * reads "Aktywność ze Stravy" with a generic glyph. Not tappable: there is no
- * Activity Details screen yet.
+ * reads "Aktywność ze Stravy" with a generic glyph. With `onPress` it's a
+ * button, read by its content like a Workout tile; a Strava Activity's never
+ * is.
  */
 export default function ActivityTile({
   activity,
   dayLabel,
+  onPress,
 }: ActivityTileProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityTile' });
   const theme = useAppTheme();
@@ -37,7 +45,7 @@ export default function ActivityTile({
       : formatMetric(metric, value),
   );
 
-  return (
+  const card = (
     <Box
       backgroundColor="bgSecondary"
       borderRadius="lg"
@@ -50,7 +58,13 @@ export default function ActivityTile({
         alignItems="center"
       >
         <Box marginRight="sm">
-          <Ionicons name={icon} size={16} color={theme.colors.workoutDone} />
+          <Ionicons
+            name={icon}
+            size={16}
+            color={theme.colors.workoutDone}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
         </Box>
         <Text variant="body-l-semibold" numberOfLines={1} style={{ flex: 1 }}>
           {title}
@@ -68,5 +82,17 @@ export default function ActivityTile({
         </Text>
       )}
     </Box>
+  );
+
+  if (!onPress || activity.isStravaActivity) return card;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      {card}
+    </Pressable>
   );
 }
