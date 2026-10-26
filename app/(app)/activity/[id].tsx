@@ -7,6 +7,7 @@ import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import ActivityDetailsHero from '@/components/activity/ActivityDetailsHero';
+import ActivityDetailsProfile from '@/components/activity/ActivityDetailsProfile';
 import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
 import ActivityMetricGrid from '@/components/workout/ActivityMetricGrid';
@@ -94,7 +95,10 @@ export default function ActivityDetailsScreen() {
   );
 }
 
-/** The loaded Activity, Variant A: hero, then Podsumowanie and Opis. */
+/**
+ * The loaded Activity, Variant A: hero, the Activity Profile, then
+ * Podsumowanie and Opis.
+ */
 function ActivityDetailsContent({
   details,
 }: {
@@ -109,6 +113,15 @@ function ActivityDetailsContent({
         type={details.type}
         startLocal={details.startLocal}
       />
+
+      {details.profileSummary && (
+        <WorkoutDetailsCard>
+          <ActivityDetailsProfile
+            blocks={details.blocks}
+            summary={details.profileSummary}
+          />
+        </WorkoutDetailsCard>
+      )}
 
       {details.metrics.length > 0 && (
         <WorkoutDetailsCard title={t('summary')}>

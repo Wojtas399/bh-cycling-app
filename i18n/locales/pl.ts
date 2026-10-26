@@ -390,6 +390,12 @@ const pl = {
     title: 'Aktywność',
     /** The card of the Activity's summary metrics. */
     summary: 'Podsumowanie',
+    profileLabel:
+      'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP',
+    segments_one: '{{count}} odcinek',
+    segments_few: '{{count}} odcinki',
+    segments_many: '{{count}} odcinków',
+    segments_other: '{{count}} odcinka',
     notFound: {
       title: 'Aktywność nie istnieje',
       body: 'Ta aktywność mogła zostać usunięta z Intervals.icu.',
