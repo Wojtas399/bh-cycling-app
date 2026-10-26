@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
-import MetricGrid from '@/components/workout/MetricGrid';
+import ActivityMetricGrid from '@/components/workout/ActivityMetricGrid';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import type { ActivityMetric } from '@/lib/activitySummary';
-import { formatMetric } from '@/lib/formatWorkoutMetric';
 
 export interface WorkoutActivityCardProps {
   metrics: ActivityMetric[];
@@ -21,13 +20,7 @@ export default function WorkoutActivityCard({
 
   return (
     <WorkoutDetailsCard title={t('title')}>
-      <MetricGrid
-        items={metrics.map(({ metric, value }) => ({
-          key: metric,
-          label: t(`metrics.${metric}`),
-          value: formatMetric(metric, value),
-        }))}
-      />
+      <ActivityMetricGrid metrics={metrics} />
     </WorkoutDetailsCard>
   );
 }
