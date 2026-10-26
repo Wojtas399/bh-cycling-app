@@ -1,5 +1,9 @@
 import type { IntervalsActivity, IntervalsActivityMap } from './intervalsApi';
-import type { LocalDateTimeString } from './localDateTime';
+import { isFiniteNumber } from './isFiniteNumber';
+import {
+  type LocalDateTimeString,
+  addSecondsToLocalDateTime,
+} from './localDateTime';
 
 /**
  * The GPS track of an Activity: where the athlete actually rode.
@@ -45,6 +49,36 @@ export function activityHasRoute(
     activity.trainer !== true &&
     activity.type !== 'VirtualRide'
   );
+}
+
+/**
+ * What a details screen's Route banner needs of an Activity, `null` when it
+ * has no Route (see `activityHasRoute`).
+ */
+export function summariseRoute(
+  activity: Pick<
+    IntervalsActivity,
+    | 'id'
+    | 'distance'
+    | 'start_date_local'
+    | 'elapsed_time'
+    | 'stream_types'
+    | 'trainer'
+    | 'type'
+  >,
+): RouteSummary | null {
+  if (!activityHasRoute(activity)) return null;
+
+  const { id, distance, start_date_local, elapsed_time } = activity;
+
+  return {
+    activityId: id,
+    ...(isFiniteNumber(distance) && { distanceMeters: distance }),
+    startLocal: start_date_local,
+    ...(isFiniteNumber(elapsed_time) && {
+      finishLocal: addSecondsToLocalDateTime(start_date_local, elapsed_time),
+    }),
+  };
 }
 
 /**

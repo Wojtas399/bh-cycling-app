@@ -281,6 +281,49 @@ describe('useActivityDetails', () => {
     });
   });
 
+  describe('Route', () => {
+    const OUTDOOR_STREAMS = ['time', 'watts', 'latlng'];
+
+    it('summarises an outdoor GPS ride: its id, distance, start and finish', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          type: 'Ride',
+          trainer: false,
+          stream_types: OUTDOOR_STREAMS,
+          distance: 48_200,
+          start_date_local: '2026-10-23T16:42:00',
+          elapsed_time: 6180,
+        }),
+      );
+
+      expect(details.route).toEqual({
+        activityId: ACTIVITY_ID,
+        distanceMeters: 48_200,
+        startLocal: '2026-10-23T16:42:00',
+        finishLocal: '2026-10-23T18:25:00',
+      });
+    });
+
+    it.each([
+      [
+        'a trainer ride',
+        { type: 'Ride', trainer: true, stream_types: OUTDOOR_STREAMS },
+      ],
+      [
+        'a VirtualRide',
+        { type: 'VirtualRide', trainer: false, stream_types: OUTDOOR_STREAMS },
+      ],
+      [
+        'a ride with no latlng stream',
+        { type: 'Ride', trainer: false, stream_types: ['time', 'watts'] },
+      ],
+    ])('is null for %s', async (_, overrides) => {
+      const details = await shownDetailsOf(activity(overrides));
+
+      expect(details.route).toBeNull();
+    });
+  });
+
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
       // The body intervals.icu returns for a Strava Activity, as verified.
