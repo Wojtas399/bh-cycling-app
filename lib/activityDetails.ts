@@ -155,6 +155,18 @@ export function buildActivityDetails(
   };
 }
 
+/**
+ * The Route summary of loaded details: `undefined` while they load, `null`
+ * when there is no Route (a Strava Activity included).
+ */
+export function routeOf(
+  details: ActivityDetails | undefined,
+): RouteSummary | null | undefined {
+  if (details === undefined) return undefined;
+
+  return details.isStravaActivity ? null : details.route;
+}
+
 /** Fewest drawn intervals that make an Activity Profile worth showing. */
 const MIN_PROFILE_SEGMENTS = 2;
 

@@ -18,7 +18,7 @@ import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton'
 import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
-import type { ActivityDetails } from '@/lib/activityDetails';
+import { type ActivityDetails, routeOf } from '@/lib/activityDetails';
 import { useLocalSearchParams } from 'expo-router';
 
 /**
@@ -33,11 +33,7 @@ export default function ActivityDetailsScreen() {
   const { availability, query, refetch } = useActivityDetails(id);
   // The same Route query the banner reads, so a refresh can retry it. It's
   // skipped when there's no Route.
-  const route = useActivityRoute(
-    query.data && !query.data.isStravaActivity
-      ? (query.data.route?.activityId ?? null)
-      : null,
-  );
+  const route = useActivityRoute(routeOf(query.data)?.activityId ?? null);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -106,7 +102,7 @@ export default function ActivityDetailsScreen() {
 }
 
 /**
- * The loaded Activity, Variant A: the Route banner, the hero, the Activity
+ * The loaded Activity: the Route banner, the hero, the Activity
  * Profile, then Podsumowanie and Opis.
  */
 function ActivityDetailsContent({
