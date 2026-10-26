@@ -2,10 +2,9 @@ import { type ActivityMetric, summariseActivity } from './activitySummary';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
-import { addSecondsToLocalDateTime } from './localDateTime';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
-import { type RouteSummary, activityHasRoute } from './route';
+import { type RouteSummary, summariseRoute } from './route';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -187,21 +186,6 @@ export function buildWorkoutDetails(
     planMetrics: buildPlanMetrics(event),
     ...notes(event),
     route: activity ? summariseRoute(activity) : null,
-  };
-}
-
-function summariseRoute(activity: IntervalsActivity): RouteSummary | null {
-  if (!activityHasRoute(activity)) return null;
-
-  const { id, distance, start_date_local, elapsed_time } = activity;
-
-  return {
-    activityId: id,
-    ...(isFiniteNumber(distance) && { distanceMeters: distance }),
-    startLocal: start_date_local,
-    ...(isFiniteNumber(elapsed_time) && {
-      finishLocal: addSecondsToLocalDateTime(start_date_local, elapsed_time),
-    }),
   };
 }
 

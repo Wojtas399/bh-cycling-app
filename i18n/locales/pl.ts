@@ -410,6 +410,8 @@ const pl = {
     error: 'Nie udało się wczytać aktywności.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie aktywności',
+    /** The full-screen map of an Activity with no Route. */
+    routeMissing: 'Ta aktywność nie ma zapisanej trasy.',
   },
   intervals: {
     title: 'Intervals.icu',

@@ -3,6 +3,11 @@ import { useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 import { Stack, useRouter } from 'expo-router';
 
+const ROUTE_MAP_OPTIONS = {
+  presentation: 'fullScreenModal',
+  animation: 'slide_from_bottom',
+} as const;
+
 export default function AppLayout() {
   const router = useRouter();
 
@@ -18,15 +23,11 @@ export default function AppLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* Slides up over Workout Details. On Android, where a full-screen
-          modal is an ordinary push, the animation gives the same slide up. */}
-      <Stack.Screen
-        name="workout/[id]/map"
-        options={{
-          presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
-        }}
-      />
+      {/* Slide up over Workout Details and Activity Details. On Android,
+          where a full-screen modal is an ordinary push, the animation gives
+          the same slide up. */}
+      <Stack.Screen name="workout/[id]/map" options={ROUTE_MAP_OPTIONS} />
+      <Stack.Screen name="activity/[id]/map" options={ROUTE_MAP_OPTIONS} />
     </Stack>
   );
 }

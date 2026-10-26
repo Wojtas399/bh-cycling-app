@@ -11,11 +11,13 @@ import ActivityDetailsProfile from '@/components/activity/ActivityDetailsProfile
 import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
 import ActivityMetricGrid from '@/components/workout/ActivityMetricGrid';
+import RouteBanner from '@/components/workout/RouteBanner';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
+import { useActivityRoute } from '@/hooks/useActivityRoute';
 import type { ActivityDetails } from '@/lib/activityDetails';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -29,6 +31,13 @@ export default function ActivityDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useActivityDetails(id);
+  // The same Route query the banner reads, so a refresh can retry it. It's
+  // skipped when there's no Route.
+  const route = useActivityRoute(
+    query.data && !query.data.isStravaActivity
+      ? (query.data.route?.activityId ?? null)
+      : null,
+  );
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -37,7 +46,8 @@ export default function ActivityDetailsScreen() {
     setRefreshing(true);
 
     try {
-      await refetch();
+      // A loaded Route is never fetched again; a failed one is retried.
+      await Promise.all([refetch(), route.refetchIfFailed()]);
     } finally {
       setRefreshing(false);
     }
@@ -54,7 +64,7 @@ export default function ActivityDetailsScreen() {
       return query.data.isStravaActivity ? (
         <ActivityUnavailable />
       ) : (
-        <ActivityDetailsContent details={query.data} />
+        <ActivityDetailsContent activityId={id} details={query.data} />
       );
     }
 
@@ -96,18 +106,31 @@ export default function ActivityDetailsScreen() {
 }
 
 /**
- * The loaded Activity, Variant A: hero, the Activity Profile, then
- * Podsumowanie and Opis.
+ * The loaded Activity, Variant A: the Route banner, the hero, the Activity
+ * Profile, then Podsumowanie and Opis.
  */
 function ActivityDetailsContent({
+  activityId,
   details,
 }: {
+  activityId: string;
   details: Extract<ActivityDetails, { isStravaActivity: false }>;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
 
   return (
     <Box gap="md">
+      {/* `route` is `null` for a trainer ride, a VirtualRide or no GPS. */}
+      {details.route && (
+        <RouteBanner
+          mapHref={{
+            pathname: '/activity/[id]/map',
+            params: { id: activityId },
+          }}
+          summary={details.route}
+        />
+      )}
+
       <ActivityDetailsHero
         title={details.title}
         type={details.type}

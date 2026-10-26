@@ -9,7 +9,7 @@ import type {
 } from './intervalsApi';
 import type { LocalDateTimeString } from './localDateTime';
 import type { Zone } from './powerZones';
-import type { RouteSummary } from './route';
+import { type RouteSummary, summariseRoute } from './route';
 import type { WorkoutBlock } from './workoutProfile';
 
 /**
@@ -151,7 +151,7 @@ export function buildActivityDetails(
     ...activityProfileOf(activity),
     metrics: summariseActivity(activity),
     ...descriptionOf(activity),
-    route: null,
+    route: summariseRoute(activity),
   };
 }
 
