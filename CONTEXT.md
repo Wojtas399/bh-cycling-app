@@ -20,6 +20,10 @@ _Avoid_: Free ride (a kind of planned Workout), extra workout, unpaired ride
 An Activity intervals.icu received from Strava but can't share through its API, so only its day is known. It's an Unplanned Activity that has no details.
 _Avoid_: Stub, hidden activity
 
+**Activity Details**:
+The screen for one Unplanned Activity, a recorded session with no plan behind it. It's a sibling of Workout Details, not one of its modes.
+_Avoid_: Unpaired workout details, activity mode
+
 **Route**:
 The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
 _Avoid_: Workout route, track, GPS trace
