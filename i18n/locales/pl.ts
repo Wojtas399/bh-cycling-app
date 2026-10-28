@@ -1,6 +1,8 @@
 const pl = {
   common: {
     back: 'Wstecz',
+    /** The button out of a screen with nothing to show. */
+    goBack: 'Wróć',
     close: 'Zamknij',
     showPassword: 'Pokaż hasło',
     hidePassword: 'Ukryj hasło',
@@ -211,8 +213,23 @@ const pl = {
       'gru',
     ],
   },
+  /** An Activity's sport, by `sportLabel(type)`. */
+  sport: {
+    ride: 'Jazda rowerem',
+    run: 'Bieg',
+    walk: 'Marsz',
+    swim: 'Pływanie',
+    strength: 'Trening siłowy',
+    rowing: 'Wiosłowanie',
+    winter: 'Sporty zimowe',
+    yoga: 'Joga i pilates',
+    /** A sport `sportLabel` doesn't know. */
+    other: 'Aktywność',
+  },
   activityTile: {
     load: 'Obciążenie {{load}}',
+    /** A Strava Activity's title: intervals.icu doesn't share its name. */
+    stravaActivity: 'Aktywność ze Stravy',
   },
   calendar: {
     monthly: 'Miesięczny',
@@ -306,20 +323,12 @@ const pl = {
     notFound: {
       title: 'Trening nie istnieje',
       body: 'Ten trening mógł zostać usunięty z Intervals.icu.',
-      back: 'Wróć',
     },
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie treningu',
-    route: {
-      title: 'Trasa',
-      titleWithDistance: 'Trasa, {{distance}}',
-      showMap: 'Pokaż mapę',
-      pill: '{{distance}} · Pokaż mapę',
-      hint: 'Otwiera mapę na pełnym ekranie',
-      error: 'Nie udało się wczytać trasy.',
-      missing: 'Ten trening nie ma zapisanej trasy.',
-    },
+    /** The full-screen map of a Workout with no Route. */
+    routeMissing: 'Ten trening nie ma zapisanej trasy.',
     comparison: {
       title: 'Plan vs wykonanie',
       titleWithCompliance: 'Plan vs wykonanie · zgodność {{compliance}}%',
@@ -361,15 +370,53 @@ const pl = {
       distance: 'Dystans',
     },
     description: 'Opis',
-    routeMap: {
-      map: 'Mapa trasy',
-      mapWithDistance: 'Mapa trasy, {{distance}}',
+  },
+  /** An Activity's Route, shared by Workout Details and Activity Details. */
+  route: {
+    /** The banner at the top of a details screen. */
+    title: 'Trasa',
+    titleWithDistance: 'Trasa, {{distance}}',
+    showMap: 'Pokaż mapę',
+    pill: '{{distance}} · Pokaż mapę',
+    hint: 'Otwiera mapę na pełnym ekranie',
+    error: 'Nie udało się wczytać trasy.',
+    retry: 'Spróbuj ponownie',
+    loading: 'Wczytywanie trasy',
+    /** The full-screen Route map. */
+    map: {
+      label: 'Mapa trasy',
+      labelWithDistance: 'Mapa trasy, {{distance}}',
       distance: 'Dystans',
       start: 'Start',
       finish: 'Meta',
       chip: '{{label}}, {{value}}',
       attribution: 'Informacje o mapie',
     },
+  },
+  activityDetails: {
+    title: 'Aktywność',
+    /** The card of the Activity's summary metrics. */
+    summary: 'Podsumowanie',
+    profileLabel:
+      'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP',
+    segments_one: '{{count}} odcinek',
+    segments_few: '{{count}} odcinki',
+    segments_many: '{{count}} odcinków',
+    segments_other: '{{count}} odcinka',
+    notFound: {
+      title: 'Aktywność nie istnieje',
+      body: 'Ta aktywność mogła zostać usunięta z Intervals.icu.',
+    },
+    /** A Strava Activity, which intervals.icu can't share. */
+    unavailable: {
+      title: 'Aktywność niedostępna',
+      body: 'To aktywność ze Stravy. Intervals.icu nie udostępnia jej szczegółów innym aplikacjom.',
+    },
+    error: 'Nie udało się wczytać aktywności.',
+    retry: 'Spróbuj ponownie',
+    loading: 'Wczytywanie aktywności',
+    /** The full-screen map of an Activity with no Route. */
+    routeMissing: 'Ta aktywność nie ma zapisanej trasy.',
   },
   intervals: {
     title: 'Intervals.icu',

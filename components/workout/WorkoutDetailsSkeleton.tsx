@@ -19,15 +19,23 @@ function Bar({
   );
 }
 
-/** Placeholder of the Workout Details layout while the Workout loads. */
-export default function WorkoutDetailsSkeleton() {
+/**
+ * Placeholder of the Workout Details layout while the Workout loads. Activity
+ * Details shares the layout and passes its own `label`.
+ */
+export default function WorkoutDetailsSkeleton({
+  label,
+}: {
+  /** The screen reader's loading label, the Workout's by default. */
+  label?: string;
+}) {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
 
   return (
     <Box
       gap="md"
       accessible
-      accessibilityLabel={t('loading')}
+      accessibilityLabel={label ?? t('loading')}
       accessibilityState={{ busy: true }}
       testID="workout-details-skeleton"
     >

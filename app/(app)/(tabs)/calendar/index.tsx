@@ -12,15 +12,19 @@ import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
 import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
-import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
+import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useCalendarNoteSheet } from '@/hooks/calendar/useCalendarNoteSheet';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
+import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
-import type { CalendarItemsByDate } from '@/lib/calendarItems';
+import type {
+  CalendarItemsByDate,
+  UnplannedActivity,
+} from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import type { Note } from '@/lib/notes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
@@ -84,13 +88,21 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
     >
-      {({ itemsByDate, notes, onDayPress, onWorkoutPress, onNotePress }) => (
+      {({
+        itemsByDate,
+        notes,
+        onDayPress,
+        onWorkoutPress,
+        onActivityPress,
+        onNotePress,
+      }) => (
         <CalendarWeekAgenda
           week={week}
           itemsByDate={itemsByDate}
           notes={notes}
           onDayPress={onDayPress}
           onWorkoutPress={onWorkoutPress}
+          onActivityPress={onActivityPress}
           onNotePress={onNotePress}
         />
       )}
@@ -116,6 +128,8 @@ interface LoadedViewProps {
   onDayPress: (day: CalendarDay) => void;
   /** Opens the Workout's details, dismissing the day sheet if it is open. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
+  /** Opens the Activity's details, dismissing the day sheet if it is open. */
+  onActivityPress: (activity: UnplannedActivity) => void;
   /** Opens the Note Detail Sheet straight from the view (no day sheet). */
   onNotePress: (note: Note) => void;
 }
@@ -139,12 +153,18 @@ function CalendarLayout({
   const sheet = useDaySheet(query.data);
   const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.close);
   const openWorkout = useOpenWorkoutDetails();
+  const openActivity = useOpenActivityDetails();
 
   // The day sheet is a native Expo UI sheet (ADR 0003) that would otherwise
   // linger above the pushed screen, so it is dismissed as the push happens.
   function handleWorkoutPress(workout: CalendarWorkout) {
     sheet.close();
     openWorkout(workout.id);
+  }
+
+  function handleActivityPress(activity: UnplannedActivity) {
+    sheet.close();
+    openActivity(activity.id);
   }
 
   if (availability === 'unavailable') {
@@ -174,6 +194,7 @@ function CalendarLayout({
             notes,
             onDayPress: sheet.open,
             onWorkoutPress: handleWorkoutPress,
+            onActivityPress: handleActivityPress,
             onNotePress: note => noteSheet.open(note.id),
           })
         }
@@ -187,6 +208,7 @@ function CalendarLayout({
         isEmpty={sheet.isEmpty}
         onClose={sheet.close}
         onWorkoutPress={handleWorkoutPress}
+        onActivityPress={handleActivityPress}
         onNotePress={note => noteSheet.openFromDaySheet(note.id)}
       />
 

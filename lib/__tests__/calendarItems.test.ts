@@ -170,6 +170,68 @@ describe('joinCalendarItems', () => {
     expect(completedEventIds).toEqual([3]);
   });
 
+  it('lists an Activity with no type or name as a Strava Activity on its day, never paired', () => {
+    const { items, completedEventIds } = joinCalendarItems(
+      [event({ id: 1, start_date_local: '2026-10-14T08:00:00' })],
+      [
+        activity({
+          id: '20679555658',
+          name: undefined,
+          type: undefined,
+          start_date_local: '2026-10-14T18:00:00',
+        }),
+      ],
+      ZONE_CONFIG,
+    );
+
+    expect(items).toEqual([
+      {
+        kind: 'workout',
+        workout: {
+          id: 1,
+          name: 'Sample workout',
+          date: '2026-10-14',
+          blocks: [],
+        },
+      },
+      {
+        kind: 'activity',
+        activity: {
+          id: '20679555658',
+          isStravaActivity: true,
+          date: '2026-10-14',
+          durationSeconds: 1620,
+          distanceMeters: 14000,
+          load: 26,
+        },
+      },
+    ]);
+    expect(completedEventIds).toEqual([]);
+  });
+
+  it.each([
+    ['type', { type: undefined }],
+    ['name', { name: undefined }],
+    ['type (null)', { type: null as unknown as undefined }],
+    ['name (null)', { name: null as unknown as undefined }],
+  ])(
+    'lists an Activity missing only its %s as a Strava Activity',
+    (_field, overrides) => {
+      const { items } = joinCalendarItems(
+        [],
+        [activity(overrides)],
+        ZONE_CONFIG,
+      );
+
+      expect(items).toEqual([
+        {
+          kind: 'activity',
+          activity: expect.objectContaining({ isStravaActivity: true }),
+        },
+      ]);
+    },
+  );
+
   it('drops an Activity metric that is missing or zero', () => {
     const { items } = joinCalendarItems(
       [],

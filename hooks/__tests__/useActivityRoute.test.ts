@@ -1,4 +1,4 @@
-import { useWorkoutRoute } from '../useWorkoutRoute';
+import { useActivityRoute } from '../useActivityRoute';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { IntervalsApiError, getActivityMap } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
@@ -56,10 +56,10 @@ const GPS_MAP = {
 };
 
 function renderRoute(activityId: string | null = ACTIVITY_ID) {
-  return renderHookWithClient(() => useWorkoutRoute(activityId));
+  return renderHookWithClient(() => useActivityRoute(activityId));
 }
 
-describe('useWorkoutRoute', () => {
+describe('useActivityRoute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setNeedsReconnect(false);

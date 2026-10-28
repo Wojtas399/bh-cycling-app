@@ -3,6 +3,7 @@ import {
   INTERVALS_CURRENT_ATHLETE_PATH,
   intervalsActivitiesPath,
   intervalsActivityMapPath,
+  intervalsActivityPath,
   intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
 } from './intervalsApiPaths';
@@ -58,10 +59,37 @@ export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
   fields?: string;
 }
 
+export interface IntervalsActivityParams {
+  /** Include the detected intervals (`icu_intervals`). */
+  intervals?: boolean;
+}
+
+/**
+ * One interval intervals.icu detected in an Activity. Together they tile the
+ * whole elapsed time with no gaps.
+ */
+export interface IntervalsActivityInterval {
+  /** Elapsed seconds from the Activity's start. */
+  start_time?: number;
+  /** Elapsed seconds from the Activity's start. */
+  end_time?: number;
+  /** Average power as %FTP. Absent or `null` without power. */
+  intensity?: number | null;
+  /** The power zone, 1–7. */
+  zone?: number | null;
+  /** `WORK` or `RECOVERY`. */
+  type?: string;
+}
+
 export interface IntervalsActivity {
   id: string;
-  name: string;
-  type: string;
+  /**
+   * Absent, like `type`, on a Strava Activity: intervals.icu can't share an
+   * Activity it received from Strava, so the list returns it without either.
+   */
+  name?: string;
+  /** intervals.icu's sport type, e.g. `Ride`, `VirtualRide`, `Run`. */
+  type?: string;
   start_date_local: string;
   moving_time: number;
   distance: number;
@@ -101,6 +129,20 @@ export interface IntervalsActivity {
   stream_types?: string[];
   /** Ridden on a trainer. intervals.icu omits it when it's false. */
   trainer?: boolean;
+  /** The athlete's own notes on the Activity. Only on a single Activity. */
+  description?: string | null;
+  /**
+   * The intervals intervals.icu detected, in time order. Only on a single
+   * Activity read with `intervals: true`.
+   */
+  icu_intervals?: IntervalsActivityInterval[] | null;
+  /** Where the Activity came from, e.g. `STRAVA`. */
+  source?: string;
+  /**
+   * Why intervals.icu left the rest out. A Strava Activity's body carries it
+   * in place of a `type`.
+   */
+  _note?: string;
 }
 
 /**
@@ -168,7 +210,8 @@ export interface IntervalsRequestOptions {
 /** The query parameters some endpoint accepts; each public call takes only its own. */
 type IntervalsQueryParams =
   | IntervalsCalendarEventsParams
-  | IntervalsActivitiesParams;
+  | IntervalsActivitiesParams
+  | IntervalsActivityParams;
 
 async function request<T>(
   path: string,
@@ -181,9 +224,9 @@ async function request<T>(
   if (params) {
     for (const [key, value] of Object.entries(params) as [
       string,
-      string | undefined,
+      string | boolean | undefined,
     ][]) {
-      if (value !== undefined) url.searchParams.set(key, value);
+      if (value !== undefined) url.searchParams.set(key, String(value));
     }
   }
 
@@ -261,6 +304,26 @@ export function getCalendarEvent(
     intervalsCalendarEventPath(athleteId, eventId),
     token,
     undefined,
+    options,
+  );
+}
+
+/**
+ * Reads one Activity. The endpoint has no fields projection, so the whole
+ * body comes back (about 71 KB with intervals). An unknown Activity surfaces
+ * as an `IntervalsApiError` with status 404. A Strava Activity is a 200
+ * carrying only its id, day, `source` and `_note`.
+ */
+export function getActivity(
+  token: string,
+  activityId: string,
+  params?: IntervalsActivityParams,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsActivity> {
+  return request<IntervalsActivity>(
+    intervalsActivityPath(activityId),
+    token,
+    params,
     options,
   );
 }

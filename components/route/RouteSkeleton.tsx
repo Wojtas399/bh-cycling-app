@@ -4,16 +4,15 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import Box from '@/components/Box';
 
 /**
- * The placeholder a Route map holds while the Route loads, announced with the
- * screen's own loading label, as the Workout Details skeleton is. The caller
- * sizes it.
+ * The placeholder a Route map holds while the Route loads, announced as
+ * loading. The caller sizes it.
  */
 export default function RouteSkeleton({
   style,
 }: {
   style: StyleProp<ViewStyle>;
 }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
+  const { t } = useTranslation(undefined, { keyPrefix: 'route' });
 
   return (
     <Box

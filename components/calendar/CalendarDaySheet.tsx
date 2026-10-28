@@ -7,7 +7,11 @@ import NoteCard from '@/components/NoteCard';
 import Text from '@/components/Text';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import type { CalendarDay } from '@/lib/calendarGrid';
-import { type CalendarItem, calendarItemKey } from '@/lib/calendarItems';
+import {
+  type CalendarItem,
+  type UnplannedActivity,
+  calendarItemKey,
+} from '@/lib/calendarItems';
 import { daySheetNoteDates } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
@@ -28,6 +32,8 @@ export interface CalendarDaySheetProps {
   onClose: () => void;
   /** Opens a Workout's details; the caller dismisses the sheet. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
+  /** Opens an Activity's details; the caller dismisses the sheet. */
+  onActivityPress: (activity: UnplannedActivity) => void;
   /** Opens a Note; the caller swaps this sheet for the Note's. */
   onNotePress: (note: Note) => void;
 }
@@ -47,6 +53,7 @@ export default function CalendarDaySheet({
   isEmpty,
   onClose,
   onWorkoutPress,
+  onActivityPress,
   onNotePress,
 }: CalendarDaySheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
@@ -72,6 +79,7 @@ export default function CalendarDaySheet({
               key={calendarItemKey(item)}
               item={item}
               onWorkoutPress={onWorkoutPress}
+              onActivityPress={onActivityPress}
             />
           ))}
 

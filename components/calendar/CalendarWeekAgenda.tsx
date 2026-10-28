@@ -8,7 +8,11 @@ import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
-import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
+import {
+  type CalendarItemsByDate,
+  type UnplannedActivity,
+  calendarItemKey,
+} from '@/lib/calendarItems';
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import { formatNoteRange, formatNoteShortRange } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
@@ -26,6 +30,7 @@ export interface CalendarWeekAgendaProps {
   notes: Note[];
   onDayPress: (day: CalendarDay) => void;
   onWorkoutPress: (workout: CalendarWorkout) => void;
+  onActivityPress: (activity: UnplannedActivity) => void;
   onNotePress: (note: Note) => void;
 }
 
@@ -34,8 +39,9 @@ export interface CalendarWeekAgendaProps {
  * Sunday, each day's label followed by a chip per single-day Note and a card
  * per item — Workouts and Unplanned Activities in one list. Days a multi-day
  * Note covers get a stripe in its colour. Rest days show the label alone.
- * Tapping a banner or chip opens the Note, a Workout opens it, and tapping
- * elsewhere in the day, an Activity included, opens the day sheet.
+ * Tapping a banner or chip opens the Note, a Workout or an Activity opens
+ * it, and tapping elsewhere in the day, a Strava Activity included, opens the
+ * day sheet.
  */
 export default function CalendarWeekAgenda({
   week,
@@ -43,6 +49,7 @@ export default function CalendarWeekAgenda({
   notes,
   onDayPress,
   onWorkoutPress,
+  onActivityPress,
   onNotePress,
 }: CalendarWeekAgendaProps) {
   const labels = useCalendarLabels();
@@ -134,6 +141,7 @@ export default function CalendarWeekAgenda({
                     <CalendarItemTile
                       item={item}
                       onWorkoutPress={onWorkoutPress}
+                      onActivityPress={onActivityPress}
                     />
                   </Box>
                 ))}

@@ -21,7 +21,12 @@ export function intervalsCalendarEventPath(
   return `${intervalsCalendarEventsPath(athleteId)}/${eventId}`;
 }
 
-/** An Activity's GPS track. Activity ids aren't scoped by athlete. */
+/** One Activity. Activity ids aren't scoped by athlete. */
+export function intervalsActivityPath(activityId: string): string {
+  return `/activity/${activityId}`;
+}
+
+/** An Activity's GPS track. */
 export function intervalsActivityMapPath(activityId: string): string {
-  return `/activity/${activityId}/map`;
+  return `${intervalsActivityPath(activityId)}/map`;
 }

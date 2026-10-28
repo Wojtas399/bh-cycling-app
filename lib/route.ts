@@ -1,4 +1,9 @@
 import type { IntervalsActivity, IntervalsActivityMap } from './intervalsApi';
+import { isFiniteNumber } from './isFiniteNumber';
+import {
+  type LocalDateTimeString,
+  addSecondsToLocalDateTime,
+} from './localDateTime';
 
 /**
  * The GPS track of an Activity: where the athlete actually rode.
@@ -8,6 +13,27 @@ export interface Route {
   points: [lat: number, lng: number][];
   /** `[[minLat, minLng], [maxLat, maxLng]]`. */
   bounds: [[minLat: number, minLng: number], [maxLat: number, maxLng: number]];
+}
+
+/**
+ * An Activity's Route, as a details screen knows it before fetching: what the
+ * Route banner and the full-screen map need besides the Route itself.
+ */
+export interface RouteSummary {
+  /** The Activity's id, which keys the Route query. */
+  activityId: string;
+  /**
+   * The Activity's `distance` in m, the same value as its summary metrics.
+   * Absent when not finite.
+   */
+  distanceMeters?: number;
+  /** The Activity's `start_date_local`, a local date-time with no zone. */
+  startLocal: LocalDateTimeString;
+  /**
+   * Start + `elapsed_time` (stops included), the same local format. Absent
+   * when `elapsed_time` isn't a finite number.
+   */
+  finishLocal?: LocalDateTimeString;
 }
 
 /**
@@ -23,6 +49,36 @@ export function activityHasRoute(
     activity.trainer !== true &&
     activity.type !== 'VirtualRide'
   );
+}
+
+/**
+ * What a details screen's Route banner needs of an Activity, `null` when it
+ * has no Route (see `activityHasRoute`).
+ */
+export function summariseRoute(
+  activity: Pick<
+    IntervalsActivity,
+    | 'id'
+    | 'distance'
+    | 'start_date_local'
+    | 'elapsed_time'
+    | 'stream_types'
+    | 'trainer'
+    | 'type'
+  >,
+): RouteSummary | null {
+  if (!activityHasRoute(activity)) return null;
+
+  const { id, distance, start_date_local, elapsed_time } = activity;
+
+  return {
+    activityId: id,
+    ...(isFiniteNumber(distance) && { distanceMeters: distance }),
+    startLocal: start_date_local,
+    ...(isFiniteNumber(elapsed_time) && {
+      finishLocal: addSecondsToLocalDateTime(start_date_local, elapsed_time),
+    }),
+  };
 }
 
 /**

@@ -1,4 +1,9 @@
 import {
+  type ActivityDetails,
+  type StoredActivityDetails,
+  toStoredActivityDetails,
+} from './activityDetails';
+import {
   ACTIVITY_FIELDS,
   type CalendarData,
   type StoredMonth,
@@ -14,6 +19,7 @@ import {
   type IntervalsActivity,
   type IntervalsCalendarEvent,
   getActivities,
+  getActivity,
   getActivityMap,
   getAthleteSettings,
   getCalendarEvent,
@@ -72,6 +78,9 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
+  /** One Activity's details, by its intervals.icu id. */
+  activity: (athleteId: string | undefined, activityId: string) =>
+    [...intervalsKeys.athlete(athleteId), 'activity', activityId] as const,
   /**
    * One Activity's Route, by its intervals.icu id. The id is `null` only in
    * the key of a query skipped for want of one.
@@ -92,8 +101,9 @@ export async function removeIntervalsQueries(
 }
 
 /**
- * How a month and the upcoming workouts stay fresh: stale after 5 minutes,
- * then refetched when shown again or when the app returns to the foreground.
+ * How a month, the upcoming workouts and a Workout's or an Activity's details
+ * stay fresh: stale after 5 minutes, then refetched when shown again or when
+ * the app returns to the foreground.
  */
 const WORKOUTS_FRESHNESS = {
   staleTime: 5 * 60_000,
@@ -261,6 +271,42 @@ export function workoutDetailsQueryOptions(
             zoneConfig,
           };
         }
+      : skipToken,
+    select,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/** Derives a stored Activity's view model. */
+export type ActivityDetailsSelect = (
+  stored: StoredActivityDetails,
+) => ActivityDetails;
+
+/**
+ * One Activity, with its detected intervals, for Activity Details. The query
+ * stores the body trimmed to what the screen needs (see
+ * `toStoredActivityDetails`), never the whole of it; `select` builds the view
+ * model. Never reads from or writes into the month, upcoming or Workout
+ * Details caches. Fresh as long as a Workout's details. Skipped while there
+ * are no credentials.
+ */
+export function activityDetailsQueryOptions(
+  credentials: IntervalsCredentials | null,
+  activityId: string,
+  select: ActivityDetailsSelect,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.activity(credentials?.athleteId, activityId),
+    queryFn: credentials
+      ? async ({ signal }): Promise<StoredActivityDetails> =>
+          toStoredActivityDetails(
+            await getActivity(
+              credentials.accessToken,
+              activityId,
+              { intervals: true },
+              { signal },
+            ),
+          )
       : skipToken,
     select,
     ...WORKOUTS_FRESHNESS,

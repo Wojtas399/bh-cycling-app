@@ -10,22 +10,31 @@ import {
   workoutStatus,
 } from './workoutStatus';
 
-/**
- * An Activity paired to no Workout, per the `Unplanned Activity` glossary term
- * in CONTEXT.md. It has no Workout Status. Each metric is absent when
- * intervals.icu has none, zero included.
- */
-export interface UnplannedActivity {
+interface UnplannedActivityBase {
   id: string;
-  name: string;
-  /** intervals.icu's sport type, e.g. `Ride`, `VirtualRide`, `Run`. */
-  type: string;
   /** Local calendar date the Activity was recorded on, `YYYY-MM-DD`. */
   date: LocalDateString;
   durationSeconds?: number;
   distanceMeters?: number;
   load?: number;
 }
+
+/**
+ * An Activity paired to no Workout, per the `Unplanned Activity` glossary term
+ * in CONTEXT.md. It has no Workout Status. Each metric is absent when
+ * intervals.icu has none, zero included.
+ *
+ * A Strava Activity (see CONTEXT.md) is one intervals.icu can't share, so it
+ * has no name or sport type, and `isStravaActivity` tells it apart.
+ */
+export type UnplannedActivity =
+  | (UnplannedActivityBase & {
+      isStravaActivity?: false;
+      name: string;
+      /** intervals.icu's sport type, e.g. `Ride`, `VirtualRide`, `Run`. */
+      type: string;
+    })
+  | (UnplannedActivityBase & { isStravaActivity: true });
 
 /** One entry of a day's list: a Workout or an Unplanned Activity. */
 export type CalendarItem =
@@ -146,6 +155,10 @@ export function calendarItemKey(item: StoredCalendarItem): string {
     : `activity-${item.activity.id}`;
 }
 
+/**
+ * The list returns a Strava Activity without a `type` or `name`, so missing
+ * either (absent or `null`) marks one.
+ */
 function toUnplannedActivity({
   id,
   name,
@@ -155,15 +168,17 @@ function toUnplannedActivity({
   distance,
   icu_training_load,
 }: IntervalsActivity): UnplannedActivity {
-  return {
+  const activity: UnplannedActivityBase = {
     id,
-    name,
-    type,
     date: toDate(start_date_local),
     durationSeconds: positive(moving_time),
     distanceMeters: positive(distance),
     load: positive(icu_training_load),
   };
+
+  return name == null || type == null
+    ? { ...activity, isStravaActivity: true }
+    : { ...activity, name, type };
 }
 
 function positive(value: number | undefined): number | undefined {

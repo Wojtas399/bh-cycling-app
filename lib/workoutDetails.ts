@@ -1,13 +1,10 @@
+import { type ActivityMetric, summariseActivity } from './activitySummary';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
-import {
-  type LocalDateTimeString,
-  addSecondsToLocalDateTime,
-} from './localDateTime';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
-import { activityHasRoute } from './route';
+import { type RouteSummary, summariseRoute } from './route';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -47,7 +44,7 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
 
 /**
  * The Activity paired to the event, matched on `paired_event_id` only, as on
- * the Calendar: an Activity without it (a Strava stub) never pairs. When
+ * the Calendar: an Activity without it (a Strava Activity) never pairs. When
  * several are paired, the earliest ridden wins.
  */
 export function pairedActivity(
@@ -138,71 +135,8 @@ export interface WorkoutDetails {
    * What the Route banner needs, `null` in planned mode and whenever the
    * paired Activity has no Route (see `activityHasRoute`).
    */
-  route: WorkoutRouteSummary | null;
+  route: RouteSummary | null;
 }
-
-/** The paired Activity's Route, as Workout Details knows it before fetching. */
-export interface WorkoutRouteSummary {
-  /** The paired Activity's id, which keys the Route query. */
-  activityId: string;
-  /**
-   * The Activity's `distance` in m, the same value as the Wykonanie card.
-   * Absent when not finite.
-   */
-  distanceMeters?: number;
-  /** The Activity's `start_date_local`, a local date-time with no zone. */
-  startLocal: LocalDateTimeString;
-  /**
-   * Start + `elapsed_time` (stops included), the same local format. Absent
-   * when `elapsed_time` isn't a finite number.
-   */
-  finishLocal?: LocalDateTimeString;
-}
-
-/**
- * A summary metric of the paired Activity. Units as intervals.icu sends them:
- * times in s, distance and elevation in m, intensity in % (IF × 100), power
- * in W, heart rate in bpm, cadence in rpm, calories in kcal, speed in m/s and
- * the variability index as a ratio.
- */
-export type ActivityMetricKey =
-  | 'movingTime'
-  | 'distance'
-  | 'load'
-  | 'intensity'
-  | 'averagePower'
-  | 'normalizedPower'
-  | 'averageHeartRate'
-  | 'maxHeartRate'
-  | 'cadence'
-  | 'elevationGain'
-  | 'calories'
-  | 'averageSpeed'
-  | 'elapsedTime'
-  | 'variabilityIndex';
-
-export interface ActivityMetric {
-  metric: ActivityMetricKey;
-  value: number;
-}
-
-/** Where each Activity metric comes from, in display order. */
-const ACTIVITY_METRIC_FIELDS: [ActivityMetricKey, keyof IntervalsActivity][] = [
-  ['movingTime', 'moving_time'],
-  ['distance', 'distance'],
-  ['load', 'icu_training_load'],
-  ['intensity', 'icu_intensity'],
-  ['averagePower', 'icu_average_watts'],
-  ['normalizedPower', 'icu_weighted_avg_watts'],
-  ['averageHeartRate', 'average_heartrate'],
-  ['maxHeartRate', 'max_heartrate'],
-  ['cadence', 'average_cadence'],
-  ['elevationGain', 'total_elevation_gain'],
-  ['calories', 'calories'],
-  ['averageSpeed', 'average_speed'],
-  ['elapsedTime', 'elapsed_time'],
-  ['variabilityIndex', 'icu_variability_index'],
-];
 
 /** A metric with the same meaning and unit on the plan and the Activity. */
 export type ComparisonMetric = 'duration' | 'load' | 'intensity' | 'work';
@@ -253,32 +187,6 @@ export function buildWorkoutDetails(
     ...notes(event),
     route: activity ? summariseRoute(activity) : null,
   };
-}
-
-function summariseRoute(
-  activity: IntervalsActivity,
-): WorkoutRouteSummary | null {
-  if (!activityHasRoute(activity)) return null;
-
-  const { id, distance, start_date_local, elapsed_time } = activity;
-
-  return {
-    activityId: id,
-    ...(isFiniteNumber(distance) && { distanceMeters: distance }),
-    startLocal: start_date_local,
-    ...(isFiniteNumber(elapsed_time) && {
-      finishLocal: addSecondsToLocalDateTime(start_date_local, elapsed_time),
-    }),
-  };
-}
-
-/** The Activity's summary metrics it actually has; absent ones are dropped. */
-function summariseActivity(activity: IntervalsActivity): ActivityMetric[] {
-  return ACTIVITY_METRIC_FIELDS.flatMap(([metric, field]) => {
-    const value = activity[field];
-
-    return isFiniteNumber(value) ? [{ metric, value }] : [];
-  });
 }
 
 function toKj(joules: number | undefined): number | undefined {

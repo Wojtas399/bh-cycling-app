@@ -8,10 +8,11 @@ import CalendarItemTile from '@/components/CalendarItemTile';
 import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
-import { useOpenWorkoutDetails } from '@/components/workout/useOpenWorkoutDetails';
 import { useAppTheme } from '@/constants/theme';
+import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
+import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { availability, query } = useUpcomingWorkouts();
   const openWorkout = useOpenWorkoutDetails();
+  const openActivity = useOpenActivityDetails();
   const notes = useMemo(
     () =>
       query.data?.flatMap((item): Note[] =>
@@ -74,6 +76,7 @@ export default function HomeScreen() {
               item={item}
               dayLabel={t(item.dayLabel)}
               onWorkoutPress={workout => openWorkout(workout.id)}
+              onActivityPress={activity => openActivity(activity.id)}
             />
           )}
         </Box>
