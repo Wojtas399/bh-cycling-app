@@ -2,12 +2,7 @@ import { workoutStatus } from '../workoutStatus';
 
 describe('workoutStatus', () => {
   const TODAY = '2026-07-25';
-  const workout = (id: number, date: string) => ({
-    id,
-    name: 'Ride',
-    date,
-    blocks: [],
-  });
+  const workout = (id: number, date: string) => ({ id, date });
 
   it('is completed when the workout id is in the completed set', () => {
     expect(workoutStatus(workout(1, '2026-07-20'), new Set([1]), TODAY)).toBe(

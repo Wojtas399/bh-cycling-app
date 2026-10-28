@@ -41,6 +41,7 @@ export default function CalendarItemTile({
       status={workout.status}
       durationSeconds={workout.durationSeconds}
       blocks={workout.blocks}
+      completedWithStravaActivity={workout.completedWithStravaActivity}
       onPress={() => onWorkoutPress(workout)}
     />
   );

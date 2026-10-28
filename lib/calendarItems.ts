@@ -125,6 +125,8 @@ export function joinCalendarItems(
           date: paired ? toDate(paired.start_date_local) : date,
           durationSeconds: plannedDurationSeconds(event),
           blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
+          completedWithStravaActivity:
+            paired != null && isStravaActivity(paired),
         },
       },
     };
@@ -158,26 +160,28 @@ export function calendarItemKey(item: StoredCalendarItem): string {
  * The list returns a Strava Activity without a `type` or `name`, so missing
  * either (absent or `null`) marks one.
  */
-function toUnplannedActivity({
-  id,
-  name,
-  type,
-  start_date_local,
-  moving_time,
-  distance,
-  icu_training_load,
-}: IntervalsActivity): UnplannedActivity {
+export function isStravaActivity(activity: IntervalsActivity): boolean {
+  return !hasNameAndType(activity);
+}
+
+function hasNameAndType(
+  activity: IntervalsActivity,
+): activity is IntervalsActivity & { name: string; type: string } {
+  return activity.name != null && activity.type != null;
+}
+
+function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
   const activity: UnplannedActivityBase = {
-    id,
-    date: toDate(start_date_local),
-    durationSeconds: positive(moving_time),
-    distanceMeters: positive(distance),
-    load: positive(icu_training_load),
+    id: source.id,
+    date: toDate(source.start_date_local),
+    durationSeconds: positive(source.moving_time),
+    distanceMeters: positive(source.distance),
+    load: positive(source.icu_training_load),
   };
 
-  return name == null || type == null
-    ? { ...activity, isStravaActivity: true }
-    : { ...activity, name, type };
+  return hasNameAndType(source)
+    ? { ...activity, name: source.name, type: source.type }
+    : { ...activity, isStravaActivity: true };
 }
 
 function positive(value: number | undefined): number | undefined {

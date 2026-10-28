@@ -1,4 +1,5 @@
 import { type ActivityMetric, summariseActivity } from './activitySummary';
+import { isStravaActivity } from './calendarItems';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
@@ -173,7 +174,7 @@ export function buildWorkoutDetails(
   const date = event.start_date_local.slice(0, 10);
   const blocks = buildWorkoutProfile(event.workout_doc?.steps, zoneConfig);
   const status = workoutStatus(
-    { id: event.id, name: event.name, date, blocks },
+    { id: event.id, date },
     new Set(completed ? [event.id] : []),
     today,
   );
@@ -195,14 +196,6 @@ export function buildWorkoutDetails(
     ...notes(event),
     route: measured ? summariseRoute(measured) : null,
   };
-}
-
-/**
- * intervals.icu sends a Strava Activity without a `type`, as Activity Details
- * also tells it apart.
- */
-function isStravaActivity({ type }: IntervalsActivity): boolean {
-  return type == null;
 }
 
 function toKj(joules: number | undefined): number | undefined {

@@ -213,6 +213,7 @@ describe('useCalendarRange', () => {
           date: today,
           status: 'planned',
           blocks: [],
+          completedWithStravaActivity: false,
         },
       },
     ]);
@@ -336,6 +337,7 @@ describe('useCalendarRange', () => {
           date: today,
           status: 'planned',
           blocks: [],
+          completedWithStravaActivity: false,
         },
       },
       {

@@ -5,7 +5,14 @@ import type { Note } from '../notes';
 function workout(id: number, date: string): CalendarItem {
   return {
     kind: 'workout',
-    workout: { id, name: `Workout ${id}`, date, status: 'planned', blocks: [] },
+    workout: {
+      id,
+      name: `Workout ${id}`,
+      date,
+      status: 'planned',
+      blocks: [],
+      completedWithStravaActivity: false,
+    },
   };
 }
 
