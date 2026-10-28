@@ -40,7 +40,7 @@ import {
   WORKOUT_DETAILS_ACTIVITY_FIELDS,
   type WorkoutDetails,
   buildWorkoutDetails,
-  pairedActivity,
+  pairWorkout,
 } from './workoutDetails';
 import {
   type QueryClient,
@@ -228,12 +228,14 @@ export function selectWorkoutDetailsAsOf(
 }
 
 /**
- * One Workout with the Activity paired to it. The event is fetched first,
- * since the activities window is centred on its date. The query stores no
- * status; `select` (see `selectWorkoutDetailsAsOf`) derives it, so a planned
- * Workout turns missed at midnight without a fetch. Never reads from or
- * writes into the month or upcoming caches. Skipped while there are no
- * credentials.
+ * One Workout with how it is paired. The single event read lacks
+ * `paired_activity_id` (#191), so it only dates the Workout: the event itself
+ * is then taken from that day's Workouts list, which carries it, alongside the
+ * Activities a pairing window around the day. Should the list lack the event,
+ * the single read stands in. The query stores no status; `select` (see
+ * `selectWorkoutDetailsAsOf`) derives it, so a planned Workout turns missed at
+ * midnight without a fetch. Never reads from or writes into the month or
+ * upcoming caches. Skipped while there are no credentials.
  */
 export function workoutDetailsQueryOptions(
   credentials: IntervalsCredentials | null,
@@ -244,18 +246,26 @@ export function workoutDetailsQueryOptions(
     queryKey: intervalsKeys.workout(credentials?.athleteId, eventId),
     queryFn: credentials
       ? async ({ signal, client }): Promise<StoredWorkoutDetails> => {
+          const { accessToken, athleteId } = credentials;
           const zoneConfigPromise = fetchZoneConfig(client, credentials);
-          const event = await getCalendarEvent(
-            credentials.accessToken,
-            credentials.athleteId,
+          const single = await getCalendarEvent(
+            accessToken,
+            athleteId,
             eventId,
             { signal },
           );
-          const date = fromLocalDateString(event.start_date_local.slice(0, 10));
-          const [activities, zoneConfig] = await Promise.all([
+          const day = single.start_date_local.slice(0, 10);
+          const date = fromLocalDateString(day);
+          const [listed, activities, zoneConfig] = await Promise.all([
+            getCalendarEvents(
+              accessToken,
+              athleteId,
+              { oldest: day, newest: day, category: EVENT_CATEGORY.workout },
+              { signal },
+            ),
             getActivities(
-              credentials.accessToken,
-              credentials.athleteId,
+              accessToken,
+              athleteId,
               {
                 ...pairingWindow(date, date),
                 fields: WORKOUT_DETAILS_ACTIVITY_FIELDS,
@@ -264,12 +274,9 @@ export function workoutDetailsQueryOptions(
             ),
             zoneConfigPromise,
           ]);
+          const event = listed.find(({ id }) => id === eventId) ?? single;
 
-          return {
-            event,
-            activity: pairedActivity(activities, eventId),
-            zoneConfig,
-          };
+          return { event, ...pairWorkout(event, activities), zoneConfig };
         }
       : skipToken,
     select,

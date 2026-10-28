@@ -2,7 +2,11 @@ import { type ActivityMetric, summariseActivity } from './activitySummary';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
-import { pairWorkouts } from './pairing';
+import {
+  type PairableEvent,
+  type WorkoutPairing,
+  pairWorkouts,
+} from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
@@ -44,36 +48,35 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
 ].join(',');
 
 /**
- * The Activity paired to the event, by the shared rule in `pairWorkouts`, read
- * from the Activity's side only for now: an Activity without
- * `paired_event_id` (a Strava Activity) never pairs here yet. When several
- * are paired, the earliest wins.
+ * How the event is paired, by the shared rule in `pairWorkouts`: from either
+ * side, the earliest paired Activity winning. Completed even when the
+ * Activity the event names isn't among `activities`.
  */
-export function pairedActivity(
+export function pairWorkout(
+  event: PairableEvent,
   activities: IntervalsActivity[],
-  eventId: number,
-): IntervalsActivity | null {
+): WorkoutPairing {
   return (
-    pairWorkouts([{ id: eventId }], activities).byEventId.get(eventId)
-      ?.activity ?? null
+    pairWorkouts([event], activities).byEventId.get(event.id) ?? {
+      completed: false,
+      activity: null,
+    }
   );
 }
 
 /**
- * What the Workout Details query stores: the event, the Activity paired to it
- * (if any) and the zones to colour it by. Status-free, because the Workout
- * Status depends on today; `buildWorkoutDetails` derives it when read.
+ * What the Workout Details query stores: the event, how it is paired and the
+ * zones to colour it by. Status-free, because the Workout Status depends on
+ * today; `buildWorkoutDetails` derives it when read.
  */
-export interface StoredWorkoutDetails {
+export interface StoredWorkoutDetails extends WorkoutPairing {
   event: IntervalsCalendarEvent;
-  /** The earliest Activity paired to the event, `null` when none is. */
-  activity: IntervalsActivity | null;
   zoneConfig: ZoneConfig;
 }
 
 /**
- * `planned` for a Workout without a paired Activity (Workout Status `planned`
- * or `missed`), `completed` for one with.
+ * `planned` for an unpaired Workout (Workout Status `planned` or `missed`),
+ * `completed` for a paired one.
  */
 export type WorkoutDetailsMode = 'planned' | 'completed';
 
@@ -117,9 +120,13 @@ export interface WorkoutDetails {
   profileSummary: WorkoutProfileSummary | null;
   /** The Kroki tree: the doc's steps in order, repeats nested. */
   steps: WorkoutDetailsStep[];
-  /** Plan vs wykonanie, `null` in planned mode. */
+  /**
+   * Plan vs wykonanie, `null` in planned mode and whenever there are no
+   * Activity numbers to compare: its Activity is a Strava Activity or isn't
+   * among those fetched.
+   */
   comparison: WorkoutComparison | null;
-  /** The Activity's summary metrics, `null` in planned mode. */
+  /** The Activity's summary metrics, `null` exactly when `comparison` is. */
   activityMetrics: ActivityMetric[] | null;
   /** What the plan asks for, shown in planned mode. */
   planMetrics: WorkoutPlanMetrics;
@@ -129,8 +136,9 @@ export interface WorkoutDetails {
    */
   description?: string;
   /**
-   * What the Route banner needs, `null` in planned mode and whenever the
-   * paired Activity has no Route (see `activityHasRoute`).
+   * What the Route banner needs, `null` without Activity numbers (see
+   * `comparison`) and whenever the paired Activity has no Route (see
+   * `activityHasRoute`).
    */
   route: RouteSummary | null;
 }
@@ -159,16 +167,19 @@ export interface WorkoutComparison {
 
 /** Builds the view model of a stored Workout as of `today`. */
 export function buildWorkoutDetails(
-  { event, activity, zoneConfig }: StoredWorkoutDetails,
+  { event, completed, activity, zoneConfig }: StoredWorkoutDetails,
   today: LocalDateString,
 ): WorkoutDetails {
   const date = event.start_date_local.slice(0, 10);
   const blocks = buildWorkoutProfile(event.workout_doc?.steps, zoneConfig);
   const status = workoutStatus(
     { id: event.id, name: event.name, date, blocks },
-    new Set(activity ? [event.id] : []),
+    new Set(completed ? [event.id] : []),
     today,
   );
+  // A Strava Activity carries no numbers to show (intervals.icu can't share
+  // it), so it gets no empty cards.
+  const measured = activity && !isStravaActivity(activity) ? activity : null;
 
   return {
     mode: status === 'completed' ? 'completed' : 'planned',
@@ -178,12 +189,20 @@ export function buildWorkoutDetails(
     blocks,
     profileSummary: summariseProfile(event, blocks),
     steps: buildWorkoutSteps(event.workout_doc?.steps, zoneConfig),
-    comparison: activity ? compareWithPlan(event, activity) : null,
-    activityMetrics: activity ? summariseActivity(activity) : null,
+    comparison: measured ? compareWithPlan(event, measured) : null,
+    activityMetrics: measured ? summariseActivity(measured) : null,
     planMetrics: buildPlanMetrics(event),
     ...notes(event),
-    route: activity ? summariseRoute(activity) : null,
+    route: measured ? summariseRoute(measured) : null,
   };
+}
+
+/**
+ * intervals.icu sends a Strava Activity without a `type`, as Activity Details
+ * also tells it apart.
+ */
+function isStravaActivity({ type }: IntervalsActivity): boolean {
+  return type == null;
 }
 
 function toKj(joules: number | undefined): number | undefined {

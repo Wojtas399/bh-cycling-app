@@ -8,6 +8,7 @@ import {
   getActivities,
   getAthleteSettings,
   getCalendarEvent,
+  getCalendarEvents,
 } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
@@ -26,6 +27,7 @@ jest.mock('@/hooks/useToday', () => ({
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getCalendarEvent: jest.fn(),
+  getCalendarEvents: jest.fn(),
   getActivities: jest.fn(),
   getAthleteSettings: jest.fn(),
 }));
@@ -37,6 +39,7 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
 const mockUseToday = useToday as jest.Mock;
 const mockGetCalendarEvent = getCalendarEvent as jest.Mock;
+const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
@@ -101,6 +104,7 @@ describe('useWorkoutDetails', () => {
     mockUseToday.mockReturnValue(TODAY);
     mockGetAthleteSettings.mockResolvedValue({});
     mockGetActivities.mockResolvedValue([]);
+    mockGetCalendarEvents.mockResolvedValue([]);
   });
 
   describe('availability gate', () => {
@@ -227,11 +231,94 @@ describe('useWorkoutDetails', () => {
       );
     });
 
-    it('never pairs an Activity without paired_event_id, such as a Strava Activity', async () => {
+    // The single read lacks `paired_activity_id` (#191), so the event is
+    // read from its day's events list.
+    it('is completed by a Strava Activity the event names, read from the events list', async () => {
       mockConnected();
-      mockGetCalendarEvent.mockResolvedValue(
-        event({ start_date_local: '2026-10-16T08:00:00' }),
+      const planned = event({ start_date_local: '2026-10-16T00:00:00' });
+
+      mockGetCalendarEvent.mockResolvedValue(planned);
+      mockGetCalendarEvents.mockResolvedValue([
+        event({ id: 7, start_date_local: '2026-10-16T00:00:00' }),
+        { ...planned, paired_activity_id: '20664018356' },
+      ]);
+      mockGetActivities.mockResolvedValue([
+        { id: '20664018356', start_date_local: '2026-10-16T15:05:00' },
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          status: 'completed',
+          comparison: null,
+          activityMetrics: null,
+          route: null,
+        }),
       );
+    });
+
+    it('is completed when the Activity the event names is outside the fetched range', async () => {
+      mockConnected();
+      const planned = event({ start_date_local: '2026-10-16T00:00:00' });
+
+      mockGetCalendarEvent.mockResolvedValue(planned);
+      mockGetCalendarEvents.mockResolvedValue([
+        { ...planned, paired_activity_id: 'i999' },
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          status: 'completed',
+          date: '2026-10-16',
+          comparison: null,
+          activityMetrics: null,
+          route: null,
+        }),
+      );
+    });
+
+    it('keeps a native pairing recorded on both sides as before', async () => {
+      mockConnected();
+      const planned = event();
+
+      mockGetCalendarEvent.mockResolvedValue(planned);
+      mockGetCalendarEvents.mockResolvedValue([
+        { ...planned, paired_activity_id: 'i1' },
+      ]);
+      mockGetActivities.mockResolvedValue([
+        activity({
+          paired_event_id: EVENT_ID,
+          icu_training_load: 60,
+          stream_types: ['latlng'],
+        }),
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          status: 'completed',
+          comparison: expect.objectContaining({ rows: expect.any(Array) }),
+          activityMetrics: expect.arrayContaining([
+            expect.objectContaining({ metric: 'load', value: 60 }),
+          ]),
+          route: expect.objectContaining({ activityId: 'i1' }),
+        }),
+      );
+    });
+
+    it('never pairs an Activity that neither names the event nor is named by it', async () => {
+      mockConnected();
+      const planned = event({ start_date_local: '2026-10-16T08:00:00' });
+
+      mockGetCalendarEvent.mockResolvedValue(planned);
+      mockGetCalendarEvents.mockResolvedValue([planned]);
       mockGetActivities.mockResolvedValue([
         activity({ start_date_local: '2026-10-16T09:00:00' }),
         activity({ id: 'i2', paired_event_id: 7 }),
@@ -313,6 +400,49 @@ describe('useWorkoutDetails', () => {
       expect(fields).toEqual(
         expect.arrayContaining(['id', 'start_date_local', 'paired_event_id']),
       );
+    });
+  });
+
+  describe('events list', () => {
+    it("reads the Workouts listed on the event's local day", async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(
+        event({ start_date_local: '2026-11-02T08:00:00' }),
+      );
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+        'token-1',
+        'athlete-1',
+        { oldest: '2026-11-02', newest: '2026-11-02', category: 'WORKOUT' },
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
+    it('falls back to the single read when the list lacks the event', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event({ name: 'Single read' }));
+      mockGetCalendarEvents.mockResolvedValue([
+        event({ id: 7, name: 'Another Workout' }),
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data?.title).toBe('Single read'),
+      );
+    });
+
+    it('fails when the events list fails', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event());
+      mockGetCalendarEvents.mockRejectedValue(new IntervalsApiError(500));
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
     });
   });
 
