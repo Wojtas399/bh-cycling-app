@@ -2,6 +2,7 @@ import { type ActivityMetric, summariseActivity } from './activitySummary';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
+import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
@@ -43,23 +44,19 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
 ].join(',');
 
 /**
- * The Activity paired to the event, matched on `paired_event_id` only, as on
- * the Calendar: an Activity without it (a Strava Activity) never pairs. When
- * several are paired, the earliest ridden wins.
+ * The Activity paired to the event, by the shared rule in `pairWorkouts`, read
+ * from the Activity's side only for now: an Activity without
+ * `paired_event_id` (a Strava Activity) never pairs here yet. When several
+ * are paired, the earliest wins.
  */
 export function pairedActivity(
   activities: IntervalsActivity[],
   eventId: number,
 ): IntervalsActivity | null {
-  return activities
-    .filter(activity => activity.paired_event_id === eventId)
-    .reduce<IntervalsActivity | null>(
-      (earliest, activity) =>
-        earliest && earliest.start_date_local <= activity.start_date_local
-          ? earliest
-          : activity,
-      null,
-    );
+  return (
+    pairWorkouts([{ id: eventId }], activities).byEventId.get(eventId)
+      ?.activity ?? null
+  );
 }
 
 /**

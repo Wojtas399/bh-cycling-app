@@ -1,6 +1,7 @@
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
+import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { buildWorkoutProfile } from './workoutProfile';
@@ -65,13 +66,13 @@ interface SortableItem {
 }
 
 /**
- * Joins calendar events against Activities on the `paired_event_id` link
- * intervals.icu sets when an Activity fulfils a planned event. Primary-key
- * matching only — an Activity lacking the pairing field is never matched by
- * date/type fallback, an accepted v1 gap.
+ * Joins calendar events against Activities with the pairing rule in
+ * `pairWorkouts` (ADR 0009): a Workout and an Activity are paired when either
+ * names the other. Primary-key matching only — never by date or type.
  *
- * A paired Workout and its Activity are one item on the Activity's day, as on
- * Intervals.icu; with several Activities paired, the earliest sets the day.
+ * A paired Workout and its Activities are one item on the earliest
+ * Activity's day, as on Intervals.icu (ADR 0007). A Workout whose event names
+ * an Activity outside `activities` is still completed, on its planned day.
  * Every other Activity is an Unplanned Activity — including one paired to an
  * event not among `events` (a race, or a Workout outside the fetched window),
  * so it still shows once rather than vanishing.
@@ -83,34 +84,36 @@ export function joinCalendarItems(
   activities: IntervalsActivity[],
   zoneConfig: ZoneConfig,
 ): JoinedCalendarItems {
+  const workoutEvents = toSortedDatedWorkoutEvents(events);
+  const { byEventId, pairedActivityIds } = pairWorkouts(
+    workoutEvents.map(({ event }) => event),
+    activities,
+  );
+
+  // An Activity naming an event outside `events` still counts it completed,
+  // as before ADR 0009.
   const completedEventIds = [
-    ...new Set(
-      activities
+    ...new Set([
+      ...activities
         .map(activity => activity.paired_event_id)
         .filter((id): id is number => typeof id === 'number'),
-    ),
+      ...[...byEventId]
+        .filter(([, pairing]) => pairing.completed)
+        .map(([id]) => id),
+    ]),
   ];
 
-  const workoutEvents = toSortedDatedWorkoutEvents(events);
-  const workoutIds = new Set(workoutEvents.map(({ event }) => event.id));
-  const pairedActivities = new Map<number, IntervalsActivity>();
-  const unplanned: SortableItem[] = [];
-
-  for (const activity of [...activities].sort(byStart)) {
-    const eventId = activity.paired_event_id;
-
-    if (eventId === undefined || !workoutIds.has(eventId)) {
-      unplanned.push({
+  const unplanned = activities
+    .filter(activity => !pairedActivityIds.has(activity.id))
+    .map(
+      (activity): SortableItem => ({
         start: activity.start_date_local,
         item: { kind: 'activity', activity: toUnplannedActivity(activity) },
-      });
-    } else if (!pairedActivities.has(eventId)) {
-      pairedActivities.set(eventId, activity);
-    }
-  }
+      }),
+    );
 
   const workouts = workoutEvents.map(({ event, date }): SortableItem => {
-    const paired = pairedActivities.get(event.id);
+    const paired = byEventId.get(event.id)?.activity;
 
     return {
       start: paired?.start_date_local ?? event.start_date_local,
@@ -133,10 +136,6 @@ export function joinCalendarItems(
     .map(({ item }) => item);
 
   return { items, completedEventIds };
-}
-
-function byStart(a: IntervalsActivity, b: IntervalsActivity): number {
-  return a.start_date_local.localeCompare(b.start_date_local);
 }
 
 function toDate(startDateLocal: string): LocalDateString {
