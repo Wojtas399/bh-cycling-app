@@ -165,7 +165,7 @@ export function buildWorkoutDetails(
   const date = event.start_date_local.slice(0, 10);
   const blocks = buildWorkoutProfile(event.workout_doc?.steps, zoneConfig);
   const status = workoutStatus(
-    { id: event.id, name: event.name, date, blocks },
+    { id: event.id, date },
     new Set(activity ? [event.id] : []),
     today,
   );
