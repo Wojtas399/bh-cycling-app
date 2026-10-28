@@ -1,12 +1,15 @@
 import { type ActivityMetric, summariseActivity } from './activitySummary';
+import { isCyclingWorkout } from './cyclingWorkout';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
+import { stripNoteHtml } from './stripNoteHtml';
 import {
   type WorkoutBlock,
+  type WorkoutStep,
   buildWorkoutProfile,
   profileCeilingPct,
 } from './workoutProfile';
@@ -111,6 +114,11 @@ export interface WorkoutPlanMetrics {
 export interface WorkoutDetails {
   mode: WorkoutDetailsMode;
   status: WorkoutStatus;
+  /**
+   * See `isCyclingWorkout`. A non-cycling Workout has no steps, profile or
+   * planned work, and its description is its content.
+   */
+  isCyclingWorkout: boolean;
   title: string;
   /** Local calendar date the Workout is scheduled on, `YYYY-MM-DD`. */
   date: LocalDateString;
@@ -127,8 +135,9 @@ export interface WorkoutDetails {
   /** What the plan asks for, shown in planned mode. */
   planMetrics: WorkoutPlanMetrics;
   /**
-   * The Workout's free-text notes, trimmed, without the builder's step lines.
-   * Absent when there are none.
+   * The Workout's notes as Note Markdown, HTML stripped and trimmed: a ride's
+   * free text without the builder's step lines, or a non-cycling Workout's
+   * whole description. Absent when there are none.
    */
   description?: string;
   /**
@@ -166,7 +175,8 @@ export function buildWorkoutDetails(
   today: LocalDateString,
 ): WorkoutDetails {
   const date = event.start_date_local.slice(0, 10);
-  const blocks = buildWorkoutProfile(event.workout_doc?.steps, zoneConfig);
+  const steps = rideSteps(event);
+  const blocks = buildWorkoutProfile(steps, zoneConfig);
   const status = workoutStatus(
     { id: event.id, name: event.name, date, blocks },
     new Set(activity ? [event.id] : []),
@@ -176,11 +186,12 @@ export function buildWorkoutDetails(
   return {
     mode: status === 'completed' ? 'completed' : 'planned',
     status,
+    isCyclingWorkout: isCyclingWorkout(event),
     title: event.name,
     date,
     blocks,
     profileSummary: summariseProfile(event, blocks),
-    steps: buildWorkoutSteps(event.workout_doc?.steps, zoneConfig),
+    steps: buildWorkoutSteps(steps, zoneConfig),
     comparison: activity ? compareWithPlan(event, activity) : null,
     activityMetrics: activity ? summariseActivity(activity) : null,
     planMetrics: buildPlanMetrics(event),
@@ -189,8 +200,21 @@ export function buildWorkoutDetails(
   };
 }
 
+/**
+ * The doc's steps, only for a Cycling Workout: on any other, intervals.icu's
+ * ride-step parser has taken lines of the plan for steps, so they mean nothing.
+ */
+function rideSteps(event: IntervalsCalendarEvent): WorkoutStep[] | undefined {
+  return isCyclingWorkout(event) ? event.workout_doc?.steps : undefined;
+}
+
 function toKj(joules: number | undefined): number | undefined {
   return isFiniteNumber(joules) ? joules / 1000 : undefined;
+}
+
+/** Comes from the same step parse, so only a Cycling Workout has it. */
+function plannedWorkKj(event: IntervalsCalendarEvent): number | undefined {
+  return isCyclingWorkout(event) ? toKj(event.joules) : undefined;
 }
 
 function compareWithPlan(
@@ -201,7 +225,7 @@ function compareWithPlan(
     ['duration', plannedDurationSeconds(event), activity.moving_time],
     ['load', event.icu_training_load, activity.icu_training_load],
     ['intensity', event.icu_intensity, activity.icu_intensity],
-    ['work', toKj(event.joules), toKj(activity.icu_joules)],
+    ['work', plannedWorkKj(event), toKj(activity.icu_joules)],
   ];
 
   const rows = pairs.flatMap(([metric, planned, actual]) =>
@@ -222,11 +246,16 @@ function compareWithPlan(
 }
 
 /**
- * `workout_doc.description` is the free text alone; the event's own
- * `description` also carries the step lines, so it is never used.
+ * A ride's `workout_doc.description` is the free text alone, since its own
+ * `description` also carries the step lines. A non-cycling Workout's step
+ * parse eats every line with a duration or a %, so its own `description` is
+ * the one that holds the whole plan.
  */
 function notes(event: IntervalsCalendarEvent): { description?: string } {
-  const description = event.workout_doc?.description?.trim();
+  const text = isCyclingWorkout(event)
+    ? event.workout_doc?.description
+    : event.description;
+  const description = text && stripNoteHtml(text).trim();
 
   return description ? { description } : {};
 }
@@ -254,8 +283,7 @@ function summariseProfile(
 }
 
 function buildPlanMetrics(event: IntervalsCalendarEvent): WorkoutPlanMetrics {
-  const { icu_training_load, icu_intensity, joules, distance, workout_doc } =
-    event;
+  const { icu_training_load, icu_intensity, distance, workout_doc } = event;
   const distanceMeters = [distance, workout_doc?.distance].find(
     metres => isFiniteNumber(metres) && metres > 0,
   );
@@ -264,7 +292,7 @@ function buildPlanMetrics(event: IntervalsCalendarEvent): WorkoutPlanMetrics {
     durationSeconds: plannedDurationSeconds(event),
     load: icu_training_load,
     intensityPct: icu_intensity,
-    workKj: toKj(joules),
+    workKj: plannedWorkKj(event),
     distanceMeters,
   });
 }

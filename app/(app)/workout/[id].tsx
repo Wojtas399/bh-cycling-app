@@ -97,8 +97,10 @@ export default function WorkoutDetailsScreen() {
 }
 
 /**
- * The loaded Workout, Variant A: hero, then stacked cards. The mode-specific
- * metrics, Kroki and Opis cards slot in below the profile.
+ * The loaded Workout, Variant A: hero, then stacked cards. On a Cycling
+ * Workout the mode-specific metrics, Kroki and Opis cards slot in below the
+ * profile. A non-cycling Workout's description is its content, so Opis leads,
+ * straight under the hero.
  */
 function WorkoutDetailsContent({
   eventId,
@@ -107,6 +109,10 @@ function WorkoutDetailsContent({
   eventId: string;
   details: WorkoutDetails;
 }) {
+  const description = details.description !== undefined && (
+    <WorkoutDescriptionCard description={details.description} />
+  );
+
   return (
     <Box gap="md">
       {/* `route` is `null` in planned mode. */}
@@ -122,6 +128,8 @@ function WorkoutDetailsContent({
         title={details.title}
         date={details.date}
       />
+
+      {!details.isCyclingWorkout && description}
 
       {details.profileSummary && (
         <WorkoutDetailsCard>
@@ -145,9 +153,7 @@ function WorkoutDetailsContent({
 
       {details.steps.length > 0 && <KrokiCard steps={details.steps} />}
 
-      {details.description !== undefined && (
-        <WorkoutDescriptionCard description={details.description} />
-      )}
+      {details.isCyclingWorkout && description}
     </Box>
   );
 }

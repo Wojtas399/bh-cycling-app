@@ -1,3 +1,4 @@
+import { isCyclingWorkout } from './cyclingWorkout';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
@@ -121,7 +122,9 @@ export function joinCalendarItems(
           name: event.name,
           date: paired ? toDate(paired.start_date_local) : date,
           durationSeconds: plannedDurationSeconds(event),
-          blocks: buildWorkoutProfile(event.workout_doc?.steps, zoneConfig),
+          blocks: isCyclingWorkout(event)
+            ? buildWorkoutProfile(event.workout_doc?.steps, zoneConfig)
+            : [],
         },
       },
     };

@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
 
-import Text from '@/components/Text';
+import NoteMarkdown from '@/components/NoteMarkdown';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 
 export interface WorkoutDescriptionCardProps {
-  /** The Workout's free-text notes. */
+  /** The Workout's notes, as Note Markdown with any HTML already stripped. */
   description: string;
 }
 
-/** The Opis card: the Workout's free-text notes, in both modes. */
+/** The Opis card: the Workout's notes rendered as Markdown, in both modes. */
 export default function WorkoutDescriptionCard({
   description,
 }: WorkoutDescriptionCardProps) {
@@ -16,7 +16,7 @@ export default function WorkoutDescriptionCard({
 
   return (
     <WorkoutDetailsCard title={t('description')}>
-      <Text variant="body-s-regular">{description}</Text>
+      <NoteMarkdown text={description} />
     </WorkoutDetailsCard>
   );
 }
