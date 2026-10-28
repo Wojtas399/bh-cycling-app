@@ -45,7 +45,7 @@ A free-text entry on the athlete's Intervals.icu calendar, for a single day or a
 _Avoid_: Comment, Workout description
 
 **Note Markdown**:
-A Note's text rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
+A Note's text, or a Workout's description on Workout Details, rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
 _Avoid_: Note HTML, Rich Text
 
 **Sign-in Method**:

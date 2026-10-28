@@ -110,7 +110,7 @@ function WorkoutDetailsContent({
   details: WorkoutDetails;
 }) {
   const description = details.description !== undefined && (
-    <WorkoutDescriptionCard description={details.description} />
+    <WorkoutDescriptionCard description={details.description} markdown />
   );
 
   return (

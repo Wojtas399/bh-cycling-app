@@ -1,5 +1,5 @@
 import { type ActivityMetric, summariseActivity } from './activitySummary';
-import { isCyclingWorkout } from './cyclingWorkout';
+import { isCyclingWorkout, rideSteps } from './cyclingWorkout';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
@@ -9,7 +9,6 @@ import { type RouteSummary, summariseRoute } from './route';
 import { stripNoteHtml } from './stripNoteHtml';
 import {
   type WorkoutBlock,
-  type WorkoutStep,
   buildWorkoutProfile,
   profileCeilingPct,
 } from './workoutProfile';
@@ -198,14 +197,6 @@ export function buildWorkoutDetails(
     ...notes(event),
     route: activity ? summariseRoute(activity) : null,
   };
-}
-
-/**
- * The doc's steps, only for a Cycling Workout: on any other, intervals.icu's
- * ride-step parser has taken lines of the plan for steps, so they mean nothing.
- */
-function rideSteps(event: IntervalsCalendarEvent): WorkoutStep[] | undefined {
-  return isCyclingWorkout(event) ? event.workout_doc?.steps : undefined;
 }
 
 function toKj(joules: number | undefined): number | undefined {
