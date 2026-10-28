@@ -6,7 +6,7 @@ Accepted. Supersedes the parts of ADR-0007 that join only on the Activity's `pai
 
 ## Context
 
-The athlete pairs a Workout to a Strava Activity on Intervals.icu, but the app showed the Workout as missed and the Strava Activity as a separate blank Unplanned Activity (#186). Intervals.icu stores a pairing on both sides: the event's `paired_activity_id` and the Activity's `paired_event_id`. A Strava stub blanks every field except its id and start time, so its `paired_event_id` is always null. The event side still names it (verified in #184), so the event side covers every pairing.
+The athlete pairs a Workout to a Strava Activity on Intervals.icu, but the app showed the Workout as missed and the Strava Activity as a separate blank Unplanned Activity (#186). Intervals.icu stores a pairing on both sides: the event's `paired_activity_id` and the Activity's `paired_event_id`. A Strava Activity blanks every field except its id and start time, so its `paired_event_id` is always null. The event side still names it (verified in #184), so the event side covers every pairing.
 
 ## Decision
 
@@ -16,4 +16,4 @@ The athlete pairs a Workout to a Strava Activity on Intervals.icu, but the app s
 ## Consequences
 
 - A pairing more than 7 days apart that crosses a month edge now shows the Workout as completed on its planned day in that month. The Activity's month may still list the Activity as Unplanned, so a week spanning both months can show both items. ADR-0007 already accepted this double item.
-- A Workout completed by a Strava stub has no metrics to show. What it shows is decided separately.
+- A Workout completed by a Strava Activity has no metrics to show. What it shows is decided separately.

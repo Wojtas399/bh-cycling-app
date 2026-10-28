@@ -32,6 +32,7 @@ import {
   fromLocalDateString,
 } from './localDate';
 import { type Note, noteWindow, toNotes } from './notes';
+import { pairWorkout } from './pairing';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
@@ -40,7 +41,6 @@ import {
   WORKOUT_DETAILS_ACTIVITY_FIELDS,
   type WorkoutDetails,
   buildWorkoutDetails,
-  pairWorkout,
 } from './workoutDetails';
 import {
   type QueryClient,
@@ -248,15 +248,15 @@ export function workoutDetailsQueryOptions(
       ? async ({ signal, client }): Promise<StoredWorkoutDetails> => {
           const { accessToken, athleteId } = credentials;
           const zoneConfigPromise = fetchZoneConfig(client, credentials);
-          const single = await getCalendarEvent(
+          const eventRead = await getCalendarEvent(
             accessToken,
             athleteId,
             eventId,
             { signal },
           );
-          const day = single.start_date_local.slice(0, 10);
+          const day = eventRead.start_date_local.slice(0, 10);
           const date = fromLocalDateString(day);
-          const [listed, activities, zoneConfig] = await Promise.all([
+          const [dayWorkouts, activities, zoneConfig] = await Promise.all([
             getCalendarEvents(
               accessToken,
               athleteId,
@@ -274,7 +274,8 @@ export function workoutDetailsQueryOptions(
             ),
             zoneConfigPromise,
           ]);
-          const event = listed.find(({ id }) => id === eventId) ?? single;
+          const event =
+            dayWorkouts.find(({ id }) => id === eventId) ?? eventRead;
 
           return { event, ...pairWorkout(event, activities), zoneConfig };
         }

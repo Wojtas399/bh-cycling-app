@@ -25,6 +25,12 @@ export interface Pairings {
   byEventId: Map<number, WorkoutPairing>;
   /** IDs of the Activities paired to a given Workout: never Unplanned. */
   pairedActivityIds: Set<string>;
+  /**
+   * IDs of the events whose Workout Status is `completed`: every given
+   * Workout paired from either side, plus any event a given Activity names —
+   * given or not, as before ADR 0009.
+   */
+  completedEventIds: Set<number>;
 }
 
 /**
@@ -40,25 +46,49 @@ export function pairWorkouts(
 ): Pairings {
   const byEventId = new Map<number, WorkoutPairing>();
   const pairedActivityIds = new Set<string>();
+  const completedEventIds = new Set<number>();
+
+  for (const { paired_event_id } of activities) {
+    if (typeof paired_event_id === 'number') {
+      completedEventIds.add(paired_event_id);
+    }
+  }
 
   for (const event of events) {
-    // An empty id names nothing.
-    const namedActivityId = event.paired_activity_id || null;
-    const paired = activities.filter(
-      activity =>
-        activity.paired_event_id === event.id ||
-        activity.id === namedActivityId,
-    );
+    const { completed, paired } = pair(event, activities);
 
     for (const { id } of paired) pairedActivityIds.add(id);
 
-    byEventId.set(event.id, {
-      completed: namedActivityId !== null || paired.length > 0,
-      activity: earliest(paired),
-    });
+    if (completed) completedEventIds.add(event.id);
+
+    byEventId.set(event.id, { completed, activity: earliest(paired) });
   }
 
-  return { byEventId, pairedActivityIds };
+  return { byEventId, pairedActivityIds, completedEventIds };
+}
+
+/** How one Workout is paired among `activities`, by the rule above. */
+export function pairWorkout(
+  event: PairableEvent,
+  activities: readonly IntervalsActivity[],
+): WorkoutPairing {
+  const { completed, paired } = pair(event, activities);
+
+  return { completed, activity: earliest(paired) };
+}
+
+function pair(
+  event: PairableEvent,
+  activities: readonly IntervalsActivity[],
+): { completed: boolean; paired: IntervalsActivity[] } {
+  // An empty id names nothing.
+  const namedActivityId = event.paired_activity_id || null;
+  const paired = activities.filter(
+    activity =>
+      activity.paired_event_id === event.id || activity.id === namedActivityId,
+  );
+
+  return { completed: namedActivityId !== null || paired.length > 0, paired };
 }
 
 function earliest(activities: IntervalsActivity[]): IntervalsActivity | null {

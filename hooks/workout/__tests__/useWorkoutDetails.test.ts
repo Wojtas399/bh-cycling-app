@@ -537,7 +537,7 @@ describe('useWorkoutDetails', () => {
   });
 
   describe('Strava Activity', () => {
-    it('carries the id and local start time of the Strava Activity the event names', async () => {
+    it('carries the id, local start time and Strava page of the Strava Activity the event names', async () => {
       mockConnected();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
@@ -554,7 +554,11 @@ describe('useWorkoutDetails', () => {
       await waitFor(() =>
         expect(result.current.query.data).toMatchObject({
           mode: 'completed',
-          stravaActivity: { id: '20664018356', startTime: '15:05' },
+          stravaActivity: {
+            id: '20664018356',
+            startTime: '15:05',
+            url: 'https://www.strava.com/activities/20664018356',
+          },
         }),
       );
     });

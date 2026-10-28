@@ -1,16 +1,12 @@
 import { type ActivityMetric, summariseActivity } from './activitySummary';
-import { isStravaActivity } from './calendarItems';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
-import {
-  type PairableEvent,
-  type WorkoutPairing,
-  pairWorkouts,
-} from './pairing';
+import type { WorkoutPairing } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
+import { isStravaActivity, stravaActivityUrl } from './stravaActivity';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -49,23 +45,6 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
   'stream_types',
   'trainer',
 ].join(',');
-
-/**
- * How the event is paired, by the shared rule in `pairWorkouts`: from either
- * side, the earliest paired Activity winning. Completed even when the
- * Activity the event names isn't among `activities`.
- */
-export function pairWorkout(
-  event: PairableEvent,
-  activities: IntervalsActivity[],
-): WorkoutPairing {
-  return (
-    pairWorkouts([event], activities).byEventId.get(event.id) ?? {
-      completed: false,
-      activity: null,
-    }
-  );
-}
 
 /**
  * What the Workout Details query stores: the event, how it is paired and the
@@ -158,6 +137,8 @@ export interface StravaActivitySummary {
   id: string;
   /** Local start time, `HH:MM`. */
   startTime: string;
+  /** Its page on Strava. */
+  url: string;
 }
 
 /** A metric with the same meaning and unit on the plan and the Activity. */
@@ -213,7 +194,11 @@ export function buildWorkoutDetails(
     ...notes(event),
     route: measured ? summariseRoute(measured) : null,
     stravaActivity: strava
-      ? { id: strava.id, startTime: strava.start_date_local.slice(11, 16) }
+      ? {
+          id: strava.id,
+          startTime: strava.start_date_local.slice(11, 16),
+          url: stravaActivityUrl(strava.id),
+        }
       : null,
   };
 }

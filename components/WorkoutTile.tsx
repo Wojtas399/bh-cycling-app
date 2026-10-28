@@ -77,7 +77,7 @@ export default function WorkoutTile({
 
       {completedWithStravaActivity && (
         <Text variant="body-s-regular" color="textSecondary" marginTop="xs">
-          {t('activityTile.stravaActivity')}
+          {t('common.stravaActivity')}
         </Text>
       )}
 

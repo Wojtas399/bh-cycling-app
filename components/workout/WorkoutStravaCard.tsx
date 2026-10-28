@@ -23,6 +23,7 @@ export default function WorkoutStravaCard({
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.stravaActivity',
   });
+  const { t: tCommon } = useTranslation(undefined, { keyPrefix: 'common' });
   const theme = useAppTheme();
 
   return (
@@ -34,7 +35,7 @@ export default function WorkoutStravaCard({
           size={18}
           color={theme.colors.textSecondary}
         />
-        <Text variant="body-l-semibold">{t('source')}</Text>
+        <Text variant="body-l-semibold">{tCommon('stravaActivity')}</Text>
       </Box>
       <Text variant="body-s-regular" color="textSecondary" marginTop="xs">
         {t('startTime', { time: activity.startTime })}
@@ -43,11 +44,7 @@ export default function WorkoutStravaCard({
         {t('noData')}
       </Text>
       <Pressable
-        onPress={() =>
-          WebBrowser.openBrowserAsync(
-            `https://www.strava.com/activities/${activity.id}`,
-          )
-        }
+        onPress={() => WebBrowser.openBrowserAsync(activity.url)}
         accessibilityRole="link"
         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       >

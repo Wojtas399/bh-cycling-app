@@ -4,6 +4,7 @@ import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
 import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
+import { isSharedActivity, isStravaActivity } from './stravaActivity';
 import { buildWorkoutProfile } from './workoutProfile';
 import {
   type CalendarWorkout,
@@ -85,23 +86,10 @@ export function joinCalendarItems(
   zoneConfig: ZoneConfig,
 ): JoinedCalendarItems {
   const workoutEvents = toSortedDatedWorkoutEvents(events);
-  const { byEventId, pairedActivityIds } = pairWorkouts(
+  const { byEventId, pairedActivityIds, completedEventIds } = pairWorkouts(
     workoutEvents.map(({ event }) => event),
     activities,
   );
-
-  // An Activity naming an event outside `events` still counts it completed,
-  // as before ADR 0009.
-  const completedEventIds = [
-    ...new Set([
-      ...activities
-        .map(activity => activity.paired_event_id)
-        .filter((id): id is number => typeof id === 'number'),
-      ...[...byEventId]
-        .filter(([, pairing]) => pairing.completed)
-        .map(([id]) => id),
-    ]),
-  ];
 
   const unplanned = activities
     .filter(activity => !pairedActivityIds.has(activity.id))
@@ -137,7 +125,7 @@ export function joinCalendarItems(
     .sort((a, b) => a.start.localeCompare(b.start))
     .map(({ item }) => item);
 
-  return { items, completedEventIds };
+  return { items, completedEventIds: [...completedEventIds] };
 }
 
 function toDate(startDateLocal: string): LocalDateString {
@@ -156,20 +144,6 @@ export function calendarItemKey(item: StoredCalendarItem): string {
     : `activity-${item.activity.id}`;
 }
 
-/**
- * The list returns a Strava Activity without a `type` or `name`, so missing
- * either (absent or `null`) marks one.
- */
-export function isStravaActivity(activity: IntervalsActivity): boolean {
-  return !hasNameAndType(activity);
-}
-
-function hasNameAndType(
-  activity: IntervalsActivity,
-): activity is IntervalsActivity & { name: string; type: string } {
-  return activity.name != null && activity.type != null;
-}
-
 function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
   const activity: UnplannedActivityBase = {
     id: source.id,
@@ -179,7 +153,7 @@ function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
     load: positive(source.icu_training_load),
   };
 
-  return hasNameAndType(source)
+  return isSharedActivity(source)
     ? { ...activity, name: source.name, type: source.type }
     : { ...activity, isStravaActivity: true };
 }
