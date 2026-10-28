@@ -536,6 +536,95 @@ describe('useWorkoutDetails', () => {
     });
   });
 
+  describe('Strava Activity', () => {
+    it('carries the id and local start time of the Strava Activity the event names', async () => {
+      mockConnected();
+      const planned = event({ start_date_local: '2026-10-16T00:00:00' });
+
+      mockGetCalendarEvent.mockResolvedValue(planned);
+      mockGetCalendarEvents.mockResolvedValue([
+        { ...planned, paired_activity_id: '20664018356' },
+      ]);
+      mockGetActivities.mockResolvedValue([
+        { id: '20664018356', start_date_local: '2026-10-16T15:05:00' },
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          stravaActivity: { id: '20664018356', startTime: '15:05' },
+        }),
+      );
+    });
+
+    it('is null for a Workout paired to a native Activity', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event());
+      mockGetActivities.mockResolvedValue([
+        activity({ paired_event_id: EVENT_ID }),
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          stravaActivity: null,
+        }),
+      );
+    });
+
+    it('is null when the Activity the event names is outside the fetched range', async () => {
+      mockConnected();
+      const planned = event({ start_date_local: '2026-10-16T00:00:00' });
+
+      mockGetCalendarEvent.mockResolvedValue(planned);
+      mockGetCalendarEvents.mockResolvedValue([
+        { ...planned, paired_activity_id: '20664018356' },
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          stravaActivity: null,
+        }),
+      );
+    });
+
+    it('is null in planned mode', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event());
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'planned',
+          stravaActivity: null,
+        }),
+      );
+    });
+
+    it('requests the name and type that tell a Strava Activity apart', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event());
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+      const fields = (
+        mockGetActivities.mock.calls[0][2].fields as string
+      ).split(',');
+
+      expect(fields).toEqual(expect.arrayContaining(['name', 'type']));
+    });
+  });
+
   describe('completed mode: comparison', () => {
     async function comparisonFor(
       eventOverrides: Partial<IntervalsCalendarEvent>,

@@ -361,6 +361,15 @@ const pl = {
         variabilityIndex: 'VI',
       },
     },
+    /** Wykonanie for a Workout completed by a Strava Activity. */
+    stravaActivity: {
+      title: 'Wykonanie',
+      source: 'Aktywność ze Stravy',
+      startTime: 'Rozpoczęta o {{time}}',
+      noData:
+        'Intervals.icu nie udostępnia danych aktywności ze Stravy, więc nie ma tu czasu, mocy ani tętna.',
+      openOnStrava: 'Zobacz na Stravie',
+    },
     plan: {
       title: 'Plan',
       duration: 'Czas',

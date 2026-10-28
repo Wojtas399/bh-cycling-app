@@ -20,12 +20,14 @@ import { type WorkoutStatus, workoutStatus } from './workoutStatus';
 import { type WorkoutDetailsStep, buildWorkoutSteps } from './workoutSteps';
 
 /**
- * The activity fields Workout Details asks for: what pairing needs. Completed
- * mode extends it with the summary metrics it shows.
+ * The activity fields Workout Details asks for: what pairing needs, the name
+ * and type that tell a Strava Activity apart, and the summary metrics
+ * completed mode shows.
  */
 export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
   'id',
   'start_date_local',
+  'name',
   'type',
   'paired_event_id',
   'moving_time',
@@ -129,7 +131,7 @@ export interface WorkoutDetails {
   comparison: WorkoutComparison | null;
   /** The Activity's summary metrics, `null` exactly when `comparison` is. */
   activityMetrics: ActivityMetric[] | null;
-  /** What the plan asks for, shown in planned mode. */
+  /** What the plan asks for, shown whenever there is no `comparison`. */
   planMetrics: WorkoutPlanMetrics;
   /**
    * The Workout's free-text notes, trimmed, without the builder's step lines.
@@ -142,6 +144,20 @@ export interface WorkoutDetails {
    * `activityHasRoute`).
    */
   route: RouteSummary | null;
+  /**
+   * The Strava Activity that completed the Workout, for the Wykonanie card.
+   * `null` in planned mode, for a native Activity and when the paired
+   * Activity isn't among those fetched.
+   */
+  stravaActivity: StravaActivitySummary | null;
+}
+
+/** What is known of a Strava Activity: its id and when it started. */
+export interface StravaActivitySummary {
+  /** intervals.icu's id for it, taken to be its Strava activity id. */
+  id: string;
+  /** Local start time, `HH:MM`. */
+  startTime: string;
 }
 
 /** A metric with the same meaning and unit on the plan and the Activity. */
@@ -181,6 +197,7 @@ export function buildWorkoutDetails(
   // A Strava Activity carries no numbers to show (intervals.icu can't share
   // it), so it gets no empty cards.
   const measured = activity && !isStravaActivity(activity) ? activity : null;
+  const strava = activity && !measured ? activity : null;
 
   return {
     mode: status === 'completed' ? 'completed' : 'planned',
@@ -195,6 +212,9 @@ export function buildWorkoutDetails(
     planMetrics: buildPlanMetrics(event),
     ...notes(event),
     route: measured ? summariseRoute(measured) : null,
+    stravaActivity: strava
+      ? { id: strava.id, startTime: strava.start_date_local.slice(11, 16) }
+      : null,
   };
 }
 
