@@ -5,8 +5,14 @@ import { TouchableOpacity, View } from 'react-native';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
+import {
+  TILE_GAP,
+  TILE_RADIUS,
+  TILE_SURFACE,
+  TILE_SURFACE_OUTSIDE_MONTH,
+} from '@/components/calendar/calendarTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
-import { useAppTheme } from '@/constants/theme';
+import { type AppTheme, useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
 import { dayCounts, formatDayLabel } from '@/lib/calendarDayCounts';
@@ -30,8 +36,7 @@ import {
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
 
-const DAY_NUMBER_SIZE = 32;
-const CELL_MIN_HEIGHT = 52;
+const DAY_NUMBER_SIZE = 24;
 const MARKER_SIZE = 6;
 const BAR_HEIGHT = 14;
 const BAR_GAP = 2;
@@ -49,12 +54,15 @@ export interface CalendarMonthGridProps {
 }
 
 /**
- * The monthly grid: Monday-first weeks. Under each day number, its Notes as
- * coloured bars (two lanes; a multi-day Note runs as one bar across the
- * cells), a "+N" for the Notes that don't fit, then a marker per item — a
- * status dot per Workout, a hollow green ring per Unplanned Activity ("done,
- * not planned"). Days from the neighbouring months are dimmed, empty, and
- * not tappable — their data was never fetched.
+ * The monthly grid: Monday-first weeks of day tiles, filling the space it is
+ * given — the rows share its height, so a 6-week month gets shorter tiles,
+ * not a taller grid. Under each day number, its Notes as coloured bars (two
+ * lanes; a multi-day Note runs as one bar across the tiles and the gaps
+ * between them), a "+N" for the Notes that don't fit, then a marker per
+ * item — a status dot per Workout, a hollow green ring per Unplanned
+ * Activity ("done, not planned"). A tile cuts off what doesn't fit; the day
+ * sheet shows everything. Days from the neighbouring months are dimmer
+ * tiles, empty and not tappable — their data was never fetched.
  */
 export default function CalendarMonthGrid({
   month,
@@ -79,8 +87,13 @@ export default function CalendarMonthGrid({
   }, [month, notes]);
 
   return (
-    <Box testID="calendar-month-grid">
-      <Box flexDirection="row" marginBottom="sm">
+    <Box
+      flex={1}
+      paddingHorizontal="sm"
+      paddingBottom="sm"
+      testID="calendar-month-grid"
+    >
+      <Box flexDirection="row" marginBottom="sm" style={{ gap: TILE_GAP }}>
         {labels.weekdaysShort.map(weekday => (
           <Text
             key={weekday}
@@ -94,16 +107,18 @@ export default function CalendarMonthGrid({
         ))}
       </Box>
 
-      {rows.map(({ week, layout }) => (
-        <GridRow
-          key={week[0].date}
-          week={week}
-          layout={layout}
-          data={data}
-          today={today}
-          onDayPress={onDayPress}
-        />
-      ))}
+      <Box flex={1} style={{ gap: TILE_GAP }}>
+        {rows.map(({ week, layout }) => (
+          <GridRow
+            key={week[0].date}
+            week={week}
+            layout={layout}
+            data={data}
+            today={today}
+            onDayPress={onDayPress}
+          />
+        ))}
+      </Box>
     </Box>
   );
 }
@@ -117,9 +132,10 @@ interface GridRowProps {
 }
 
 /**
- * A week of cells, with the row's Note bars drawn over them in one layer so
- * a bar and its label run unbroken across cells. Each cell reserves the
- * bars' height under its day number.
+ * A week of tiles, with the row's Note bars drawn over them in one layer so
+ * a bar and its label run unbroken across tiles. Each tile reserves the
+ * bars' height under its day number. The row clips too, so bars that don't
+ * fit a short row stay out of the row below.
  */
 function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
   const theme = useAppTheme();
@@ -128,7 +144,12 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
     laneCount > 0 ? laneCount * BAR_HEIGHT + (laneCount - 1) * BAR_GAP : 0;
 
   return (
-    <Box flexDirection="row">
+    <Box
+      flex={1}
+      flexDirection="row"
+      overflow="hidden"
+      style={{ gap: TILE_GAP }}
+    >
       {week.map(cell =>
         cell.inMonth ? (
           <GridCell
@@ -146,8 +167,8 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
       )}
 
       {layout.segments.length > 0 && (
-        // Decoration only: the cell under it takes the tap and announces
-        // the day's counts.
+        // Decoration only: the tile under it takes the tap and announces the
+        // day's counts.
         <View
           pointerEvents="none"
           importantForAccessibility="no-hide-descendants"
@@ -247,7 +268,7 @@ function GridCell({
       accessibilityLabel={label}
       testID={`calendar-day-${cell.date}`}
     >
-      <CellFrame>
+      <TileFrame surface={TILE_SURFACE}>
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
@@ -280,13 +301,7 @@ function GridCell({
         )}
 
         {items.length > 0 && (
-          <Box
-            flexDirection="row"
-            flexWrap="wrap"
-            justifyContent="center"
-            gap="xs"
-            marginTop="xs"
-          >
+          <Box flexDirection="row" flexWrap="wrap" gap="xs" marginTop="xs">
             {items.map(item =>
               item.kind === 'workout' ? (
                 <WorkoutStatusDot
@@ -308,7 +323,7 @@ function GridCell({
             )}
           </Box>
         )}
-      </CellFrame>
+      </TileFrame>
     </TouchableOpacity>
   );
 }
@@ -325,11 +340,11 @@ function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
   });
 }
 
-/** A day from a neighbouring month: dimmed, empty, not tappable. */
+/** A day from a neighbouring month: a dimmer tile, empty, not tappable. */
 function PaddingCell({ cell }: { cell: CalendarGridCell }) {
   return (
     <Box flex={1} testID={`calendar-day-${cell.date}`}>
-      <CellFrame>
+      <TileFrame surface={TILE_SURFACE_OUTSIDE_MONTH}>
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
@@ -340,17 +355,26 @@ function PaddingCell({ cell }: { cell: CalendarGridCell }) {
             {cell.dayOfMonth}
           </Text>
         </Box>
-      </CellFrame>
+      </TileFrame>
     </Box>
   );
 }
 
-function CellFrame({ children }: { children: ReactNode }) {
+/** A day's tile, cutting off whatever doesn't fit it. */
+function TileFrame({
+  surface,
+  children,
+}: {
+  surface: keyof AppTheme['colors'];
+  children: ReactNode;
+}) {
   return (
     <Box
-      alignItems="center"
-      paddingVertical="xs"
-      style={{ minHeight: CELL_MIN_HEIGHT }}
+      flex={1}
+      padding="xs"
+      borderRadius={TILE_RADIUS}
+      backgroundColor={surface}
+      overflow="hidden"
     >
       {children}
     </Box>
