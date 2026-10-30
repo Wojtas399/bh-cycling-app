@@ -79,6 +79,7 @@ function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
   return (
     <CalendarLayout
       view="monthly"
+      fillBody
       onViewChange={view => onViewChange(view, month)}
       title={labels.month(month)}
       range={range}
@@ -135,6 +136,8 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
 
 interface CalendarLayoutProps {
   view: CalendarView;
+  /** The loaded view fills the body instead of scrolling (see `CalendarBody`). */
+  fillBody?: boolean;
   onViewChange: (view: CalendarView) => void;
   title: string;
   range: CalendarRangeView;
@@ -165,6 +168,7 @@ interface LoadedViewProps {
  */
 function CalendarLayout({
   view,
+  fillBody,
   onViewChange,
   title,
   range: { availability, query, refresh, refreshing },
@@ -211,7 +215,7 @@ function CalendarLayout({
         refreshStatus={calendarRefreshStatus(query, refreshing)}
       />
 
-      <CalendarBody state={bodyState(query)}>
+      <CalendarBody state={bodyState(query)} fill={fillBody}>
         {({ itemsByDate, notes }) =>
           children({
             itemsByDate,

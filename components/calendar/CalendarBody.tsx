@@ -17,12 +17,21 @@ export type CalendarBodyState =
 
 export interface CalendarBodyProps {
   state: CalendarBodyState;
-  /** The loaded view, rendered in the scroll area once the state is ready. */
+  /** The loaded view, rendered once the state is ready. */
   children: (data: CalendarData) => ReactNode;
+  /**
+   * The loaded view fills the body instead of scrolling, and lays out its
+   * own padding (the month grid sizes its rows to the space).
+   */
+  fill?: boolean;
 }
 
 /** The Calendar's content area: a spinner, an error message, or the loaded view. */
-export default function CalendarBody({ state, children }: CalendarBodyProps) {
+export default function CalendarBody({
+  state,
+  children,
+  fill = false,
+}: CalendarBodyProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
 
@@ -46,6 +55,8 @@ export default function CalendarBody({ state, children }: CalendarBodyProps) {
         </Text>
       );
     case 'ready':
+      if (fill) return <Box flex={1}>{children(state.data)}</Box>;
+
       return (
         <ScrollView
           contentContainerStyle={{
