@@ -91,6 +91,38 @@ describe('useWeeklyCalendar', () => {
     );
   });
 
+  it('opens on the week containing a starting date, fetching the months it touches', async () => {
+    // Wed 30 Dec 2020, in the week of Mon 28 Dec 2020 – Sun 3 Jan 2021.
+    const { result } = await renderHookWithClient(() =>
+      useWeeklyCalendar(new Date(2020, 11, 30)),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+
+    expect(toLocalDateString(result.current.week)).toBe('2020-12-28');
+    expect(Object.keys(result.current.query.data?.itemsByDate ?? {})).toEqual([
+      '2020-12-28',
+      '2020-12-29',
+      '2020-12-30',
+      '2020-12-31',
+      '2021-01-01',
+      '2021-01-02',
+      '2021-01-03',
+    ]);
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      { oldest: '2020-11-24', newest: '2021-01-07' },
+      expect.anything(),
+    );
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      { oldest: '2020-12-25', newest: '2021-02-07' },
+      expect.anything(),
+    );
+  });
+
   it('goToNextWeek/goToPreviousWeek step by seven days', async () => {
     const { result } = await renderHookWithClient(() => useWeeklyCalendar());
 

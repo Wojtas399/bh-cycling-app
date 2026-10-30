@@ -20,9 +20,10 @@ function monthsFor(month: Date): YearMonth[] {
   return [toYearMonth(month)];
 }
 
-export function useMonthlyCalendar(): UseMonthlyCalendarResult {
+/** Opens on the month containing `startDate`, or today's month without one. */
+export function useMonthlyCalendar(startDate?: Date): UseMonthlyCalendarResult {
   const { anchor, goToPrevious, goToNext, ...view } = useCalendarRange({
-    initialAnchor: () => startOfMonth(new Date()),
+    initialAnchor: () => startOfMonth(startDate ?? new Date()),
     startOf: startOfMonth,
     endOf: endOfMonth,
     monthsFor,

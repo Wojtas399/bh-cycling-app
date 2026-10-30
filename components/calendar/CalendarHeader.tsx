@@ -3,11 +3,10 @@ import { ActivityIndicator, TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
-import CalendarViewToggle, {
-  type CalendarView,
-} from '@/components/calendar/CalendarViewToggle';
+import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
 import { useAppTheme } from '@/constants/theme';
 import type { CalendarRefreshStatus } from '@/lib/calendarRefreshStatus';
+import type { CalendarView } from '@/lib/calendarView';
 import { Ionicons } from '@expo/vector-icons';
 
 const REFRESH_SLOT_SIZE = 24;

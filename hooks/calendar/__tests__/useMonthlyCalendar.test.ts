@@ -73,6 +73,25 @@ describe('useMonthlyCalendar', () => {
     );
   });
 
+  it('opens on and fetches the month containing a starting date', async () => {
+    const { result } = await renderHookWithClient(() =>
+      useMonthlyCalendar(new Date(2021, 1, 17)),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+
+    expect(toLocalDateString(result.current.month)).toBe('2021-02-01');
+    expect(
+      Object.keys(result.current.query.data?.itemsByDate ?? {}),
+    ).toHaveLength(28);
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      { oldest: '2021-01-25', newest: '2021-03-07' },
+      expect.anything(),
+    );
+  });
+
   it('goToNextMonth/goToPreviousMonth step by calendar month', async () => {
     const { result } = await renderHookWithClient(() => useMonthlyCalendar());
 

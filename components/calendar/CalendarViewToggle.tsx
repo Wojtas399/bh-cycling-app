@@ -3,10 +3,7 @@ import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
-
-export const CALENDAR_VIEWS = ['monthly', 'weekly'] as const;
-
-export type CalendarView = (typeof CALENDAR_VIEWS)[number];
+import { CALENDAR_VIEWS, type CalendarView } from '@/lib/calendarView';
 
 export interface CalendarViewToggleProps {
   view: CalendarView;
