@@ -145,6 +145,7 @@ describe('useCalendarRange', () => {
   afterEach(() => {
     // Hands focus back to the default listener for the next test.
     focusManager.setFocused(undefined);
+    jest.useRealTimers();
   });
 
   it('is unavailable and makes no API call when not connected', async () => {
@@ -577,6 +578,68 @@ describe('useCalendarRange', () => {
       ]),
     );
     expect(monthFetches()).toBe(1);
+  });
+
+  it('shows today on its month, not after navigating away, and again after coming back', async () => {
+    mockConnected();
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    expect(result.current.showsToday).toBe(true);
+
+    await act(async () => result.current.goToNext());
+    expect(result.current.showsToday).toBe(false);
+
+    await act(async () => result.current.goToPrevious());
+    expect(result.current.showsToday).toBe(true);
+  });
+
+  it.each([
+    ['an earlier', 'goToPrevious'],
+    ['a later', 'goToNext'],
+  ] as const)(
+    "goes back to today's month from %s month",
+    async (_, navigate) => {
+      mockConnected();
+
+      const { result } = await renderHookWithClient(() =>
+        useCalendarRange(monthConfig),
+      );
+
+      await act(async () => result.current[navigate]());
+      await act(async () => result.current[navigate]());
+      expect(result.current.showsToday).toBe(false);
+
+      await act(async () => result.current.goToToday());
+
+      expect(result.current.anchor).toEqual(startOfMonth(new Date()));
+      expect(result.current.showsToday).toBe(true);
+    },
+  );
+
+  it('stops showing today at midnight when the new day falls past the visible month', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 9, 31, 23, 59, 30));
+    mockUseToday.mockImplementation(
+      jest.requireActual<typeof import('@/hooks/useToday')>('@/hooks/useToday')
+        .useToday,
+    );
+    mockConnected();
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    expect(result.current.showsToday).toBe(true);
+
+    await act(async () => {
+      jest.advanceTimersByTime(31_000);
+    });
+
+    expect(toLocalDateString(result.current.anchor)).toBe('2026-10-01');
+    expect(result.current.showsToday).toBe(false);
   });
 
   it('does not derive the statuses again while today stays the same', async () => {

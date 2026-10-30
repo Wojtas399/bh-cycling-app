@@ -162,7 +162,7 @@ interface LoadedViewProps {
 }
 
 /**
- * Everything the two views share: the header (toggle, refresh, range
+ * Everything the two views share: the header (toggle, "Dziś", refresh, range
  * navigation), the loading/error/ready body, the day sheet and the Note
  * Detail Sheet.
  */
@@ -171,7 +171,7 @@ function CalendarLayout({
   fillBody,
   onViewChange,
   title,
-  range: { availability, query, refresh, refreshing },
+  range: { availability, query, goToToday, showsToday, refresh, refreshing },
   onPrevious,
   onNext,
   children,
@@ -211,6 +211,8 @@ function CalendarLayout({
         title={title}
         onPrevious={onPrevious}
         onNext={onNext}
+        showTodayPill={!showsToday}
+        onToday={goToToday}
         onRefresh={refresh}
         refreshStatus={calendarRefreshStatus(query, refreshing)}
       />

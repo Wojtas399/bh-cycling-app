@@ -61,6 +61,8 @@ describe('useWeeklyCalendar', () => {
     mockGetActivities.mockResolvedValue([]);
   });
 
+  afterEach(() => jest.useRealTimers());
+
   it('exposes the visible week (Monday) and its seven days, fetching the whole months it touches', async () => {
     const { result } = await renderHookWithClient(() => useWeeklyCalendar());
 
@@ -138,6 +140,33 @@ describe('useWeeklyCalendar', () => {
     await act(async () => result.current.goToPreviousWeek());
 
     expect(result.current.week).toEqual(currentWeek);
+  });
+
+  it('shows today in a week that crosses into the next month, on one of its later days', async () => {
+    // Sun 1 Nov 2026, in the week of Mon 26 Oct – Sun 1 Nov 2026.
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 10, 1, 12));
+
+    const { result } = await renderHookWithClient(() => useWeeklyCalendar());
+
+    expect(toLocalDateString(result.current.week)).toBe('2026-10-26');
+    expect(result.current.showsToday).toBe(true);
+  });
+
+  it("goToToday goes back to today's week", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 9, 30, 12));
+
+    const { result } = await renderHookWithClient(() =>
+      useWeeklyCalendar(new Date(2026, 9, 5)),
+    );
+
+    expect(result.current.showsToday).toBe(false);
+
+    await act(async () => result.current.goToToday());
+
+    expect(toLocalDateString(result.current.week)).toBe('2026-10-26');
+    expect(result.current.showsToday).toBe(true);
   });
 
   it('does not fetch a week whose months are already loaded', async () => {

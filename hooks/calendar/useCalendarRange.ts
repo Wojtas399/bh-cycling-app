@@ -15,6 +15,7 @@ import {
   monthQueryOptions,
   selectMonthAsOf,
 } from '@/lib/intervalsQueries';
+import { fromLocalDateString, toLocalDateString } from '@/lib/localDate';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
@@ -24,6 +25,10 @@ export interface UseCalendarRangeResult {
   anchor: Date;
   goToPrevious: () => void;
   goToNext: () => void;
+  /** Moves to the range containing today. */
+  goToToday: () => void;
+  /** Today falls within the visible range. Kept current across midnight. */
+  showsToday: boolean;
   refresh: () => void;
   /** Shown data is being fetched again, by a refresh or in the background. */
   refreshing: boolean;
@@ -32,7 +37,12 @@ export interface UseCalendarRangeResult {
 /** What the Calendar screen renders from, whichever view is active. */
 export type CalendarRangeView = Pick<
   UseCalendarRangeResult,
-  'availability' | 'query' | 'refresh' | 'refreshing'
+  | 'availability'
+  | 'query'
+  | 'goToToday'
+  | 'showsToday'
+  | 'refresh'
+  | 'refreshing'
 >;
 
 /**
@@ -95,6 +105,10 @@ export function useCalendarRange({
     anchor,
     goToPrevious: () => setAnchor(current => step(current, -1)),
     goToNext: () => setAnchor(current => step(current, 1)),
+    goToToday: () => setAnchor(startOf(fromLocalDateString(today))),
+    showsToday:
+      toLocalDateString(startOf(anchor)) <= today &&
+      today <= toLocalDateString(endOf(anchor)),
     refresh,
     refreshing: query.data !== undefined && query.isFetching,
   };

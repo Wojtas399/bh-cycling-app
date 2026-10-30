@@ -110,4 +110,17 @@ describe('useMonthlyCalendar', () => {
 
     expect(result.current.month).toEqual(currentMonth);
   });
+
+  it("goToToday goes back to today's month", async () => {
+    const { result } = await renderHookWithClient(() =>
+      useMonthlyCalendar(new Date(2021, 1, 17)),
+    );
+
+    expect(result.current.showsToday).toBe(false);
+
+    await act(async () => result.current.goToToday());
+
+    expect(result.current.month).toEqual(startOfMonth(new Date()));
+    expect(result.current.showsToday).toBe(true);
+  });
 });
