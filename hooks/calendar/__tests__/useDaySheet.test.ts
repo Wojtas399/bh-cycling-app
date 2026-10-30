@@ -172,4 +172,17 @@ describe('useDaySheet', () => {
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(1);
   });
+
+  it('drops the action when the sheet reopens before it has dismissed', async () => {
+    const action = jest.fn();
+    const { result } = await renderSheet(data());
+
+    await act(async () => result.current.open(OCT_24));
+    await act(async () => result.current.closeThen(action));
+    await act(async () => result.current.open(OCT_24));
+    await act(async () => result.current.close());
+    await act(async () => result.current.onDismissed());
+
+    expect(action).not.toHaveBeenCalled();
+  });
 });

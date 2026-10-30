@@ -18,7 +18,8 @@ export interface DaySheetController {
   close: () => void;
   /**
    * Closes the sheet and runs `action` once it has dismissed. If several tiles
-   * are tapped during the slide-out, only the last action runs.
+   * are tapped during the slide-out, only the last action runs. Reopening the
+   * sheet before it has dismissed drops the action.
    */
   closeThen: (action: () => void) => void;
   /** Tells the hook the sheet has fully left the screen. */
@@ -47,6 +48,7 @@ export function useDaySheet(
   }
 
   const open = useCallback((selected: CalendarDay) => {
+    afterDismiss.current = null;
     setDay(selected);
     setIsOpen(true);
   }, []);
