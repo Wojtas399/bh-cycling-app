@@ -15,6 +15,7 @@ import {
   monthQueryOptions,
   selectMonthAsOf,
 } from '@/lib/intervalsQueries';
+import { fromLocalDateString, toLocalDateString } from '@/lib/localDate';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
@@ -24,6 +25,10 @@ export interface UseCalendarRangeResult {
   anchor: Date;
   goToPrevious: () => void;
   goToNext: () => void;
+  /** Moves to the range containing today. */
+  goToToday: () => void;
+  /** Today falls within the visible range. Kept current across midnight. */
+  showsToday: boolean;
   refresh: () => void;
   /** Shown data is being fetched again, by a refresh or in the background. */
   refreshing: boolean;
@@ -32,17 +37,23 @@ export interface UseCalendarRangeResult {
 /** What the Calendar screen renders from, whichever view is active. */
 export type CalendarRangeView = Pick<
   UseCalendarRangeResult,
-  'availability' | 'query' | 'refresh' | 'refreshing'
+  | 'availability'
+  | 'query'
+  | 'goToToday'
+  | 'showsToday'
+  | 'refresh'
+  | 'refreshing'
 >;
 
 /**
  * Configures `useCalendarRange` for a specific range shape (month, week, ...).
+ * It opens on the range containing `startDate`, or today's without one.
  * `step` receives `-1`/`1` and is expected to move `anchor` by one unit of
  * that range in the given direction. `monthsFor` lists the months the range
  * touches, each cached as its own query.
  */
 export interface UseCalendarRangeConfig {
-  initialAnchor: () => Date;
+  startDate?: Date;
   startOf: (anchor: Date) => Date;
   endOf: (anchor: Date) => Date;
   monthsFor: (anchor: Date) => YearMonth[];
@@ -50,7 +61,7 @@ export interface UseCalendarRangeConfig {
 }
 
 export function useCalendarRange({
-  initialAnchor,
+  startDate,
   startOf,
   endOf,
   monthsFor,
@@ -59,7 +70,9 @@ export function useCalendarRange({
   const { availability, credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
   const today = useToday();
-  const [anchor, setAnchor] = useState(initialAnchor);
+  const [anchor, setAnchor] = useState(() =>
+    startOf(startDate ?? fromLocalDateString(today)),
+  );
 
   // Stable per range, so `useQueries` only re-combines when a result changes.
   const combine = useMemo(
@@ -95,6 +108,10 @@ export function useCalendarRange({
     anchor,
     goToPrevious: () => setAnchor(current => step(current, -1)),
     goToNext: () => setAnchor(current => step(current, 1)),
+    goToToday: () => setAnchor(startOf(fromLocalDateString(today))),
+    showsToday:
+      toLocalDateString(startOf(anchor)) <= today &&
+      today <= toLocalDateString(endOf(anchor)),
     refresh,
     refreshing: query.data !== undefined && query.isFetching,
   };

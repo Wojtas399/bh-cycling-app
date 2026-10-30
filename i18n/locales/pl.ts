@@ -236,6 +236,8 @@ const pl = {
     weekly: 'Tygodniowy',
     previous: 'Poprzedni',
     next: 'Następny',
+    /** The header pill that goes back to today's month or week. */
+    today: 'Dziś',
     refresh: 'Odśwież',
     error: 'Nie udało się wczytać kalendarza.',
     emptyDay: 'Brak treningów w tym dniu.',

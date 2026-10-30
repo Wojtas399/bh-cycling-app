@@ -89,3 +89,42 @@ export function layoutNoteRow(
 
   return { segments, overflowByDate };
 }
+
+/**
+ * A length along a grid row: a share of the row's width plus a fixed offset
+ * in points, as the gaps between the cells don't grow with the row.
+ */
+export interface RowLength {
+  percent: number;
+  offset: number;
+}
+
+const ROW_CELLS = 7;
+
+/**
+ * Where a bar sits in its row of 7 cells `gap` points apart, as insets from
+ * the row's left and right edges, so it starts and ends on its cells' edges.
+ */
+export function noteBarInsets(
+  {
+    firstColumn,
+    lastColumn,
+  }: Pick<NoteBarSegment, 'firstColumn' | 'lastColumn'>,
+  gap: number,
+): { left: RowLength; right: RowLength } {
+  return {
+    left: cellsWithGaps(firstColumn, gap),
+    right: cellsWithGaps(ROW_CELLS - 1 - lastColumn, gap),
+  };
+}
+
+/**
+ * `count` cells, each with the gap after it. A cell and its gap are
+ * (width - 6 × gap) / 7 + gap: a seventh of the row and a seventh of a gap.
+ */
+function cellsWithGaps(count: number, gap: number): RowLength {
+  return {
+    percent: (count / ROW_CELLS) * 100,
+    offset: (count * gap) / ROW_CELLS,
+  };
+}

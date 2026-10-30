@@ -4,6 +4,9 @@ import { TouchableOpacity } from 'react-native';
 import Box from '@/components/Box';
 import CalendarItemTile from '@/components/CalendarItemTile';
 import Text from '@/components/Text';
+import CalendarDayTile, {
+  TILE_GAP,
+} from '@/components/calendar/CalendarDayTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
@@ -36,12 +39,13 @@ export interface CalendarWeekAgendaProps {
 
 /**
  * The weekly agenda: a banner per multi-day Note above Monday, then Monday to
- * Sunday, each day's label followed by a chip per single-day Note and a card
- * per item — Workouts and Unplanned Activities in one list. Days a multi-day
- * Note covers get a stripe in its colour. Rest days show the label alone.
- * Tapping a banner or chip opens the Note, a Workout or an Activity opens
- * it, and tapping elsewhere in the day, a Strava Activity included, opens the
- * day sheet.
+ * Sunday, each day a tile (the month grid's surface) holding its label, a
+ * chip per single-day Note and a card per item — Workouts and Unplanned
+ * Activities in one list. Days a multi-day Note covers get a stripe in its
+ * colour along the tile's left edge. A rest day is a short tile holding its
+ * label alone. Tapping a banner or chip opens the Note, a Workout or an
+ * Activity opens it, and tapping elsewhere in the tile, a Strava Activity
+ * included, opens the day sheet.
  */
 export default function CalendarWeekAgenda({
   week,
@@ -75,81 +79,83 @@ export default function CalendarWeekAgenda({
         </Box>
       )}
 
-      {days.map(day => {
-        const isToday = day.date === today;
-        const { stripes, chips } = layout.days[day.date];
+      <Box style={{ gap: TILE_GAP }}>
+        {days.map(day => {
+          const isToday = day.date === today;
+          const { stripes, chips } = layout.days[day.date];
 
-        return (
-          <TouchableOpacity
-            key={day.date}
-            onPress={() => onDayPress(day)}
-            // Not one grouped element, so a screen reader reaches the chips
-            // and tiles inside; the day label is the day's button instead.
-            accessible={false}
-            testID={`calendar-day-${day.date}`}
-          >
-            <Box flexDirection="row">
-              {stripes.length > 0 && (
-                <Box
-                  flexDirection="row"
-                  gap="xs"
-                  marginRight="sm"
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                >
-                  {stripes.map(note => (
-                    <Box
-                      key={note.id}
-                      width={STRIPE_WIDTH}
-                      borderRadius="full"
-                      style={{ backgroundColor: noteFill(note.color) }}
-                    />
-                  ))}
-                </Box>
-              )}
-
-              <Box flex={1}>
-                <Text
-                  variant={isToday ? 'body-s-medium' : 'body-s-regular'}
-                  color={isToday ? 'accent' : 'textSecondary'}
-                  accessibilityRole="button"
-                  onPress={() => onDayPress(day)}
-                >
-                  {labels.day(day)}
-                </Text>
-
-                {chips.length > 0 && (
+          return (
+            <TouchableOpacity
+              key={day.date}
+              onPress={() => onDayPress(day)}
+              // Not one grouped element, so a screen reader reaches the chips
+              // and cards inside; the day label is the day's button instead.
+              accessible={false}
+              testID={`calendar-day-${day.date}`}
+            >
+              <CalendarDayTile flexDirection="row" padding="sm">
+                {stripes.length > 0 && (
                   <Box
                     flexDirection="row"
-                    flexWrap="wrap"
-                    gap="sm"
-                    marginTop="sm"
+                    gap="xs"
+                    marginRight="sm"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
                   >
-                    {chips.map(note => (
-                      <NoteChip
+                    {stripes.map(note => (
+                      <Box
                         key={note.id}
-                        note={note}
-                        when={labels.day(day)}
-                        onPress={() => onNotePress(note)}
+                        width={STRIPE_WIDTH}
+                        borderRadius="full"
+                        style={{ backgroundColor: noteFill(note.color) }}
                       />
                     ))}
                   </Box>
                 )}
 
-                {(itemsByDate[day.date] ?? []).map(item => (
-                  <Box key={calendarItemKey(item)} marginTop="sm">
-                    <CalendarItemTile
-                      item={item}
-                      onWorkoutPress={onWorkoutPress}
-                      onActivityPress={onActivityPress}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          </TouchableOpacity>
-        );
-      })}
+                <Box flex={1}>
+                  <Text
+                    variant={isToday ? 'body-s-medium' : 'body-s-regular'}
+                    color={isToday ? 'accent' : 'textSecondary'}
+                    accessibilityRole="button"
+                    onPress={() => onDayPress(day)}
+                  >
+                    {labels.day(day)}
+                  </Text>
+
+                  {chips.length > 0 && (
+                    <Box
+                      flexDirection="row"
+                      flexWrap="wrap"
+                      gap="sm"
+                      marginTop="sm"
+                    >
+                      {chips.map(note => (
+                        <NoteChip
+                          key={note.id}
+                          note={note}
+                          when={labels.day(day)}
+                          onPress={() => onNotePress(note)}
+                        />
+                      ))}
+                    </Box>
+                  )}
+
+                  {(itemsByDate[day.date] ?? []).map(item => (
+                    <Box key={calendarItemKey(item)} marginTop="sm">
+                      <CalendarItemTile
+                        item={item}
+                        onWorkoutPress={onWorkoutPress}
+                        onActivityPress={onActivityPress}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </CalendarDayTile>
+            </TouchableOpacity>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -214,7 +220,7 @@ function NoteChip({ note, when, onPress }: NoteButtonProps) {
         flexDirection="row"
         alignItems="center"
         alignSelf="flex-start"
-        backgroundColor="bgTertiary"
+        backgroundColor="bgSecondary"
         borderRadius="full"
         paddingHorizontal="md"
         paddingVertical="xs"

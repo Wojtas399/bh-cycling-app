@@ -9,7 +9,6 @@ import CalendarBody, {
 import CalendarDaySheet from '@/components/calendar/CalendarDaySheet';
 import CalendarHeader from '@/components/calendar/CalendarHeader';
 import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
-import type { CalendarView } from '@/components/calendar/CalendarViewToggle';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useAppTheme } from '@/constants/theme';
@@ -19,6 +18,7 @@ import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
+import { useToday } from '@/hooks/useToday';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type {
@@ -26,37 +26,58 @@ import type {
   UnplannedActivity,
 } from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
+import { type CalendarView, otherViewStartDate } from '@/lib/calendarView';
 import type { Note } from '@/lib/notes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
+
+interface CalendarPlace {
+  view: CalendarView;
+  /** Where the view opens. Without one it opens on today's month or week. */
+  startDate?: Date;
+}
 
 /**
  * Only the active view's hook is mounted, so switching views never fetches
  * for both — both read the same per-month queries, so the switch is instant
- * whenever the other view already loaded the months.
+ * whenever the other view already loaded the months. A switch keeps the
+ * user's place: the view it mounts opens near the range being left.
  */
 export default function CalendarScreen() {
-  const [view, setView] = useState<CalendarView>('monthly');
+  const [place, setPlace] = useState<CalendarPlace>({ view: 'monthly' });
+  const today = useToday();
 
-  return view === 'monthly' ? (
-    <MonthlyCalendar onViewChange={setView} />
+  function changeView(view: CalendarView, anchor: Date) {
+    if (view === place.view) return;
+
+    setPlace({
+      view,
+      startDate: otherViewStartDate(place.view, anchor, today),
+    });
+  }
+
+  return place.view === 'monthly' ? (
+    <MonthlyCalendar startDate={place.startDate} onViewChange={changeView} />
   ) : (
-    <WeeklyCalendar onViewChange={setView} />
+    <WeeklyCalendar startDate={place.startDate} onViewChange={changeView} />
   );
 }
 
 interface ViewProps {
-  onViewChange: (view: CalendarView) => void;
+  startDate?: Date;
+  /** `anchor` is the visible range's: the month's 1st or the week's Monday. */
+  onViewChange: (view: CalendarView, anchor: Date) => void;
 }
 
-function MonthlyCalendar({ onViewChange }: ViewProps) {
+function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
   const { month, goToPreviousMonth, goToNextMonth, ...range } =
-    useMonthlyCalendar();
+    useMonthlyCalendar(startDate);
 
   return (
     <CalendarLayout
       view="monthly"
-      onViewChange={onViewChange}
+      fill
+      onViewChange={view => onViewChange(view, month)}
       title={labels.month(month)}
       range={range}
       onPrevious={goToPreviousMonth}
@@ -74,15 +95,15 @@ function MonthlyCalendar({ onViewChange }: ViewProps) {
   );
 }
 
-function WeeklyCalendar({ onViewChange }: ViewProps) {
+function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
   const labels = useCalendarLabels();
   const { week, goToPreviousWeek, goToNextWeek, ...range } =
-    useWeeklyCalendar();
+    useWeeklyCalendar(startDate);
 
   return (
     <CalendarLayout
       view="weekly"
-      onViewChange={onViewChange}
+      onViewChange={view => onViewChange(view, week)}
       title={labels.week(getWeekDays(week))}
       range={range}
       onPrevious={goToPreviousWeek}
@@ -110,8 +131,11 @@ function WeeklyCalendar({ onViewChange }: ViewProps) {
   );
 }
 
-interface CalendarLayoutProps extends ViewProps {
+interface CalendarLayoutProps {
   view: CalendarView;
+  /** The loaded view fills the body instead of scrolling (see `CalendarBody`). */
+  fill?: boolean;
+  onViewChange: (view: CalendarView) => void;
   title: string;
   range: CalendarRangeView;
   onPrevious: () => void;
@@ -135,15 +159,16 @@ interface LoadedViewProps {
 }
 
 /**
- * Everything the two views share: the header (toggle, refresh, range
+ * Everything the two views share: the header (toggle, "Dziś", refresh, range
  * navigation), the loading/error/ready body, the day sheet and the Note
  * Detail Sheet.
  */
 function CalendarLayout({
   view,
+  fill,
   onViewChange,
   title,
-  range: { availability, query, refresh, refreshing },
+  range: { availability, query, goToToday, showsToday, refresh, refreshing },
   onPrevious,
   onNext,
   children,
@@ -183,11 +208,13 @@ function CalendarLayout({
         title={title}
         onPrevious={onPrevious}
         onNext={onNext}
+        showTodayPill={!showsToday}
+        onToday={goToToday}
         onRefresh={refresh}
         refreshStatus={calendarRefreshStatus(query, refreshing)}
       />
 
-      <CalendarBody state={bodyState(query)}>
+      <CalendarBody state={bodyState(query)} fill={fill}>
         {({ itemsByDate, notes }) =>
           children({
             itemsByDate,

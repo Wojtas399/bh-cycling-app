@@ -3,11 +3,10 @@ import { ActivityIndicator, TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
-import CalendarViewToggle, {
-  type CalendarView,
-} from '@/components/calendar/CalendarViewToggle';
+import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
 import { useAppTheme } from '@/constants/theme';
 import type { CalendarRefreshStatus } from '@/lib/calendarRefreshStatus';
+import type { CalendarView } from '@/lib/calendarView';
 import { Ionicons } from '@expo/vector-icons';
 
 const REFRESH_SLOT_SIZE = 24;
@@ -20,6 +19,10 @@ export interface CalendarHeaderProps {
   title: string;
   onPrevious: () => void;
   onNext: () => void;
+  /** Shows the "Dziś" pill: the visible range doesn't contain today. */
+  showTodayPill: boolean;
+  /** Goes back to the range containing today. */
+  onToday: () => void;
   onRefresh: () => void;
   /**
    * `refreshing` swaps the button for a spinner; `disabled` is the first load,
@@ -28,13 +31,18 @@ export interface CalendarHeaderProps {
   refreshStatus: CalendarRefreshStatus;
 }
 
-/** The Calendar's two header rows: view toggle + refresh, then range navigation. */
+/**
+ * The Calendar's two header rows: view toggle, "Dziś" pill + refresh, then
+ * range navigation.
+ */
 export default function CalendarHeader({
   view,
   onViewChange,
   title,
   onPrevious,
   onNext,
+  showTodayPill,
+  onToday,
   onRefresh,
   refreshStatus,
 }: CalendarHeaderProps) {
@@ -51,33 +59,53 @@ export default function CalendarHeader({
       >
         <CalendarViewToggle view={view} onViewChange={onViewChange} />
 
-        <Box
-          width={REFRESH_SLOT_SIZE}
-          height={REFRESH_SLOT_SIZE}
-          alignItems="center"
-          justifyContent="center"
-        >
-          {refreshStatus === 'refreshing' ? (
-            <ActivityIndicator
-              size="small"
-              color={theme.colors.textSecondary}
-              testID="calendar-refreshing"
-            />
-          ) : (
+        <Box flexDirection="row" alignItems="center" gap="md">
+          {showTodayPill && (
             <TouchableOpacity
-              onPress={onRefresh}
-              disabled={refreshStatus === 'disabled'}
-              hitSlop={8}
+              onPress={onToday}
+              hitSlop={{ top: 8, bottom: 8 }}
               accessibilityRole="button"
-              accessibilityLabel={t('refresh')}
+              accessibilityLabel={t('today')}
             >
-              <Ionicons
-                name="refresh"
-                size={REFRESH_ICON_SIZE}
-                color={theme.colors.textSecondary}
-              />
+              <Box
+                paddingHorizontal="base"
+                paddingVertical="sm"
+                borderRadius="full"
+                backgroundColor="bgTertiary"
+              >
+                <Text variant="body-s-medium">{t('today')}</Text>
+              </Box>
             </TouchableOpacity>
           )}
+
+          <Box
+            width={REFRESH_SLOT_SIZE}
+            height={REFRESH_SLOT_SIZE}
+            alignItems="center"
+            justifyContent="center"
+          >
+            {refreshStatus === 'refreshing' ? (
+              <ActivityIndicator
+                size="small"
+                color={theme.colors.textSecondary}
+                testID="calendar-refreshing"
+              />
+            ) : (
+              <TouchableOpacity
+                onPress={onRefresh}
+                disabled={refreshStatus === 'disabled'}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('refresh')}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={REFRESH_ICON_SIZE}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
+            )}
+          </Box>
         </Box>
       </Box>
 
