@@ -129,4 +129,47 @@ describe('useDaySheet', () => {
     expect(result.current.visible).toBe(false);
     expect(result.current.day).toEqual(OCT_24);
   });
+
+  it('closes on closeThen and runs the action only once the sheet has dismissed', async () => {
+    const action = jest.fn();
+    const { result } = await renderSheet(data());
+
+    await act(async () => result.current.open(OCT_24));
+    await act(async () => result.current.closeThen(action));
+
+    expect(result.current.visible).toBe(false);
+    expect(action).not.toHaveBeenCalled();
+
+    await act(async () => result.current.onDismissed());
+
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs an action once, so a later dismissal does not repeat it', async () => {
+    const action = jest.fn();
+    const { result } = await renderSheet(data());
+
+    await act(async () => result.current.open(OCT_24));
+    await act(async () => result.current.closeThen(action));
+    await act(async () => result.current.onDismissed());
+    await act(async () => result.current.open(OCT_24));
+    await act(async () => result.current.close());
+    await act(async () => result.current.onDismissed());
+
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs only the last action when tiles are tapped during the slide-out', async () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    const { result } = await renderSheet(data());
+
+    await act(async () => result.current.open(OCT_24));
+    await act(async () => result.current.closeThen(first));
+    await act(async () => result.current.closeThen(second));
+    await act(async () => result.current.onDismissed());
+
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+  });
 });
