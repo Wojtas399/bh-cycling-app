@@ -16,7 +16,14 @@ const OCT_24: CalendarDay = {
 function workout(id: number, date: string): CalendarItem {
   return {
     kind: 'workout',
-    workout: { id, name: `Workout ${id}`, date, status: 'planned', blocks: [] },
+    workout: {
+      id,
+      name: `Workout ${id}`,
+      date,
+      status: 'planned',
+      blocks: [],
+      completedWithStravaActivity: false,
+    },
   };
 }
 

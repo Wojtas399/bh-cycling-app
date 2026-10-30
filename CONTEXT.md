@@ -13,7 +13,7 @@ A Workout whose type is a ride type: `Ride`, `VirtualRide`, `GravelRide`, `Mount
 _Avoid_: Notes-first workout, strength workout (as the general term)
 
 **Activity**:
-A session the athlete actually recorded on Intervals.icu, of any sport: a ride, a run, a strength session. An Activity that fulfils a Workout is paired to it, and the two show as one item on the Activity's day — even when the Workout was planned for another day — as on Intervals.icu.
+A session the athlete actually recorded on Intervals.icu, of any sport: a ride, a run, a strength session. An Activity that fulfils a Workout is paired to it; the athlete sets the pairing on Intervals.icu, and it counts whichever side records it. The two show as one item on the Activity's day — even when the Workout was planned for another day — as on Intervals.icu.
 _Avoid_: Ride, completed workout
 
 **Unplanned Activity**:
@@ -21,7 +21,7 @@ An Activity not paired to any Workout, e.g. a spontaneous Zwift ride. It shows o
 _Avoid_: Free ride (a kind of planned Workout), extra workout, unpaired ride
 
 **Strava Activity**:
-An Activity intervals.icu received from Strava but can't share through its API, so only its day is known. It's an Unplanned Activity that has no details.
+An Activity intervals.icu received from Strava but can't share through its API, so only its id and start time are known. It has no details. Unless it is paired to a Workout, it's an Unplanned Activity.
 _Avoid_: Stub, hidden activity
 
 **Activity Details**:
@@ -37,7 +37,7 @@ The GPS track of an Activity, i.e. where the athlete actually rode. A Workout ha
 _Avoid_: Workout route, track, GPS trace
 
 **Workout Status**:
-The tri-state of a planned workout: `completed` (a matching Activity exists), `planned` (in the future, no matching Activity yet), or `missed` (in the past, no matching Activity). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.
+The tri-state of a planned workout: `completed` (the Workout is paired to an Activity), `planned` (in the future, not paired yet), or `missed` (in the past, not paired). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.
 _Avoid_: Completion state, sync status
 
 **Note**:

@@ -264,6 +264,7 @@ describe('upcomingQueryOptions', () => {
           date: '2026-10-11',
           status: 'planned',
           blocks: [],
+          completedWithStravaActivity: false,
         },
       },
       {
@@ -398,7 +399,13 @@ describe('monthQueryOptions', () => {
     expect(stored?.itemsByDate['2026-02-10']).toEqual([
       {
         kind: 'workout',
-        workout: { id: 1, name: 'Intervals', date: '2026-02-10', blocks: [] },
+        workout: {
+          id: 1,
+          name: 'Intervals',
+          date: '2026-02-10',
+          blocks: [],
+          completedWithStravaActivity: false,
+        },
       },
     ]);
     expect(stored?.completedEventIds).toEqual([]);

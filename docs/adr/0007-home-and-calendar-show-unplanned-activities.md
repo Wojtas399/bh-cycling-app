@@ -4,6 +4,8 @@
 
 Accepted. Supersedes the parts of ADR-0005 that call Home's query "events-only" and say a month stores "its workouts". The rest of ADR-0005 stands.
 
+Superseded in part by ADR-0009: the parts that join only on the Activity's `paired_event_id`, and the consequence that a pairing across a month edge shows the Workout as missed or planned in its planned month. The rest of this ADR stands.
+
 ## Context
 
 The app only showed Workouts. An Activity paired to no Workout, such as a spontaneous Zwift ride, never appeared, so the app's calendar didn't match the athlete's calendar on Intervals.icu (#139). To show those Activities, both queries have to fetch Activities, and Intervals.icu shows a paired Workout and its Activity as one item on the Activity's day.

@@ -79,10 +79,260 @@ describe('joinCalendarItems', () => {
     expect(items).toEqual([
       {
         kind: 'workout',
-        workout: { id: 7, name: 'Threshold', date: '2026-10-14', blocks: [] },
+        workout: {
+          id: 7,
+          name: 'Threshold',
+          date: '2026-10-14',
+          blocks: [],
+          completedWithStravaActivity: false,
+        },
       },
     ]);
     expect(completedEventIds).toEqual([7]);
+  });
+
+  describe('pairing read from both sides (ADR 0009)', () => {
+    // Shaped like #184: intervals.icu blanks a Strava Activity's own
+    // `paired_event_id` but keeps the event's `paired_activity_id`.
+    const stravaActivity = (
+      overrides: Partial<IntervalsActivity> = {},
+    ): IntervalsActivity =>
+      activity({
+        id: '20664018356',
+        name: undefined,
+        type: undefined,
+        start_date_local: '2026-10-20T15:05:00',
+        moving_time: 0,
+        distance: 0,
+        icu_training_load: undefined,
+        ...overrides,
+      });
+
+    it('completes a Workout whose event names a Strava Activity, on that Activity day, flagged as completed with it, and lists no Unplanned Activity', () => {
+      const { items, completedEventIds } = joinCalendarItems(
+        [
+          event({
+            id: 142141194,
+            name: 'Siłownia adaptacja 2',
+            start_date_local: '2026-10-21T00:00:00',
+            paired_activity_id: '20664018356',
+          }),
+        ],
+        [stravaActivity()],
+        ZONE_CONFIG,
+      );
+
+      expect(items).toEqual([
+        {
+          kind: 'workout',
+          workout: {
+            id: 142141194,
+            name: 'Siłownia adaptacja 2',
+            date: '2026-10-20',
+            blocks: [],
+            completedWithStravaActivity: true,
+          },
+        },
+      ]);
+      expect(completedEventIds).toEqual([142141194]);
+    });
+
+    it('completes a Workout an Activity names when the event names none', () => {
+      const { items, completedEventIds } = joinCalendarItems(
+        [event({ id: 7, start_date_local: '2026-10-15T08:00:00' })],
+        [
+          activity({
+            id: 'i1001',
+            paired_event_id: 7,
+            start_date_local: '2026-10-14T18:00:00',
+          }),
+        ],
+        ZONE_CONFIG,
+      );
+
+      expect(items.map(calendarItemKey)).toEqual(['workout-7']);
+      expect(items.map(calendarItemDate)).toEqual(['2026-10-14']);
+      expect(completedEventIds).toEqual([7]);
+    });
+
+    it('shows a native pairing recorded on both sides as one Workout, not flagged as completed with a Strava Activity', () => {
+      const { items, completedEventIds } = joinCalendarItems(
+        [
+          event({
+            id: 7,
+            start_date_local: '2026-10-15T08:00:00',
+            paired_activity_id: 'i1001',
+          }),
+        ],
+        [
+          activity({
+            id: 'i1001',
+            paired_event_id: 7,
+            start_date_local: '2026-10-14T18:00:00',
+          }),
+        ],
+        ZONE_CONFIG,
+      );
+
+      expect(items).toEqual([
+        {
+          kind: 'workout',
+          workout: {
+            id: 7,
+            name: 'Sample workout',
+            date: '2026-10-14',
+            blocks: [],
+            completedWithStravaActivity: false,
+          },
+        },
+      ]);
+      expect(completedEventIds).toEqual([7]);
+    });
+
+    it('completes a Workout whose named Activity is outside the range, on its planned day, not flagged', () => {
+      const { items, completedEventIds } = joinCalendarItems(
+        [
+          event({
+            id: 7,
+            start_date_local: '2026-10-15T08:00:00',
+            paired_activity_id: '20664018356',
+          }),
+        ],
+        [activity({ id: 'i2002', start_date_local: '2026-10-15T18:00:00' })],
+        ZONE_CONFIG,
+      );
+
+      expect(items.map(calendarItemKey)).toEqual([
+        'workout-7',
+        'activity-i2002',
+      ]);
+      expect(items.map(calendarItemDate)).toEqual(['2026-10-15', '2026-10-15']);
+      expect(items[0]).toMatchObject({
+        workout: { completedWithStravaActivity: false },
+      });
+      expect(completedEventIds).toEqual([7]);
+    });
+
+    it('moves a Workout to the earliest Activity paired from either side, which decides the flag, and lists none of them', () => {
+      const { items } = joinCalendarItems(
+        [
+          event({
+            id: 7,
+            start_date_local: '2026-10-15T08:00:00',
+            paired_activity_id: '20664018356',
+          }),
+        ],
+        [
+          activity({
+            id: 'i1001',
+            paired_event_id: 7,
+            start_date_local: '2026-10-16T08:00:00',
+          }),
+          stravaActivity({ start_date_local: '2026-10-14T15:05:00' }),
+        ],
+        ZONE_CONFIG,
+      );
+
+      expect(items.map(calendarItemKey)).toEqual(['workout-7']);
+      expect(items.map(calendarItemDate)).toEqual(['2026-10-14']);
+      expect(items[0]).toMatchObject({
+        workout: { completedWithStravaActivity: true },
+      });
+    });
+
+    it('does not flag a Workout whose earliest paired Activity is native, though a later one is a Strava Activity', () => {
+      const { items } = joinCalendarItems(
+        [
+          event({
+            id: 7,
+            start_date_local: '2026-10-15T08:00:00',
+            paired_activity_id: '20664018356',
+          }),
+        ],
+        [
+          activity({
+            id: 'i1001',
+            paired_event_id: 7,
+            start_date_local: '2026-10-14T08:00:00',
+          }),
+          stravaActivity({ start_date_local: '2026-10-16T15:05:00' }),
+        ],
+        ZONE_CONFIG,
+      );
+
+      expect(items).toEqual([
+        {
+          kind: 'workout',
+          workout: expect.objectContaining({
+            date: '2026-10-14',
+            completedWithStravaActivity: false,
+          }),
+        },
+      ]);
+    });
+
+    it('lists a Strava Activity no event names as an Unplanned Strava Activity', () => {
+      const { items, completedEventIds } = joinCalendarItems(
+        [
+          event({
+            id: 7,
+            start_date_local: '2026-10-20T08:00:00',
+            paired_activity_id: 'i1001',
+          }),
+        ],
+        [stravaActivity()],
+        ZONE_CONFIG,
+      );
+
+      expect(items).toEqual([
+        {
+          kind: 'workout',
+          workout: {
+            id: 7,
+            name: 'Sample workout',
+            date: '2026-10-20',
+            blocks: [],
+            completedWithStravaActivity: false,
+          },
+        },
+        {
+          kind: 'activity',
+          activity: {
+            id: '20664018356',
+            isStravaActivity: true,
+            date: '2026-10-20',
+          },
+        },
+      ]);
+      expect(completedEventIds).toEqual([7]);
+    });
+
+    it('lists an Activity naming an event outside those given, alongside an event-side pairing', () => {
+      const { items, completedEventIds } = joinCalendarItems(
+        [
+          event({
+            id: 7,
+            start_date_local: '2026-10-20T08:00:00',
+            paired_activity_id: '20664018356',
+          }),
+        ],
+        [
+          stravaActivity(),
+          activity({
+            id: 'i3003',
+            paired_event_id: 99,
+            start_date_local: '2026-10-21T08:00:00',
+          }),
+        ],
+        ZONE_CONFIG,
+      );
+
+      expect(items.map(calendarItemKey)).toEqual([
+        'workout-7',
+        'activity-i3003',
+      ]);
+      expect([...completedEventIds].sort((a, b) => a - b)).toEqual([7, 99]);
+    });
   });
 
   it('lists a day as one list by start time, Workouts first on a tie', () => {
@@ -170,7 +420,7 @@ describe('joinCalendarItems', () => {
     expect(completedEventIds).toEqual([3]);
   });
 
-  it('lists an Activity with no type or name as a Strava Activity on its day, never paired', () => {
+  it('lists an Activity with no type or name, paired from neither side, as a Strava Activity on its day', () => {
     const { items, completedEventIds } = joinCalendarItems(
       [event({ id: 1, start_date_local: '2026-10-14T08:00:00' })],
       [
@@ -192,6 +442,7 @@ describe('joinCalendarItems', () => {
           name: 'Sample workout',
           date: '2026-10-14',
           blocks: [],
+          completedWithStravaActivity: false,
         },
       },
       {
@@ -335,7 +586,13 @@ describe('withWorkoutStatus', () => {
   it("derives a Workout's status as of today", () => {
     const item = {
       kind: 'workout' as const,
-      workout: { id: 1, name: 'Ride', date: '2026-10-13', blocks: [] },
+      workout: {
+        id: 1,
+        name: 'Ride',
+        date: '2026-10-13',
+        blocks: [],
+        completedWithStravaActivity: false,
+      },
     };
 
     expect(withWorkoutStatus(item, new Set(), TODAY)).toMatchObject({

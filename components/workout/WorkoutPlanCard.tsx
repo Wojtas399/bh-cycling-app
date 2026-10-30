@@ -10,7 +10,8 @@ export interface WorkoutPlanCardProps {
 }
 
 /**
- * The Plan card of a planned or missed Workout: a two-column grid of the
+ * The Plan card of a Workout with no Plan vs wykonanie (planned, missed, or
+ * completed without Activity numbers): a two-column grid of the
  * planned metrics intervals.icu supplies. Hidden when it supplies none.
  */
 export default function WorkoutPlanCard({ metrics }: WorkoutPlanCardProps) {

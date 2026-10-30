@@ -46,6 +46,7 @@ const strength = event({
 
 const pairedActivity: IntervalsActivity = {
   id: 'a1',
+  name: 'Siłownia',
   type: 'WeightTraining',
   start_date_local: '2026-10-14T18:00:00',
   paired_event_id: 1,
@@ -59,7 +60,12 @@ function details(
   activity: IntervalsActivity | null = null,
 ) {
   return buildWorkoutDetails(
-    { event: workout, activity, zoneConfig: ZONE_CONFIG },
+    {
+      event: workout,
+      completed: activity != null,
+      activity,
+      zoneConfig: ZONE_CONFIG,
+    },
     TODAY,
   );
 }

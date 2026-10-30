@@ -17,6 +17,7 @@ import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton'
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
+import WorkoutStravaCard from '@/components/workout/WorkoutStravaCard';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
@@ -140,7 +141,12 @@ function WorkoutDetailsContent({
         </WorkoutDetailsCard>
       )}
 
-      {details.mode === 'planned' && (
+      {details.stravaActivity && (
+        <WorkoutStravaCard activity={details.stravaActivity} />
+      )}
+
+      {/* With no Activity numbers to compare, the plan is shown on its own. */}
+      {details.comparison === null && (
         <WorkoutPlanCard metrics={details.planMetrics} />
       )}
 

@@ -2,8 +2,10 @@ import { rideSteps } from './cyclingWorkout';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
+import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
+import { isSharedActivity, isStravaActivity } from './stravaActivity';
 import { buildWorkoutProfile } from './workoutProfile';
 import {
   type CalendarWorkout,
@@ -66,13 +68,13 @@ interface SortableItem {
 }
 
 /**
- * Joins calendar events against Activities on the `paired_event_id` link
- * intervals.icu sets when an Activity fulfils a planned event. Primary-key
- * matching only — an Activity lacking the pairing field is never matched by
- * date/type fallback, an accepted v1 gap.
+ * Joins calendar events against Activities with the pairing rule in
+ * `pairWorkouts` (ADR 0009): a Workout and an Activity are paired when either
+ * names the other. Primary-key matching only — never by date or type.
  *
- * A paired Workout and its Activity are one item on the Activity's day, as on
- * Intervals.icu; with several Activities paired, the earliest sets the day.
+ * A paired Workout and its Activities are one item on the earliest
+ * Activity's day, as on Intervals.icu (ADR 0007). A Workout whose event names
+ * an Activity outside `activities` is still completed, on its planned day.
  * Every other Activity is an Unplanned Activity — including one paired to an
  * event not among `events` (a race, or a Workout outside the fetched window),
  * so it still shows once rather than vanishing.
@@ -84,34 +86,23 @@ export function joinCalendarItems(
   activities: IntervalsActivity[],
   zoneConfig: ZoneConfig,
 ): JoinedCalendarItems {
-  const completedEventIds = [
-    ...new Set(
-      activities
-        .map(activity => activity.paired_event_id)
-        .filter((id): id is number => typeof id === 'number'),
-    ),
-  ];
-
   const workoutEvents = toSortedDatedWorkoutEvents(events);
-  const workoutIds = new Set(workoutEvents.map(({ event }) => event.id));
-  const pairedActivities = new Map<number, IntervalsActivity>();
-  const unplanned: SortableItem[] = [];
+  const { byEventId, pairedActivityIds, completedEventIds } = pairWorkouts(
+    workoutEvents.map(({ event }) => event),
+    activities,
+  );
 
-  for (const activity of [...activities].sort(byStart)) {
-    const eventId = activity.paired_event_id;
-
-    if (eventId === undefined || !workoutIds.has(eventId)) {
-      unplanned.push({
+  const unplanned = activities
+    .filter(activity => !pairedActivityIds.has(activity.id))
+    .map(
+      (activity): SortableItem => ({
         start: activity.start_date_local,
         item: { kind: 'activity', activity: toUnplannedActivity(activity) },
-      });
-    } else if (!pairedActivities.has(eventId)) {
-      pairedActivities.set(eventId, activity);
-    }
-  }
+      }),
+    );
 
   const workouts = workoutEvents.map(({ event, date }): SortableItem => {
-    const paired = pairedActivities.get(event.id);
+    const paired = byEventId.get(event.id)?.activity;
 
     return {
       start: paired?.start_date_local ?? event.start_date_local,
@@ -123,6 +114,8 @@ export function joinCalendarItems(
           date: paired ? toDate(paired.start_date_local) : date,
           durationSeconds: plannedDurationSeconds(event),
           blocks: buildWorkoutProfile(rideSteps(event), zoneConfig),
+          completedWithStravaActivity:
+            paired != null && isStravaActivity(paired),
         },
       },
     };
@@ -133,11 +126,7 @@ export function joinCalendarItems(
     .sort((a, b) => a.start.localeCompare(b.start))
     .map(({ item }) => item);
 
-  return { items, completedEventIds };
-}
-
-function byStart(a: IntervalsActivity, b: IntervalsActivity): number {
-  return a.start_date_local.localeCompare(b.start_date_local);
+  return { items, completedEventIds: [...completedEventIds] };
 }
 
 function toDate(startDateLocal: string): LocalDateString {
@@ -156,30 +145,18 @@ export function calendarItemKey(item: StoredCalendarItem): string {
     : `activity-${item.activity.id}`;
 }
 
-/**
- * The list returns a Strava Activity without a `type` or `name`, so missing
- * either (absent or `null`) marks one.
- */
-function toUnplannedActivity({
-  id,
-  name,
-  type,
-  start_date_local,
-  moving_time,
-  distance,
-  icu_training_load,
-}: IntervalsActivity): UnplannedActivity {
+function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
   const activity: UnplannedActivityBase = {
-    id,
-    date: toDate(start_date_local),
-    durationSeconds: positive(moving_time),
-    distanceMeters: positive(distance),
-    load: positive(icu_training_load),
+    id: source.id,
+    date: toDate(source.start_date_local),
+    durationSeconds: positive(source.moving_time),
+    distanceMeters: positive(source.distance),
+    load: positive(source.icu_training_load),
   };
 
-  return name == null || type == null
-    ? { ...activity, isStravaActivity: true }
-    : { ...activity, name, type };
+  return isSharedActivity(source)
+    ? { ...activity, name: source.name, type: source.type }
+    : { ...activity, isStravaActivity: true };
 }
 
 function positive(value: number | undefined): number | undefined {

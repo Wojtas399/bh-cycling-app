@@ -200,6 +200,12 @@ export interface IntervalsCalendarEvent {
   /** Planned work in joules. */
   joules?: number;
   workout_doc?: IntervalsWorkoutDoc;
+  /**
+   * The Activity this event is paired to, when the pairing is recorded on the
+   * event's side: numeric for a Strava Activity, `i…` for a native one. Not
+   * in intervals.icu's OpenAPI schema, but returned by the events list.
+   */
+  paired_activity_id?: string | null;
 }
 
 export interface IntervalsRequestOptions {

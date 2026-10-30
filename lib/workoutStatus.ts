@@ -24,6 +24,12 @@ export interface CalendarWorkout {
    * shape to draw. Callers degrade to the title and duration alone.
    */
   blocks: WorkoutBlock[];
+  /**
+   * Its earliest paired Activity is a Strava Activity (see CONTEXT.md), so
+   * there is nothing to show of it but that. False when no paired Activity is
+   * among those fetched.
+   */
+  completedWithStravaActivity: boolean;
 }
 
 /** A workout as stored: everything but the status, which depends on today. */
@@ -34,7 +40,7 @@ export type StoredWorkout = Omit<CalendarWorkout, 'status'>;
  * an activity is paired to it, otherwise missed once its day is past.
  */
 export function workoutStatus(
-  workout: StoredWorkout,
+  workout: Pick<StoredWorkout, 'id' | 'date'>,
   completedEventIds: ReadonlySet<number>,
   today: LocalDateString,
 ): WorkoutStatus {
