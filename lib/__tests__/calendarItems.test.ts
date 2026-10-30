@@ -552,6 +552,26 @@ describe('joinCalendarItems', () => {
     });
   });
 
+  it('draws a ride profile but none for a non-cycling Workout', () => {
+    const workoutDoc = {
+      duration: 3600,
+      steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
+    };
+    const { items } = joinCalendarItems(
+      [
+        event({ id: 1, type: 'Ride', workout_doc: workoutDoc }),
+        event({ id: 2, type: 'WeightTraining', workout_doc: workoutDoc }),
+      ],
+      [],
+      resolveZoneConfig({ powerZones: [60, 80, 95] }),
+    );
+
+    expect(items).toMatchObject([
+      { workout: { id: 1, blocks: [{ zone: 2 }] } },
+      { workout: { id: 2, blocks: [] } },
+    ]);
+  });
+
   it('returns nothing when there are no events or Activities', () => {
     expect(joinCalendarItems([], [], ZONE_CONFIG)).toEqual({
       items: [],

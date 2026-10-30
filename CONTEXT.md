@@ -8,6 +8,10 @@ A cycling training app backed by Intervals.icu. Dark mode only, Polish UI labels
 A training session planned on the athlete's Intervals.icu calendar, with a date and, usually, a structure of steps. It is the plan, not the ride itself.
 _Avoid_: Event, session, training
 
+**Cycling Workout**:
+A Workout whose type is a ride type: `Ride`, `VirtualRide`, `GravelRide`, `MountainBikeRide`, `EBikeRide`, `EMountainBikeRide`, `TrackRide`, `Velomobile` or `Handcycle`. Only a Cycling Workout's steps describe the session, so only it has a Workout Profile, steps and planned work. Any other Workout, such as a strength session, is non-cycling: its description is its content, shown in full as Note Markdown, and it has no Workout Profile.
+_Avoid_: Notes-first workout, strength workout (as the general term)
+
 **Activity**:
 A session the athlete actually recorded on Intervals.icu, of any sport: a ride, a run, a strength session. An Activity that fulfils a Workout is paired to it; the athlete sets the pairing on Intervals.icu, and it counts whichever side records it. The two show as one item on the Activity's day — even when the Workout was planned for another day — as on Intervals.icu.
 _Avoid_: Ride, completed workout
@@ -41,7 +45,7 @@ A free-text entry on the athlete's Intervals.icu calendar, for a single day or a
 _Avoid_: Comment, Workout description
 
 **Note Markdown**:
-A Note's text rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
+A Note's text, or a Workout's description on Workout Details, rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
 _Avoid_: Note HTML, Rich Text
 
 **Sign-in Method**:
