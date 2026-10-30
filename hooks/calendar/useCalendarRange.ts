@@ -47,12 +47,13 @@ export type CalendarRangeView = Pick<
 
 /**
  * Configures `useCalendarRange` for a specific range shape (month, week, ...).
+ * It opens on the range containing `startDate`, or today's without one.
  * `step` receives `-1`/`1` and is expected to move `anchor` by one unit of
  * that range in the given direction. `monthsFor` lists the months the range
  * touches, each cached as its own query.
  */
 export interface UseCalendarRangeConfig {
-  initialAnchor: () => Date;
+  startDate?: Date;
   startOf: (anchor: Date) => Date;
   endOf: (anchor: Date) => Date;
   monthsFor: (anchor: Date) => YearMonth[];
@@ -60,7 +61,7 @@ export interface UseCalendarRangeConfig {
 }
 
 export function useCalendarRange({
-  initialAnchor,
+  startDate,
   startOf,
   endOf,
   monthsFor,
@@ -69,7 +70,9 @@ export function useCalendarRange({
   const { availability, credentials } = useIntervalsAvailability();
   const queryClient = useQueryClient();
   const today = useToday();
-  const [anchor, setAnchor] = useState(initialAnchor);
+  const [anchor, setAnchor] = useState(() =>
+    startOf(startDate ?? fromLocalDateString(today)),
+  );
 
   // Stable per range, so `useQueries` only re-combines when a result changes.
   const combine = useMemo(

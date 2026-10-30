@@ -1,18 +1,15 @@
-import { type ReactNode, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TouchableOpacity, View } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
-import {
+import CalendarDayTile, {
   TILE_GAP,
-  TILE_RADIUS,
-  TILE_SURFACE,
-  TILE_SURFACE_OUTSIDE_MONTH,
-} from '@/components/calendar/calendarTile';
+} from '@/components/calendar/CalendarDayTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
-import { type AppTheme, useAppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
 import { dayCounts, formatDayLabel } from '@/lib/calendarDayCounts';
@@ -32,6 +29,7 @@ import {
   type NoteBarSegment,
   type NoteRowLayout,
   layoutNoteRow,
+  noteBarInsets,
 } from '@/lib/noteBars';
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
@@ -189,22 +187,22 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
   );
 }
 
-function NoteBar({
-  segment: { note, lane, firstColumn, lastColumn, roundedStart, roundedEnd },
-}: {
-  segment: NoteBarSegment;
-}) {
+function NoteBar({ segment }: { segment: NoteBarSegment }) {
+  const { note, lane, roundedStart, roundedEnd } = segment;
   const noteTitle = useNoteTitle();
   const theme = useAppTheme();
   const radius = theme.borderRadii.sm;
+  const { left, right } = noteBarInsets(segment, TILE_GAP);
 
   return (
     <View
       style={{
         position: 'absolute',
         top: lane * (BAR_HEIGHT + BAR_GAP),
-        left: `${(firstColumn / 7) * 100}%`,
-        width: `${((lastColumn - firstColumn + 1) / 7) * 100}%`,
+        left: `${left.percent}%`,
+        marginLeft: left.offset,
+        right: `${right.percent}%`,
+        marginRight: right.offset,
         height: BAR_HEIGHT,
       }}
     >
@@ -268,7 +266,7 @@ function GridCell({
       accessibilityLabel={label}
       testID={`calendar-day-${cell.date}`}
     >
-      <TileFrame surface={TILE_SURFACE}>
+      <CalendarDayTile flex={1} padding="xs" overflow="hidden">
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
@@ -323,7 +321,7 @@ function GridCell({
             )}
           </Box>
         )}
-      </TileFrame>
+      </CalendarDayTile>
     </TouchableOpacity>
   );
 }
@@ -344,7 +342,7 @@ function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
 function PaddingCell({ cell }: { cell: CalendarGridCell }) {
   return (
     <Box flex={1} testID={`calendar-day-${cell.date}`}>
-      <TileFrame surface={TILE_SURFACE_OUTSIDE_MONTH}>
+      <CalendarDayTile outsideMonth flex={1} padding="xs" overflow="hidden">
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
@@ -355,28 +353,7 @@ function PaddingCell({ cell }: { cell: CalendarGridCell }) {
             {cell.dayOfMonth}
           </Text>
         </Box>
-      </TileFrame>
-    </Box>
-  );
-}
-
-/** A day's tile, cutting off whatever doesn't fit it. */
-function TileFrame({
-  surface,
-  children,
-}: {
-  surface: keyof AppTheme['colors'];
-  children: ReactNode;
-}) {
-  return (
-    <Box
-      flex={1}
-      padding="xs"
-      borderRadius={TILE_RADIUS}
-      backgroundColor={surface}
-      overflow="hidden"
-    >
-      {children}
+      </CalendarDayTile>
     </Box>
   );
 }

@@ -18,6 +18,7 @@ import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
+import { useToday } from '@/hooks/useToday';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import type {
@@ -26,7 +27,6 @@ import type {
 } from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import { type CalendarView, otherViewStartDate } from '@/lib/calendarView';
-import { toLocalDateString } from '@/lib/localDate';
 import type { Note } from '@/lib/notes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
@@ -44,17 +44,14 @@ interface CalendarPlace {
  */
 export default function CalendarScreen() {
   const [place, setPlace] = useState<CalendarPlace>({ view: 'monthly' });
+  const today = useToday();
 
   function changeView(view: CalendarView, anchor: Date) {
     if (view === place.view) return;
 
     setPlace({
       view,
-      startDate: otherViewStartDate(
-        place.view,
-        anchor,
-        toLocalDateString(new Date()),
-      ),
+      startDate: otherViewStartDate(place.view, anchor, today),
     });
   }
 
@@ -79,7 +76,7 @@ function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
   return (
     <CalendarLayout
       view="monthly"
-      fillBody
+      fill
       onViewChange={view => onViewChange(view, month)}
       title={labels.month(month)}
       range={range}
@@ -137,7 +134,7 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
 interface CalendarLayoutProps {
   view: CalendarView;
   /** The loaded view fills the body instead of scrolling (see `CalendarBody`). */
-  fillBody?: boolean;
+  fill?: boolean;
   onViewChange: (view: CalendarView) => void;
   title: string;
   range: CalendarRangeView;
@@ -168,7 +165,7 @@ interface LoadedViewProps {
  */
 function CalendarLayout({
   view,
-  fillBody,
+  fill,
   onViewChange,
   title,
   range: { availability, query, goToToday, showsToday, refresh, refreshing },
@@ -217,7 +214,7 @@ function CalendarLayout({
         refreshStatus={calendarRefreshStatus(query, refreshing)}
       />
 
-      <CalendarBody state={bodyState(query)} fill={fillBody}>
+      <CalendarBody state={bodyState(query)} fill={fill}>
         {({ itemsByDate, notes }) =>
           children({
             itemsByDate,

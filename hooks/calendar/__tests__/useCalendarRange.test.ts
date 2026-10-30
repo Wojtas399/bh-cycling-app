@@ -88,7 +88,6 @@ function event(
  * test verifying only how they wire their config.
  */
 const monthConfig: UseCalendarRangeConfig = {
-  initialAnchor: () => startOfMonth(new Date()),
   startOf: startOfMonth,
   endOf: endOfMonth,
   monthsFor: anchor => [toYearMonth(anchor)],
@@ -146,6 +145,28 @@ describe('useCalendarRange', () => {
     // Hands focus back to the default listener for the next test.
     focusManager.setFocused(undefined);
     jest.useRealTimers();
+  });
+
+  it('opens on the range containing a starting date', async () => {
+    mockConnection();
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange({ ...monthConfig, startDate: new Date(2021, 1, 17) }),
+    );
+
+    expect(toLocalDateString(result.current.anchor)).toBe('2021-02-01');
+  });
+
+  it("opens on today's range without a starting date", async () => {
+    mockConnection();
+    mockUseToday.mockReturnValue('2021-02-17');
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    expect(toLocalDateString(result.current.anchor)).toBe('2021-02-01');
+    expect(result.current.showsToday).toBe(true);
   });
 
   it('is unavailable and makes no API call when not connected', async () => {

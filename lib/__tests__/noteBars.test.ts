@@ -1,4 +1,4 @@
-import { layoutNoteRow } from '../noteBars';
+import { type RowLength, layoutNoteRow, noteBarInsets } from '../noteBars';
 import type { Note } from '../notes';
 
 function note(overrides: Partial<Note>): Note {
@@ -188,5 +188,40 @@ describe('layoutNoteRow', () => {
     expect(
       layoutNoteRow(LAST_ROW, OCTOBER, [one, two, three]).overflowByDate,
     ).toEqual({ '2026-10-31': 1 });
+  });
+});
+
+/** The length in points in a row `width` points wide. */
+function inPoints(length: RowLength, width: number): number {
+  return (length.percent / 100) * width + length.offset;
+}
+
+describe('noteBarInsets', () => {
+  // 48-point cells 2 apart make a 348-point row, cell N starting at 50 × N.
+  const WIDTH = 348;
+  const GAP = 2;
+
+  it.each([
+    ['one cell', 2, 2, 100, 200],
+    ['a run of cells', 2, 4, 100, 100],
+    ['the first cell', 0, 0, 0, 300],
+    ['the last cell', 6, 6, 300, 0],
+    ['the whole row', 0, 6, 0, 0],
+  ])(
+    'lines a bar over %s up with the cells’ edges',
+    (_, firstColumn, lastColumn, left, right) => {
+      const insets = noteBarInsets({ firstColumn, lastColumn }, GAP);
+
+      expect(inPoints(insets.left, WIDTH)).toBeCloseTo(left);
+      expect(inPoints(insets.right, WIDTH)).toBeCloseTo(right);
+    },
+  );
+
+  it('keeps the bar on its cells at any row width', () => {
+    // 30-point cells 2 apart: a 222-point row, cell N starting at 32 × N.
+    const insets = noteBarInsets({ firstColumn: 1, lastColumn: 3 }, GAP);
+
+    expect(inPoints(insets.left, 222)).toBeCloseTo(32);
+    expect(inPoints(insets.right, 222)).toBeCloseTo(96);
   });
 });

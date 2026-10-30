@@ -29,7 +29,7 @@ function monthsFor(week: Date): YearMonth[] {
 /** Opens on the week containing `startDate`, or today's week without one. */
 export function useWeeklyCalendar(startDate?: Date): UseWeeklyCalendarResult {
   const { anchor, goToPrevious, goToNext, ...view } = useCalendarRange({
-    initialAnchor: () => startOfWeek(startDate ?? new Date()),
+    startDate,
     startOf: startOfWeek,
     endOf: endOfWeek,
     monthsFor,

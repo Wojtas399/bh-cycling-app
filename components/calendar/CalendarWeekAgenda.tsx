@@ -4,11 +4,9 @@ import { TouchableOpacity } from 'react-native';
 import Box from '@/components/Box';
 import CalendarItemTile from '@/components/CalendarItemTile';
 import Text from '@/components/Text';
-import {
+import CalendarDayTile, {
   TILE_GAP,
-  TILE_RADIUS,
-  TILE_SURFACE,
-} from '@/components/calendar/calendarTile';
+} from '@/components/calendar/CalendarDayTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
@@ -95,12 +93,7 @@ export default function CalendarWeekAgenda({
               accessible={false}
               testID={`calendar-day-${day.date}`}
             >
-              <Box
-                flexDirection="row"
-                padding="sm"
-                borderRadius={TILE_RADIUS}
-                backgroundColor={TILE_SURFACE}
-              >
+              <CalendarDayTile flexDirection="row" padding="sm">
                 {stripes.length > 0 && (
                   <Box
                     flexDirection="row"
@@ -158,7 +151,7 @@ export default function CalendarWeekAgenda({
                     </Box>
                   ))}
                 </Box>
-              </Box>
+              </CalendarDayTile>
             </TouchableOpacity>
           );
         })}
