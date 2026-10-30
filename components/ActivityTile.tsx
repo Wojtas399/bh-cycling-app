@@ -34,14 +34,14 @@ export default function ActivityTile({
   dayLabel,
   onPress,
 }: ActivityTileProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'activityTile' });
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { title, icon } = activity.isStravaActivity
-    ? { title: t('stravaActivity'), icon: GENERIC_SPORT_ICON }
+    ? { title: t('common.stravaActivity'), icon: GENERIC_SPORT_ICON }
     : { title: activity.name, icon: sportIcon(activity.type) };
   const metrics = activityMetrics(activity).map(({ metric, value }) =>
     metric === 'load'
-      ? t('load', { load: formatMetric(metric, value) })
+      ? t('activityTile.load', { load: formatMetric(metric, value) })
       : formatMetric(metric, value),
   );
 

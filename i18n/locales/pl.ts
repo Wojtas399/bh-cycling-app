@@ -6,6 +6,8 @@ const pl = {
     close: 'Zamknij',
     showPassword: 'Pokaż hasło',
     hidePassword: 'Ukryj hasło',
+    /** A Strava Activity's label: intervals.icu doesn't share its name. */
+    stravaActivity: 'Aktywność ze Stravy',
   },
   // Validation messages shared across forms (ADR 0006).
   validation: {
@@ -228,8 +230,6 @@ const pl = {
   },
   activityTile: {
     load: 'Obciążenie {{load}}',
-    /** A Strava Activity's title: intervals.icu doesn't share its name. */
-    stravaActivity: 'Aktywność ze Stravy',
   },
   calendar: {
     monthly: 'Miesięczny',
@@ -360,6 +360,14 @@ const pl = {
         elapsedTime: 'Czas całkowity',
         variabilityIndex: 'VI',
       },
+    },
+    /** Wykonanie for a Workout completed by a Strava Activity. */
+    stravaActivity: {
+      title: 'Wykonanie',
+      startTime: 'Rozpoczęta o {{time}}',
+      noData:
+        'Intervals.icu nie udostępnia danych aktywności ze Stravy, więc nie ma tu czasu, mocy ani tętna.',
+      openOnStrava: 'Zobacz na Stravie',
     },
     plan: {
       title: 'Plan',

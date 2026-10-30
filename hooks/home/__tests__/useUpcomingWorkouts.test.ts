@@ -118,6 +118,7 @@ describe('useUpcomingWorkouts', () => {
             date: toLocalDateString(new Date()),
             status: 'planned',
             blocks: [],
+            completedWithStravaActivity: false,
           },
         },
       ]),
@@ -203,6 +204,7 @@ describe('useUpcomingWorkouts', () => {
             date: today,
             status: 'planned',
             blocks: [],
+            completedWithStravaActivity: false,
           },
         },
         {
