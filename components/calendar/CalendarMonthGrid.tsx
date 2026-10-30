@@ -35,6 +35,8 @@ import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
 
 const DAY_NUMBER_SIZE = 24;
+/** A tile's padding, and the space between its day number and Note bars. */
+const TILE_SPACING = 'xs';
 const MARKER_SIZE = 6;
 const BAR_HEIGHT = 14;
 const BAR_GAP = 2;
@@ -173,7 +175,10 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
           accessibilityElementsHidden
           style={{
             position: 'absolute',
-            top: theme.spacing.xs + DAY_NUMBER_SIZE + theme.spacing.xs,
+            top:
+              theme.spacing[TILE_SPACING] +
+              DAY_NUMBER_SIZE +
+              theme.spacing[TILE_SPACING],
             left: 0,
             right: 0,
           }}
@@ -266,7 +271,7 @@ function GridCell({
       accessibilityLabel={label}
       testID={`calendar-day-${cell.date}`}
     >
-      <CalendarDayTile flex={1} padding="xs" overflow="hidden">
+      <CalendarDayTile flex={1} padding={TILE_SPACING} overflow="hidden">
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}
@@ -285,7 +290,7 @@ function GridCell({
         </Box>
 
         {barsHeight > 0 && (
-          <Box marginTop="xs" style={{ height: barsHeight }} />
+          <Box marginTop={TILE_SPACING} style={{ height: barsHeight }} />
         )}
 
         {overflow > 0 && (
@@ -342,7 +347,12 @@ function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
 function PaddingCell({ cell }: { cell: CalendarGridCell }) {
   return (
     <Box flex={1} testID={`calendar-day-${cell.date}`}>
-      <CalendarDayTile outsideMonth flex={1} padding="xs" overflow="hidden">
+      <CalendarDayTile
+        outsideMonth
+        flex={1}
+        padding={TILE_SPACING}
+        overflow="hidden"
+      >
         <Box
           width={DAY_NUMBER_SIZE}
           height={DAY_NUMBER_SIZE}

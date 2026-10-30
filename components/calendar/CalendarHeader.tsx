@@ -63,6 +63,7 @@ export default function CalendarHeader({
           {showTodayPill && (
             <TouchableOpacity
               onPress={onToday}
+              hitSlop={{ top: 8, bottom: 8 }}
               accessibilityRole="button"
               accessibilityLabel={t('today')}
             >
