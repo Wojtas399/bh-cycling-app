@@ -150,9 +150,9 @@ interface LoadedViewProps {
   notes: Note[];
   /** Opens the day sheet. */
   onDayPress: (day: CalendarDay) => void;
-  /** Opens the Workout's details, dismissing the day sheet if it is open. */
+  /** Opens the Workout's details. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
-  /** Opens the Activity's details, dismissing the day sheet if it is open. */
+  /** Opens the Activity's details. */
   onActivityPress: (activity: UnplannedActivity) => void;
   /** Opens the Note Detail Sheet straight from the view (no day sheet). */
   onNotePress: (note: Note) => void;
@@ -176,21 +176,9 @@ function CalendarLayout({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const sheet = useDaySheet(query.data);
-  const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.close);
+  const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.closeThen);
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
-
-  // The day sheet is a native Expo UI sheet (ADR 0003) that would otherwise
-  // linger above the pushed screen, so it is dismissed as the push happens.
-  function handleWorkoutPress(workout: CalendarWorkout) {
-    sheet.close();
-    openWorkout(workout.id);
-  }
-
-  function handleActivityPress(activity: UnplannedActivity) {
-    sheet.close();
-    openActivity(activity.id);
-  }
 
   if (availability === 'unavailable') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
@@ -220,8 +208,8 @@ function CalendarLayout({
             itemsByDate,
             notes,
             onDayPress: sheet.open,
-            onWorkoutPress: handleWorkoutPress,
-            onActivityPress: handleActivityPress,
+            onWorkoutPress: workout => openWorkout(workout.id),
+            onActivityPress: activity => openActivity(activity.id),
             onNotePress: note => noteSheet.open(note.id),
           })
         }
@@ -234,8 +222,13 @@ function CalendarLayout({
         notes={sheet.notes}
         isEmpty={sheet.isEmpty}
         onClose={sheet.close}
-        onWorkoutPress={handleWorkoutPress}
-        onActivityPress={handleActivityPress}
+        onDismissed={sheet.onDismissed}
+        onWorkoutPress={workout =>
+          sheet.closeThen(() => openWorkout(workout.id))
+        }
+        onActivityPress={activity =>
+          sheet.closeThen(() => openActivity(activity.id))
+        }
         onNotePress={note => noteSheet.openFromDaySheet(note.id)}
       />
 

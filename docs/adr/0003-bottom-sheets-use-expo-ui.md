@@ -33,3 +33,11 @@ The Note Detail Sheet shows a Note's text, which can be a long briefing. A sheet
 - `fullHeight` passes `snapPoints={['full']}` to the Expo UI sheet. On Android that skips the partly expanded state and fills the height. The body drops `RNHostView`'s `matchContents`, takes a fixed height (the window minus the top safe area), and scrolls in a `flex: 1` ScrollView.
 - Dismissal is unchanged: swipe, backdrop tap, Android back and ✕.
 - It is still a native modal, so it covers the tab bar. Sheets still don't stack; a screen moving from one sheet to another closes the first.
+
+## Amendment: acting after a sheet has dismissed
+
+Leaving the Calendar day sheet for another screen or sheet has to wait until it has fully closed. The Workout and Activity screens otherwise slide in behind it, and iOS refuses to present a Note sheet over one still dismissing.
+
+- The primitive gains an optional `onDismissed` callback, which fires once the sheet has left the screen, however it closed.
+- The universal sheet has no such event, so `onDismissed` fires when the sheet's content unmounts. iOS unmounts it on the native dismiss, Android after `hide()` resolves.
+- That Android unmount is not a documented guarantee, so an `@expo/ui` upgrade must re-check that tapping a day sheet tile still navigates.

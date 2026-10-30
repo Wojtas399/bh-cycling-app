@@ -30,6 +30,8 @@ export interface CalendarDaySheetProps {
   /** The day has neither items nor Notes. */
   isEmpty: boolean;
   onClose: () => void;
+  /** Called once the sheet has fully left the screen. */
+  onDismissed: () => void;
   /** Opens a Workout's details; the caller dismisses the sheet. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
   /** Opens an Activity's details; the caller dismisses the sheet. */
@@ -52,6 +54,7 @@ export default function CalendarDaySheet({
   notes,
   isEmpty,
   onClose,
+  onDismissed,
   onWorkoutPress,
   onActivityPress,
   onNotePress,
@@ -65,6 +68,7 @@ export default function CalendarDaySheet({
     <BottomSheet
       visible={visible}
       onClose={onClose}
+      onDismissed={onDismissed}
       title={labels.day(day)}
       testID="calendar-day-sheet"
     >

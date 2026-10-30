@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import type { CalendarDay } from '@/lib/calendarGrid';
 import type { CalendarItem } from '@/lib/calendarItems';
@@ -16,6 +16,13 @@ export interface DaySheetController {
   isEmpty: boolean;
   open: (day: CalendarDay) => void;
   close: () => void;
+  /**
+   * Closes the sheet and runs `action` once it has dismissed. If several tiles
+   * are tapped during the slide-out, only the last action runs.
+   */
+  closeThen: (action: () => void) => void;
+  /** Tells the hook the sheet has fully left the screen. */
+  onDismissed: () => void;
 }
 
 const NO_ITEMS: CalendarItem[] = [];
@@ -31,6 +38,7 @@ export function useDaySheet(
 ): DaySheetController {
   const [day, setDay] = useState<CalendarDay | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const afterDismiss = useRef<(() => void) | null>(null);
 
   // A reload or disconnect hides the sheet; it must not pop back open when
   // the data returns.
@@ -43,6 +51,16 @@ export function useDaySheet(
     setIsOpen(true);
   }, []);
   const close = useCallback(() => setIsOpen(false), []);
+  const closeThen = useCallback((action: () => void) => {
+    afterDismiss.current = action;
+    setIsOpen(false);
+  }, []);
+  const onDismissed = useCallback(() => {
+    const action = afterDismiss.current;
+
+    afterDismiss.current = null;
+    action?.();
+  }, []);
 
   const items = (day && data?.itemsByDate[day.date]) || NO_ITEMS;
   const notes = day && data ? notesOn(data.notes, day.date) : NO_NOTES;
@@ -55,5 +73,7 @@ export function useDaySheet(
     isEmpty: items.length === 0 && notes.length === 0,
     open,
     close,
+    closeThen,
+    onDismissed,
   };
 }
