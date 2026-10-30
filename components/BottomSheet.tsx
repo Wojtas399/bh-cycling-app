@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Platform,
@@ -30,6 +30,8 @@ export interface BottomSheetProps {
   visible: boolean;
   /** Called on every user dismissal: swipe, backdrop tap, back, or ✕. */
   onClose: () => void;
+  /** Called once the sheet has fully left the screen, however it closed. */
+  onDismissed?: () => void;
   title?: string;
   /** A muted line under the title. */
   subtitle?: string;
@@ -51,6 +53,7 @@ export interface BottomSheetProps {
 export default function BottomSheet({
   visible,
   onClose,
+  onDismissed,
   title,
   subtitle,
   fullHeight = false,
@@ -122,6 +125,8 @@ export default function BottomSheet({
           host, so it carries its own host while presented. iOS keeps
           the root host above sheets (ADR 0004). */}
       {Platform.OS === 'android' && visible ? <SheetToastHost /> : null}
+
+      {onDismissed ? <DismissedSignal onDismissed={onDismissed} /> : null}
     </Box>
   );
 
@@ -146,4 +151,16 @@ export default function BottomSheet({
       )}
     </ExpoBottomSheet>
   );
+}
+
+/**
+ * Expo UI's universal sheet has no "finished dismissing" event, but on both
+ * platforms it unmounts the content only after the dismissal has finished.
+ */
+function DismissedSignal({ onDismissed }: { onDismissed: () => void }) {
+  const notify = useEffectEvent(onDismissed);
+
+  useEffect(() => () => notify(), []);
+
+  return null;
 }

@@ -1,7 +1,4 @@
-import {
-  DAY_SHEET_DISMISS_MS,
-  useCalendarNoteSheet,
-} from '../useCalendarNoteSheet';
+import { useCalendarNoteSheet } from '../useCalendarNoteSheet';
 import { useDaySheet } from '../useDaySheet';
 import type { CalendarDay } from '@/lib/calendarGrid';
 import type { CalendarData } from '@/lib/calendarWorkouts';
@@ -34,16 +31,13 @@ const DATA: CalendarData = {
 async function renderSheets() {
   return renderHook(() => {
     const daySheet = useDaySheet(DATA);
-    const noteSheet = useCalendarNoteSheet(DATA.notes, daySheet.close);
+    const noteSheet = useCalendarNoteSheet(DATA.notes, daySheet.closeThen);
 
     return { daySheet, noteSheet };
   });
 }
 
 describe('useCalendarNoteSheet', () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
   it('closes the day sheet at once and opens the Note only once it has dismissed', async () => {
     const { result } = await renderSheets();
 
@@ -53,14 +47,8 @@ describe('useCalendarNoteSheet', () => {
     expect(result.current.daySheet.visible).toBe(false);
     expect(result.current.noteSheet.visible).toBe(false);
 
-    await act(async () => {
-      jest.advanceTimersByTime(DAY_SHEET_DISMISS_MS - 1);
-    });
-    expect(result.current.noteSheet.visible).toBe(false);
+    await act(async () => result.current.daySheet.onDismissed());
 
-    await act(async () => {
-      jest.advanceTimersByTime(1);
-    });
     expect(result.current.noteSheet.visible).toBe(true);
     expect(result.current.noteSheet.note).toEqual(CAMP);
   });
@@ -70,9 +58,7 @@ describe('useCalendarNoteSheet', () => {
 
     await act(async () => result.current.daySheet.open(OCT_24));
     await act(async () => result.current.noteSheet.openFromDaySheet(3));
-    await act(async () => {
-      jest.advanceTimersByTime(DAY_SHEET_DISMISS_MS);
-    });
+    await act(async () => result.current.daySheet.onDismissed());
     await act(async () => result.current.noteSheet.close());
 
     expect(result.current.noteSheet.visible).toBe(false);
