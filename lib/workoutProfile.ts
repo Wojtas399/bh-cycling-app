@@ -62,6 +62,12 @@ export interface WorkoutBlock {
   zone: Zone;
 }
 
+/**
+ * Time a profile spans but doesn't draw: a zero-height block, so the bars
+ * either side keep their place on the time axis. Its zone is never seen.
+ */
+export const GAP_BAND = { minPct: 0, maxPct: 0, zone: 1 } as const;
+
 /** The %FTP span and zone a step is drawn at, before it is given a width. */
 type StepBand = Pick<WorkoutBlock, 'minPct' | 'maxPct' | 'zone'>;
 

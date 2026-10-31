@@ -155,6 +155,13 @@ describe('activityDetailsQueryOptions', () => {
       activityDetailsQueryOptions(null, 'i42', buildActivityDetails).queryFn,
     ).toBe(skipToken);
   });
+
+  it('is skipped without an Activity id', () => {
+    expect(
+      activityDetailsQueryOptions(CREDENTIALS, null, buildActivityDetails)
+        .queryFn,
+    ).toBe(skipToken);
+  });
 });
 
 describe('routeQueryOptions', () => {

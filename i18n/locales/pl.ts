@@ -312,6 +312,13 @@ const pl = {
       'Ten trening nie został wykonany — brak sparowanej aktywności.',
     profileLabel:
       'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
+    /** The plan above the recorded Activity Profile, in one card. */
+    comparedProfilesLabel: 'Plan i wykonanie. {{planned}}. {{recorded}}',
+    /** Captions over the two strips of a completed Workout's profile card. */
+    strip: {
+      planned: 'Plan',
+      recorded: 'Wykonanie',
+    },
     steps_one: '{{count}} krok',
     steps_few: '{{count}} kroki',
     steps_many: '{{count}} kroków',
