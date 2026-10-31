@@ -1,12 +1,11 @@
 name: CI
 
 on:
+  workflow_call:
   pull_request:
   push:
     branches:
       - main
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   lint:
@@ -55,37 +54,3 @@ jobs:
       - run: npm ci
 
       - run: npm test -- --ci
-
-  testflight-staging:
-    name: Staging → TestFlight
-    if: github.ref_type == 'tag'
-    needs: [lint, typecheck, test]
-    runs-on: ubuntu-latest
-    concurrency:
-      group: testflight-staging
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - run: npm ci
-
-      # The tag decides the version. The edit stays in this checkout because
-      # EAS uploads the working tree, so nothing is committed back to main.
-      - name: Set version from tag
-        run: |
-          sed -i "s/^  version: '.*',$/  version: '${GITHUB_REF_NAME#v}',/" app.config.ts
-          grep -q "^  version: '${GITHUB_REF_NAME#v}',$" app.config.ts
-
-      # Queues the build on EAS and returns; EAS submits it to TestFlight once
-      # it finishes. Progress lives on expo.dev, not in this job.
-      - run: eas build --platform ios --profile staging --non-interactive --no-wait --auto-submit

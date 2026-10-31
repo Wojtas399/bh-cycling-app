@@ -16,7 +16,8 @@
       "autoIncrement": true,
       "env": {
         "APP_ENV": "staging"
-      }
+      },
+      "channel": "staging"
     },
     "preview": {
       "distribution": "internal",
@@ -28,11 +29,21 @@
       "autoIncrement": true,
       "env": {
         "APP_ENV": "production"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
-    "staging": {},
-    "production": {}
+    "staging": {
+      "android": {
+        "track": "internal"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

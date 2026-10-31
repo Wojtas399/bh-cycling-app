@@ -1,0 +1,3 @@
+# Firebase config exists on EAS builders but not on the GitHub runner, so
+# hashing it would stop CI from ever matching a build.
+firebase/**
