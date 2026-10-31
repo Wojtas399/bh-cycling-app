@@ -15,12 +15,14 @@ import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/constants/legal';
 import { useAppTheme } from '@/constants/theme';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
+import { formatRunningUpdate } from '@/lib/appUpdate';
 import { formatAppVersion } from '@/lib/appVersion';
 import { auth } from '@/lib/firebase';
 import { type SignInMethod, getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import * as Updates from 'expo-updates';
 import * as WebBrowser from 'expo-web-browser';
 
 function getSignInMethodLabelKey(methods: SignInMethod[]) {
@@ -40,6 +42,7 @@ export default function SettingsScreen() {
   const { t: tIntervals } = useTranslation(undefined, {
     keyPrefix: 'intervals',
   });
+  const { t: tNote } = useTranslation(undefined, { keyPrefix: 'note' });
   const theme = useAppTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -54,6 +57,10 @@ export default function SettingsScreen() {
     Constants.expoConfig?.version,
     Constants.expoConfig?.extra?.appEnv,
   );
+  const runningUpdate = formatRunningUpdate(Updates, {
+    monthsShort: tNote('monthsShort', { returnObjects: true }),
+    update: (id, date) => t('about.update', { id, date }),
+  });
   const busy = connecting || disconnecting;
 
   function handleLogOut() {
@@ -156,6 +163,7 @@ export default function SettingsScreen() {
           icon="information-circle-outline"
           iconColor="neutral"
           label={t('about.version')}
+          subtitle={runningUpdate}
           value={appVersion}
         />
         <SettingsRow

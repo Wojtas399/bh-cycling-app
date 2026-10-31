@@ -117,6 +117,8 @@ const pl = {
     about: {
       title: 'O aplikacji',
       version: 'Wersja',
+      /** The Version row's subtitle on a downloaded OTA update. */
+      update: 'Aktualizacja {{id}} · {{date}}',
       privacyPolicy: 'Polityka prywatności',
       termsOfService: 'Regulamin',
     },
