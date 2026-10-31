@@ -56,15 +56,13 @@ export default function SignInScreen() {
             paddingHorizontal="lg"
           >
             <Image
-              source={require('@/assets/images/bhc_logo.jpg')}
-              style={{
-                width: 136,
-                height: 136,
-                borderRadius: 68,
-                borderWidth: 1.5,
-                borderColor: 'rgba(255,255,255,0.2)',
-              }}
+              source={require('@/assets/images/horse-mark.png')}
+              style={{ width: 136, height: 136 }}
             />
+
+            <Box marginTop="md">
+              <Text variant="body-l-semibold">BH Cycling</Text>
+            </Box>
 
             <Box marginTop="xl">
               <Text variant="h2">{t('signIn.title')}</Text>

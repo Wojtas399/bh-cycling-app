@@ -22,6 +22,7 @@ for (const [dest, srcPath] of Object.entries(FIREBASE_FILES)) {
 
 const APP_ENV = process.env.APP_ENV ?? 'staging';
 const IS_PRODUCTION = APP_ENV === 'production';
+const ICON_VARIANT = IS_PRODUCTION ? 'production' : 'staging';
 
 const EAS_PROJECT_ID = 'a5a05625-f7f4-4b0c-89b8-72de6a9dbdd8';
 
@@ -35,12 +36,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'black-horse-cycling-app',
   version: '0.0.1',
   orientation: 'portrait',
-  icon: './assets/images/icon.png',
+  icon: `./assets/images/icon-${ICON_VARIANT}.png`,
   scheme: 'blackhorsecyclingapp',
   userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'fingerprint' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
+    icon: `./assets/icons/AppIcon-${ICON_VARIANT}.icon`,
     supportsTablet: true,
     bundleIdentifier: BUNDLE_ID,
     googleServicesFile: IS_PRODUCTION
@@ -52,10 +54,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
-      foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
-      monochromeImage: './assets/images/android-icon-monochrome.png',
+      backgroundColor: '#0A0A0A',
+      foregroundImage: `./assets/images/android-foreground-${ICON_VARIANT}.png`,
+      monochromeImage: `./assets/images/android-monochrome-${ICON_VARIANT}.png`,
     },
     predictiveBackGestureEnabled: false,
     package: BUNDLE_ID,
@@ -97,8 +98,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         image: './assets/images/splash-icon.png',
         imageWidth: 200,
         resizeMode: 'contain',
-        backgroundColor: '#ffffff',
-        dark: { backgroundColor: '#000000' },
+        backgroundColor: '#0A0A0A',
+        dark: { backgroundColor: '#0A0A0A' },
       },
     ],
     'expo-build-properties',
