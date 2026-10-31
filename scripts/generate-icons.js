@@ -91,6 +91,24 @@ const PNG_OUTPUTS = [
       opaque: false,
     },
   ]),
+  {
+    path: 'assets/images/splash-icon.png',
+    svg: master,
+    width: 1024,
+    opaque: false,
+  },
+  {
+    path: 'assets/images/horse-mark.png',
+    svg: master,
+    width: 408,
+    opaque: false,
+  },
+  {
+    path: 'assets/images/favicon.png',
+    svg: canvas(onNearBlack(mark)),
+    width: 48,
+    opaque: true,
+  },
 ];
 
 const ICON_DOCUMENTS = [
