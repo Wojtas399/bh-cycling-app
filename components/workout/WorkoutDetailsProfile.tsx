@@ -1,31 +1,59 @@
 import { useTranslation } from 'react-i18next';
 
 import ProfileWithTimeAxis from '@/components/workout/ProfileWithTimeAxis';
+import type { ActivityProfileSummary } from '@/lib/activityDetails';
 import { formatDuration } from '@/lib/formatDuration';
+import type { ProfileCard } from '@/lib/profileCard';
 import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
-import type { WorkoutBlock } from '@/lib/workoutProfile';
 
 export interface WorkoutDetailsProfileProps {
-  blocks: WorkoutBlock[];
-  summary: WorkoutProfileSummary;
+  card: ProfileCard;
 }
 
-/** The large Workout Profile, read by a screen reader as one summary. */
+/**
+ * The large profile card: the recorded Activity Profile above the planned
+ * Workout Profile when there's both, either alone otherwise. Read by a screen
+ * reader as one summary covering whatever it shows.
+ */
 export default function WorkoutDetailsProfile({
-  blocks,
-  summary,
+  card: { durationSeconds, recorded, planned },
 }: WorkoutDetailsProfileProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
+  const { t } = useTranslation();
+
+  function recordedLabel(summary: ActivityProfileSummary) {
+    return t('activityDetails.profileLabel', {
+      duration: formatDuration(summary.durationSeconds),
+      segments: t('activityDetails.segments', { count: summary.segmentCount }),
+      peak: summary.peakFtpPct,
+    });
+  }
+
+  function plannedLabel(summary: WorkoutProfileSummary) {
+    return t('workoutDetails.profileLabel', {
+      duration: formatDuration(summary.durationSeconds),
+      steps: t('workoutDetails.steps', { count: summary.stepCount }),
+      peak: Math.round(summary.peakFtpPct),
+    });
+  }
+
+  const recordedText = recorded && recordedLabel(recorded.summary);
+  const plannedText = planned && plannedLabel(planned.summary);
 
   return (
     <ProfileWithTimeAxis
-      blocks={blocks}
-      durationSeconds={summary.durationSeconds}
-      accessibilityLabel={t('profileLabel', {
-        duration: formatDuration(summary.durationSeconds),
-        steps: t('steps', { count: summary.stepCount }),
-        peak: Math.round(summary.peakFtpPct),
-      })}
+      strips={[recorded, planned].flatMap(strip =>
+        strip ? [strip.blocks] : [],
+      )}
+      durationSeconds={durationSeconds}
+      accessibilityLabel={
+        recordedText && plannedText
+          ? t('workoutDetails.comparedProfilesLabel', {
+              recorded: recordedText,
+              planned: plannedText,
+            })
+          : // A card always has at least one strip.
+            (recordedText ?? plannedText ?? '')
+      }
       testID="workout-details-profile"
     />
   );

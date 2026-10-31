@@ -78,8 +78,11 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
-  /** One Activity's details, by its intervals.icu id. */
-  activity: (athleteId: string | undefined, activityId: string) =>
+  /**
+   * One Activity's details, by its intervals.icu id. The id is `null` only in
+   * the key of a query skipped for want of one.
+   */
+  activity: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.athlete(athleteId), 'activity', activityId] as const,
   /**
    * One Activity's Route, by its intervals.icu id. The id is `null` only in
@@ -299,28 +302,30 @@ export type ActivityDetailsSelect = (
  * One Activity, with its detected intervals, for Activity Details. The query
  * stores the body trimmed to what the screen needs (see
  * `toStoredActivityDetails`), never the whole of it; `select` builds the view
- * model. Never reads from or writes into the month, upcoming or Workout
- * Details caches. Fresh as long as a Workout's details. Skipped while there
- * are no credentials.
+ * model. Activity Details and a completed Workout's profile card share it.
+ * Never reads from or writes into the month, upcoming or Workout Details
+ * caches. Fresh as long as a Workout's details. Skipped without credentials or
+ * an Activity id.
  */
 export function activityDetailsQueryOptions(
   credentials: IntervalsCredentials | null,
-  activityId: string,
+  activityId: string | null,
   select: ActivityDetailsSelect,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.activity(credentials?.athleteId, activityId),
-    queryFn: credentials
-      ? async ({ signal }): Promise<StoredActivityDetails> =>
-          toStoredActivityDetails(
-            await getActivity(
-              credentials.accessToken,
-              activityId,
-              { intervals: true },
-              { signal },
-            ),
-          )
-      : skipToken,
+    queryFn:
+      credentials && activityId !== null
+        ? async ({ signal }): Promise<StoredActivityDetails> =>
+            toStoredActivityDetails(
+              await getActivity(
+                credentials.accessToken,
+                activityId,
+                { intervals: true },
+                { signal },
+              ),
+            )
+        : skipToken,
     select,
     ...WORKOUTS_FRESHNESS,
   });

@@ -159,4 +159,23 @@ describe('buildWorkoutDetails', () => {
       ]);
     });
   });
+
+  describe('recordedActivityId', () => {
+    it("is the paired Activity's id, to fetch its Activity Profile", () => {
+      expect(details(ride, { ...pairedActivity, type: 'Ride' })).toMatchObject({
+        mode: 'completed',
+        recordedActivityId: 'a1',
+      });
+    });
+
+    it('is null for a Workout without its Activity', () => {
+      expect(details(ride).recordedActivityId).toBeNull();
+    });
+
+    it('is null for a Strava Activity, which has no intervals to fetch', () => {
+      const strava = { ...pairedActivity, name: undefined, type: undefined };
+
+      expect(details(ride, strava).recordedActivityId).toBeNull();
+    });
+  });
 });

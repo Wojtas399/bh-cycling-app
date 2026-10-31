@@ -10,7 +10,7 @@ import type {
 import type { LocalDateTimeString } from './localDateTime';
 import { type Zone, isZone } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
-import type { WorkoutBlock } from './workoutProfile';
+import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 /**
  * The Activity fields Activity Details keeps from the ~71 KB body: the hero,
@@ -169,12 +169,6 @@ export function routeOf(
 
 /** Fewest drawn intervals that make an Activity Profile worth showing. */
 const MIN_PROFILE_SEGMENTS = 2;
-
-/**
- * Time the Profile spans but doesn't draw: a zero-height block, so the bars
- * either side keep their place on the time axis. Its zone is never seen.
- */
-const GAP_BAND = { minPct: 0, maxPct: 0, zone: 1 } as const;
 
 /**
  * The Activity Profile: each detected interval with a power intensity as one
