@@ -32,7 +32,7 @@ const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 const mockPush = jest.fn();
 const mockOpenBrowser = jest.fn();
 let mockExpoConfig: { version: string; extra: { appEnv: string } } = {
-  version: '1.0.0',
+  version: '0.0.1',
   extra: { appEnv: 'production' },
 };
 
@@ -208,22 +208,22 @@ describe('SettingsScreen — O aplikacji section', () => {
     mockConnection();
     mockAuth();
     mockUser('password');
-    mockExpoConfig = { version: '1.0.0', extra: { appEnv: 'production' } };
+    mockExpoConfig = { version: '0.0.1', extra: { appEnv: 'production' } };
   });
 
   it('shows the plain version on production builds', async () => {
     await renderScreen();
 
     expect(screen.getByText('settings.about.version')).toBeTruthy();
-    expect(screen.getByText('1.0.0')).toBeTruthy();
+    expect(screen.getByText('0.0.1')).toBeTruthy();
   });
 
   it('appends (staging) on non-production builds', async () => {
-    mockExpoConfig = { version: '1.0.0', extra: { appEnv: 'staging' } };
+    mockExpoConfig = { version: '0.0.1', extra: { appEnv: 'staging' } };
 
     await renderScreen();
 
-    expect(screen.getByText('1.0.0 (staging)')).toBeTruthy();
+    expect(screen.getByText('0.0.1 (staging)')).toBeTruthy();
   });
 
   it('opens the privacy policy in the in-app browser', async () => {
