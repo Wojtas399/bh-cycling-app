@@ -12,7 +12,8 @@
       }
     },
     "staging": {
-      "distribution": "internal",
+      "environment": "development",
+      "autoIncrement": true,
       "env": {
         "APP_ENV": "staging"
       }
@@ -31,6 +32,7 @@
     }
   },
   "submit": {
+    "staging": {},
     "production": {}
   }
 }
