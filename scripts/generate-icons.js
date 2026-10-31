@@ -5,6 +5,8 @@ const Jimp = require('jimp-compact');
 
 const ROOT = path.resolve(__dirname, '..');
 const CANVAS_SIZE = 1024;
+const FEATURE_WIDTH = 1024;
+const FEATURE_HEIGHT = 500;
 const NEAR_BLACK = '#0A0A0A';
 const YELLOW = '#FFD60A';
 const NEAR_BLACK_SRGB = 'srgb:0.03922,0.03922,0.03922,1.00000';
@@ -90,6 +92,12 @@ const PNG_OUTPUTS = [
       width: 1024,
       opaque: false,
     },
+    {
+      path: `assets/store/play-icon-${variant}.png`,
+      svg: canvas(onNearBlack(TILE[variant])),
+      width: 512,
+      opaque: true,
+    },
   ]),
   {
     path: 'assets/images/splash-icon.png',
@@ -107,6 +115,12 @@ const PNG_OUTPUTS = [
     path: 'assets/images/favicon.png',
     svg: canvas(onNearBlack(mark)),
     width: 48,
+    opaque: true,
+  },
+  {
+    path: 'assets/store/feature-graphic.png',
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FEATURE_WIDTH} ${FEATURE_HEIGHT}"><rect width="${FEATURE_WIDTH}" height="${FEATURE_HEIGHT}" fill="${NEAR_BLACK}"/><svg x="${(FEATURE_WIDTH - FEATURE_HEIGHT) / 2}" y="0" width="${FEATURE_HEIGHT}" height="${FEATURE_HEIGHT}" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}">${mark}</svg></svg>`,
+    width: FEATURE_WIDTH,
     opaque: true,
   },
 ];
