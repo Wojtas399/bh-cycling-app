@@ -6,15 +6,22 @@ const Jimp = require('jimp-compact');
 const ROOT = path.resolve(__dirname, '..');
 const CANVAS_SIZE = 1024;
 const NEAR_BLACK = '#0A0A0A';
+const YELLOW = '#FFD60A';
 const NEAR_BLACK_SRGB = 'srgb:0.03922,0.03922,0.03922,1.00000';
 const ANDROID_SAFE_ZONE_SCALE = 72 / 108;
 const PNG_COLOR_TYPE_RGB = 2;
+const RIBBON_LENGTH = 2.4;
+const VARIANTS = ['production', 'staging'];
 
 const master = fs.readFileSync(
   path.join(ROOT, 'assets/icon-source/horse-mark.svg'),
   'utf8',
 );
 const mark = master.replace(/^<svg[^>]*>|<\/svg>\s*$/g, '');
+const label = fs
+  .readFileSync(path.join(ROOT, 'assets/icon-source/stg-label.svg'), 'utf8')
+  .replace(/^[\s\S]*?<svg[^>]*>|<\/svg>\s*$/g, '')
+  .replace(/<defs\/>/g, '');
 
 const canvas = contents =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}">${contents}</svg>`;
@@ -28,25 +35,62 @@ const inAndroidSafeZone = contents => {
   return `<g transform="translate(${center} ${center}) scale(${ANDROID_SAFE_ZONE_SCALE}) translate(-${center} -${center})">${contents}</g>`;
 };
 
+// Long enough to pass every edge even after the Android layer scales it down.
+const diagonalStrip = (fill, y, height) =>
+  `<g transform="scale(${CANVAS_SIZE})"><rect transform="rotate(-45 .78 .78)" x="${0.8 - RIBBON_LENGTH / 2}" y="${y}" width="${RIBBON_LENGTH}" height="${height}" fill="${fill}"/></g>`;
+
+const gap = fill => diagonalStrip(fill, 0.665, 0.23);
+const ribbon = fill => diagonalStrip(fill, 0.69, 0.18);
+
+const withCutOut = (id, contents, cutOut) =>
+  `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"><rect width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" fill="#fff"/>${cutOut}</mask></defs><g mask="url(#${id})">${contents}</g>`;
+
+const markClearOfRibbon = withCutOut('g', mark, gap('#000'));
+
+const TILE = {
+  production: mark,
+  staging:
+    mark +
+    gap(NEAR_BLACK) +
+    ribbon(YELLOW) +
+    label.replace(/fill="#000"/g, `fill="${NEAR_BLACK}"`),
+};
+
+// Themed icons drop colour, so staging has to differ by shape alone. The ribbon
+// mask sits outside the safe-zone scale: inside it, the mask region would crop
+// the ribbon at the safe zone instead of letting it bleed.
+const ANDROID_SILHOUETTE = {
+  production: inAndroidSafeZone(mark),
+  staging:
+    inAndroidSafeZone(markClearOfRibbon) +
+    withCutOut(
+      't',
+      inAndroidSafeZone(ribbon('#FFF')),
+      inAndroidSafeZone(label),
+    ),
+};
+
 const PNG_OUTPUTS = [
-  {
-    path: 'assets/images/icon-production.png',
-    svg: canvas(onNearBlack(mark)),
-    width: 1024,
-    opaque: true,
-  },
-  {
-    path: 'assets/images/android-foreground-production.png',
-    svg: canvas(inAndroidSafeZone(mark)),
-    width: 1024,
-    opaque: false,
-  },
-  {
-    path: 'assets/images/android-monochrome-production.png',
-    svg: canvas(inAndroidSafeZone(mark)),
-    width: 1024,
-    opaque: false,
-  },
+  ...VARIANTS.flatMap(variant => [
+    {
+      path: `assets/images/icon-${variant}.png`,
+      svg: canvas(onNearBlack(TILE[variant])),
+      width: 1024,
+      opaque: true,
+    },
+    {
+      path: `assets/images/android-foreground-${variant}.png`,
+      svg: canvas(inAndroidSafeZone(TILE[variant])),
+      width: 1024,
+      opaque: false,
+    },
+    {
+      path: `assets/images/android-monochrome-${variant}.png`,
+      svg: canvas(ANDROID_SILHOUETTE[variant]),
+      width: 1024,
+      opaque: false,
+    },
+  ]),
 ];
 
 const ICON_DOCUMENTS = [
@@ -54,6 +98,14 @@ const ICON_DOCUMENTS = [
     path: 'assets/icons/AppIcon-production.icon',
     assets: { 'mark.svg': master },
     layers: ['mark'],
+  },
+  {
+    path: 'assets/icons/AppIcon-staging.icon',
+    assets: {
+      'mark.svg': canvas(markClearOfRibbon),
+      'ribbon.svg': canvas(withCutOut('t', ribbon(YELLOW), label)),
+    },
+    layers: ['ribbon', 'mark'],
   },
 ];
 
