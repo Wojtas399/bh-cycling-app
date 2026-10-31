@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_PRODUCTION ? 'BH Cycling' : 'BH Cycling (Staging)',
   slug: 'black-horse-cycling-app',
-  version: '1.0.0',
+  version: '0.0.1',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'blackhorsecyclingapp',
