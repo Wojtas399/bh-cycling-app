@@ -50,6 +50,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       : './firebase/GoogleService-Info.staging.plist',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      // MapLibre ships a location manager, so App Store Connect requires
+      // this key even though the app never asks for location (ITMS-90683).
+      NSLocationWhenInUseUsageDescription:
+        'BH Cycling uses your location to show where you are on the ride map.',
     },
   },
   android: {
