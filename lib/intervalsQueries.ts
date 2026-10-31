@@ -229,10 +229,10 @@ export function selectWorkoutDetailsAsOf(
 
 /**
  * One Workout with how it is paired. The single event read lacks
- * `paired_activity_id` (#191), so it only dates the Workout: the event itself
- * is then taken from that day's Workouts list, which carries it, alongside the
- * Activities a pairing window around the day. Should the list lack the event,
- * the single read stands in. The query stores no status; `select` (see
+ * `paired_activity_id` (#191) and can't resolve step watts, so it only dates
+ * the Workout: the event itself is then taken from that day's Workouts list,
+ * which has both, alongside the Activities a pairing window around the day.
+ * Should the list lack the event, the single read stands in. The query stores no status; `select` (see
  * `selectWorkoutDetailsAsOf`) derives it, so a planned Workout turns missed at
  * midnight without a fetch. Never reads from or writes into the month or
  * upcoming caches. Skipped while there are no credentials.
@@ -260,7 +260,12 @@ export function workoutDetailsQueryOptions(
             getCalendarEvents(
               accessToken,
               athleteId,
-              { oldest: day, newest: day, category: EVENT_CATEGORY.workout },
+              {
+                oldest: day,
+                newest: day,
+                category: EVENT_CATEGORY.workout,
+                resolve: true,
+              },
               { signal },
             ),
             getActivities(
