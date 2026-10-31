@@ -41,7 +41,7 @@ interface RouteMapProps {
 }
 
 /**
- * Draws a Route on a dark map: a glowing orange line with green start and red
+ * Draws a Route on a dark map: a thin orange line with green start and red
  * finish dots. The map's own contents are hidden from the screen reader; the
  * attribution ⓘ is the component's own button, after the map in the tree, so
  * it stays focusable and opens MapLibre's attribution dialog.
@@ -83,21 +83,10 @@ export default function RouteMap({
 
           <GeoJSONSource id="route" data={line}>
             <Layer
-              id="route-glow"
-              type="line"
-              layout={LINE_LAYOUT}
-              paint={{
-                'line-color': colors.zone5,
-                'line-width': 12,
-                'line-opacity': 0.25,
-                'line-blur': 4,
-              }}
-            />
-            <Layer
               id="route-line"
               type="line"
               layout={LINE_LAYOUT}
-              paint={{ 'line-color': colors.zone5, 'line-width': 4 }}
+              paint={{ 'line-color': colors.zone5, 'line-width': 3 }}
             />
           </GeoJSONSource>
 
