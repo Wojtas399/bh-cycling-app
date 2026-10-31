@@ -50,7 +50,7 @@ export default function ProfileWithTimeAxis({
       testID={testID}
     >
       <Box importantForAccessibility="no-hide-descendants">
-        <Box gap="md">
+        <Box gap="xl">
           {strips.map(({ blocks, caption }) =>
             // A lone profile needs no caption: the card says what it is.
             strips.length > 1 ? (
