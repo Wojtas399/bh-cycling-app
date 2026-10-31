@@ -1,3 +1,5 @@
+import type { NoteDateLabels } from './noteDates';
+
 /** The `expo-updates` values that say which bundle the app is running. */
 export interface RunningUpdate {
   isEnabled: boolean;
@@ -6,9 +8,10 @@ export interface RunningUpdate {
   createdAt: Date | null;
 }
 
-export interface RunningUpdateLabels {
-  /** January first. */
-  monthsShort: readonly string[];
+export interface RunningUpdateLabels extends Pick<
+  NoteDateLabels,
+  'monthsShort'
+> {
   /** The subtitle from the short ID and date: "Aktualizacja a1b2c3d4 · 31 paź 2026". */
   update: (id: string, date: string) => string;
 }
@@ -19,10 +22,10 @@ export interface RunningUpdateLabels {
  * published date. Nothing on the embedded bundle or with updates disabled.
  */
 export function formatRunningUpdate(
-  update: RunningUpdate,
+  running: RunningUpdate,
   labels: RunningUpdateLabels,
 ): string | undefined {
-  const { isEnabled, isEmbeddedLaunch, updateId, createdAt } = update;
+  const { isEnabled, isEmbeddedLaunch, updateId, createdAt } = running;
 
   if (!isEnabled || isEmbeddedLaunch || !updateId || !createdAt) {
     return undefined;
