@@ -314,6 +314,11 @@ const pl = {
       'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
     /** The recorded Activity Profile above the plan, in one card. */
     comparedProfilesLabel: 'Wykonanie na tle planu. {{recorded}}. {{planned}}',
+    /** Captions over the two strips of a completed Workout's profile card. */
+    strip: {
+      recorded: 'Wykonanie',
+      planned: 'Plan',
+    },
     steps_one: '{{count}} krok',
     steps_few: '{{count}} kroki',
     steps_many: '{{count}} kroków',

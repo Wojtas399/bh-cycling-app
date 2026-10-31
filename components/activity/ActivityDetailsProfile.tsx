@@ -22,7 +22,7 @@ export default function ActivityDetailsProfile({
 
   return (
     <ProfileWithTimeAxis
-      strips={[blocks]}
+      strips={[{ blocks, caption: t('title') }]}
       durationSeconds={summary.durationSeconds}
       accessibilityLabel={t('profileLabel', {
         duration: formatDuration(summary.durationSeconds),

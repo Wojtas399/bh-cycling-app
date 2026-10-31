@@ -41,9 +41,24 @@ export default function WorkoutDetailsProfile({
 
   return (
     <ProfileWithTimeAxis
-      strips={[recorded, planned].flatMap(strip =>
-        strip ? [strip.blocks] : [],
-      )}
+      strips={[
+        ...(recorded
+          ? [
+              {
+                blocks: recorded.blocks,
+                caption: t('workoutDetails.strip.recorded'),
+              },
+            ]
+          : []),
+        ...(planned
+          ? [
+              {
+                blocks: planned.blocks,
+                caption: t('workoutDetails.strip.planned'),
+              },
+            ]
+          : []),
+      ]}
       durationSeconds={durationSeconds}
       accessibilityLabel={
         recordedText && plannedText
