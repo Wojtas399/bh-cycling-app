@@ -416,7 +416,12 @@ describe('useWorkoutDetails', () => {
       expect(mockGetCalendarEvents).toHaveBeenCalledWith(
         'token-1',
         'athlete-1',
-        { oldest: '2026-11-02', newest: '2026-11-02', category: 'WORKOUT' },
+        {
+          oldest: '2026-11-02',
+          newest: '2026-11-02',
+          category: 'WORKOUT',
+          resolve: true,
+        },
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });

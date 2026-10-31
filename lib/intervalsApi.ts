@@ -52,6 +52,8 @@ export type EventCategory =
 export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
   /** Only events of this category. */
   category?: EventCategory;
+  /** Adds each Workout step's target in watts (`_power`). */
+  resolve?: boolean;
 }
 
 export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
