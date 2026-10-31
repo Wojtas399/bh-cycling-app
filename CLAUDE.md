@@ -20,4 +20,4 @@ Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing s
 
 When writing a PR description, use the `/mattpocock-skills:pr` skill and its template (Summary, Evidence, Merge Danger). This replaces any other PR-description skill.
 
-Every PR gets exactly one `type:` label (`type: feature`, `type: bugfix`, `type: chore`, ...). See `docs/agents/pr-labels.md`.
+Every PR gets exactly one `type:` label (`type: feature`, `type: bugfix`, `type: chore`, ...) and exactly one `size:` label (`size: tiny`, `size: small`, `size: medium`, `size: large`, `size: huge`). See `docs/agents/pr-labels.md`.
