@@ -88,6 +88,19 @@ npx firebase functions:secrets:set INTERVALS_CLIENT_SECRET
 
 The app side needs the matching public client ID to build the authorization request: set `EXPO_PUBLIC_INTERVALS_CLIENT_ID` in `.env.local` for local development, and as an EAS environment variable for the `development`, `preview`, and `production` environments (`eas env:create --name EXPO_PUBLIC_INTERVALS_CLIENT_ID --environment <env>` — this hasn't been run yet and needs an authenticated `eas login`).
 
+## Releasing
+
+`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. The ref decides what ships.
+
+| Ref                                      | Result                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging       |
+| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store |
+| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                        |
+| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                              |
+
+`hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
+
 ## Learn more
 
 - [Expo documentation](https://docs.expo.dev/)

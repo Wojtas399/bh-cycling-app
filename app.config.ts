@@ -23,6 +23,8 @@ for (const [dest, srcPath] of Object.entries(FIREBASE_FILES)) {
 const APP_ENV = process.env.APP_ENV ?? 'staging';
 const IS_PRODUCTION = APP_ENV === 'production';
 
+const EAS_PROJECT_ID = 'a5a05625-f7f4-4b0c-89b8-72de6a9dbdd8';
+
 const BUNDLE_ID = IS_PRODUCTION
   ? 'com.wojtas.blackhorsecyclingapp'
   : 'com.wojtas.blackhorsecyclingapp.staging';
@@ -36,6 +38,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/images/icon.png',
   scheme: 'blackhorsecyclingapp',
   userInterfaceStyle: 'automatic',
+  runtimeVersion: { policy: 'fingerprint' },
+  updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
     supportsTablet: true,
     bundleIdentifier: BUNDLE_ID,
@@ -110,7 +114,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     appEnv: APP_ENV,
     router: {},
     eas: {
-      projectId: 'a5a05625-f7f4-4b0c-89b8-72de6a9dbdd8',
+      projectId: EAS_PROJECT_ID,
     },
   },
 });

@@ -12,10 +12,12 @@
       }
     },
     "staging": {
-      "distribution": "internal",
+      "environment": "development",
+      "autoIncrement": true,
       "env": {
         "APP_ENV": "staging"
-      }
+      },
+      "channel": "staging"
     },
     "preview": {
       "distribution": "internal",
@@ -27,10 +29,21 @@
       "autoIncrement": true,
       "env": {
         "APP_ENV": "production"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
-    "production": {}
+    "staging": {
+      "android": {
+        "track": "internal"
+      }
+    },
+    "production": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }
