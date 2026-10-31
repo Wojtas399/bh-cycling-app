@@ -14,8 +14,8 @@ export interface ProfileStrip<Summary> {
 }
 
 /**
- * Workout Details' profile card: the recorded Activity Profile above the
- * planned Workout Profile, on one shared time scale. A strip shorter than the
+ * Workout Details' profile card: the planned Workout Profile above the
+ * recorded Activity Profile, on one shared time scale. A strip shorter than the
  * card ends early, so the two line up in time.
  */
 export interface ProfileCard {

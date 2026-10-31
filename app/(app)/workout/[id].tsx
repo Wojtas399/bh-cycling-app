@@ -100,7 +100,7 @@ export default function WorkoutDetailsScreen() {
 
 /**
  * The loaded Workout, Variant A: hero, then stacked cards. A completed
- * Workout's profile card draws the ride above the plan. On a Cycling
+ * Workout's profile card draws the ride below the plan. On a Cycling
  * Workout the mode-specific metrics, Kroki and Opis cards slot in below the
  * profile. A non-cycling Workout's description is its content, so Opis leads,
  * straight under the hero.

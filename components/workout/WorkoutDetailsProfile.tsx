@@ -11,8 +11,8 @@ export interface WorkoutDetailsProfileProps {
 }
 
 /**
- * The large profile card: the recorded Activity Profile above the planned
- * Workout Profile when there's both, either alone otherwise. Read by a screen
+ * The large profile card: the planned Workout Profile above the recorded
+ * Activity Profile when there's both, either alone otherwise. Read by a screen
  * reader as one summary covering whatever it shows.
  */
 export default function WorkoutDetailsProfile({
@@ -42,14 +42,6 @@ export default function WorkoutDetailsProfile({
   return (
     <ProfileWithTimeAxis
       strips={[
-        ...(recorded
-          ? [
-              {
-                blocks: recorded.blocks,
-                caption: t('workoutDetails.strip.recorded'),
-              },
-            ]
-          : []),
         ...(planned
           ? [
               {
@@ -58,16 +50,24 @@ export default function WorkoutDetailsProfile({
               },
             ]
           : []),
+        ...(recorded
+          ? [
+              {
+                blocks: recorded.blocks,
+                caption: t('workoutDetails.strip.recorded'),
+              },
+            ]
+          : []),
       ]}
       durationSeconds={durationSeconds}
       accessibilityLabel={
-        recordedText && plannedText
+        plannedText && recordedText
           ? t('workoutDetails.comparedProfilesLabel', {
-              recorded: recordedText,
               planned: plannedText,
+              recorded: recordedText,
             })
           : // A card always has at least one strip.
-            (recordedText ?? plannedText ?? '')
+            (plannedText ?? recordedText ?? '')
       }
       testID="workout-details-profile"
     />

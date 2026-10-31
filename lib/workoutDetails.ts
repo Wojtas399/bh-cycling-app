@@ -138,7 +138,7 @@ export interface WorkoutDetails {
    */
   stravaActivity: StravaActivitySummary | null;
   /**
-   * The paired Activity whose Activity Profile Workout Details draws above
+   * The paired Activity whose Activity Profile Workout Details draws below
    * the plan, fetched on its own as this read carries no intervals. `null`
    * exactly when `activityMetrics` is.
    */
