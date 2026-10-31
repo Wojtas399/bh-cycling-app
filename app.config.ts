@@ -35,12 +35,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'black-horse-cycling-app',
   version: '0.0.1',
   orientation: 'portrait',
-  icon: './assets/images/icon.png',
+  icon: './assets/images/icon-production.png',
   scheme: 'blackhorsecyclingapp',
   userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'fingerprint' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
+    icon: './assets/icons/AppIcon-production.icon',
     supportsTablet: true,
     bundleIdentifier: BUNDLE_ID,
     googleServicesFile: IS_PRODUCTION
@@ -52,10 +53,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
-      foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
-      monochromeImage: './assets/images/android-icon-monochrome.png',
+      backgroundColor: '#0A0A0A',
+      foregroundImage: './assets/images/android-foreground-production.png',
+      monochromeImage: './assets/images/android-monochrome-production.png',
     },
     predictiveBackGestureEnabled: false,
     package: BUNDLE_ID,
