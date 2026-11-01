@@ -65,7 +65,7 @@ The athlete's short-term training load: a rolling average of recent daily load, 
 _Avoid_: ATL, acute training load
 
 **Form**:
-The balance between Fitness and Fatigue, as calculated by Intervals.icu: how fresh the athlete is relative to their recent training. BH Cycling shows it and never calculates it.
+The balance between Fitness and Fatigue: how fresh the athlete is relative to their recent training. BH Cycling shows it as Fitness minus Fatigue from Intervals.icu's rounded values, the same way Intervals.icu does, and never models it.
 _Avoid_: TSB, training stress balance
 
 **Sign-in Method**:
