@@ -42,7 +42,7 @@ function ride(
   };
 }
 
-const flatRide: ActivityDetails = {
+const rideWithoutProfile: ActivityDetails = {
   ...ride(3600),
   blocks: [],
   profileSummary: null,
@@ -97,7 +97,7 @@ describe('buildProfileCard', () => {
   it.each<[string, ActivityDetails | undefined]>([
     ['still loading or failed', undefined],
     ['a Strava Activity', { isStravaActivity: true }],
-    ['no drawable profile', flatRide],
+    ['no drawable profile', rideWithoutProfile],
   ])('shows the plan alone, as before, with an Activity %s', (_, activity) => {
     expect(buildProfileCard(plan(3600), activity)).toEqual({
       durationSeconds: 3600,
@@ -122,7 +122,7 @@ describe('buildProfileCard', () => {
 
   it('is null when neither side has a profile', () => {
     expect(buildProfileCard(NO_PLAN, undefined)).toBeNull();
-    expect(buildProfileCard(NO_PLAN, flatRide)).toBeNull();
+    expect(buildProfileCard(NO_PLAN, rideWithoutProfile)).toBeNull();
   });
 
   it('drops a plan with no known duration beside a ride, as it can’t be placed in time', () => {
