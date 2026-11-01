@@ -167,16 +167,13 @@ export function routeOf(
   return details.isStravaActivity ? null : details.route;
 }
 
-/** Fewest drawn intervals that make an Activity Profile worth showing. */
-const MIN_PROFILE_SEGMENTS = 2;
-
 /**
  * The Activity Profile: each detected interval with a power intensity as one
  * flat block, as wide as its share of the elapsed span, from the first
  * interval's start to the last one's end. An interval without power or a zone
  * isn't guessed at: its time is left as an empty gap, so the rest stay where
- * they happened. Fewer than two drawn blocks is no shape at all (a steady
- * ride, no power, no intervals), so nothing is drawn.
+ * they happened. A steady ride is one block. With no interval to draw (no
+ * power, no intervals) there is no Profile.
  */
 function activityProfileOf({
   icu_intervals,
@@ -189,7 +186,7 @@ function activityProfileOf({
     .sort((a, b) => a.start - b.start);
   const segments = timed.filter(isProfileSegment);
 
-  if (segments.length < MIN_PROFILE_SEGMENTS) {
+  if (segments.length === 0) {
     return { blocks: [], profileSummary: null };
   }
 
