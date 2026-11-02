@@ -7,7 +7,7 @@ import {
 } from './intervalsAuthErrors';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
-import { removeIntervalsQueries } from '@/lib/intervalsQueries';
+import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { toast } from '@/lib/toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,7 +18,8 @@ WebBrowser.maybeCompleteAuthSession();
 
 const AUTHORIZATION_ENDPOINT = 'https://intervals.icu/oauth/authorize';
 const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
-const SCOPES = ['ACTIVITY:READ,CALENDAR:READ'];
+// One item: `expo-auth-session` joins items with a space, Intervals.icu wants commas.
+const SCOPES = ['ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ'];
 
 export interface UseIntervalsAuthResult {
   handleConnect: () => Promise<void>;
@@ -64,6 +65,10 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       // Re-enables the gated queries; the 401 already removed the old data.
       setNeedsReconnect(false);
+      // Refetches under the new consent, athlete settings included, which
+      // never go stale otherwise. The whole prefix, since the Firestore
+      // connection may not carry the athlete id yet.
+      void queryClient.invalidateQueries({ queryKey: intervalsKeys.all });
       toast.success(t('connected'));
     },
     onError: () => toast.error(errorMessage('connect')),

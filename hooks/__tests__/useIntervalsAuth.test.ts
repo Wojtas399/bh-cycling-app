@@ -9,6 +9,7 @@ import {
 import { toast } from '@/lib/toast';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
+import * as AuthSession from 'expo-auth-session';
 
 const mockPromptAsync = jest.fn();
 const mockHttpsCallable = jest.fn();
@@ -44,6 +45,7 @@ jest.mock('../useIntervalsConnection', () => ({
 }));
 
 const INTERVALS_KEY = ['intervals', 'athlete-1', 'upcoming', '2026-10-11'];
+const ATHLETE_SETTINGS_KEY = ['intervals', 'athlete-1', 'athleteSettings'];
 
 function renderAuth() {
   return renderHookWithClient(() => useIntervalsAuth());
@@ -81,6 +83,22 @@ describe('useIntervalsAuth', () => {
   });
 
   describe('handleConnect', () => {
+    it('asks for all four scopes as one comma-separated item', async () => {
+      mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        await result.current.handleConnect();
+      });
+
+      expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scopes: ['ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ'],
+        }),
+      );
+    });
+
     it('exchanges the code on a successful authorization', async () => {
       const mockExchange = jest.fn().mockResolvedValue({ data: {} });
 
@@ -119,6 +137,27 @@ describe('useIntervalsAuth', () => {
       });
 
       expect(getNeedsReconnect()).toBe(false);
+    });
+
+    it("invalidates the athlete's Intervals data, settings included, on a successful authorization", async () => {
+      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+      const { result, client } = await renderAuth();
+
+      client.setQueryData(INTERVALS_KEY, []);
+      client.setQueryData(ATHLETE_SETTINGS_KEY, {});
+
+      await act(async () => {
+        await result.current.handleConnect();
+      });
+
+      expect(client.getQueryState(INTERVALS_KEY)?.isInvalidated).toBe(true);
+      expect(client.getQueryState(ATHLETE_SETTINGS_KEY)?.isInvalidated).toBe(
+        true,
+      );
     });
 
     it('shows a success toast once the exchange succeeds', async () => {
