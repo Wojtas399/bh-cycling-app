@@ -33,6 +33,11 @@ export function isNotFoundError(error: unknown): boolean {
   return error instanceof IntervalsApiError && error.status === 404;
 }
 
+/** True when Intervals.icu answered 403: the token lacks the scope needed. */
+export function isForbiddenError(error: unknown): boolean {
+  return error instanceof IntervalsApiError && error.status === 403;
+}
+
 export interface IntervalsDateRangeParams {
   oldest?: string;
   newest?: string;

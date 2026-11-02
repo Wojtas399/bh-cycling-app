@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import type { WellnessCardState } from '@/hooks/home/useWellness';
+import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
+import { useRouter } from 'expo-router';
 
 /** Bar widths of the loading card's rows. */
 const SKELETON_ROWS = [
@@ -33,6 +36,12 @@ export default function WellnessCard({ state }: { state: WellnessCardState }) {
           ))}
         </Card>
       );
+    case 'needsScope':
+      return (
+        <Card>
+          <ReconnectPrompt />
+        </Card>
+      );
     case 'empty':
       return (
         <Card>
@@ -55,6 +64,42 @@ export default function WellnessCard({ state }: { state: WellnessCardState }) {
         </Card>
       );
   }
+}
+
+/**
+ * Asks to reconnect for the Wellness scope, with no dismiss. Like
+ * `IntervalsReconnectBanner`, the action opens Settings and starts the connect
+ * flow straight away.
+ */
+function ReconnectPrompt() {
+  const { t } = useTranslation(undefined, {
+    keyPrefix: 'home.wellness.needsScope',
+  });
+  const router = useRouter();
+  const { handleConnect } = useIntervalsAuth();
+
+  function handlePress() {
+    router.push('/(app)/(tabs)/settings');
+    void handleConnect();
+  }
+
+  return (
+    <Box gap="sm" alignItems="flex-start">
+      <Text variant="body-s-regular" color="textSecondary">
+        {t('message')}
+      </Text>
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={0.8}
+        hitSlop={8}
+        accessibilityRole="button"
+      >
+        <Text variant="body-s-medium" color="accent">
+          {t('action')}
+        </Text>
+      </TouchableOpacity>
+    </Box>
+  );
 }
 
 /** The card surface with its title; a `busyLabel` marks it as loading. */

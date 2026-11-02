@@ -4,9 +4,11 @@ import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from '@/hooks/useIntervalsAvailability';
+import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
+import { isForbiddenError } from '@/lib/intervalsApi';
 import { intervalsKeys, wellnessQueryOptions } from '@/lib/intervalsQueries';
-import type { WellnessRow } from '@/lib/wellness';
+import { type WellnessRow, lacksWellnessScope } from '@/lib/wellness';
 import {
   type UseQueryResult,
   useQuery,
@@ -17,6 +19,7 @@ import {
 export type WellnessCardState =
   | { status: 'loading' }
   | { status: 'hidden' }
+  | { status: 'needsScope' }
   | { status: 'empty' }
   | { status: 'ready'; rows: WellnessRow[] };
 
@@ -27,12 +30,17 @@ export type WellnessCardState =
  */
 export function useWellness() {
   const { availability, credentials } = useIntervalsAvailability();
+  const connection = useIntervalsConnection();
   const today = useToday();
   const queryClient = useQueryClient();
 
-  const query = useQuery(wellnessQueryOptions(credentials, today));
+  // Skipped like a missing connection until the stored scope has arrived, and
+  // when it lacks Wellness, so no request goes out to be refused.
+  const lacksScope = lacksWellnessScope(connection.scope);
+  const readCredentials = connection.loading || lacksScope ? null : credentials;
+  const query = useQuery(wellnessQueryOptions(readCredentials, today));
 
-  const athleteId = credentials?.athleteId;
+  const athleteId = readCredentials?.athleteId;
 
   // Through the client, like `useUpcomingWorkouts`, so the tracked query
   // result only re-renders on what `toCardState` reads.
@@ -45,18 +53,24 @@ export function useWellness() {
     [athleteId, queryClient, today],
   );
 
-  return { state: toCardState(availability, query), refetch };
+  return { state: toCardState(availability, lacksScope, query), refetch };
 }
 
 /**
- * A failed read hides only the card, so Home goes on without it. Rows already
- * shown for today stay up through a failed refetch.
+ * Wellness that can't be read for want of its scope asks to reconnect: the
+ * stored scope says so up front, and a 403 says so once that scope has gone
+ * stale (Wellness taken away in Intervals.icu's Connected Apps), even over
+ * rows already shown. Any other failed read hides only the card, so Home goes
+ * on without it, and rows already shown for today stay up through it.
  */
 function toCardState(
   availability: IntervalsAvailability,
-  { data, isError }: UseQueryResult<WellnessRow[]>,
+  lacksScope: boolean,
+  { data, error, isError }: UseQueryResult<WellnessRow[]>,
 ): WellnessCardState {
   if (availability === 'unavailable') return { status: 'hidden' };
+
+  if (lacksScope || isForbiddenError(error)) return { status: 'needsScope' };
 
   if (data !== undefined) {
     return data.length === 0

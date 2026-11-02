@@ -190,6 +190,11 @@ const pl = {
       /** The loading card's screen-reader label. */
       loading: 'Wczytywanie Wellness',
       empty: 'Brak danych na dziś.',
+      needsScope: {
+        message:
+          'Połącz ponownie Intervals.icu i zezwól na dostęp do Wellness.',
+        action: 'Połącz ponownie',
+      },
       /** Row labels, by `WellnessRow` key. */
       rows: {
         readiness: 'Gotowość',

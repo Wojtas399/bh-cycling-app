@@ -42,17 +42,19 @@ describe('useIntervalsConnection', () => {
       athleteName: null,
       athleteId: null,
       accessToken: null,
+      scope: null,
       loading: false,
     });
   });
 
-  it('is connected with populated fields when the document exists', async () => {
+  it('is connected with populated fields, the granted scope included, when the document exists', async () => {
     const { result } = await renderHook(() => useIntervalsConnection());
 
     await emitSnapshot({
       accessToken: 'token-1',
       athleteId: 'athlete-1',
       athleteName: 'Jane Rider',
+      scope: 'ACTIVITY:READ,CALENDAR:READ',
     });
 
     expect(result.current).toEqual({
@@ -60,8 +62,18 @@ describe('useIntervalsConnection', () => {
       athleteName: 'Jane Rider',
       athleteId: 'athlete-1',
       accessToken: 'token-1',
+      scope: 'ACTIVITY:READ,CALENDAR:READ',
       loading: false,
     });
+  });
+
+  it('reports no scope for a connection stored without one', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    await emitSnapshot({ accessToken: 'token-1', athleteId: 'athlete-1' });
+
+    expect(result.current.isConnected).toBe(true);
+    expect(result.current.scope).toBeNull();
   });
 
   it('transitions to not connected when the document is deleted mid-session', async () => {
@@ -97,6 +109,7 @@ describe('useIntervalsConnection', () => {
       athleteName: null,
       athleteId: null,
       accessToken: null,
+      scope: null,
       loading: false,
     });
   });

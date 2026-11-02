@@ -37,16 +37,24 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });
 }
 
-function mockConnected() {
+/** Everything the app asks for at consent. */
+const FULL_SCOPE = 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
+
+/** What a connection made before Wellness was asked for holds. */
+const SCOPE_WITHOUT_WELLNESS = 'ACTIVITY:READ,CALENDAR:READ';
+
+function mockConnected(scope: string = FULL_SCOPE) {
   mockConnection({
     isConnected: true,
     accessToken: 'token-1',
     athleteId: 'athlete-1',
+    scope,
   });
 }
 
@@ -126,6 +134,15 @@ describe('useWellness', () => {
     expect(mockGetWellness).not.toHaveBeenCalled();
   });
 
+  it('asks to reconnect, and asks for nothing, when the stored scope lacks Wellness', async () => {
+    mockConnected(SCOPE_WITHOUT_WELLNESS);
+
+    const { result } = await renderHookWithClient(() => useWellness());
+
+    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(mockGetWellness).not.toHaveBeenCalled();
+  });
+
   it('is loading while the entry is on its way', async () => {
     mockConnected();
     mockGetWellness.mockReturnValue(new Promise(() => {}));
@@ -177,15 +194,52 @@ describe('useWellness', () => {
     expect(result.current.state).toEqual({ status: 'empty' });
   });
 
-  it('is hidden when the request fails with a missing-scope 403, without retrying it or asking the athlete to reconnect', async () => {
+  it('needs no reconnect with Wellness granted but athlete settings not', async () => {
+    mockConnected('ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ');
+    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+
+    const { result } = await renderReady();
+
+    expect(result.current.state).toEqual(FULL_ROWS);
+  });
+
+  it('asks to reconnect when the request is refused for its scope, without retrying it or the global reconnect', async () => {
     mockConnected();
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
 
     const { result } = await renderReady();
 
-    expect(result.current.state).toEqual({ status: 'hidden' });
+    expect(result.current.state).toEqual({ status: 'needsScope' });
     expect(mockGetWellness).toHaveBeenCalledTimes(1);
     expect(handleIntervalsAuthError).not.toHaveBeenCalled();
+  });
+
+  it('asks to reconnect over rows already shown when Wellness access is taken away', async () => {
+    mockConnected();
+    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+
+    const hook = await renderReady();
+
+    mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
+    await refetch(hook);
+
+    expect(hook.result.current.state).toEqual({ status: 'needsScope' });
+  });
+
+  it('fills in once a reconnect grants Wellness, without a restart', async () => {
+    mockConnected(SCOPE_WITHOUT_WELLNESS);
+    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+
+    const { result, rerender } = await renderHookWithClient(() =>
+      useWellness(),
+    );
+
+    expect(result.current.state).toEqual({ status: 'needsScope' });
+
+    mockConnected(FULL_SCOPE);
+    await rerender({});
+
+    await waitFor(() => expect(result.current.state).toEqual(FULL_ROWS));
   });
 
   it('is hidden when the request fails for any other reason', async () => {
@@ -308,6 +362,20 @@ describe('useWellness', () => {
       status: 'ready',
       rows: [{ key: 'restingHr', value: '48 bpm' }],
     });
+  });
+
+  it('refetch asks for nothing once a reconnect takes Wellness away', async () => {
+    mockConnected();
+    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+
+    const hook = await renderReady();
+
+    mockConnected(SCOPE_WITHOUT_WELLNESS);
+    await hook.rerender({});
+    await refetch(hook);
+
+    expect(hook.result.current.state).toEqual({ status: 'needsScope' });
+    expect(mockGetWellness).toHaveBeenCalledTimes(1);
   });
 
   it("keeps showing today's rows when a refetch fails", async () => {

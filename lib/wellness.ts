@@ -44,3 +44,13 @@ function milliseconds(value: number): string {
 function beatsPerMinute(value: number): string {
   return `${whole(value)} bpm`;
 }
+
+/**
+ * Whether a stored Intervals.icu scope shows `WELLNESS:READ` wasn't granted,
+ * so no Wellness request needs to go out to be refused. Only that scope is
+ * checked. Intervals.icu separates scopes with commas, OAuth with spaces; both
+ * are read. An unknown scope shows nothing, and the request itself decides.
+ */
+export function lacksWellnessScope(scope: string | null): boolean {
+  return scope !== null && !scope.split(/[\s,]+/).includes('WELLNESS:READ');
+}
