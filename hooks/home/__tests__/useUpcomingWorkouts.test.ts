@@ -6,9 +6,10 @@ import {
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
+import { intervalsKeys } from '@/lib/intervalsQueries';
 import { addDays, toLocalDateString } from '@/lib/localDate';
 import { renderHookWithClient } from '@/test-utils/queryClient';
-import { waitFor } from '@testing-library/react-native';
+import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(),
@@ -230,6 +231,35 @@ describe('useUpcomingWorkouts', () => {
 
     await waitFor(() => expect(result.current.query.isError).toBe(true));
     expect(result.current.query.data).toBeUndefined();
+  });
+
+  it('refetches only the "Dziś i jutro" query, resolving once it settles', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockResolvedValue([]);
+    const upcomingKey = intervalsKeys.upcoming(
+      'athlete-1',
+      toLocalDateString(new Date()),
+    );
+    const otherKey = intervalsKeys.workout('athlete-1', 42);
+
+    const { result, client } = await renderHookWithClient(() =>
+      useUpcomingWorkouts(),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toEqual([]));
+    client.setQueryData(otherKey, { stale: true });
+    const otherUpdatedAt = client.getQueryState(otherKey)?.dataUpdatedAt;
+
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE' ? [] : [todayEvent()],
+    );
+    await act(() => result.current.refetch());
+
+    expect(client.getQueryData(upcomingKey)).toMatchObject([
+      { kind: 'workout', workout: { id: 1 } },
+    ]);
+    expect(client.getQueryState(otherKey)?.dataUpdatedAt).toBe(otherUpdatedAt);
   });
 
   it('is empty when connected but no events match', async () => {
