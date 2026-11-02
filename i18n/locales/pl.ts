@@ -185,6 +185,21 @@ const pl = {
     },
   },
   home: {
+    wellness: {
+      title: 'Wellness',
+      /** The loading card's screen-reader label. */
+      loading: 'Wczytywanie Wellness',
+      empty: 'Brak danych na dziś.',
+      /** Row labels, by `WellnessRow` key. */
+      rows: {
+        readiness: 'Gotowość',
+        sleep: 'Sen',
+        sleepScore: 'Ocena snu',
+        hrv: 'HRV',
+        hrvSdnn: 'HRV (SDNN)',
+        restingHr: 'Tętno spocz.',
+      },
+    },
     upcomingWorkouts: {
       title: 'Dziś i jutro',
       empty: 'Brak treningów i aktywności na dziś i jutro.',

@@ -6,6 +6,7 @@ import {
   intervalsActivityPath,
   intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
+  intervalsWellnessPath,
 } from './intervalsApiPaths';
 import type { AthleteZoneSettings } from './powerZones';
 import type { WorkoutStep } from './workoutProfile';
@@ -208,6 +209,27 @@ export interface IntervalsCalendarEvent {
   paired_activity_id?: string | null;
 }
 
+/**
+ * One athlete's Wellness Entry for one day. intervals.icu returns it for any
+ * date, with every metric `null` on a day without data. Only the metrics the
+ * app reads are typed; the rest, such as `ctl`, `atl` and `updated`, are
+ * filled every day and ignored.
+ */
+export interface IntervalsWellness {
+  /** The device's readiness score, on the device's own scale. */
+  readiness?: number | null;
+  /** s. */
+  sleepSecs?: number | null;
+  /** The device's sleep score, on the device's own scale. */
+  sleepScore?: number | null;
+  /** rMSSD, ms. */
+  hrv?: number | null;
+  /** SDNN, ms. Apple Watch reports this one instead of `hrv`. */
+  hrvSDNN?: number | null;
+  /** bpm. */
+  restingHR?: number | null;
+}
+
 export interface IntervalsRequestOptions {
   /** Aborts the request in flight, e.g. when React Query cancels its query. */
   signal?: AbortSignal;
@@ -345,6 +367,25 @@ export function getActivityMap(
 ): Promise<IntervalsActivityMap> {
   return request<IntervalsActivityMap>(
     intervalsActivityMapPath(activityId),
+    token,
+    undefined,
+    options,
+  );
+}
+
+/**
+ * Reads one day's Wellness Entry by its local `YYYY-MM-DD` date. A day without
+ * data is a 200 with every metric `null`, never a 404. A token without
+ * `WELLNESS:READ` surfaces as an `IntervalsApiError` with status 403.
+ */
+export function getWellness(
+  token: string,
+  athleteId: string,
+  date: string,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsWellness> {
+  return request<IntervalsWellness>(
+    intervalsWellnessPath(athleteId, date),
     token,
     undefined,
     options,

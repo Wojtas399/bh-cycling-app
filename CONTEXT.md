@@ -48,6 +48,14 @@ _Avoid_: Comment, Workout description
 A Note's text, or a Workout's description on Workout Details, rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
 _Avoid_: Note HTML, Rich Text
 
+**Wellness**:
+The athlete's day-by-day recovery and health data held on Intervals.icu, such as sleep or resting heart rate. Read-only in BH Cycling. It is a set of measurements, not a verdict on how ready the athlete is.
+_Avoid_: Recovery, Readiness
+
+**Wellness Entry**:
+One athlete's Wellness record for one day. It may be missing or only partly filled, depending on what reached Intervals.icu that day.
+_Avoid_: Wellness log, daily check-in
+
 **Sign-in Method**:
 How a user authenticates: `email` (email + password) and/or `google`. A user can have more than one (Firebase may auto-link Google to an existing email/password account). Change Password is offered whenever `email` is among them.
 _Avoid_: provider, auth type, login type
