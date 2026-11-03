@@ -294,19 +294,37 @@ export function getActivities(
 }
 
 /**
- * Reads the settings of the athlete the token belongs to. Only the zone slice
- * is typed — the endpoint returns a far larger athlete record the app ignores.
+ * The slice of the athlete record the app reads. Power zones are per sport:
+ * each `sportSettings` entry covers the activity types in its `types`.
  */
-export function getAthleteSettings(
+interface IntervalsAthlete {
+  sportSettings?:
+    | { types?: string[] | null; power_zones?: number[] | null }[]
+    | null;
+}
+
+/** The sport whose settings hold the zones Workout Profiles are coloured by. */
+const CYCLING_SPORT_TYPE = 'Ride';
+
+/**
+ * Reads the power zones of the athlete the token belongs to, from their Ride
+ * settings. The endpoint returns a far larger athlete record the app ignores.
+ */
+export async function getAthleteSettings(
   token: string,
   options?: IntervalsRequestOptions,
 ): Promise<AthleteZoneSettings> {
-  return request<AthleteZoneSettings>(
+  const athlete = await request<IntervalsAthlete>(
     INTERVALS_CURRENT_ATHLETE_PATH,
     token,
     undefined,
     options,
   );
+  const ride = athlete.sportSettings?.find(sport =>
+    sport.types?.includes(CYCLING_SPORT_TYPE),
+  );
+
+  return { powerZones: ride?.power_zones };
 }
 
 export function getCalendarEvents(
