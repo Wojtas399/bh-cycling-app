@@ -137,6 +137,12 @@ export interface WorkoutDetails {
    * Activity isn't among those fetched.
    */
   stravaActivity: StravaActivitySummary | null;
+  /**
+   * The paired Activity whose Activity Profile Workout Details draws below
+   * the plan, fetched on its own as this read carries no intervals. `null`
+   * exactly when `activityMetrics` is.
+   */
+  recordedActivityId: string | null;
 }
 
 /** What is known of a Strava Activity: its id and when it started. */
@@ -210,6 +216,7 @@ export function buildWorkoutDetails(
           url: stravaActivityUrl(strava.id),
         }
       : null,
+    recordedActivityId: measured ? measured.id : null,
   };
 }
 

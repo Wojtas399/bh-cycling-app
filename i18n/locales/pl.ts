@@ -117,6 +117,8 @@ const pl = {
     about: {
       title: 'O aplikacji',
       version: 'Wersja',
+      /** The Version row's subtitle on a downloaded OTA update. */
+      update: 'Aktualizacja {{id}} · {{date}}',
       privacyPolicy: 'Polityka prywatności',
       termsOfService: 'Regulamin',
     },
@@ -330,6 +332,13 @@ const pl = {
       'Ten trening nie został wykonany — brak sparowanej aktywności.',
     profileLabel:
       'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
+    /** The plan above the recorded Activity Profile, in one card. */
+    comparedProfilesLabel: 'Plan i wykonanie. {{planned}}. {{recorded}}',
+    /** Captions over the two strips of a completed Workout's profile card. */
+    strip: {
+      planned: 'Plan',
+      recorded: 'Wykonanie',
+    },
     steps_one: '{{count}} krok',
     steps_few: '{{count}} kroki',
     steps_many: '{{count}} kroków',

@@ -20,6 +20,9 @@ use_target() {
   else
     environment=development
   fi
+  # eas build ignores file variables outside EAS servers, and app.config.ts
+  # needs the Firebase files to resolve. env:pull skips Secret variables.
+  eas env:pull --environment "$environment" --non-interactive
 }
 
 # The ref decides the version. The edit stays in this checkout because EAS
@@ -45,8 +48,12 @@ has_matching_build() {
   jq -e 'any(.[]; .status != "ERRORED" and .status != "CANCELED")' <<<"$builds" >/dev/null
 }
 
+# Android builds are not submitted until Google Play has a service account key,
+# which waits on the Play developer account verification.
 build() {
-  eas build --platform "$platform" --profile "$profile" --non-interactive --no-wait --auto-submit
+  local submit=""
+  [[ "$platform" == ios ]] && submit=--auto-submit
+  eas build --platform "$platform" --profile "$profile" --non-interactive --no-wait $submit
 }
 
 update() {

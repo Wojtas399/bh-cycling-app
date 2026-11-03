@@ -1,0 +1,33 @@
+{
+  "fill": {
+    "solid": "srgb:0.03922,0.03922,0.03922,1.00000"
+  },
+  "groups": [
+    {
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.5
+      },
+      "specular": false,
+      "layers": [
+        {
+          "name": "ribbon",
+          "image-name": "ribbon.svg",
+          "glass": false
+        },
+        {
+          "name": "mark",
+          "image-name": "mark.svg",
+          "glass": false
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

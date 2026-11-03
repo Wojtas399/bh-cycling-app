@@ -29,7 +29,7 @@ The screen for one Unplanned Activity, a recorded session with no plan behind it
 _Avoid_: Unpaired workout details, activity mode
 
 **Activity Profile**:
-The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone.
+The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.
 _Avoid_: Workout Profile, which is the planned shape
 
 **Route**:
@@ -55,6 +55,26 @@ _Avoid_: Recovery, Readiness
 **Wellness Entry**:
 One athlete's Wellness record for one day. It may be missing or only partly filled, depending on what reached Intervals.icu that day.
 _Avoid_: Wellness log, daily check-in
+
+**Note**:
+A free-text entry on the athlete's Intervals.icu calendar, for a single day or a range of days. It is not a Workout: it has no structure and no Workout Status. Read-only in BH Cycling.
+_Avoid_: Comment, Workout description
+
+**Note Markdown**:
+A Note's text rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
+_Avoid_: Note HTML, Rich Text
+
+**Fitness**:
+The athlete's long-term training load: a rolling average of recent daily load, weighted over weeks, as calculated by Intervals.icu. BH Cycling shows it and never calculates it.
+_Avoid_: CTL, chronic training load
+
+**Fatigue**:
+The athlete's short-term training load: a rolling average of recent daily load, weighted over days, as calculated by Intervals.icu. BH Cycling shows it and never calculates it.
+_Avoid_: ATL, acute training load
+
+**Form**:
+The balance between Fitness and Fatigue: how fresh the athlete is relative to their recent training. BH Cycling shows it as Fitness minus Fatigue from Intervals.icu's rounded values, the same way Intervals.icu does, and never models it.
+_Avoid_: TSB, training stress balance
 
 **Sign-in Method**:
 How a user authenticates: `email` (email + password) and/or `google`. A user can have more than one (Firebase may auto-link Google to an existing email/password account). Change Password is offered whenever `email` is among them.

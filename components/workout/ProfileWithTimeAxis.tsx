@@ -6,12 +6,24 @@ import type { WorkoutBlock } from '@/lib/workoutProfile';
 
 const PROFILE_HEIGHT = 120;
 
+/** Each strip's height when two share the card, so it grows only a little. */
+const STACKED_STRIP_HEIGHT = 80;
+
 /** Where the time-axis labels sit, as shares of the profile's duration. */
 const AXIS_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
 
-export interface ProfileWithTimeAxisProps {
+/** One profile of the stack. */
+export interface ProfileStripView {
+  /** Widths are shares of the stack's `durationSeconds`. */
   blocks: WorkoutBlock[];
-  /** The time the profile spans, in s. */
+  /** What the strip shows, written above it when it shares the stack. */
+  caption: string;
+}
+
+export interface ProfileWithTimeAxisProps {
+  /** Profiles stacked top to bottom on one time scale. */
+  strips: ProfileStripView[];
+  /** The time the profiles span, in s. */
   durationSeconds: number;
   /** What a screen reader reads for the whole profile. */
   accessibilityLabel: string;
@@ -19,11 +31,13 @@ export interface ProfileWithTimeAxisProps {
 }
 
 /**
- * A large profile with a time axis beneath it. Static, and read by a screen
- * reader as one image with `accessibilityLabel`; the blocks are hidden.
+ * One or more large profiles with a shared time axis beneath them, each
+ * captioned when there's more than one. Static,
+ * and read by a screen reader as one image with `accessibilityLabel`; the
+ * blocks are hidden.
  */
 export default function ProfileWithTimeAxis({
-  blocks,
+  strips,
   durationSeconds,
   accessibilityLabel,
   testID,
@@ -36,7 +50,25 @@ export default function ProfileWithTimeAxis({
       testID={testID}
     >
       <Box importantForAccessibility="no-hide-descendants">
-        <WorkoutProfile blocks={blocks} height={PROFILE_HEIGHT} />
+        <Box gap="xl">
+          {strips.map(({ blocks, caption }) =>
+            // A lone profile needs no caption: the card says what it is.
+            strips.length > 1 ? (
+              <Box key={caption} gap="xs">
+                <Text variant="body-xs-medium" color="textSecondary">
+                  {caption}
+                </Text>
+                <WorkoutProfile blocks={blocks} height={STACKED_STRIP_HEIGHT} />
+              </Box>
+            ) : (
+              <WorkoutProfile
+                key={caption}
+                blocks={blocks}
+                height={PROFILE_HEIGHT}
+              />
+            ),
+          )}
+        </Box>
         <Box flexDirection="row" justifyContent="space-between" marginTop="xs">
           {AXIS_FRACTIONS.map(fraction => (
             <Text key={fraction} variant="body-xs-regular" color="textTertiary">

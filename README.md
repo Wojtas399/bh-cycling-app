@@ -99,6 +99,10 @@ The app side needs the matching public client ID to build the authorization requ
 | Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                        |
 | Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                              |
 
+Android builds are not submitted yet: Google Play needs a service account key first. Install them from their EAS build page. The production submit profile also needs its own `ascAppId` before the first `vX.Y.Z` tag.
+
+The release script pulls the Firebase files from EAS, so their variables must have `Sensitive` visibility. `Secret` values cannot be read outside EAS servers.
+
 `hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
 
 ## Learn more
