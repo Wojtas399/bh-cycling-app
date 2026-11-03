@@ -1,9 +1,8 @@
-import { useCallback } from 'react';
-
 import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
+import { useRefetchQuery } from '@/hooks/useRefetchQuery';
 import { useToday } from '@/hooks/useToday';
-import { intervalsKeys, upcomingQueryOptions } from '@/lib/intervalsQueries';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { upcomingQueryOptions } from '@/lib/intervalsQueries';
+import { useQuery } from '@tanstack/react-query';
 
 /**
  * Home's items for today and tomorrow: Workouts, and today's Unplanned
@@ -15,22 +14,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 export function useUpcomingWorkouts() {
   const { availability, credentials } = useIntervalsAvailability();
   const today = useToday();
-  const queryClient = useQueryClient();
+  const options = upcomingQueryOptions(credentials, today);
 
-  const query = useQuery(upcomingQueryOptions(credentials, today));
-
-  const athleteId = credentials?.athleteId;
-
-  // Goes through the client rather than `query.refetch`: reading a property
-  // off the tracked query result here would narrow which changes re-render.
-  const refetch = useCallback(
-    () =>
-      queryClient.refetchQueries({
-        queryKey: intervalsKeys.upcoming(athleteId, today),
-        exact: true,
-      }),
-    [athleteId, queryClient, today],
-  );
+  const query = useQuery(options);
+  const refetch = useRefetchQuery(options.queryKey);
 
   return { availability, query, refetch };
 }

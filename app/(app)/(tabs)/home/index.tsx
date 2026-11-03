@@ -21,7 +21,8 @@ import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
 /**
  * Home: the Wellness card above "Dziś i jutro". Gates on availability like the
- * other Intervals-backed screens and branches on the raw query (ADR 0005).
+ * other Intervals-backed screens. "Dziś i jutro" branches on the raw query
+ * (ADR 0005); the card renders the state `useWellness` hands it (ADR 0010).
  */
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {

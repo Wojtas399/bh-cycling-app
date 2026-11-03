@@ -1,4 +1,5 @@
 import { formatDuration } from './formatDuration';
+import { formatHeartRate } from './formatWorkoutMetric';
 import type { IntervalsWellness } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 
@@ -23,7 +24,7 @@ export function toWellnessRows(entry: IntervalsWellness): WellnessRow[] {
     isFiniteNumber(entry.hrv)
       ? ['hrv', entry.hrv, milliseconds]
       : ['hrvSdnn', entry.hrvSDNN, milliseconds],
-    ['restingHr', entry.restingHR, beatsPerMinute],
+    ['restingHr', entry.restingHR, formatHeartRate],
   ];
 
   return metrics.flatMap(([key, value, format]) =>
@@ -39,18 +40,4 @@ function whole(value: number): string {
 
 function milliseconds(value: number): string {
   return `${whole(value)} ms`;
-}
-
-function beatsPerMinute(value: number): string {
-  return `${whole(value)} bpm`;
-}
-
-/**
- * Whether a stored Intervals.icu scope shows `WELLNESS:READ` wasn't granted,
- * so no Wellness request needs to go out to be refused. Only that scope is
- * checked. Intervals.icu separates scopes with commas, OAuth with spaces; both
- * are read. An unknown scope shows nothing, and the request itself decides.
- */
-export function lacksWellnessScope(scope: string | null): boolean {
-  return scope !== null && !scope.split(/[\s,]+/).includes('WELLNESS:READ');
 }

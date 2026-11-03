@@ -5,8 +5,7 @@ import { TouchableOpacity } from 'react-native';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import type { WellnessCardState } from '@/hooks/home/useWellness';
-import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
-import { useRouter } from 'expo-router';
+import { useReconnectIntervals } from '@/hooks/useReconnectIntervals';
 
 /** Bar widths of the loading card's rows. */
 const SKELETON_ROWS = [
@@ -66,22 +65,12 @@ export default function WellnessCard({ state }: { state: WellnessCardState }) {
   }
 }
 
-/**
- * Asks to reconnect for the Wellness scope, with no dismiss. Like
- * `IntervalsReconnectBanner`, the action opens Settings and starts the connect
- * flow straight away.
- */
+/** Asks to reconnect for the Wellness scope, with no dismiss. */
 function ReconnectPrompt() {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'home.wellness.needsScope',
   });
-  const router = useRouter();
-  const { handleConnect } = useIntervalsAuth();
-
-  function handlePress() {
-    router.push('/(app)/(tabs)/settings');
-    void handleConnect();
-  }
+  const reconnect = useReconnectIntervals();
 
   return (
     <Box gap="sm" alignItems="flex-start">
@@ -89,7 +78,7 @@ function ReconnectPrompt() {
         {t('message')}
       </Text>
       <TouchableOpacity
-        onPress={handlePress}
+        onPress={reconnect}
         activeOpacity={0.8}
         hitSlop={8}
         accessibilityRole="button"

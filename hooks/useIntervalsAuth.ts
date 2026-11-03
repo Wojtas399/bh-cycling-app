@@ -5,6 +5,7 @@ import {
   type IntervalsAuthMutation,
   mapIntervalsAuthError,
 } from './intervalsAuthErrors';
+import { CONSENT_SCOPES } from './intervalsScopes';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
@@ -18,8 +19,6 @@ WebBrowser.maybeCompleteAuthSession();
 
 const AUTHORIZATION_ENDPOINT = 'https://intervals.icu/oauth/authorize';
 const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
-// One item: `expo-auth-session` joins items with a space, Intervals.icu wants commas.
-const SCOPES = ['ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ'];
 
 export interface UseIntervalsAuthResult {
   handleConnect: () => Promise<void>;
@@ -38,7 +37,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
-        scopes: SCOPES,
+        scopes: CONSENT_SCOPES,
         redirectUri: REDIRECT_URI,
         responseType: AuthSession.ResponseType.Code,
         usePKCE: false,

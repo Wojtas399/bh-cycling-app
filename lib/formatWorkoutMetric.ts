@@ -37,8 +37,8 @@ const METRIC_FORMATS: Record<WorkoutMetric, (value: number) => string> = {
   work: value => `${whole(value)} kJ`,
   averagePower: value => `${whole(value)} W`,
   normalizedPower: value => `${whole(value)} W`,
-  averageHeartRate: value => `${whole(value)} bpm`,
-  maxHeartRate: value => `${whole(value)} bpm`,
+  averageHeartRate: formatHeartRate,
+  maxHeartRate: formatHeartRate,
   cadence: value => `${whole(value)} rpm`,
   elevationGain: value => `${whole(value)} m`,
   calories: value => `${whole(value)} kcal`,
@@ -53,6 +53,11 @@ function decimal(value: number, digits: number): string {
 
 function whole(value: number): string {
   return `${Math.round(value)}`;
+}
+
+/** A heart rate in bpm, as a whole number with its unit. */
+export function formatHeartRate(value: number): string {
+  return `${whole(value)} bpm`;
 }
 
 /** Formats a metric's value with its unit. */

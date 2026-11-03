@@ -378,7 +378,7 @@ describe('useWellness', () => {
     expect(mockGetWellness).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps showing today's rows when a refetch fails", async () => {
+  it("is hidden when a refetch fails, even over today's rows", async () => {
     mockConnected();
     mockGetWellness.mockResolvedValue(FULL_ENTRY);
 
@@ -388,6 +388,6 @@ describe('useWellness', () => {
     await refetch(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
-    expect(hook.result.current.state).toEqual(FULL_ROWS);
+    expect(hook.result.current.state).toEqual({ status: 'hidden' });
   });
 });
