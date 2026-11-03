@@ -7,6 +7,7 @@ import {
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
+  getWellness,
   isNotFoundError,
 } from '../intervalsApi';
 
@@ -75,19 +76,44 @@ describe('intervalsApi', () => {
     );
   });
 
-  it('getAthleteSettings reads the token owner athlete and returns typed data on 200', async () => {
-    const settings = { powerZones: [55, 75, 90, 105, 120, 150, 200] };
+  it("getAthleteSettings reads the token owner athlete's Ride power zones on 200", async () => {
+    const athlete = {
+      sportSettings: [
+        { types: ['Run', 'TrailRun'], power_zones: [70, 85, 100] },
+        {
+          types: ['Ride', 'VirtualRide', 'GravelRide'],
+          power_zones: [55, 75, 90, 105, 120, 150, 999],
+        },
+      ],
+    };
 
-    mockFetchOnce({ ok: true, status: 200, json: async () => settings });
+    mockFetchOnce({ ok: true, status: 200, json: async () => athlete });
 
     const result = await getAthleteSettings('token-1');
 
-    expect(result).toEqual(settings);
+    expect(result).toEqual({ powerZones: [55, 75, 90, 105, 120, 150, 999] });
     expect(global.fetch).toHaveBeenCalledWith(
       'https://intervals.icu/api/v1/athlete/0',
       { headers: { Authorization: 'Bearer token-1' } },
     );
   });
+
+  it.each([
+    ['no sport settings', {}],
+    [
+      'no Ride sport settings',
+      { sportSettings: [{ types: ['Run'], power_zones: [70, 85] }] },
+    ],
+  ])(
+    'getAthleteSettings returns no power zones when the athlete has %s',
+    async (_, athlete) => {
+      mockFetchOnce({ ok: true, status: 200, json: async () => athlete });
+
+      expect(await getAthleteSettings('token-1')).toEqual({
+        powerZones: undefined,
+      });
+    },
+  );
 
   it.each([
     [
@@ -117,6 +143,11 @@ describe('intervalsApi', () => {
     [
       'getActivityMap',
       (signal: AbortSignal) => getActivityMap('token-1', 'i42', { signal }),
+    ],
+    [
+      'getWellness',
+      (signal: AbortSignal) =>
+        getWellness('token-1', 'athlete-1', '2026-11-02', { signal }),
     ],
   ])('%s passes the abort signal through to fetch', async (_name, call) => {
     const controller = new AbortController();
@@ -251,6 +282,38 @@ describe('intervalsApi', () => {
         name: 'IntervalsApiError',
         status: 404,
       });
+    });
+  });
+
+  describe('getWellness', () => {
+    it("reads one day's Wellness Entry with the bearer token", async () => {
+      const entry = { id: '2026-11-02', sleepSecs: 28620, hrv: 52 };
+
+      mockFetchOnce({ ok: true, status: 200, json: async () => entry });
+
+      const result = await getWellness('token-1', 'athlete-1', '2026-11-02');
+
+      expect(result).toEqual(entry);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://intervals.icu/api/v1/athlete/athlete-1/wellness/2026-11-02',
+        { headers: { Authorization: 'Bearer token-1' } },
+      );
+    });
+
+    it('throws IntervalsAuthError on a 401 response', async () => {
+      mockFetchOnce({ ok: false, status: 401 });
+
+      await expect(
+        getWellness('bad-token', 'athlete-1', '2026-11-02'),
+      ).rejects.toBeInstanceOf(IntervalsAuthError);
+    });
+
+    it('throws IntervalsApiError carrying the status of a missing-scope 403', async () => {
+      mockFetchOnce({ ok: false, status: 403 });
+
+      await expect(
+        getWellness('token-1', 'athlete-1', '2026-11-02'),
+      ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 403 });
     });
   });
 });

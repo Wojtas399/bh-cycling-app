@@ -8,6 +8,8 @@ export interface IntervalsConnectionState {
   athleteName: string | null;
   athleteId: string | null;
   accessToken: string | null;
+  /** The scopes granted at the last consent, as Intervals.icu returned them. */
+  scope: string | null;
   loading: boolean;
 }
 
@@ -16,6 +18,7 @@ const NOT_CONNECTED: IntervalsConnectionState = {
   athleteName: null,
   athleteId: null,
   accessToken: null,
+  scope: null,
   loading: false,
 };
 
@@ -44,7 +47,12 @@ export function useIntervalsConnection(): IntervalsConnectionState {
         }
 
         const data = snapshot.data() as
-          | { accessToken?: string; athleteId?: string; athleteName?: string }
+          | {
+              accessToken?: string;
+              athleteId?: string;
+              athleteName?: string;
+              scope?: string;
+            }
           | undefined;
 
         if (data?.accessToken) {
@@ -53,6 +61,7 @@ export function useIntervalsConnection(): IntervalsConnectionState {
             athleteName: data.athleteName ?? null,
             athleteId: data.athleteId ?? null,
             accessToken: data.accessToken,
+            scope: data.scope ?? null,
             loading: false,
           });
         } else {

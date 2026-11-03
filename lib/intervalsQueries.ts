@@ -24,6 +24,7 @@ import {
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
+  getWellness,
   isNotFoundError,
 } from './intervalsApi';
 import {
@@ -36,6 +37,7 @@ import { pairWorkout } from './pairing';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
+import { type WellnessRow, toWellnessRows } from './wellness';
 import {
   type StoredWorkoutDetails,
   WORKOUT_DETAILS_ACTIVITY_FIELDS,
@@ -70,6 +72,9 @@ export const intervalsKeys = {
   /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'upcoming', today] as const,
+  /** `today` is the day whose Wellness Entry is read. */
+  wellness: (athleteId: string | undefined, today: LocalDateString) =>
+    [...intervalsKeys.athlete(athleteId), 'wellness', today] as const,
   /** Every Calendar month. */
   calendar: (athleteId: string | undefined) =>
     [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
@@ -157,6 +162,34 @@ export function upcomingQueryOptions(
 
           return getUpcomingItems(events, activities, notes, today, zoneConfig);
         }
+      : skipToken,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * Today's Wellness Entry, stored as the card's rows (see `toWellnessRows`):
+ * none on a day without data. `today` is in the key, so the card moves to the
+ * new day at midnight. Fresh as long as the upcoming workouts. Retries are the
+ * global default (none), so a 403 is never retried. Skipped while there are no
+ * credentials.
+ */
+export function wellnessQueryOptions(
+  credentials: IntervalsCredentials | null,
+  today: LocalDateString,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.wellness(credentials?.athleteId, today),
+    queryFn: credentials
+      ? async ({ signal }): Promise<WellnessRow[]> =>
+          toWellnessRows(
+            await getWellness(
+              credentials.accessToken,
+              credentials.athleteId,
+              today,
+              { signal },
+            ),
+          )
       : skipToken,
     ...WORKOUTS_FRESHNESS,
   });

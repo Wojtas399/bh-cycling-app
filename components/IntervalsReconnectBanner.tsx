@@ -3,27 +3,20 @@ import { TouchableOpacity } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
-import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useNeedsReconnect } from '@/hooks/useNeedsReconnect';
-import { useRouter } from 'expo-router';
+import { useReconnectIntervals } from '@/hooks/useReconnectIntervals';
 
 export default function IntervalsReconnectBanner() {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'intervals.reconnectBanner',
   });
-  const router = useRouter();
   const needsReconnect = useNeedsReconnect();
-  const { handleConnect } = useIntervalsAuth();
+  const reconnect = useReconnectIntervals();
 
   if (!needsReconnect) return null;
 
-  function handlePress() {
-    router.push('/(app)/(tabs)/settings');
-    void handleConnect();
-  }
-
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+    <TouchableOpacity onPress={reconnect} activeOpacity={0.8}>
       <Box
         backgroundColor="warning"
         paddingVertical="sm"
