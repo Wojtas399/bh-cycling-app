@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -10,6 +9,7 @@ import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { type AppTheme, useAppTheme } from '@/constants/theme';
+import { useFitnessLabels } from '@/hooks/fitness/useFitnessLabels';
 import type { FitnessDay, FitnessRange } from '@/lib/fitness';
 import {
   type FitnessChartGeometry,
@@ -85,9 +85,9 @@ export default function FitnessChart({
 }
 
 /**
- * The chart once its size is known. The SVG is static, drawn again only when
- * the days, range or size change; the cursor moves on the UI thread, and the
- * touched index crosses to JS only when it changes.
+ * The chart once its size is known. The SVG is static, its geometry worked
+ * out again only when the days, range or size change; the cursor moves on
+ * the UI thread, and the touched index crosses to JS only when it changes.
  */
 function MeasuredFitnessChart({
   days,
@@ -100,11 +100,12 @@ function MeasuredFitnessChart({
   size: Size;
   onTouchDay: (index: number | null) => void;
 }) {
-  const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const geometry = fitnessChartGeometry(days, range, size, {
-    monthsShort: t('note.monthsShort', { returnObjects: true }),
-  });
+  const labels = useFitnessLabels();
+  const geometry = useMemo(
+    () => fitnessChartGeometry(days, range, size, labels),
+    [days, range, size, labels],
+  );
   const { slotWidth } = geometry;
   const dayCount = days.length;
 

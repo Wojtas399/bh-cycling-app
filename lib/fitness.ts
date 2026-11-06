@@ -147,10 +147,8 @@ export type FitnessReadout = Record<
   string
 >;
 
-export interface FitnessReadoutLabels extends Pick<
-  NoteDateLabels,
-  'monthsShort'
-> {
+/** The words the Fitness screen dates its days with (see `useFitnessLabels`). */
+export interface FitnessLabels extends Pick<NoteDateLabels, 'monthsShort'> {
   /** The date of `today` itself: "Dziś". */
   today: string;
 }
@@ -166,7 +164,7 @@ const MISSING = '–';
 export function formatFitnessReadout(
   day: FitnessDay,
   today: LocalDateString,
-  labels: FitnessReadoutLabels,
+  labels: FitnessLabels,
 ): FitnessReadout {
   const { date, load } = day;
 
@@ -236,7 +234,7 @@ function formatValues({
 function formatDate(
   date: LocalDateString,
   today: LocalDateString,
-  { monthsShort }: FitnessReadoutLabels,
+  { monthsShort }: FitnessLabels,
 ): string {
   const day = fromLocalDateString(date);
   const dayMonth = `${day.getDate()} ${monthsShort[day.getMonth()]}`;

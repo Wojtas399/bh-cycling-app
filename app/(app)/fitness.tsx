@@ -19,6 +19,7 @@ import {
   type FitnessChartState,
   useFitnessChart,
 } from '@/hooks/fitness/useFitnessChart';
+import { useFitnessLabels } from '@/hooks/fitness/useFitnessLabels';
 import {
   DEFAULT_FITNESS_RANGE,
   type FitnessDay,
@@ -144,7 +145,7 @@ function FitnessChartContent({
   days: FitnessDay[];
   range: FitnessRange;
 }) {
-  const { t } = useTranslation();
+  const labels = useFitnessLabels();
   const [touched, setTouched] = useState<number | null>(null);
   // Its own memo, so a new touched day doesn't hand the chart a new slice and
   // redraw it.
@@ -152,10 +153,7 @@ function FitnessChartContent({
   // The year ends today.
   const today = days[days.length - 1];
   const day = fitnessReadoutDay(shown, touched, today);
-  const readout = formatFitnessReadout(day, today.date, {
-    today: t('fitness.chart.today'),
-    monthsShort: t('note.monthsShort', { returnObjects: true }),
-  });
+  const readout = formatFitnessReadout(day, today.date, labels);
 
   return (
     <Box flex={1} gap="base">

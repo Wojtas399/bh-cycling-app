@@ -20,7 +20,7 @@ const MONTHS_SHORT = [
   'gru',
 ];
 
-const LABELS = { monthsShort: MONTHS_SHORT };
+const LABELS = { today: 'Dziś', monthsShort: MONTHS_SHORT };
 
 // A 28 pt label gutter leaves a 420 pt plot: 10 pt a slot over 42 days. The
 // height leaves 100 pt for the panels once the room for the top label (6 pt),

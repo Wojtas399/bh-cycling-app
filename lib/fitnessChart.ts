@@ -1,6 +1,10 @@
-import { type FitnessDay, type FitnessRange, formatForm } from './fitness';
+import {
+  type FitnessDay,
+  type FitnessLabels,
+  type FitnessRange,
+  formatForm,
+} from './fitness';
 import { fromLocalDateString } from './localDate';
-import type { NoteDateLabels } from './noteDates';
 
 /** The y labels' gutter, right of the plot. */
 const Y_GUTTER = 28;
@@ -23,8 +27,6 @@ const BAR_WIDTH = 0.6;
 const BAR_MIN_WIDTH = 1;
 /** Form's scale grows in steps of 10, and spans at least -10 to +10. */
 const FORM_STEP = 10;
-
-export type FitnessChartLabels = Pick<NoteDateLabels, 'monthsShort'>;
 
 /** Where the chart's static parts go, in the chart's own coordinates. */
 export interface FitnessChartGeometry {
@@ -85,7 +87,7 @@ export function fitnessChartGeometry(
   days: FitnessDay[],
   range: FitnessRange,
   size: { width: number; height: number },
-  labels: FitnessChartLabels,
+  labels: FitnessLabels,
 ): FitnessChartGeometry {
   const plotWidth = Math.max(0, size.width - Y_GUTTER);
   const slotWidth = plotWidth / days.length;
@@ -178,7 +180,7 @@ export function fitnessDayIndexAt(
 function xTickLabel(
   date: Date,
   range: FitnessRange,
-  { monthsShort }: FitnessChartLabels,
+  { monthsShort }: FitnessLabels,
 ): string | null {
   const month = date.getMonth();
 
