@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import MessageWithAction from '@/components/MessageWithAction';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import WellnessScopePrompt from '@/components/WellnessScopePrompt';
+import FitnessChart from '@/components/fitness/FitnessChart';
 import FitnessChartSkeleton from '@/components/fitness/FitnessChartSkeleton';
 import FitnessRangeSelector from '@/components/fitness/FitnessRangeSelector';
 import FitnessReadout from '@/components/fitness/FitnessReadout';
@@ -23,6 +24,7 @@ import {
   type FitnessDay,
   type FitnessRange,
   formatFitnessReadout,
+  sliceFitnessRange,
 } from '@/lib/fitness';
 
 /**
@@ -77,7 +79,11 @@ export default function FitnessChartScreen() {
         ) : (
           <Box flex={1} gap="base">
             <FitnessRangeSelector range={range} onRangeChange={setRange} />
-            <FitnessChartBody state={state} onRetry={() => void refetch()} />
+            <FitnessChartBody
+              state={state}
+              range={range}
+              onRetry={() => void refetch()}
+            />
           </Box>
         )}
       </ScrollView>
@@ -88,9 +94,11 @@ export default function FitnessChartScreen() {
 /** What sits under the range selector: the readout and the chart, or why not. */
 function FitnessChartBody({
   state,
+  range,
   onRetry,
 }: {
   state: Exclude<FitnessChartState, { status: 'notConnected' }>;
+  range: FitnessRange;
   onRetry: () => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'fitness.chart' });
@@ -120,16 +128,30 @@ function FitnessChartBody({
         </Text>
       );
     case 'ready':
-      return <FitnessChartContent days={state.days} />;
+      return <FitnessChartContent days={state.days} range={range} />;
   }
 }
 
-/** The loaded year: today's readout over the chart. */
-function FitnessChartContent({ days }: { days: FitnessDay[] }) {
+/**
+ * The loaded year's `range`: the readout over the chart. The readout shows
+ * the day under the chart's cursor, and today when nothing is touched.
+ */
+function FitnessChartContent({
+  days,
+  range,
+}: {
+  days: FitnessDay[];
+  range: FitnessRange;
+}) {
   const { t } = useTranslation();
+  const [touched, setTouched] = useState<number | null>(null);
+  // Its own memo, so a new touched day doesn't hand the chart a new slice and
+  // redraw it.
+  const shown = useMemo(() => sliceFitnessRange(days, range), [days, range]);
   // The year ends today.
   const today = days[days.length - 1];
-  const readout = formatFitnessReadout(today, today.date, {
+  const day = touched === null ? today : (shown[touched] ?? today);
+  const readout = formatFitnessReadout(day, today.date, {
     today: t('fitness.chart.today'),
     monthsShort: t('note.monthsShort', { returnObjects: true }),
   });
@@ -137,8 +159,7 @@ function FitnessChartContent({ days }: { days: FitnessDay[] }) {
   return (
     <Box flex={1} gap="base">
       <FitnessReadout readout={readout} />
-      {/* The chart's place. */}
-      <Box flex={1} />
+      <FitnessChart days={shown} range={range} onTouchDay={setTouched} />
     </Box>
   );
 }

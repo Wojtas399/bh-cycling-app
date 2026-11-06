@@ -78,6 +78,7 @@ const theme = createTheme({
     chartFitness: palette.blue,
     chartFatigue: palette.purple,
     chartForm: palette.yellow,
+    chartLoad: palette.gray800,
   },
 
   spacing: {
