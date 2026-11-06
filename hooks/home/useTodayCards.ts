@@ -8,10 +8,7 @@ import { useRefetchQuery } from '@/hooks/useRefetchQuery';
 import { useToday } from '@/hooks/useToday';
 import type { FitnessValues } from '@/lib/fitness';
 import { isForbiddenError } from '@/lib/intervalsApi';
-import {
-  type TodayWellness,
-  wellnessQueryOptions,
-} from '@/lib/intervalsQueries';
+import { type TodayEntry, todayQueryOptions } from '@/lib/intervalsQueries';
 import type { WellnessRow } from '@/lib/wellness';
 import { type UseQueryResult, useQuery } from '@tanstack/react-query';
 
@@ -53,7 +50,7 @@ export function useTodayCards() {
   const lacksWellness = lacksScope(connection.scope, 'WELLNESS:READ');
   const readCredentials =
     connection.loading || lacksWellness ? null : credentials;
-  const options = wellnessQueryOptions(readCredentials, today);
+  const options = todayQueryOptions(readCredentials, today);
 
   const query = useQuery(options);
   const refetch = useRefetchQuery(options.queryKey);
@@ -71,7 +68,7 @@ export function useTodayCards() {
 function toCardsState(
   availability: IntervalsAvailability,
   lacksWellness: boolean,
-  { data, error, isError }: UseQueryResult<TodayWellness>,
+  { data, error, isError }: UseQueryResult<TodayEntry>,
 ): TodayCardsState {
   if (availability === 'unavailable') return { status: 'hidden' };
 

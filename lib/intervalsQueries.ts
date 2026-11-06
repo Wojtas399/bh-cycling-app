@@ -180,7 +180,7 @@ export function upcomingQueryOptions(
 }
 
 /** Today's Wellness Entry as Home's two top cards show it. */
-export interface TodayWellness {
+export interface TodayEntry {
   /** `null` on a day without Fitness and Fatigue (see `toFitnessValues`). */
   fitness: FitnessValues | null;
   /** None on a day without data (see `toWellnessRows`). */
@@ -194,14 +194,14 @@ export interface TodayWellness {
  * default (none), so a 403 is never retried. Skipped while there are no
  * credentials.
  */
-export function wellnessQueryOptions(
+export function todayQueryOptions(
   credentials: IntervalsCredentials | null,
   today: LocalDateString,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.wellness(credentials?.athleteId, today),
     queryFn: credentials
-      ? async ({ signal }): Promise<TodayWellness> => {
+      ? async ({ signal }): Promise<TodayEntry> => {
           const entry = await getWellness(
             credentials.accessToken,
             credentials.athleteId,
