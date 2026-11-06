@@ -7,6 +7,7 @@ import {
   intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
   intervalsWellnessPath,
+  intervalsWellnessRangePath,
 } from './intervalsApiPaths';
 import type { AthleteZoneSettings } from './powerZones';
 import type { WorkoutStep } from './workoutProfile';
@@ -62,8 +63,9 @@ export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams 
   resolve?: boolean;
 }
 
-export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
-  /** Comma-separated field projection, e.g. `'id,start_date_local,type,paired_event_id'`. */
+/** A date range read of Activities or Wellness Entries, each projected to `fields`. */
+export interface IntervalsProjectedRangeParams extends IntervalsDateRangeParams {
+  /** Comma-separated field projection, e.g. `'id,ctl,atl,ctlLoad'`. */
   fields?: string;
 }
 
@@ -219,10 +221,15 @@ export interface IntervalsCalendarEvent {
 /**
  * One athlete's Wellness Entry for one day. intervals.icu returns it for any
  * date, with every metric `null` on a day without data. Only the metrics the
- * app reads are typed; the rest, such as `ctl`, `atl` and `updated`, are
- * filled every day and ignored.
+ * app reads are typed; the rest, such as `updated`, are ignored.
  */
 export interface IntervalsWellness {
+  /** The API's field for Fitness. */
+  ctl?: number | null;
+  /** The API's field for Fatigue. */
+  atl?: number | null;
+  /** The day's training load, the one Fitness and Fatigue are built from. */
+  ctlLoad?: number | null;
   /** The device's readiness score, on the device's own scale. */
   readiness?: number | null;
   /** s. */
@@ -237,6 +244,12 @@ export interface IntervalsWellness {
   restingHR?: number | null;
 }
 
+/** A Wellness Entry from a range read, dated by its `id`. */
+export interface IntervalsWellnessDay extends IntervalsWellness {
+  /** The entry's local `YYYY-MM-DD` date. */
+  id: string;
+}
+
 export interface IntervalsRequestOptions {
   /** Aborts the request in flight, e.g. when React Query cancels its query. */
   signal?: AbortSignal;
@@ -245,7 +258,7 @@ export interface IntervalsRequestOptions {
 /** The query parameters some endpoint accepts; each public call takes only its own. */
 type IntervalsQueryParams =
   | IntervalsCalendarEventsParams
-  | IntervalsActivitiesParams
+  | IntervalsProjectedRangeParams
   | IntervalsActivityParams;
 
 async function request<T>(
@@ -284,7 +297,7 @@ async function request<T>(
 export function getActivities(
   token: string,
   athleteId: string,
-  params?: IntervalsActivitiesParams,
+  params?: IntervalsProjectedRangeParams,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
@@ -413,6 +426,26 @@ export function getWellness(
     intervalsWellnessPath(athleteId, date),
     token,
     undefined,
+    options,
+  );
+}
+
+/**
+ * Reads the Wellness Entries from `oldest` to `newest`, each projected to
+ * `fields`. Whether intervals.icu returns a row for every day isn't confirmed,
+ * so a day may come without one. A token without `WELLNESS:READ` surfaces as
+ * an `IntervalsApiError` with status 403.
+ */
+export function getWellnessRange(
+  token: string,
+  athleteId: string,
+  params: IntervalsProjectedRangeParams,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsWellnessDay[]> {
+  return request<IntervalsWellnessDay[]>(
+    intervalsWellnessRangePath(athleteId),
+    token,
+    params,
     options,
   );
 }

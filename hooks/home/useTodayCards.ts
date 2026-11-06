@@ -6,26 +6,41 @@ import {
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useRefetchQuery } from '@/hooks/useRefetchQuery';
 import { useToday } from '@/hooks/useToday';
+import type { FitnessValues } from '@/lib/fitness';
 import { isForbiddenError } from '@/lib/intervalsApi';
-import { wellnessQueryOptions } from '@/lib/intervalsQueries';
+import { type TodayEntry, todayQueryOptions } from '@/lib/intervalsQueries';
 import type { WellnessRow } from '@/lib/wellness';
 import { type UseQueryResult, useQuery } from '@tanstack/react-query';
 
-/** What the Wellness card shows; `hidden` renders no card at all. */
-export type WellnessCardState =
+/**
+ * What Home's two top cards, Fitness and Wellness, show. They share one read,
+ * so they load, hide and ask for the scope together; `hidden` renders neither.
+ */
+export type TodayCardsState =
   | { status: 'loading' }
   | { status: 'hidden' }
   | { status: 'needsScope' }
-  | { status: 'empty' }
-  | { status: 'ready'; rows: WellnessRow[] };
+  | {
+      status: 'ready';
+      /** `null` → the Fitness card's "no data today" line. */
+      fitness: FitnessValues | null;
+      /** None → the Wellness card's "no data today" line. */
+      wellness: WellnessRow[];
+    };
+
+/** The states in which the cards themselves render. */
+export type ShownTodayCardsState = Extract<
+  TodayCardsState,
+  { status: 'loading' | 'ready' }
+>;
 
 /**
- * Today's Wellness Entry as the Wellness card's state, rather than the raw
+ * Today's Wellness Entry as the state of Home's top cards, rather than the raw
  * query: the scope check adds states the query can't express (ADR 0010).
  * `today` follows the clock, so a session that runs past midnight reads the
  * new day. `refetch` refetches this query alone, for pull-to-refresh.
  */
-export function useWellness() {
+export function useTodayCards() {
   const { availability, credentials } = useIntervalsAvailability();
   const connection = useIntervalsConnection();
   const today = useToday();
@@ -35,37 +50,33 @@ export function useWellness() {
   const lacksWellness = lacksScope(connection.scope, 'WELLNESS:READ');
   const readCredentials =
     connection.loading || lacksWellness ? null : credentials;
-  const options = wellnessQueryOptions(readCredentials, today);
+  const options = todayQueryOptions(readCredentials, today);
 
   const query = useQuery(options);
   const refetch = useRefetchQuery(options.queryKey);
 
-  return { state: toCardState(availability, lacksWellness, query), refetch };
+  return { state: toCardsState(availability, lacksWellness, query), refetch };
 }
 
 /**
  * Wellness that can't be read for want of its scope asks to reconnect: the
  * stored scope says so up front, and a 403 says so once that scope has gone
  * stale (Wellness taken away in Intervals.icu's Connected Apps), even over
- * rows already shown. Any other failed read hides only the card, so Home goes
- * on without it, rows already shown for today included.
+ * values already shown. Any other failed read hides only the top cards, so
+ * Home goes on without them.
  */
-function toCardState(
+function toCardsState(
   availability: IntervalsAvailability,
   lacksWellness: boolean,
-  { data, error, isError }: UseQueryResult<WellnessRow[]>,
-): WellnessCardState {
+  { data, error, isError }: UseQueryResult<TodayEntry>,
+): TodayCardsState {
   if (availability === 'unavailable') return { status: 'hidden' };
 
   if (lacksWellness || isForbiddenError(error)) {
     return { status: 'needsScope' };
   }
 
-  if (isError) return { status: 'hidden' };
+  if (data !== undefined) return { status: 'ready', ...data };
 
-  if (data === undefined) return { status: 'loading' };
-
-  return data.length === 0
-    ? { status: 'empty' }
-    : { status: 'ready', rows: data };
+  return isError ? { status: 'hidden' } : { status: 'loading' };
 }
