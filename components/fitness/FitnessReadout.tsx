@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
+import { FITNESS_SERIES_COLORS } from '@/components/fitness/fitnessSeriesColors';
 import type { AppTheme } from '@/constants/theme';
 import type { FitnessReadout as Readout } from '@/lib/fitness';
 
@@ -10,9 +11,9 @@ const COLUMNS: {
   key: Exclude<keyof Readout, 'date'>;
   dot: keyof AppTheme['colors'];
 }[] = [
-  { key: 'fitness', dot: 'chartFitness' },
-  { key: 'fatigue', dot: 'chartFatigue' },
-  { key: 'form', dot: 'chartForm' },
+  { key: 'fitness', dot: FITNESS_SERIES_COLORS.fitness },
+  { key: 'fatigue', dot: FITNESS_SERIES_COLORS.fatigue },
+  { key: 'form', dot: FITNESS_SERIES_COLORS.form },
   { key: 'load', dot: 'neutral' },
 ];
 

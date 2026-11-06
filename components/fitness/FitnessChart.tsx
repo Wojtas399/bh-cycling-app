@@ -8,7 +8,8 @@ import Animated, {
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { type AppTheme, useAppTheme } from '@/constants/theme';
+import { FITNESS_SERIES_COLORS } from '@/components/fitness/fitnessSeriesColors';
+import { useAppTheme } from '@/constants/theme';
 import { useFitnessLabels } from '@/hooks/fitness/useFitnessLabels';
 import type { FitnessDay, FitnessRange } from '@/lib/fitness';
 import {
@@ -25,14 +26,11 @@ interface Size {
   height: number;
 }
 
-/** Each line's colour and stroke width; today's dot takes the colour. */
-const SERIES: Record<
-  FitnessChartSeries,
-  { color: keyof AppTheme['colors']; width: number }
-> = {
-  fitness: { color: 'chartFitness', width: 2 },
-  fatigue: { color: 'chartFatigue', width: 1.5 },
-  form: { color: 'chartForm', width: 1.75 },
+/** Each line's stroke width. */
+const SERIES_WIDTHS: Record<FitnessChartSeries, number> = {
+  fitness: 2,
+  fatigue: 1.5,
+  form: 1.75,
 };
 
 const DOT_RADIUS = 3.5;
@@ -204,7 +202,7 @@ function FitnessChartPlot({
           cx={x}
           cy={y}
           r={DOT_RADIUS}
-          fill={colors[SERIES[series].color]}
+          fill={colors[FITNESS_SERIES_COLORS[series]]}
         />
       ))}
       {[...top.ticks, ...bottom.ticks].map(({ y, label }) => (
@@ -250,9 +248,15 @@ function Grid({ ticks, width }: { ticks: FitnessChartTick[]; width: number }) {
 
 function SeriesLine({ d, series }: { d: string; series: FitnessChartSeries }) {
   const { colors } = useAppTheme();
-  const { color, width } = SERIES[series];
 
-  return <Path d={d} stroke={colors[color]} strokeWidth={width} fill="none" />;
+  return (
+    <Path
+      d={d}
+      stroke={colors[FITNESS_SERIES_COLORS[series]]}
+      strokeWidth={SERIES_WIDTHS[series]}
+      fill="none"
+    />
+  );
 }
 
 function ChartLabel({

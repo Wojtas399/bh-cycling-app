@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SkeletonBar from '@/components/SkeletonBar';
 import Text from '@/components/Text';
 import type { ShownTodayCardsState } from '@/hooks/home/useTodayCards';
 import { formatFitnessCard } from '@/lib/fitness';
@@ -30,8 +31,8 @@ export default function FitnessCard({
         <Box flexDirection="row">
           {COLUMNS.map((key, index) => (
             <Column key={key} index={index}>
-              <Bar width={40} height={24} marginVertical={4} />
-              <Bar width={56} height={10} marginVertical={3} />
+              <SkeletonBar width={40} height={24} marginVertical={4} />
+              <SkeletonBar width={56} height={10} marginVertical={3} />
             </Column>
           ))}
         </Box>
@@ -120,24 +121,5 @@ function Column({ index, children }: { index: number; children: ReactNode }) {
     >
       {children}
     </Box>
-  );
-}
-
-/** A static skeleton bar, sized to a line of text. */
-function Bar({
-  width,
-  height,
-  marginVertical,
-}: {
-  width: number;
-  height: number;
-  marginVertical: number;
-}) {
-  return (
-    <Box
-      backgroundColor="bgTertiary"
-      borderRadius="sm"
-      style={{ width, height, marginVertical }}
-    />
   );
 }
