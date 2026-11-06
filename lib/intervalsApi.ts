@@ -63,12 +63,8 @@ export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams 
   resolve?: boolean;
 }
 
-export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
-  /** Comma-separated field projection, e.g. `'id,start_date_local,type,paired_event_id'`. */
-  fields?: string;
-}
-
-export interface IntervalsWellnessRangeParams extends IntervalsDateRangeParams {
+/** A date range read of Activities or Wellness Entries, each projected to `fields`. */
+export interface IntervalsProjectedRangeParams extends IntervalsDateRangeParams {
   /** Comma-separated field projection, e.g. `'id,ctl,atl,ctlLoad'`. */
   fields?: string;
 }
@@ -228,9 +224,9 @@ export interface IntervalsCalendarEvent {
  * app reads are typed; the rest, such as `updated`, are ignored.
  */
 export interface IntervalsWellness {
-  /** Fitness, intervals.icu's chronic training load. */
+  /** The API's field for Fitness. */
   ctl?: number | null;
-  /** Fatigue, intervals.icu's acute training load. */
+  /** The API's field for Fatigue. */
   atl?: number | null;
   /** The day's training load, the one Fitness and Fatigue are built from. */
   ctlLoad?: number | null;
@@ -262,9 +258,8 @@ export interface IntervalsRequestOptions {
 /** The query parameters some endpoint accepts; each public call takes only its own. */
 type IntervalsQueryParams =
   | IntervalsCalendarEventsParams
-  | IntervalsActivitiesParams
-  | IntervalsActivityParams
-  | IntervalsWellnessRangeParams;
+  | IntervalsProjectedRangeParams
+  | IntervalsActivityParams;
 
 async function request<T>(
   path: string,
@@ -302,7 +297,7 @@ async function request<T>(
 export function getActivities(
   token: string,
   athleteId: string,
-  params?: IntervalsActivitiesParams,
+  params?: IntervalsProjectedRangeParams,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
@@ -444,7 +439,7 @@ export function getWellness(
 export function getWellnessRange(
   token: string,
   athleteId: string,
-  params: IntervalsWellnessRangeParams,
+  params: IntervalsProjectedRangeParams,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsWellnessDay[]> {
   return request<IntervalsWellnessDay[]>(
