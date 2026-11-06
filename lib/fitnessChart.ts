@@ -4,6 +4,8 @@ import type { NoteDateLabels } from './noteDates';
 
 /** The y labels' gutter, right of the plot. */
 const Y_GUTTER = 28;
+/** Room over the top panel, so its top label isn't cut off. */
+const TOP_LABEL_ROOM = 6;
 /** The strip under the panels that holds the x labels. */
 const X_AXIS = 20;
 /** The gap between the two panels. */
@@ -16,8 +18,9 @@ const TOP_STEP = 25;
 const TOP_HEADROOM = 1.08;
 /** The load bars' share of the top panel's height, from its bottom. */
 const BAR_SHARE = 0.55;
-/** A load bar's share of its day's slot. */
+/** A load bar's share of its day's slot, and its least width. */
 const BAR_WIDTH = 0.6;
+const BAR_MIN_WIDTH = 1;
 /** Form's scale grows in steps of 10, and spans at least -10 to +10. */
 const FORM_STEP = 10;
 
@@ -86,16 +89,17 @@ export function fitnessChartGeometry(
 ): FitnessChartGeometry {
   const plotWidth = Math.max(0, size.width - Y_GUTTER);
   const slotWidth = plotWidth / days.length;
-  const panels = Math.max(0, size.height - X_AXIS - PANEL_GAP);
+  const panels = Math.max(0, size.height - TOP_LABEL_ROOM - PANEL_GAP - X_AXIS);
   const topHeight = panels * TOP_SHARE;
+  const topBottom = TOP_LABEL_ROOM + topHeight;
   const highest = Math.max(
     0,
     ...values(days, day => day.fitness),
     ...values(days, day => day.fatigue),
   );
   const topMax = Math.max(TOP_STEP, roundUp(TOP_HEADROOM * highest, TOP_STEP));
-  const topY = (value: number) => topHeight * (1 - value / topMax);
-  const bottomTop = topHeight + PANEL_GAP;
+  const topY = (value: number) => topBottom - (value / topMax) * topHeight;
+  const bottomTop = topBottom + PANEL_GAP;
   const bottomHeight = panels - topHeight;
   const forms = values(days, day => day.form);
   const formMax = roundUp(Math.max(FORM_STEP, ...forms), FORM_STEP);
@@ -109,7 +113,7 @@ export function fitnessChartGeometry(
   return {
     plotWidth,
     slotWidth,
-    plotHeight: PANEL_GAP + panels,
+    plotHeight: bottomTop + bottomHeight,
     top: {
       fitness: linePath(days, slotWidth, topY, day => day.fitness),
       fatigue: linePath(days, slotWidth, topY, day => day.fatigue),
@@ -118,7 +122,7 @@ export function fitnessChartGeometry(
         y: topY(value),
         label: `${value}`,
       })),
-      bars: barsPath(days, slotWidth, topHeight),
+      bars: barsPath(days, slotWidth, topBottom, topHeight),
     },
     bottom: {
       form: linePath(days, slotWidth, formY, day => day.form),
@@ -209,19 +213,24 @@ function todayDots(
 }
 
 /**
- * A bar for each day with load, from the top panel's bottom (`base`). A rest
- * day's `0` and a day without values draw none.
+ * A bar for each day with load, up from the top panel's bottom (`base`) on a
+ * panel `height` high. A rest day's `0` and a day without values draw none.
  */
-function barsPath(days: FitnessDay[], slotWidth: number, base: number): string {
+function barsPath(
+  days: FitnessDay[],
+  slotWidth: number,
+  base: number,
+  height: number,
+): string {
   const highest = Math.max(0, ...values(days, day => day.load));
-  const halfWidth = (slotWidth * BAR_WIDTH) / 2;
+  const halfWidth = Math.max(BAR_MIN_WIDTH, slotWidth * BAR_WIDTH) / 2;
 
   return days
     .map((day, index) => {
       if (!day.load) return '';
 
       const centre = fitnessSlotCentre(index, slotWidth);
-      const top = base - (day.load / highest) * base * BAR_SHARE;
+      const top = base - (day.load / highest) * height * BAR_SHARE;
       const left = centre - halfWidth;
       const right = centre + halfWidth;
 

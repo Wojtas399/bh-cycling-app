@@ -23,8 +23,9 @@ const MONTHS_SHORT = [
 const LABELS = { monthsShort: MONTHS_SHORT };
 
 // A 28 pt label gutter leaves a 420 pt plot: 10 pt a slot over 42 days. The
-// height leaves 100 pt for the panels once the x axis and the gap are out.
-const SIZE = { width: 448, height: 136 };
+// height leaves 100 pt for the panels once the room for the top label (6 pt),
+// the gap between the panels (16 pt) and the x axis (20 pt) are out.
+const SIZE = { width: 448, height: 142 };
 
 /** The local date `offset` days from `TODAY`. */
 function dayFrom(offset: number): string {
@@ -154,11 +155,11 @@ describe('fitnessChartGeometry', () => {
     const geometry = fitnessChartGeometry(slice(42), '6w', SIZE, LABELS);
     const { labels, y } = ticksOf(geometry.bottom.ticks);
 
-    // The bottom panel sits under the top one's 64 pt and a 16 pt gap.
+    // The bottom panel's 36 pt sit under the top one's 64 pt and the gap.
     expect(labels).toEqual(['+10', '0', '-10']);
-    expect(y['+10']).toBeCloseTo(80);
-    expect(y['-10']).toBeCloseTo(116);
-    expect(geometry.bottom.zeroY).toBeCloseTo(98);
+    expect(y['+10']).toBeCloseTo(86);
+    expect(y['-10']).toBeCloseTo(122);
+    expect(geometry.bottom.zeroY).toBeCloseTo(104);
   });
 
   it('widens the Form scale in steps of 10 to cover the slice', () => {
@@ -190,9 +191,10 @@ describe('fitnessChartGeometry', () => {
     const { labels, y } = ticksOf(geometry.top.ticks);
     const fatigue = runs(geometry.top.fatigue)[0];
 
+    // The top panel's 64 pt start under room for the top label.
     expect(labels).toEqual(['150', '75', '0']);
-    expect(y['150']).toBeCloseTo(0);
-    expect(y['0']).toBeCloseTo(64);
+    expect(y['150']).toBeCloseTo(6);
+    expect(y['0']).toBeCloseTo(70);
     expect(fatigue[30].y).toBeGreaterThan(y['150']);
     expect(fatigue[30].y).toBeLessThan(y['75']);
   });
@@ -254,11 +256,20 @@ describe('fitnessChartGeometry', () => {
     const tallest = drawn[10];
     const half = drawn[11];
 
-    // The top panel is 64 pt high: the tallest bar takes 55% of it.
-    expect(tallest.bottom).toBeCloseTo(64);
-    expect(tallest.top).toBeCloseTo(64 - 0.55 * 64);
-    expect(half.bottom).toBeCloseTo(64);
-    expect(half.top).toBeCloseTo(64 - 0.55 * 32);
+    // The top panel's 64 pt end at 70: the tallest bar takes 55% of them.
+    expect(tallest.bottom).toBeCloseTo(70);
+    expect(tallest.top).toBeCloseTo(70 - 0.55 * 64);
+    expect(half.bottom).toBeCloseTo(70);
+    expect(half.top).toBeCloseTo(70 - 0.55 * 32);
+  });
+
+  it('keeps a load bar at least 1 pt wide on a year', () => {
+    // A year's slots on 420 pt are about 1.15 pt each.
+    const drawn = bars(
+      fitnessChartGeometry(slice(365), '1y', SIZE, LABELS).top.bars,
+    );
+
+    expect(drawn[0].width).toBeCloseTo(1);
   });
 
   it("dots today's end of each line at the right edge", () => {
