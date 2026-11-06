@@ -91,15 +91,15 @@ describe('fitnessChartGeometry', () => {
   /** A day without values: no data, never `0`. */
   const NO_VALUES: Values = { fitness: null, fatigue: null, load: null };
 
-  it('breaks the Fitness and Fatigue lines at days without values', () => {
+  it('breaks every line at days without values', () => {
     // Days 10–12 have no values.
     const days = slice(42, index =>
       index >= 10 && index <= 12 ? NO_VALUES : {},
     );
 
-    const geometry = fitnessChartGeometry(days, '6w', SIZE, LABELS);
+    const { top, bottom } = fitnessChartGeometry(days, '6w', SIZE, LABELS);
 
-    for (const line of [geometry.top.fitness, geometry.top.fatigue]) {
+    for (const line of [top.fitness, top.fatigue, bottom.form]) {
       const [before, after] = runs(line);
 
       expect(runs(line)).toHaveLength(2);
@@ -121,26 +121,6 @@ describe('fitnessChartGeometry', () => {
     expect(rest).toEqual([]);
     expect(fitness).toHaveLength(5);
     expect(fitness[0].x).toBeCloseTo(375);
-  });
-
-  it('breaks the Form line where either Fitness or Fatigue is missing', () => {
-    // Day 20 has only Fitness, day 21 only Fatigue: neither has Form.
-    const days = slice(42, index => {
-      if (index === 20) return { fatigue: null, load: null };
-
-      if (index === 21) return { fitness: null, load: null };
-
-      return {};
-    });
-
-    const geometry = fitnessChartGeometry(days, '6w', SIZE, LABELS);
-    const [before, after] = runs(geometry.bottom.form);
-
-    expect(runs(geometry.bottom.form)).toHaveLength(2);
-    expect(before[before.length - 1].x).toBeCloseTo(195);
-    expect(after[0].x).toBeCloseTo(225);
-    expect(runs(geometry.top.fitness)).toHaveLength(2);
-    expect(runs(geometry.top.fatigue)).toHaveLength(2);
   });
 
   /** The labels of a panel's ticks, top down, and the y of each by label. */

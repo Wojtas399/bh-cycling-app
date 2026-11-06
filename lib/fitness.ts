@@ -41,23 +41,19 @@ export function formatForm(form: number): string {
   return form > 0 ? `+${form}` : `${form}`;
 }
 
-/** One day on the Fitness chart. */
+/**
+ * One day on the Fitness chart, whole numbers. A day without values has every
+ * field `null`, so it draws nothing and its load is no data, not a rest day.
+ */
 export interface FitnessDay {
   date: LocalDateString;
-  /** Whole. */
   fitness: number | null;
-  /** Whole. */
   fatigue: number | null;
-  /** `null` when either Fitness or Fatigue is. */
   form: number | null;
-  /** Whole. `null` only on a day without values. */
   load: number | null;
 }
 
-/**
- * Whether a day has values: both Fitness and Fatigue. A day without them
- * draws nothing, and its load is no data rather than a rest day.
- */
+/** Whether a day has values: both Fitness and Fatigue. */
 export function hasFitnessValues({ fitness, fatigue }: FitnessDay): boolean {
   return fitness !== null && fatigue !== null;
 }
@@ -107,10 +103,10 @@ export function fitnessHistoryWindow(today: LocalDateString): {
 
 /**
  * The year of days ending `today` (see `fitnessHistoryWindow`), oldest first,
- * from a range read's rows. Rows outside it are ignored, and a day without a
- * row is a day without values. Fitness and Fatigue are rounded, and Form and
- * load come only on a day with values (see `toFitnessValues`), where a
- * missing load is a rest day's `0`.
+ * from a range read's rows. Rows outside it are ignored. A day has values
+ * only when its row has both Fitness and Fatigue (see `toFitnessValues`), and
+ * then a missing load is a rest day's `0`. Any other day, with no row or
+ * half a pair, is a day without values.
  */
 export function toFitnessDays(
   rows: IntervalsWellnessDay[],
@@ -132,19 +128,17 @@ function toFitnessDay(
 ): FitnessDay {
   const values = row ? toFitnessValues(row) : null;
 
-  if (values) return { date, ...values, load: wholeOrNull(row?.ctlLoad) ?? 0 };
+  if (!row || !values) {
+    return { date, fitness: null, fatigue: null, form: null, load: null };
+  }
+
+  const { ctlLoad } = row;
 
   return {
     date,
-    fitness: wholeOrNull(row?.ctl),
-    fatigue: wholeOrNull(row?.atl),
-    form: null,
-    load: null,
+    ...values,
+    load: isFiniteNumber(ctlLoad) ? Math.round(ctlLoad) : 0,
   };
-}
-
-function wholeOrNull(value: number | null | undefined): number | null {
-  return isFiniteNumber(value) ? Math.round(value) : null;
 }
 
 /** A day on the chart's readout row, every field ready to show. */

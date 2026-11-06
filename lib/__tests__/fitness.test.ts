@@ -96,24 +96,13 @@ describe('toFitnessDays', () => {
   });
 
   it.each([
-    ['Fitness', { ctl: null, atl: 44.4 }, { fitness: null, fatigue: 44 }],
-    ['Fatigue', { ctl: 40.6, atl: undefined }, { fitness: 41, fatigue: null }],
-  ])(
-    'keeps the other value but gives no Form or load without %s',
-    (_name, metrics, values) => {
-      const days = toFitnessDays(
-        [{ id: TODAY, ctlLoad: 90, ...metrics }],
-        TODAY,
-      );
+    ['Fitness', { ctl: null, atl: 44.4 }],
+    ['Fatigue', { ctl: 40.6, atl: undefined }],
+  ])('gives a day without values for a row without %s', (_name, metrics) => {
+    const days = toFitnessDays([{ id: TODAY, ctlLoad: 90, ...metrics }], TODAY);
 
-      expect(days[364]).toEqual({
-        date: TODAY,
-        ...values,
-        form: null,
-        load: null,
-      });
-    },
-  );
+    expect(days[364]).toEqual(noValues(TODAY));
+  });
 
   it('gives a rest day load 0 when a day with values has no load', () => {
     const days = toFitnessDays(
