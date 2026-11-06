@@ -9,20 +9,21 @@ import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
-import WellnessCard from '@/components/home/WellnessCard';
+import TodayCards from '@/components/home/TodayCards';
 import { useAppTheme } from '@/constants/theme';
 import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
+import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
-import { useWellness } from '@/hooks/home/useWellness';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
 /**
- * Home: the Wellness card above "Dziś i jutro". Gates on availability like the
- * other Intervals-backed screens. "Dziś i jutro" branches on the raw query
- * (ADR 0005); the card renders the state `useWellness` hands it (ADR 0010).
+ * Home: the Fitness and Wellness cards above "Dziś i jutro". Gates on
+ * availability like the other Intervals-backed screens. "Dziś i jutro"
+ * branches on the raw query (ADR 0005); the cards render the state
+ * `useTodayCards` hands them (ADR 0010).
  */
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
@@ -31,7 +32,7 @@ export default function HomeScreen() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { availability, query, refetch } = useUpcomingWorkouts();
-  const { state: wellness, refetch: refetchWellness } = useWellness();
+  const { state: todayCards, refetch: refetchTodayCards } = useTodayCards();
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
   const notes = useMemo(
@@ -48,7 +49,7 @@ export default function HomeScreen() {
     setRefreshing(true);
 
     try {
-      await Promise.all([refetch(), refetchWellness()]);
+      await Promise.all([refetch(), refetchTodayCards()]);
     } finally {
       setRefreshing(false);
     }
@@ -63,7 +64,7 @@ export default function HomeScreen() {
 
     return (
       <Box gap="xl">
-        <WellnessCard state={wellness} />
+        <TodayCards state={todayCards} />
 
         <Box>
           <Text variant="h2">{t('title')}</Text>

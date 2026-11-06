@@ -219,10 +219,13 @@ export interface IntervalsCalendarEvent {
 /**
  * One athlete's Wellness Entry for one day. intervals.icu returns it for any
  * date, with every metric `null` on a day without data. Only the metrics the
- * app reads are typed; the rest, such as `ctl`, `atl` and `updated`, are
- * filled every day and ignored.
+ * app reads are typed; the rest, such as `updated`, are ignored.
  */
 export interface IntervalsWellness {
+  /** Fitness, intervals.icu's chronic training load. */
+  ctl?: number | null;
+  /** Fatigue, intervals.icu's acute training load. */
+  atl?: number | null;
   /** The device's readiness score, on the device's own scale. */
   readiness?: number | null;
   /** s. */

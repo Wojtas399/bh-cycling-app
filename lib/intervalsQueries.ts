@@ -14,6 +14,7 @@ import {
   pairingWindow,
   withItemStatuses,
 } from './calendarWorkouts';
+import { type FitnessValues, toFitnessValues } from './fitness';
 import {
   EVENT_CATEGORY,
   type IntervalsActivity,
@@ -167,11 +168,19 @@ export function upcomingQueryOptions(
   });
 }
 
+/** Today's Wellness Entry as Home's two top cards show it. */
+export interface TodayWellness {
+  /** `null` on a day without Fitness and Fatigue (see `toFitnessValues`). */
+  fitness: FitnessValues | null;
+  /** None on a day without data (see `toWellnessRows`). */
+  wellness: WellnessRow[];
+}
+
 /**
- * Today's Wellness Entry, stored as the card's rows (see `toWellnessRows`):
- * none on a day without data. `today` is in the key, so the card moves to the
- * new day at midnight. Fresh as long as the upcoming workouts. Retries are the
- * global default (none), so a 403 is never retried. Skipped while there are no
+ * Today's Wellness Entry, the one read behind both the Fitness and the
+ * Wellness card. `today` is in the key, so the cards move to the new day at
+ * midnight. Fresh as long as the upcoming workouts. Retries are the global
+ * default (none), so a 403 is never retried. Skipped while there are no
  * credentials.
  */
 export function wellnessQueryOptions(
@@ -181,15 +190,19 @@ export function wellnessQueryOptions(
   return queryOptions({
     queryKey: intervalsKeys.wellness(credentials?.athleteId, today),
     queryFn: credentials
-      ? async ({ signal }): Promise<WellnessRow[]> =>
-          toWellnessRows(
-            await getWellness(
-              credentials.accessToken,
-              credentials.athleteId,
-              today,
-              { signal },
-            ),
-          )
+      ? async ({ signal }): Promise<TodayWellness> => {
+          const entry = await getWellness(
+            credentials.accessToken,
+            credentials.athleteId,
+            today,
+            { signal },
+          );
+
+          return {
+            fitness: toFitnessValues(entry),
+            wellness: toWellnessRows(entry),
+          };
+        }
       : skipToken,
     ...WORKOUTS_FRESHNESS,
   });

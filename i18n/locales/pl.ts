@@ -186,17 +186,25 @@ const pl = {
       generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
     },
   },
+  /** Fitness, Fatigue and Form: Home's Fitness card and the chart share these. */
+  fitness: {
+    /** Labels, by `FitnessValues` key. */
+    labels: {
+      fitness: 'Fitness',
+      fatigue: 'Zmęczenie',
+      form: 'Forma',
+    },
+    /** The screen-reader label while the values load. */
+    loading: 'Wczytywanie Fitness',
+    /** The Home card on a day without values. */
+    noValueToday: 'Brak danych na dziś.',
+  },
   home: {
     wellness: {
       title: 'Wellness',
       /** The loading card's screen-reader label. */
       loading: 'Wczytywanie Wellness',
       empty: 'Brak danych na dziś.',
-      needsScope: {
-        message:
-          'Połącz ponownie Intervals.icu i zezwól na dostęp do Wellness.',
-        action: 'Połącz ponownie',
-      },
       /** Row labels, by `WellnessRow` key. */
       rows: {
         readiness: 'Gotowość',
@@ -480,6 +488,12 @@ const pl = {
     },
     reconnectBanner: {
       message: 'Połączenie z Intervals.icu wygasło.',
+      action: 'Połącz ponownie',
+    },
+    /** Asks once for the Wellness scope that Fitness and Wellness are read with. */
+    wellnessScopePrompt: {
+      message:
+        'Połącz ponownie Intervals.icu i zezwól na dostęp do Wellness, aby zobaczyć Fitness i Wellness.',
       action: 'Połącz ponownie',
     },
   },
