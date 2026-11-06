@@ -7,8 +7,9 @@ import { useReconnectIntervals } from '@/hooks/useReconnectIntervals';
 
 /**
  * Asks to reconnect Intervals.icu for the Wellness scope that Fitness and
- * Wellness are both read with, with no dismiss. "Połącz ponownie" opens
- * Settings and starts the connect flow.
+ * Wellness are both read with, on a card surface and with no dismiss. Home
+ * and the Fitness chart show the same one. "Połącz ponownie" opens Settings
+ * and starts the connect flow.
  */
 export default function WellnessScopePrompt() {
   const { t } = useTranslation(undefined, {
@@ -17,7 +18,13 @@ export default function WellnessScopePrompt() {
   const reconnect = useReconnectIntervals();
 
   return (
-    <Box gap="sm" alignItems="flex-start">
+    <Box
+      backgroundColor="bgSecondary"
+      borderRadius="lg"
+      padding="base"
+      gap="sm"
+      alignItems="flex-start"
+    >
       <Text variant="body-s-regular" color="textSecondary">
         {t('message')}
       </Text>

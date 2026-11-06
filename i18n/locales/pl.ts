@@ -188,16 +188,39 @@ const pl = {
   },
   /** Fitness, Fatigue and Form: Home's Fitness card and the chart share these. */
   fitness: {
-    /** Labels, by `FitnessValues` key. */
+    /** Labels, by `FitnessDay` key. */
     labels: {
       fitness: 'Fitness',
       fatigue: 'Zmęczenie',
       form: 'Forma',
+      load: 'Obciążenie',
     },
     /** The screen-reader label while the values load. */
     loading: 'Wczytywanie Fitness',
     /** The Home card on a day without values. */
     noValueToday: 'Brak danych na dziś.',
+    /** The Home card's link to the chart screen. */
+    seeMore: 'Zobacz więcej',
+    /** The Home card's screen-reader button label: its values and where it leads. */
+    cardLabel:
+      'Fitness {{fitness}}, Zmęczenie {{fatigue}}, Forma {{form}}. Otwiera ekran Fitness i zmęczenie',
+    /** The same on a day without values. */
+    cardLabelNoValue: 'Brak danych na dziś. Otwiera ekran Fitness i zmęczenie',
+    chart: {
+      title: 'Fitness i zmęczenie',
+      /** The readout's date for today. */
+      today: 'Dziś',
+      /** By `FitnessRange`. */
+      ranges: {
+        '6w': '6 tygodni',
+        '3m': '3 miesiące',
+        '1y': 'rok',
+      },
+      /** No day in the year has values. */
+      empty: 'Brak danych Fitness z Intervals.icu.',
+      error: 'Nie udało się wczytać danych Fitness.',
+      retry: 'Spróbuj ponownie',
+    },
   },
   home: {
     wellness: {

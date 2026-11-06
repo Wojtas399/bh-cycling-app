@@ -14,11 +14,7 @@ export default function TodayCards({ state }: { state: TodayCardsState }) {
     case 'hidden':
       return null;
     case 'needsScope':
-      return (
-        <Box backgroundColor="bgSecondary" borderRadius="lg" padding="base">
-          <WellnessScopePrompt />
-        </Box>
-      );
+      return <WellnessScopePrompt />;
     default:
       return (
         <Box gap="md">

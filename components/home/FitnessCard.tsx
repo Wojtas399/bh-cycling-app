@@ -1,16 +1,20 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import type { ShownTodayCardsState } from '@/hooks/home/useTodayCards';
 import { type FitnessValues, formatForm } from '@/lib/fitness';
+import { useRouter } from 'expo-router';
 
 const COLUMNS = ['fitness', 'fatigue', 'form'] as const;
 
 /**
  * Today's Fitness, Fatigue and Form at the top of Home: three equal columns,
- * big numbers over small labels, with no title.
+ * big numbers over small labels, with no title, and a muted "Zobacz więcej"
+ * under them. Once loaded, the whole card is one button opening the chart,
+ * on a day without values too.
  */
 export default function FitnessCard({
   state,
@@ -18,6 +22,7 @@ export default function FitnessCard({
   state: ShownTodayCardsState;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'fitness' });
+  const router = useRouter();
 
   if (state.status === 'loading') {
     return (
@@ -35,28 +40,55 @@ export default function FitnessCard({
   }
 
   const { fitness } = state;
+  const label =
+    fitness === null
+      ? t('cardLabelNoValue')
+      : t('cardLabel', {
+          fitness: fitness.fitness,
+          fatigue: fitness.fatigue,
+          form: formatForm(fitness.form),
+        });
 
   return (
-    <Card>
-      {fitness === null ? (
-        <Text variant="body-s-regular" color="textSecondary" textAlign="center">
-          {t('noValueToday')}
+    <Pressable
+      onPress={() => router.push('/fitness')}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+    >
+      <Card>
+        {fitness === null ? (
+          <Text
+            variant="body-s-regular"
+            color="textSecondary"
+            textAlign="center"
+          >
+            {t('noValueToday')}
+          </Text>
+        ) : (
+          <Box flexDirection="row">
+            {COLUMNS.map((key, index) => (
+              <Column key={key} index={index}>
+                <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
+                  {formatValue(fitness, key)}
+                </Text>
+                <Text variant="body-xs-regular" color="textSecondary">
+                  {t(`labels.${key}`)}
+                </Text>
+              </Column>
+            ))}
+          </Box>
+        )}
+        <Text
+          variant="body-xs-medium"
+          color="textSecondary"
+          textAlign="center"
+          marginTop="base"
+        >
+          {t('seeMore')}
         </Text>
-      ) : (
-        <Box flexDirection="row">
-          {COLUMNS.map((key, index) => (
-            <Column key={key} index={index}>
-              <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
-                {formatValue(fitness, key)}
-              </Text>
-              <Text variant="body-xs-regular" color="textSecondary">
-                {t(`labels.${key}`)}
-              </Text>
-            </Column>
-          ))}
-        </Box>
-      )}
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 
