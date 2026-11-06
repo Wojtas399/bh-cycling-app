@@ -164,16 +164,72 @@ const MISSING = '–';
  * Form takes its sign (see `formatForm`), and a missing value is a dash.
  */
 export function formatFitnessReadout(
-  { date, fitness, fatigue, form, load }: FitnessDay,
+  day: FitnessDay,
   today: LocalDateString,
   labels: FitnessReadoutLabels,
 ): FitnessReadout {
+  const { date, load } = day;
+
   return {
     date: date === today ? labels.today : formatDate(date, today, labels),
+    ...formatValues(day),
+    load: load === null ? MISSING : `${load}`,
+  };
+}
+
+/**
+ * The day the readout shows: the one at `touched`, the chart cursor's index
+ * into the `shown` range, else `today`. A touched index the range doesn't
+ * reach falls back to `today` too.
+ */
+export function fitnessReadoutDay(
+  shown: FitnessDay[],
+  touched: number | null,
+  today: FitnessDay,
+): FitnessDay {
+  return (touched === null ? undefined : shown[touched]) ?? today;
+}
+
+/** Fitness, Fatigue and Form, each ready to show. */
+export type ShownFitnessValues = Record<keyof FitnessValues, string>;
+
+export interface FitnessCardLabels {
+  /** The card's label over today's values: "Fitness 48, Zmęczenie 43, …". */
+  values: (shown: ShownFitnessValues) => string;
+  /** The card's label on a day without values. */
+  noValue: string;
+}
+
+/** Home's Fitness card, ready to show. */
+export interface FitnessCardContent {
+  /** Today's values, Form with its sign; `null` on a day without values. */
+  values: ShownFitnessValues | null;
+  /** What a screen reader says for the card. */
+  label: string;
+}
+
+/** Today's `values` (see `toFitnessValues`) as Home's Fitness card shows them. */
+export function formatFitnessCard(
+  values: FitnessValues | null,
+  labels: FitnessCardLabels,
+): FitnessCardContent {
+  if (values === null) return { values: null, label: labels.noValue };
+
+  const shown = formatValues(values);
+
+  return { values: shown, label: labels.values(shown) };
+}
+
+/** Form takes its sign (see `formatForm`), and a missing value is a dash. */
+function formatValues({
+  fitness,
+  fatigue,
+  form,
+}: Record<keyof FitnessValues, number | null>): ShownFitnessValues {
+  return {
     fitness: fitness === null ? MISSING : `${fitness}`,
     fatigue: fatigue === null ? MISSING : `${fatigue}`,
     form: form === null ? MISSING : formatForm(form),
-    load: load === null ? MISSING : `${load}`,
   };
 }
 

@@ -5,7 +5,7 @@ import { Pressable } from 'react-native';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import type { ShownTodayCardsState } from '@/hooks/home/useTodayCards';
-import { type FitnessValues, formatForm } from '@/lib/fitness';
+import { formatFitnessCard } from '@/lib/fitness';
 import { useRouter } from 'expo-router';
 
 const COLUMNS = ['fitness', 'fatigue', 'form'] as const;
@@ -39,15 +39,10 @@ export default function FitnessCard({
     );
   }
 
-  const { fitness } = state;
-  const label =
-    fitness === null
-      ? t('cardLabelNoValue')
-      : t('cardLabel', {
-          fitness: fitness.fitness,
-          fatigue: fitness.fatigue,
-          form: formatForm(fitness.form),
-        });
+  const { values, label } = formatFitnessCard(state.fitness, {
+    values: shown => t('cardLabel', shown),
+    noValue: t('cardLabelNoValue'),
+  });
 
   return (
     <Pressable
@@ -57,7 +52,7 @@ export default function FitnessCard({
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
       <Card>
-        {fitness === null ? (
+        {values === null ? (
           <Text
             variant="body-s-regular"
             color="textSecondary"
@@ -70,7 +65,7 @@ export default function FitnessCard({
             {COLUMNS.map((key, index) => (
               <Column key={key} index={index}>
                 <Text variant="h2" style={{ fontVariant: ['tabular-nums'] }}>
-                  {formatValue(fitness, key)}
+                  {values[key]}
                 </Text>
                 <Text variant="body-xs-regular" color="textSecondary">
                   {t(`labels.${key}`)}
@@ -90,10 +85,6 @@ export default function FitnessCard({
       </Card>
     </Pressable>
   );
-}
-
-function formatValue(values: FitnessValues, key: keyof FitnessValues): string {
-  return key === 'form' ? formatForm(values.form) : `${values[key]}`;
 }
 
 /** The card surface; a `busyLabel` marks it as loading. */

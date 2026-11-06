@@ -23,6 +23,7 @@ import {
   DEFAULT_FITNESS_RANGE,
   type FitnessDay,
   type FitnessRange,
+  fitnessReadoutDay,
   formatFitnessReadout,
   sliceFitnessRange,
 } from '@/lib/fitness';
@@ -150,7 +151,7 @@ function FitnessChartContent({
   const shown = useMemo(() => sliceFitnessRange(days, range), [days, range]);
   // The year ends today.
   const today = days[days.length - 1];
-  const day = touched === null ? today : (shown[touched] ?? today);
+  const day = fitnessReadoutDay(shown, touched, today);
   const readout = formatFitnessReadout(day, today.date, {
     today: t('fitness.chart.today'),
     monthsShort: t('note.monthsShort', { returnObjects: true }),

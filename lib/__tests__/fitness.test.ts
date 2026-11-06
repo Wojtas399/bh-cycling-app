@@ -1,4 +1,7 @@
 import {
+  type FitnessDay,
+  fitnessReadoutDay,
+  formatFitnessCard,
   formatFitnessReadout,
   formatForm,
   sliceFitnessRange,
@@ -291,5 +294,63 @@ describe('formatFitnessReadout', () => {
       formatFitnessReadout({ date: TODAY, ...DAY, load: 0 }, TODAY, LABELS)
         .load,
     ).toBe('0');
+  });
+});
+
+describe('fitnessReadoutDay', () => {
+  /** A 42-day range ending today, each day's Fitness its index. */
+  const SHOWN = Array.from(
+    { length: 42 },
+    (_, index): FitnessDay => ({
+      date: dayFrom(index - 41),
+      fitness: index,
+      fatigue: 40,
+      form: index - 40,
+      load: 60,
+    }),
+  );
+  const TODAY_DAY = SHOWN[41];
+
+  it('shows today while nothing is touched', () => {
+    expect(fitnessReadoutDay(SHOWN, null, TODAY_DAY)).toBe(TODAY_DAY);
+  });
+
+  it('shows the day under the cursor', () => {
+    expect(fitnessReadoutDay(SHOWN, 3, TODAY_DAY).date).toBe('2026-09-29');
+  });
+
+  it('falls back to today for a touched day past the range', () => {
+    expect(fitnessReadoutDay(SHOWN, 90, TODAY_DAY)).toBe(TODAY_DAY);
+  });
+});
+
+describe('formatFitnessCard', () => {
+  const LABELS = {
+    values: ({ fitness, fatigue, form }: Record<string, string>) =>
+      `Fitness ${fitness}, Zmęczenie ${fatigue}, Forma ${form}`,
+    noValue: 'Brak danych na dziś',
+  };
+
+  it("shows today's values, Form with its sign, and says them", () => {
+    expect(
+      formatFitnessCard({ fitness: 48, fatigue: 43, form: 5 }, LABELS),
+    ).toEqual({
+      values: { fitness: '48', fatigue: '43', form: '+5' },
+      label: 'Fitness 48, Zmęczenie 43, Forma +5',
+    });
+  });
+
+  it('signs a tired Form with a minus', () => {
+    expect(
+      formatFitnessCard({ fitness: 31, fatigue: 43, form: -12 }, LABELS).values
+        ?.form,
+    ).toBe('-12');
+  });
+
+  it('shows no values on a day without them, and says so', () => {
+    expect(formatFitnessCard(null, LABELS)).toEqual({
+      values: null,
+      label: 'Brak danych na dziś',
+    });
   });
 });
