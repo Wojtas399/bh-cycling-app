@@ -31,7 +31,12 @@ export function intervalsActivityMapPath(activityId: string): string {
   return `${intervalsActivityPath(activityId)}/map`;
 }
 
+/** The athlete's Wellness Entries, read by date range. */
+export function intervalsWellnessRangePath(athleteId: string): string {
+  return `/athlete/${athleteId}/wellness`;
+}
+
 /** One day's Wellness Entry, by its local `YYYY-MM-DD` date. */
 export function intervalsWellnessPath(athleteId: string, date: string): string {
-  return `/athlete/${athleteId}/wellness/${date}`;
+  return `${intervalsWellnessRangePath(athleteId)}/${date}`;
 }

@@ -14,7 +14,14 @@ import {
   pairingWindow,
   withItemStatuses,
 } from './calendarWorkouts';
-import { type FitnessValues, toFitnessValues } from './fitness';
+import {
+  FITNESS_FIELDS,
+  type FitnessDay,
+  type FitnessValues,
+  fitnessHistoryWindow,
+  toFitnessDays,
+  toFitnessValues,
+} from './fitness';
 import {
   EVENT_CATEGORY,
   type IntervalsActivity,
@@ -26,6 +33,7 @@ import {
   getCalendarEvent,
   getCalendarEvents,
   getWellness,
+  getWellnessRange,
   isNotFoundError,
 } from './intervalsApi';
 import {
@@ -76,6 +84,9 @@ export const intervalsKeys = {
   /** `today` is the day whose Wellness Entry is read. */
   wellness: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'wellness', today] as const,
+  /** `today` is the last day of the year of Fitness read. */
+  fitness: (athleteId: string | undefined, today: LocalDateString) =>
+    [...intervalsKeys.athlete(athleteId), 'fitness', today] as const,
   /** Every Calendar month. */
   calendar: (athleteId: string | undefined) =>
     [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
@@ -202,6 +213,37 @@ export function wellnessQueryOptions(
             fitness: toFitnessValues(entry),
             wellness: toWellnessRows(entry),
           };
+        }
+      : skipToken,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * The Fitness chart's year ending `today`, a day for every date (see
+ * `toFitnessDays`), from one Wellness range read. Every range is a slice of
+ * it, so switching ranges never fetches. It never asks past `today`, so no
+ * projected value arrives. `today` is in the key, so the year moves on at
+ * midnight. Separate from today's Wellness Entry, which Home reads. Fresh as
+ * long as the upcoming workouts. Retries are the global default (none), so a
+ * 403 is never retried. Skipped while there are no credentials.
+ */
+export function fitnessQueryOptions(
+  credentials: IntervalsCredentials | null,
+  today: LocalDateString,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.fitness(credentials?.athleteId, today),
+    queryFn: credentials
+      ? async ({ signal }): Promise<FitnessDay[]> => {
+          const rows = await getWellnessRange(
+            credentials.accessToken,
+            credentials.athleteId,
+            { ...fitnessHistoryWindow(today), fields: FITNESS_FIELDS },
+            { signal },
+          );
+
+          return toFitnessDays(rows, today);
         }
       : skipToken,
     ...WORKOUTS_FRESHNESS,

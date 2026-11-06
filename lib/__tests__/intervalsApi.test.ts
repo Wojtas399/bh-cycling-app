@@ -8,6 +8,7 @@ import {
   getCalendarEvent,
   getCalendarEvents,
   getWellness,
+  getWellnessRange,
   isNotFoundError,
 } from '../intervalsApi';
 
@@ -313,6 +314,68 @@ describe('intervalsApi', () => {
 
       await expect(
         getWellness('token-1', 'athlete-1', '2026-11-02'),
+      ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 403 });
+    });
+  });
+
+  describe('getWellnessRange', () => {
+    const RANGE = {
+      oldest: '2025-11-07',
+      newest: '2026-11-06',
+      fields: 'id,ctl,atl,ctlLoad',
+    };
+
+    it('reads the Wellness rows of a date range, projected to the fields asked for', async () => {
+      const rows = [{ id: '2026-11-06', ctl: 42.6, atl: 50.4, ctlLoad: 85 }];
+
+      mockFetchOnce({ ok: true, status: 200, json: async () => rows });
+
+      const result = await getWellnessRange('token-1', 'athlete-1', RANGE);
+
+      expect(result).toEqual(rows);
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer token-1' },
+        }),
+      );
+
+      const url = new URL((global.fetch as jest.Mock).mock.calls[0][0]);
+
+      expect(`${url.origin}${url.pathname}`).toBe(
+        'https://intervals.icu/api/v1/athlete/athlete-1/wellness',
+      );
+      expect(Object.fromEntries(url.searchParams)).toEqual(RANGE);
+    });
+
+    it('passes the abort signal through to fetch', async () => {
+      const controller = new AbortController();
+
+      mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+
+      await getWellnessRange('token-1', 'athlete-1', RANGE, {
+        signal: controller.signal,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ signal: controller.signal }),
+      );
+    });
+
+    it('throws IntervalsAuthError on a 401 response', async () => {
+      mockFetchOnce({ ok: false, status: 401 });
+
+      await expect(
+        getWellnessRange('bad-token', 'athlete-1', RANGE),
+      ).rejects.toBeInstanceOf(IntervalsAuthError);
+    });
+
+    it('throws IntervalsApiError carrying the status of a missing-scope 403', async () => {
+      mockFetchOnce({ ok: false, status: 403 });
+
+      await expect(
+        getWellnessRange('token-1', 'athlete-1', RANGE),
       ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 403 });
     });
   });
