@@ -1,9 +1,9 @@
 /**
  * Recreates the test athlete's `e2e-` Workouts on Intervals.icu, so every
  * suite run starts from the same data. `npm run e2e:ios` and
- * `npm run e2e:android` run it before `e2e run`: e2e has no global setup, and
- * `test.setup` isn't available on mobile. `planSeed` decides what to write;
- * this file only makes the calls. Run it on its own with `npm run e2e:seed`.
+ * `npm run e2e:android` run it before `e2e run`, because e2e 0.23 has no
+ * global setup and its `test.setup` isn't available on mobile. `planSeed`
+ * decides what to write; this file only makes the calls. Run it on its own with `npm run e2e:seed`.
  */
 import { athleteFromEnv, intervalsFromEnv } from './support/athlete.ts';
 import { loadLocalEnv } from './support/env.ts';

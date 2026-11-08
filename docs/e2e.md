@@ -89,7 +89,7 @@ npx e2e run --target android --grep "sign in"
 
 `--debug` adds phase timings and a table of agent steps with their model calls.
 
-The seed brings the test athlete to a known state. It deletes every event whose `external_id` starts with `e2e-` from the start of last month to the end of the month after next, then creates "E2E Sweet Spot" for today and "E2E Endurance" on the 15th of next month. Nothing else on the athlete is touched. If the seed fails, the script stops before any test runs, naming the failed call. e2e 0.23 has no global setup that works on mobile, which is why the seed is a separate step in the npm scripts.
+The seed brings the test athlete to a known state. It deletes every event whose `external_id` starts with `e2e-` from the start of last month to the end of the month after next, then creates "E2E Sweet Spot" for today and "E2E Endurance" on the 15th of next month. Nothing else on the athlete is touched. If the seed fails, the script stops before any test runs, naming the failed call. The seed is a separate step in the npm scripts because e2e 0.23 has no global setup and its `test.setup` isn't available on mobile.
 
 Every test starts signed out. The fixture clears the app's state, and on iOS the keychain, where the Firebase session lives. Then it opens the app on the sign-in screen.
 
