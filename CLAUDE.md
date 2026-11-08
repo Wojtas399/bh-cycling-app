@@ -22,6 +22,8 @@ When writing a PR description, use the `/mattpocock-skills:pr` skill and its tem
 
 Every PR gets exactly one `type:` label (`type: feature`, `type: bugfix`, `type: chore`, ...), exactly one `size:` label (`size: tiny`, `size: small`, `size: medium`, `size: large`, `size: huge`), at least one `ships:` label (`ships: ota`, `ships: store`, `ships: backend`, `ships: none`), and at least one `area:` label (`area: calendar`, `area: workout`, `area: shared`, ...). See `docs/agents/pr-labels.md`.
 
+Pick the base branch by the `ships:` label. A PR that ships (`ships: ota`, `ships: store`, `ships: backend`) targets the open release branch (`git branch -r --list 'origin/rc/*'`), or `main` when none is open. A `ships: none` PR targets `main`. Diff and review against `origin/<base>`, since local branches lag behind.
+
 ## The `main` branch
 
 Remote `main` changes only through merged PRs. The husky `pre-push` hook rejects any push that updates `main` on the remote: fast-forwards, force pushes and deletes. Never bypass it: don't set `ALLOW_MAIN_PUSH=1` and don't pass `--no-verify`. Those overrides are for the repo owner only.
