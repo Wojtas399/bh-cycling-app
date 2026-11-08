@@ -5,6 +5,7 @@ import { test } from '../support/fixtures';
 import { planSeed } from '../support/seedPlan';
 import { signIn } from '../support/signIn';
 import { expect } from 'e2e';
+import type { Locator, Screen } from 'e2e';
 
 const { monthNames } = pl.calendar;
 
@@ -13,11 +14,25 @@ function monthTitle(date: Date): RegExp {
   return new RegExp(`^${formatMonthTitle(date, monthNames)}$`);
 }
 
+/**
+ * Taps the middle of `target` as a point. On iOS the tree reports a
+ * full-screen "Toolbar" over the Calendar header, so a locator tap there is
+ * refused as covered, though nothing covers it on screen.
+ */
+async function tapCenter(screen: Screen, target: Locator): Promise<void> {
+  const box = await target.boundingBox();
+
+  if (!box) throw new Error('The tap target has no bounds.');
+
+  await screen.tapAt({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+}
+
 test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async ({
   screen,
 }) => {
   const today = new Date();
-  const { date, day } = planSeed(today).events.endurance;
+  const { sweetSpot, endurance } = planSeed(today).events;
+  const { date, day } = endurance;
   const currentMonth = monthTitle(today);
 
   await signIn(screen);
@@ -25,10 +40,14 @@ test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async (
   await screen.getByText(/Kalendarz/).tap();
 
   await expect(screen.getByText(currentMonth)).toBeVisible(LOAD_TIMEOUT);
-  await expect(screen.getByTestId('calendar-today')).toBeVisible();
+  // Each day is one accessible button, so iOS hides the `calendar-today`
+  // marker inside it. Today's cell is the one that stays reachable.
+  await expect(
+    screen.getByTestId(`calendar-day-${sweetSpot.date}`),
+  ).toBeVisible();
 
   // The chevron has no visible text, only its accessibility label.
-  await screen.getByLabel(/^Następny$/).tap();
+  await tapCenter(screen, screen.getByLabel(/^Następny$/));
 
   await expect(screen.getByText(monthTitle(day))).toBeVisible();
   // The day's label is "<day>. <counts>", Workouts first, e.g.
@@ -38,7 +57,7 @@ test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async (
     LOAD_TIMEOUT,
   );
 
-  await screen.getByText(/^Dziś$/).tap();
+  await tapCenter(screen, screen.getByText(/^Dziś$/));
 
   await expect(screen.getByText(currentMonth)).toBeVisible();
 });

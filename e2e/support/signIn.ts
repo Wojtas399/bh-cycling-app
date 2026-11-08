@@ -18,10 +18,18 @@ export async function signIn(screen: Screen): Promise<void> {
   // treats as a secret.
   await passwordField.tap();
   await passwordField.pressSequentially(athleteFromEnv().password);
-  // "Zaloguj się" is both the screen title and the button; the button is last.
-  await screen
-    .getByText(/^Zaloguj się$/)
-    .last()
-    .tap();
-  await expect(screen.getByText(/Dziś i jutro/)).toBeVisible(LOAD_TIMEOUT);
+  // Submit with the keyboard's Done key, which runs the form's submit. On
+  // iOS the keyboard covers the "Zaloguj się" button, so a locator finds
+  // only the screen title, and tapping that just closes the keyboard.
+  await passwordField.press('Enter');
+
+  // iOS may offer to save the password in a system sheet over the app.
+  const home = screen.getByText(/Dziś i jutro/);
+  const notNow = screen.getByText(/^Nie teraz$/);
+
+  await expect(home.or(notNow)).toBeVisible(LOAD_TIMEOUT);
+
+  if (await notNow.isVisible()) await notNow.tap();
+
+  await expect(home).toBeVisible(LOAD_TIMEOUT);
 }

@@ -19,13 +19,10 @@ test('sign out from Ustawienia → still signed out after a relaunch', async ({
   await signOutRow.tap();
 
   // React Native's `Alert` is the platform's own dialog inside the app, and
-  // agent-device is expected to list its buttons in the tree on both
-  // platforms, so a locator should reach "Wyloguj". That isn't yet confirmed
-  // on a device. `device.alert('accept')` isn't used because on
+  // agent-device lists its buttons in the tree on both platforms, so a
+  // locator reaches "Wyloguj". `device.alert('accept')` isn't used because on
   // iOS it only matches English labels like "OK" and "Allow". `/i` because
-  // Android's dialog may report the button in capitals. If a platform's run
-  // can't find it, swap this line for
-  // `await agent.act('Tap "Wyloguj" in the alert')`.
+  // Android's dialog may report the button in capitals.
   await screen.getByText(/^Wyloguj$/i).tap();
 
   const emailField = screen.getByPlaceholder(EMAIL_PLACEHOLDER);

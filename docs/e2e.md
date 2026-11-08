@@ -101,7 +101,8 @@ The output goes to `.e2e/`, which is gitignored: the run's `report.json`, a `tra
 - Import `test` from `../support/fixtures`, not from `@e2e-dev/mobile`, so the test starts signed out. Sign in with `signIn(screen)` from `../support/signIn`.
 - Follow the locator rules in `CODING_STANDARDS.md`. Match visible text with a regex, reach fields by placeholder, and add a `testID` only when text is ambiguous or missing.
 - Assert only on the seeded Workouts, by name.
-- Confirm a React Native `Alert` by locator on its button text, with `/i`, because Android may report the button in capitals. Don't use `device.alert('accept')`, which matches only English labels on iOS. A locator is expected to reach the alert on both platforms, but that isn't yet confirmed on a device.
+- Confirm a React Native `Alert` by locator on its button text, with `/i`, because Android may report the button in capitals. Don't use `device.alert('accept')`, which matches only English labels on iOS. A locator reaches the alert on both platforms.
+- On iOS, an accessible element hides the elements inside it. A `testID` inside a button, such as `calendar-today` inside a Calendar day, isn't in the tree, so reach the button instead.
 - Scroll to a row below the fold with `screen.scrollUntilVisible(locator)` before you tap it.
 - Let `test` infer its fixture types. Typing them as `any` stops `tsc` checking the `expect` calls.
 - Don't name a support file `test.ts` or `*.test.ts`, because Jest runs any file with that name. Jest tests of e2e support code, such as the seed planner, go in a `__tests__/` folder beside it.
@@ -110,6 +111,8 @@ The output goes to `.e2e/`, which is gitignored: the run's `report.json`, a `tra
 
 - **`ENGINE_FAILURE: device … is owned by session …`:** another agent-device session holds the device, most often T3's Device panel. Close the Device panel, or the other session, and run again.
 - **iOS secure text fields** ([tester-army/e2e#1631](https://github.com/tester-army/e2e/issues/1631)): `fill` can't type into the password field, and `pressSequentially` fails with "No focused text input" unless the field was tapped first. The sign-in helper taps, then types the password from env with `pressSequentially`. Keep that order until #1631 is fixed, then switch to `fill` with the password credential. Until then the helper passes the password as a plain string, so it must never go into an agent step.
+- **iOS keyboard covers the sign-in button.** With the keyboard up, `/^Zaloguj się$/` matches only the screen title, and tapping it just closes the keyboard. The sign-in helper submits with the keyboard's Done key instead, then taps "Nie teraz" if iOS offers to save the password.
+- **iOS reports a full-screen "Toolbar" over the Calendar header.** A locator tap on "Następny" or "Dziś" fails with "covered by the toolbar", though nothing covers it on screen. The Calendar test taps the middle of the button's bounding box with `screen.tapAt`.
 - **Screenshots aren't redacted.** Never type the real password into a field that isn't secure, even to debug. A failure screenshot would show it.
 - **"Nieprawidłowy e-mail lub hasło." at sign-in:** staging rejected `E2E_USER_EMAIL` or `E2E_USER_PASSWORD`. Fix them in `.env.local` before you run again, because Firebase blocks an account for a while after many failed sign-ins.
 - **Android infra flakes under load:** `adb timed out after 10000ms` while preparing the device, or `app.clearState` reporting that the app "remained foreground after close". Run again when the Mac is less busy.
