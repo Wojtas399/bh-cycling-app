@@ -1,8 +1,7 @@
-import { formatLongDate } from './activityStart';
 import type { RaceItem } from './calendarItems';
 import { formatMetric } from './formatWorkoutMetric';
 import { formatLocalTime } from './localDateTime';
-import type { NoteDateLabels } from './noteDates';
+import { type NoteDateLabels, formatLongDate } from './noteDates';
 import type { Race } from './races';
 
 /** The words a Race tile's screen-reader label is built from. */

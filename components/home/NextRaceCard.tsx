@@ -5,7 +5,7 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
 import type { NextRace } from '@/hooks/home/useNextRace';
-import { formatShortDate } from '@/lib/activityStart';
+import { formatShortDate } from '@/lib/noteDates';
 import { raceTileMeta } from '@/lib/raceLabels';
 import type { Race } from '@/lib/races';
 import { sportLabel } from '@/lib/sportIcon';

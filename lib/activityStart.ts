@@ -1,6 +1,5 @@
-import { type LocalDateString, fromLocalDateString } from './localDate';
 import { type LocalDateTimeString, formatLocalTime } from './localDateTime';
-import type { NoteDateLabels } from './noteDates';
+import { type NoteDateLabels, formatLongDate } from './noteDates';
 
 /** How Activity Details' hero dates an Activity's start. */
 export interface ActivityStartLabel {
@@ -26,27 +25,4 @@ export function formatActivityStart(
     text: `${date} · ${time}`,
     accessibilityLabel: `${date}, ${time}`,
   };
-}
-
-/**
- * A date as the short weekday, the day, the short month and the year:
- * "czw., 22 paź 2026".
- */
-export function formatLongDate(
-  date: LocalDateString,
-  labels: NoteDateLabels,
-): string {
-  return `${formatShortDate(date, labels)} ${fromLocalDateString(date).getFullYear()}`;
-}
-
-/** A date as the short weekday, the day and the short month: "czw., 22 paź". */
-export function formatShortDate(
-  date: LocalDateString,
-  labels: NoteDateLabels,
-): string {
-  const day = fromLocalDateString(date);
-  // getDay() counts from Sunday; the labels start on Monday.
-  const weekday = labels.weekdaysShort[(day.getDay() + 6) % 7];
-
-  return `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]}`;
 }
