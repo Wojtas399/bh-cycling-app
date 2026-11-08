@@ -1,24 +1,17 @@
+import { requireEnv } from './env.ts';
+
 /**
  * The test athlete's email and password, from the local env file that
  * `e2e.config.ts` loads. The config calls this at load, so a missing value
  * stops the run with one error before any test signs in.
  */
 export function athleteFromEnv(): { email: string; password: string } {
-  const email = process.env.E2E_USER_EMAIL;
-  const password = process.env.E2E_USER_PASSWORD;
+  const env = requireEnv(
+    ['E2E_USER_EMAIL', 'E2E_USER_PASSWORD'],
+    'the e2e suite signs in as the test athlete with them',
+  );
 
-  if (!email || !password) {
-    const missing = [
-      ...(email ? [] : ['E2E_USER_EMAIL']),
-      ...(password ? [] : ['E2E_USER_PASSWORD']),
-    ];
-
-    throw new Error(
-      `Set ${missing.join(' and ')} in .env.local: the e2e suite signs in as the test athlete with them.`,
-    );
-  }
-
-  return { email, password };
+  return { email: env.E2E_USER_EMAIL, password: env.E2E_USER_PASSWORD };
 }
 
 /**
@@ -26,19 +19,13 @@ export function athleteFromEnv(): { email: string; password: string } {
  * uses to recreate its Workouts before a run.
  */
 export function intervalsFromEnv(): { apiKey: string; athleteId: string } {
-  const apiKey = process.env.E2E_INTERVALS_API_KEY;
-  const athleteId = process.env.E2E_INTERVALS_ATHLETE_ID;
+  const env = requireEnv(
+    ['E2E_INTERVALS_API_KEY', 'E2E_INTERVALS_ATHLETE_ID'],
+    "the e2e seed writes the test athlete's Workouts on Intervals.icu with them",
+  );
 
-  if (!apiKey || !athleteId) {
-    const missing = [
-      ...(apiKey ? [] : ['E2E_INTERVALS_API_KEY']),
-      ...(athleteId ? [] : ['E2E_INTERVALS_ATHLETE_ID']),
-    ];
-
-    throw new Error(
-      `Set ${missing.join(' and ')} in .env.local: the e2e seed writes the test athlete's Workouts on Intervals.icu with them.`,
-    );
-  }
-
-  return { apiKey, athleteId };
+  return {
+    apiKey: env.E2E_INTERVALS_API_KEY,
+    athleteId: env.E2E_INTERVALS_ATHLETE_ID,
+  };
 }

@@ -1,13 +1,11 @@
 import { athleteFromEnv } from './e2e/support/athlete';
+import { loadLocalEnv } from './e2e/support/env';
 import { claudeCode } from '@e2e-dev/acp';
 import { mobile } from '@e2e-dev/mobile';
 import type { E2EConfig } from 'e2e';
-import { existsSync } from 'node:fs';
 
 // Every worker imports this file again, so the env reaches the tests too.
-const envFile = new URL('.env.local', import.meta.url);
-
-if (existsSync(envFile)) process.loadEnvFile(envFile);
+loadLocalEnv();
 
 process.env.E2E_TELEMETRY_DISABLED = '1';
 

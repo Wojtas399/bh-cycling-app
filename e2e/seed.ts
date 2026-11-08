@@ -6,14 +6,12 @@
  * this file only makes the calls. Run it on its own with `npm run e2e:seed`.
  */
 import { intervalsFromEnv } from './support/athlete.ts';
+import { loadLocalEnv } from './support/env.ts';
 import { planSeed } from './support/seedPlan.ts';
-import { existsSync } from 'node:fs';
 
 const BASE_URL = 'https://intervals.icu/api/v1';
 
-const envFile = new URL('../.env.local', import.meta.url);
-
-if (existsSync(envFile)) process.loadEnvFile(envFile);
+loadLocalEnv();
 
 interface ExistingEvent {
   id: number;
