@@ -324,6 +324,11 @@ const pl = {
     notes: 'Notatki',
     /** A month-grid day's screen-reader summary, after the day's label. */
     dayCounts: {
+      /** A lone Race; several read as `races`, never "1 wyścig: A". */
+      race: 'wyścig {{priority}}',
+      races_few: '{{count}} wyścigi: {{priorities}}',
+      races_many: '{{count}} wyścigów: {{priorities}}',
+      races_other: '{{count}} wyścigu: {{priorities}}',
       workouts_one: '{{count}} trening',
       workouts_few: '{{count}} treningi',
       workouts_many: '{{count}} treningów',
