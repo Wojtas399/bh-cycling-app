@@ -40,10 +40,17 @@ import {
   type LocalDateString,
   addDays,
   fromLocalDateString,
+  toLocalDateString,
 } from './localDate';
 import { type Note, noteWindow, toNotes } from './notes';
 import { pairWorkout } from './pairing';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
+import {
+  NEXT_RACE_WINDOW_DAYS,
+  type Race,
+  compareRacesByDate,
+  toRaces,
+} from './races';
 import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
 import { type WellnessRow, toWellnessRows } from './wellness';
@@ -81,6 +88,9 @@ export const intervalsKeys = {
   /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'upcoming', today] as const,
+  /** `today` is the first day the next-race card looks for a Race on. */
+  nextRace: (athleteId: string | undefined, today: LocalDateString) =>
+    [...intervalsKeys.athlete(athleteId), 'nextRace', today] as const,
   /** `today` is the day whose Wellness Entry is read. */
   wellness: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'wellness', today] as const,
@@ -173,6 +183,46 @@ export function upcomingQueryOptions(
             );
 
           return getUpcomingItems(events, activities, notes, today, zoneConfig);
+        }
+      : skipToken,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * The Races from `today` to `NEXT_RACE_WINDOW_DAYS` days ahead, by date, for
+ * the next-race card: one Race-only events read, never derived from the
+ * upcoming query, whose window is far shorter. It fails on its own, so "Dziś
+ * i jutro" never fails with it. `today` is in the key, so the window moves on
+ * at midnight. Fresh as long as the upcoming workouts. Skipped while there
+ * are no credentials.
+ */
+export function nextRaceQueryOptions(
+  credentials: IntervalsCredentials | null,
+  today: LocalDateString,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.nextRace(credentials?.athleteId, today),
+    queryFn: credentials
+      ? async ({ signal }): Promise<Race[]> => {
+          const events = await getCalendarEvents(
+            credentials.accessToken,
+            credentials.athleteId,
+            {
+              oldest: today,
+              newest: toLocalDateString(
+                addDays(fromLocalDateString(today), NEXT_RACE_WINDOW_DAYS),
+              ),
+              category: [
+                EVENT_CATEGORY.raceA,
+                EVENT_CATEGORY.raceB,
+                EVENT_CATEGORY.raceC,
+              ],
+            },
+            { signal },
+          );
+
+          return toRaces(events).sort(compareRacesByDate);
         }
       : skipToken,
     ...WORKOUTS_FRESHNESS,

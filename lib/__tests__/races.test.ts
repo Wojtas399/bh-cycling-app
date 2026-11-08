@@ -1,5 +1,12 @@
 import type { IntervalsCalendarEvent } from '../intervalsApi';
-import { type Race, compareRaces, toRace, toRaces } from '../races';
+import {
+  type Race,
+  compareRaces,
+  nextRace,
+  raceCountdown,
+  toRace,
+  toRaces,
+} from '../races';
 
 // Shaped like the live Race bodies in #280.
 function event(
@@ -103,18 +110,18 @@ describe('toRace', () => {
   });
 });
 
-describe('compareRaces', () => {
-  function race(overrides: Partial<Race>): Race {
-    return {
-      id: 1,
-      name: 'Race',
-      priority: 'B',
-      date: '2026-11-13',
-      sport: 'Ride',
-      ...overrides,
-    };
-  }
+function race(overrides: Partial<Race>): Race {
+  return {
+    id: 1,
+    name: 'Race',
+    priority: 'B',
+    date: '2026-11-13',
+    sport: 'Ride',
+    ...overrides,
+  };
+}
 
+describe('compareRaces', () => {
   function order(races: Race[]): number[] {
     return [...races].sort(compareRaces).map(({ id }) => id);
   }
@@ -147,5 +154,80 @@ describe('compareRaces', () => {
         race({ id: 3, name: 'Kraków' }),
       ]),
     ).toEqual([3, 2, 1]);
+  });
+});
+
+describe('nextRace', () => {
+  const TODAY = '2026-11-08';
+
+  it('includes a Race today and one 30 days ahead, the window edges', () => {
+    expect(nextRace([race({ id: 1, date: TODAY })], TODAY)).toMatchObject({
+      id: 1,
+    });
+    expect(
+      nextRace([race({ id: 2, date: '2026-12-08' })], TODAY),
+    ).toMatchObject({ id: 2 });
+  });
+
+  it('leaves out a Race yesterday and one 31 days ahead', () => {
+    expect(
+      nextRace(
+        [
+          race({ id: 1, date: '2026-11-07' }),
+          race({ id: 2, date: '2026-12-09' }),
+        ],
+        TODAY,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('returns nothing without Races', () => {
+    expect(nextRace([], TODAY)).toBeUndefined();
+  });
+
+  it('picks the nearest day over a higher priority further away', () => {
+    expect(
+      nextRace(
+        [
+          race({ id: 1, priority: 'A', date: '2026-11-20' }),
+          race({ id: 2, priority: 'C', date: '2026-11-12' }),
+          race({ id: 3, priority: 'B', date: '2026-11-15' }),
+        ],
+        TODAY,
+      ),
+    ).toMatchObject({ id: 2 });
+  });
+
+  it('breaks a tie on the nearest day by the Race order', () => {
+    const day = '2026-11-12';
+
+    expect(
+      nextRace(
+        [
+          race({ id: 1, priority: 'C', date: day }),
+          race({ id: 2, priority: 'B', date: day, startTime: '14:00' }),
+          race({ id: 3, priority: 'B', date: day, startTime: '09:00' }),
+          race({ id: 4, priority: 'A', date: '2026-11-13' }),
+        ],
+        TODAY,
+      ),
+    ).toMatchObject({ id: 3 });
+  });
+});
+
+describe('raceCountdown', () => {
+  const TODAY = '2026-11-08';
+
+  it('is today for a Race today', () => {
+    expect(raceCountdown(race({ date: TODAY }), TODAY)).toBe('today');
+  });
+
+  it('is tomorrow for a Race tomorrow', () => {
+    expect(raceCountdown(race({ date: '2026-11-09' }), TODAY)).toBe('tomorrow');
+  });
+
+  it('is the number of whole calendar days for a Race further away', () => {
+    expect(raceCountdown(race({ date: '2026-11-10' }), TODAY)).toBe(2);
+    expect(raceCountdown(race({ date: '2026-12-08' }), TODAY)).toBe(30);
   });
 });

@@ -26,6 +26,23 @@ export function addDays(date: Date, days: number): Date {
   return result;
 }
 
+/**
+ * Whole calendar days from `from` to `to`, negative when `to` is earlier.
+ * Counted on the calendar fields, so a DST shift can never skew it.
+ */
+export function daysBetween(
+  from: LocalDateString,
+  to: LocalDateString,
+): number {
+  const utc = (date: LocalDateString) => {
+    const [year, month, day] = date.split('-').map(Number);
+
+    return Date.UTC(year, month - 1, day);
+  };
+
+  return Math.round((utc(to) - utc(from)) / 86_400_000);
+}
+
 export interface DatedWorkoutEvent {
   event: IntervalsCalendarEvent;
   /** Local calendar date the event is scheduled on, `YYYY-MM-DD`. */
