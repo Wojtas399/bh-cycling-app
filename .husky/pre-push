@@ -1,3 +1,14 @@
+# main changes only through merged PRs. ALLOW_MAIN_PUSH=1 skips this check.
+if [ "$ALLOW_MAIN_PUSH" != "1" ]; then
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    if [ "$remote_ref" = "refs/heads/main" ]; then
+      echo "pre-push: refusing to update main on $1. Open a PR instead." >&2
+      echo "pre-push: override with ALLOW_MAIN_PUSH=1 git push ..." >&2
+      exit 1
+    fi
+  done
+fi
+
 npx lint-staged
 npx tsc --noEmit
 npm test
