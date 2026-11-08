@@ -55,7 +55,7 @@ Other names work too. Set `E2E_IOS_DEVICE` or `E2E_ANDROID_DEVICE` to use them.
 
 The build script doesn't load `.env.local`. If you rename a device, also export its variable in your shell before you build.
 
-When the test user's email or password is missing, the run stops before any test with `CONFIG_LOAD_FAILED` and names the missing variables. The config also turns off e2e's telemetry, so no command needs a flag for it.
+When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. A plain `npx e2e run` without the test user's email or password stops before any test with `CONFIG_LOAD_FAILED`. The config also turns off e2e's telemetry, so no command needs a flag for it.
 
 The test user is a verified staging email/password account, connected once from the staging app to the test athlete, which has no Strava link. Tests never go through the Intervals.icu OAuth flow. Connecting the athlete to the app again from anywhere replaces its token, so don't connect it from another account. If that happens, connect it again from the test user.
 

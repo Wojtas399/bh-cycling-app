@@ -5,7 +5,7 @@
  * `test.setup` isn't available on mobile. `planSeed` decides what to write;
  * this file only makes the calls. Run it on its own with `npm run e2e:seed`.
  */
-import { intervalsFromEnv } from './support/athlete.ts';
+import { athleteFromEnv, intervalsFromEnv } from './support/athlete.ts';
 import { loadLocalEnv } from './support/env.ts';
 import { planSeed } from './support/seedPlan.ts';
 
@@ -19,6 +19,10 @@ interface ExistingEvent {
 }
 
 try {
+  // The suite refuses to start without the test user's credentials, but its
+  // config loads only after the seed. So check them here, before the seed
+  // changes anything on staging.
+  athleteFromEnv();
   const { apiKey, athleteId } = intervalsFromEnv();
   // A personal API key is Basic auth with the username `API_KEY`.
   const authorization = `Basic ${Buffer.from(`API_KEY:${apiKey}`).toString('base64')}`;
