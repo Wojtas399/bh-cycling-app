@@ -18,6 +18,27 @@ describe('planSeed', () => {
     });
   });
 
+  it('plans E2E Goal Race, an A Race run, for tomorrow', () => {
+    const { race } = planSeed(new Date(2026, 10, 8, 14, 30)).events;
+
+    expect(race).toEqual({
+      category: 'RACE_A',
+      external_id: 'e2e-tomorrow-race',
+      name: 'E2E Goal Race',
+      date: '2026-11-09',
+      day: new Date(2026, 10, 9),
+      type: 'Run',
+    });
+  });
+
+  it.each([
+    ['the last day of a 31-day month', new Date(2027, 0, 31), '2027-02-01'],
+    ['the last day of February', new Date(2027, 1, 28), '2027-03-01'],
+    ['31 December', new Date(2026, 11, 31), '2027-01-01'],
+  ])('on %s, dates E2E Goal Race in the next month', (_, today, raceDate) => {
+    expect(planSeed(today).events.race.date).toBe(raceDate);
+  });
+
   it('gives each Workout its local day as a Date, so a test needs no date parsing', () => {
     const { events } = planSeed(new Date(2026, 11, 31, 23, 59));
 
@@ -84,9 +105,9 @@ describe('planSeed', () => {
     const STEP = /^- \d+m \d+(-\d+)?%$/;
     const steps = (description: string) =>
       description.split('\n').filter(line => STEP.test(line));
-    const { events } = planSeed(new Date(2026, 10, 8));
+    const { sweetSpot, endurance } = planSeed(new Date(2026, 10, 8)).events;
 
-    it.each(Object.entries(events))(
+    it.each(Object.entries({ sweetSpot, endurance }))(
       '%s is written in Intervals.icu workout syntax',
       (_, workout) => {
         for (const line of workout.description.split('\n')) {
@@ -98,9 +119,7 @@ describe('planSeed', () => {
     );
 
     it('gives E2E Sweet Spot at least three steps, so Workout Details draws a Workout Profile', () => {
-      expect(steps(events.sweetSpot.description).length).toBeGreaterThanOrEqual(
-        3,
-      );
+      expect(steps(sweetSpot.description).length).toBeGreaterThanOrEqual(3);
     });
   });
 
