@@ -6,14 +6,17 @@ import type { Screen } from 'e2e';
 export async function signIn(screen: Screen): Promise<void> {
   const athlete = credentials.user('athlete');
 
+  const passwordField = screen.getByPlaceholder('••••••••');
+
   await screen.getByPlaceholder('you@example.com').fill(athlete.username);
-  // tester-army/e2e#1631: on iOS, `fill` into a secure text field fails with
-  // "No focused text input", so the password is typed as a plain string.
-  // Once it's fixed, switch to `.fill(athlete.password)`, which the runner
-  // treats as a secret. Never pass this plain password to an agent step.
-  await screen
-    .getByPlaceholder('••••••••')
-    .pressSequentially(athleteFromEnv().password);
+  // tester-army/e2e#1631: on iOS, typing into a secure text field fails with
+  // "No focused text input" unless the field was tapped first, and `fill`
+  // fails either way. So tap, then type the password as a plain string,
+  // which means it must never reach an agent step. Once #1631 is fixed,
+  // switch to `passwordField.fill(athlete.password)`, which the runner
+  // treats as a secret.
+  await passwordField.tap();
+  await passwordField.pressSequentially(athleteFromEnv().password);
   // "Zaloguj się" is both the screen title and the button; the button is last.
   await screen
     .getByText(/^Zaloguj się$/)
