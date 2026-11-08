@@ -25,7 +25,7 @@ An Activity intervals.icu received from Strava but can't share through its API, 
 _Avoid_: Stub, hidden activity
 
 **Activity Details**:
-The screen for one Unplanned Activity, a recorded session with no plan behind it. It's a sibling of Workout Details, not one of its modes.
+The screen for one Activity with no Workout behind it: an Unplanned Activity, or an Activity paired to a Race, which opens with that Race named on top. It's a sibling of Workout Details, not one of its modes.
 _Avoid_: Unpaired workout details, activity mode
 
 **Activity Profile**:
@@ -63,14 +63,6 @@ _Avoid_: Recovery, Readiness
 **Wellness Entry**:
 One athlete's Wellness record for one day. It may be missing or only partly filled, depending on what reached Intervals.icu that day.
 _Avoid_: Wellness log, daily check-in
-
-**Note**:
-A free-text entry on the athlete's Intervals.icu calendar, for a single day or a range of days. It is not a Workout: it has no structure and no Workout Status. Read-only in BH Cycling.
-_Avoid_: Comment, Workout description
-
-**Note Markdown**:
-A Note's text rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
-_Avoid_: Note HTML, Rich Text
 
 **Fitness**:
 The athlete's long-term training load: a rolling average of recent daily load, weighted over weeks, as calculated by Intervals.icu. BH Cycling shows it and never calculates it.
