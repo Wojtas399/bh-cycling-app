@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
+import { RACE_RANKS } from '@/components/race/raceRanks';
 import type { RacePriority } from '@/lib/races';
 
 /**
@@ -22,7 +23,7 @@ export default function RacePriorityLabel({
       <Box marginRight="xs">
         <RaceRankIcon priority={priority} size={14} />
       </Box>
-      {priority === 'A' ? (
+      {RACE_RANKS[priority].eyebrow ? (
         <Text
           variant="body-xs-medium"
           color="race"

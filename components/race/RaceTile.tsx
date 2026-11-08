@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
@@ -9,7 +10,7 @@ import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { useAppTheme } from '@/constants/theme';
 import type { RaceItem } from '@/lib/calendarItems';
 import { raceItemMeta, raceTileLabel } from '@/lib/raceLabels';
-import type { Race } from '@/lib/races';
+import type { Race, RacePriority } from '@/lib/races';
 import { sportIcon, sportLabel } from '@/lib/sportIcon';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -58,14 +59,8 @@ export default function RaceTile({ item, dayLabel, onPress }: RaceTileProps) {
     completed: item.activity !== undefined,
   };
 
-  const tile =
-    race.priority === 'A' ? (
-      <HeroTile {...props} />
-    ) : race.priority === 'B' ? (
-      <CardTile {...props} />
-    ) : (
-      <SlimRow {...props} />
-    );
+  const RankTile = RANK_TILES[race.priority];
+  const tile = <RankTile {...props} />;
 
   if (!onPress) {
     return (
@@ -197,6 +192,10 @@ function SlimRow({ race, dayLabel, priority, meta, completed }: RankTileProps) {
     </Box>
   );
 }
+
+/** Each rank's tile, from the A Race's hero down to the C Race's row. */
+const RANK_TILES: Record<RacePriority, (props: RankTileProps) => ReactElement> =
+  { A: HeroTile, B: CardTile, C: SlimRow };
 
 /** A completed Workout's done marker, as `WorkoutTile` draws it. */
 function DoneMarker() {

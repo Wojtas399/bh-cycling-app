@@ -10,6 +10,7 @@ import CalendarDayTile, {
 } from '@/components/calendar/CalendarDayTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
+import { RACE_RANKS } from '@/components/race/raceRanks';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
@@ -34,18 +35,11 @@ import {
 } from '@/lib/noteBars';
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
-import type { RacePriority } from '@/lib/races';
 
 const DAY_NUMBER_SIZE = 24;
 /** A tile's padding, and the space between its day number and Note bars. */
 const TILE_SPACING = 'xs';
 const MARKER_SIZE = 6;
-/**
- * A Race's rank icon, ranked by size like its tile: a C Race's grey flag is
- * the smallest. Glyphs about twice a dot's size, so a red flag or trophy
- * never reads as a red "missed" dot.
- */
-const RACE_ICON_SIZE: Record<RacePriority, number> = { A: 13, B: 13, C: 11 };
 /**
  * An A Race's ring around its whole tile: a tile-sized outline, unlike any
  * dot.
@@ -332,7 +326,7 @@ function GridCell({
               <RaceRankIcon
                 key={calendarItemKey(item)}
                 priority={item.race.priority}
-                size={RACE_ICON_SIZE[item.race.priority]}
+                size={RACE_RANKS[item.race.priority].gridIconSize}
               />
             ))}
           </Box>
