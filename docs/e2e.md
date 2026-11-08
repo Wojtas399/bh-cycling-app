@@ -77,16 +77,17 @@ npm run e2e:ios
 npm run e2e:android
 ```
 
-To run one file, or the tests whose title matches a pattern:
+Both scripts run the seed (`npm run e2e:seed`) and then the suite. A plain `npx e2e run` skips the seed, so run `npm run e2e:seed` first when you run one file, or the tests whose title matches a pattern:
 
 ```sh
+npm run e2e:seed
 npx e2e run --target ios e2e/tests/sign-in.e2e.ts
 npx e2e run --target android --grep "sign in"
 ```
 
 `--debug` adds phase timings and a table of agent steps with their model calls.
 
-Before the first test, the seed brings the test athlete to a known state. It deletes every event whose `external_id` starts with `e2e-` from the start of last month to the end of the month after next, then creates "E2E Sweet Spot" for today and "E2E Endurance" on the 15th of next month. Nothing else on the athlete is touched. If the seed fails, the run stops before any test.
+The seed brings the test athlete to a known state. It deletes every event whose `external_id` starts with `e2e-` from the start of last month to the end of the month after next, then creates "E2E Sweet Spot" for today and "E2E Endurance" on the 15th of next month. Nothing else on the athlete is touched. If the seed fails, the script stops before any test runs, naming the failed call. e2e 0.23 has no global setup that works on mobile, which is why the seed is a separate step in the npm scripts.
 
 Every test starts signed out. The fixture clears the app's state, and on iOS the keychain, where the Firebase session lives. Then it opens the app on the sign-in screen.
 
