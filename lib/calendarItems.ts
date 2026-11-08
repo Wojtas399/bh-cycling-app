@@ -5,6 +5,7 @@ import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
 import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
+import { type Race, compareRaces, toRace } from './races';
 import { isSharedActivity, isStravaActivity } from './stravaActivity';
 import { buildWorkoutProfile } from './workoutProfile';
 import {
@@ -39,14 +40,33 @@ export type UnplannedActivity =
     })
   | (UnplannedActivityBase & { isStravaActivity: true });
 
-/** One entry of a day's list: a Workout or an Unplanned Activity. */
+/** The recorded figures of the Activity paired to a Race. */
+export type RaceActivity = Pick<
+  UnplannedActivityBase,
+  'id' | 'durationSeconds' | 'distanceMeters'
+>;
+
+/**
+ * A Race on its day. It never gets a Workout Status: an unpaired Race is
+ * never planned or missed, whatever its date.
+ */
+export interface RaceItem {
+  kind: 'race';
+  race: Race;
+  /** The Activity paired to the Race, which completes it. */
+  activity?: RaceActivity;
+}
+
+/** One entry of a day's list: a Workout, a Race or an Unplanned Activity. */
 export type CalendarItem =
   | { kind: 'workout'; workout: CalendarWorkout }
+  | RaceItem
   | { kind: 'activity'; activity: UnplannedActivity };
 
 /** A day's entry as stored: a Workout's status depends on today. */
 export type StoredCalendarItem =
   | { kind: 'workout'; workout: StoredWorkout }
+  | RaceItem
   | { kind: 'activity'; activity: UnplannedActivity };
 
 /** Items by local `YYYY-MM-DD`; a day with none maps to `[]`. */
@@ -61,7 +81,7 @@ export interface JoinedCalendarItems {
   completedEventIds: number[];
 }
 
-/** An item with what orders it within its day. */
+/** An item with the `start_date_local` that orders it within its day. */
 interface SortableItem {
   start: string;
   item: StoredCalendarItem;
@@ -75,11 +95,15 @@ interface SortableItem {
  * A paired Workout and its Activities are one item on the earliest
  * Activity's day, as on Intervals.icu (ADR 0007). A Workout whose event names
  * an Activity outside `activities` is still completed, on its planned day.
- * Every other Activity is an Unplanned Activity — including one paired to an
- * event not among `events` (a race, or a Workout outside the fetched window),
- * so it still shows once rather than vanishing.
+ * Every other Activity is an Unplanned Activity — including one paired to a
+ * Race, or to an event not among `events` (a Workout outside the fetched
+ * window), so it still shows once rather than vanishing.
  *
- * Items come out chronological by `start_date_local`, Workouts first on ties.
+ * Every Race among `events` is a Race item on its own day.
+ *
+ * Items come out day by day. Within a day, the Races lead in Race order (see
+ * `compareRaces`); the Workouts and Activities follow by `start_date_local`,
+ * Workouts first on ties.
  */
 export function joinCalendarItems(
   events: IntervalsCalendarEvent[],
@@ -121,12 +145,37 @@ export function joinCalendarItems(
     };
   });
 
-  // Stable, and Workouts go in first, so they lead on a tie.
-  const items = [...workouts, ...unplanned]
-    .sort((a, b) => a.start.localeCompare(b.start))
+  const races = events.flatMap((event): SortableItem[] => {
+    const race = toRace(event);
+
+    return race
+      ? [{ start: event.start_date_local, item: { kind: 'race', race } }]
+      : [];
+  });
+
+  // Stable, and Workouts go in before Activities, so they lead on a tie.
+  const items = [...races, ...workouts, ...unplanned]
+    .sort(compareItems)
     .map(({ item }) => item);
 
   return { items, completedEventIds: [...completedEventIds] };
+}
+
+/** Day by day; within a day, Races first in Race order, then by start. */
+function compareItems(a: SortableItem, b: SortableItem): number {
+  const byDay = calendarItemDate(a.item).localeCompare(
+    calendarItemDate(b.item),
+  );
+
+  if (byDay !== 0) return byDay;
+
+  if (a.item.kind === 'race') {
+    return b.item.kind === 'race' ? compareRaces(a.item.race, b.item.race) : -1;
+  }
+
+  if (b.item.kind === 'race') return 1;
+
+  return a.start.localeCompare(b.start);
 }
 
 function toDate(startDateLocal: string): LocalDateString {
@@ -135,14 +184,29 @@ function toDate(startDateLocal: string): LocalDateString {
 
 /** The local date an item shows on, `YYYY-MM-DD`. */
 export function calendarItemDate(item: StoredCalendarItem): LocalDateString {
-  return item.kind === 'workout' ? item.workout.date : item.activity.date;
+  switch (item.kind) {
+    case 'workout':
+      return item.workout.date;
+    case 'race':
+      return item.race.date;
+    case 'activity':
+      return item.activity.date;
+  }
 }
 
-/** A key unique across a day's items: Workout and Activity IDs may collide. */
+/**
+ * A key unique across a day's items: Workout, Race and Activity IDs may
+ * collide.
+ */
 export function calendarItemKey(item: StoredCalendarItem): string {
-  return item.kind === 'workout'
-    ? `workout-${item.workout.id}`
-    : `activity-${item.activity.id}`;
+  switch (item.kind) {
+    case 'workout':
+      return `workout-${item.workout.id}`;
+    case 'race':
+      return `race-${item.race.id}`;
+    case 'activity':
+      return `activity-${item.activity.id}`;
+  }
 }
 
 function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
@@ -169,7 +233,7 @@ export function withWorkoutStatus(
   completedEventIds: ReadonlySet<number>,
   today: LocalDateString,
 ): CalendarItem {
-  if (item.kind === 'activity') return item;
+  if (item.kind !== 'workout') return item;
 
   return {
     kind: 'workout',

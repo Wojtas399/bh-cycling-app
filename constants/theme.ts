@@ -18,6 +18,7 @@ const palette = {
   greenDim: '#1A6B2E',
   red: '#FF3B30',
   redDim: '#7A1A14',
+  raceRed: '#FF453A',
   blue: '#0A84FF',
   orange: '#FF9F0A',
   yellow: '#FFD60A',
@@ -73,6 +74,9 @@ const theme = createTheme({
     workoutPlanned: palette.zone1,
     workoutDone: palette.green,
     workoutMissed: palette.red,
+
+    // Races: one fixed red, never the Race's own Intervals.icu colour
+    race: palette.raceRed,
 
     // Fitness chart series, in intervals.icu's colours
     chartFitness: palette.blue,

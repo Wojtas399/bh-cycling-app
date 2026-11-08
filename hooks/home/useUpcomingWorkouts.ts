@@ -5,8 +5,8 @@ import { upcomingQueryOptions } from '@/lib/intervalsQueries';
 import { useQuery } from '@tanstack/react-query';
 
 /**
- * Home's items for today and tomorrow: Workouts, and today's Unplanned
- * Activities. `today` follows the clock, so a session
+ * Home's items for today and tomorrow: Races, Workouts, today's Unplanned
+ * Activities and Notes. `today` follows the clock, so a session
  * that runs past midnight fetches the new day. The screen gates on
  * `availability` and branches on the raw `query`; `refetch` refetches this
  * query alone, for pull-to-refresh.

@@ -167,6 +167,97 @@ describe('getUpcomingItems', () => {
     ).toEqual([]);
   });
 
+  describe('Races', () => {
+    it("lists today's and tomorrow's Races first on their day, in Race order, before Workouts, Activities and Notes", () => {
+      expect(
+        keysAndLabels(
+          [
+            event({ id: 1, start_date_local: '2026-07-25T06:00:00' }),
+            event({
+              id: 2,
+              category: 'RACE_C',
+              start_date_local: '2026-07-25T09:00:00',
+            }),
+            event({
+              id: 3,
+              category: 'RACE_A',
+              start_date_local: '2026-07-25T11:00:00',
+            }),
+            event({
+              id: 4,
+              category: 'RACE_B',
+              start_date_local: '2026-07-26T00:00:00',
+            }),
+            event({ id: 5, start_date_local: '2026-07-26T07:00:00' }),
+          ],
+          [activity({ id: 'zwift', start_date_local: '2026-07-25T05:00:00' })],
+          [note({ id: 10, start: '2026-07-25', end: '2026-07-26' })],
+        ),
+      ).toEqual([
+        ['race-3', 'today'],
+        ['race-2', 'today'],
+        ['activity-zwift', 'today'],
+        ['workout-1', 'today'],
+        ['note-10', 'today'],
+        ['race-4', 'tomorrow'],
+        ['workout-5', 'tomorrow'],
+      ]);
+    });
+
+    it('leaves out Races from yesterday and after tomorrow', () => {
+      expect(
+        keysAndLabels(
+          [
+            event({
+              id: 1,
+              category: 'RACE_A',
+              start_date_local: '2026-07-24T00:00:00',
+            }),
+            event({
+              id: 2,
+              category: 'RACE_A',
+              start_date_local: '2026-07-27T00:00:00',
+            }),
+          ],
+          [],
+        ),
+      ).toEqual([]);
+    });
+
+    it('carries the Race with no Workout Status', () => {
+      expect(
+        getUpcomingItems(
+          [
+            event({
+              id: 3,
+              category: 'RACE_B',
+              name: 'Bieg Niepodległości',
+              start_date_local: '2026-07-25T10:00:00',
+              type: 'Run',
+            }),
+          ],
+          [],
+          [],
+          TODAY,
+          ZONE_CONFIG,
+        ),
+      ).toEqual([
+        {
+          kind: 'race',
+          race: {
+            id: 3,
+            name: 'Bieg Niepodległości',
+            priority: 'B',
+            date: '2026-07-25',
+            startTime: '10:00',
+            sport: 'Run',
+          },
+          dayLabel: 'today',
+        },
+      ]);
+    });
+  });
+
   it('returns an empty list when nothing matches', () => {
     expect(getUpcomingItems([], [], [], TODAY, ZONE_CONFIG)).toEqual([]);
   });

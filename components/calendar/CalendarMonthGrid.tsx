@@ -260,7 +260,10 @@ function GridCell({
   isToday,
   onDayPress,
 }: GridCellProps) {
-  const items = data.itemsByDate[cell.date] ?? [];
+  // A Race is never a Workout dot or an Activity ring.
+  const markers = (data.itemsByDate[cell.date] ?? []).filter(
+    item => item.kind !== 'race',
+  );
   const label = useDayLabel(cell, data);
 
   return (
@@ -303,9 +306,9 @@ function GridCell({
           </Text>
         )}
 
-        {items.length > 0 && (
+        {markers.length > 0 && (
           <Box flexDirection="row" flexWrap="wrap" gap="xs" marginTop="xs">
-            {items.map(item =>
+            {markers.map(item =>
               item.kind === 'workout' ? (
                 <WorkoutStatusDot
                   key={calendarItemKey(item)}

@@ -1,6 +1,8 @@
 import ActivityTile from '@/components/ActivityTile';
 import WorkoutTile from '@/components/WorkoutTile';
+import RaceTile from '@/components/race/RaceTile';
 import type { CalendarItem, UnplannedActivity } from '@/lib/calendarItems';
+import type { Race } from '@/lib/races';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarItemTileProps {
@@ -11,15 +13,31 @@ export interface CalendarItemTileProps {
   onWorkoutPress: (workout: CalendarWorkout) => void;
   /** Opens an Activity's details. A Strava Activity's tile isn't tappable. */
   onActivityPress: (activity: UnplannedActivity) => void;
+  /** Opens a Race's sheet. Without it a Race's tile isn't tappable. */
+  onRacePress?: (race: Race) => void;
 }
 
-/** The tile for one day item: a Workout with its status, or an Activity. */
+/**
+ * The tile for one day item: a Workout with its status, a Race ranked by its
+ * priority, or an Activity.
+ */
 export default function CalendarItemTile({
   item,
   dayLabel,
   onWorkoutPress,
   onActivityPress,
+  onRacePress,
 }: CalendarItemTileProps) {
+  if (item.kind === 'race') {
+    return (
+      <RaceTile
+        item={item}
+        dayLabel={dayLabel}
+        onPress={onRacePress && (() => onRacePress(item.race))}
+      />
+    );
+  }
+
   if (item.kind === 'activity') {
     const { activity } = item;
 

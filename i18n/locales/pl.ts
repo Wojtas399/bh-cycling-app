@@ -268,6 +268,15 @@ const pl = {
       'gru',
     ],
   },
+  race: {
+    /** A Race Priority as shown and spoken: "Wyścig A". */
+    priority: 'Wyścig {{priority}}',
+    /** The Race Detail Sheet's rows. */
+    sport: 'Sport',
+    date: 'Termin',
+    duration: 'Planowany czas',
+    distance: 'Planowany dystans',
+  },
   /** An Activity's sport, by `sportLabel(type)`. */
   sport: {
     ride: 'Jazda rowerem',

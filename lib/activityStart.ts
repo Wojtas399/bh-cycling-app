@@ -1,4 +1,4 @@
-import { fromLocalDateString } from './localDate';
+import { type LocalDateString, fromLocalDateString } from './localDate';
 import { type LocalDateTimeString, formatLocalTime } from './localDateTime';
 import type { NoteDateLabels } from './noteDates';
 
@@ -19,14 +19,26 @@ export function formatActivityStart(
   startLocal: LocalDateTimeString,
   labels: NoteDateLabels,
 ): ActivityStartLabel {
-  const day = fromLocalDateString(startLocal.split('T')[0]);
-  // getDay() counts from Sunday; the labels start on Monday.
-  const weekday = labels.weekdaysShort[(day.getDay() + 6) % 7];
-  const date = `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]} ${day.getFullYear()}`;
+  const date = formatLongDate(startLocal.split('T')[0], labels);
   const time = formatLocalTime(startLocal);
 
   return {
     text: `${date} · ${time}`,
     accessibilityLabel: `${date}, ${time}`,
   };
+}
+
+/**
+ * A date as the short weekday, the day, the short month and the year:
+ * "czw., 22 paź 2026".
+ */
+export function formatLongDate(
+  date: LocalDateString,
+  labels: NoteDateLabels,
+): string {
+  const day = fromLocalDateString(date);
+  // getDay() counts from Sunday; the labels start on Monday.
+  const weekday = labels.weekdaysShort[(day.getDay() + 6) % 7];
+
+  return `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]} ${day.getFullYear()}`;
 }

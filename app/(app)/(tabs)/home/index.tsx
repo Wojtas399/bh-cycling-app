@@ -10,11 +10,13 @@ import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
 import TodayCards from '@/components/home/TodayCards';
+import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import { useAppTheme } from '@/constants/theme';
 import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
+import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
@@ -43,6 +45,7 @@ export default function HomeScreen() {
     [query.data],
   );
   const noteSheet = useNoteSheet(notes);
+  const raceSheet = useRaceSheet();
   const [refreshing, setRefreshing] = useState(false);
 
   async function handleRefresh() {
@@ -95,6 +98,7 @@ export default function HomeScreen() {
                   dayLabel={t(item.dayLabel)}
                   onWorkoutPress={workout => openWorkout(workout.id)}
                   onActivityPress={activity => openActivity(activity.id)}
+                  onRacePress={raceSheet.open}
                 />
               )}
             </Box>
@@ -130,6 +134,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       <NoteDetailSheet sheet={noteSheet} />
+      <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );
 }
