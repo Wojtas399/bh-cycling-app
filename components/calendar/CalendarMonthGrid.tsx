@@ -13,18 +13,13 @@ import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
-import { dayCounts, formatDayLabel } from '@/lib/calendarDayCounts';
+import { dayCounts, dayMarkers, formatDayLabel } from '@/lib/calendarDayCounts';
 import {
   type CalendarDay,
   type CalendarGridCell,
   getMonthGrid,
 } from '@/lib/calendarGrid';
-import {
-  type CalendarItem,
-  type CalendarItemsByDate,
-  type RaceItem,
-  calendarItemKey,
-} from '@/lib/calendarItems';
+import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
 import {
   type CalendarData,
   eachDate,
@@ -280,10 +275,9 @@ function GridCell({
   isToday,
   onDayPress,
 }: GridCellProps) {
-  const items = data.itemsByDate[cell.date] ?? [];
-  // The day's items lead with its Races, already in Race order.
-  const races = items.filter(isRaceItem);
-  const markers = items.filter(item => !isRaceItem(item));
+  const { races, markers, hasARace } = dayMarkers(
+    data.itemsByDate[cell.date] ?? [],
+  );
   const label = useDayLabel(cell, data);
 
   return (
@@ -368,14 +362,10 @@ function GridCell({
           </Box>
         )}
 
-        {races.some(item => item.race.priority === 'A') && <ARaceRing />}
+        {hasARace && <ARaceRing />}
       </CalendarDayTile>
     </TouchableOpacity>
   );
-}
-
-function isRaceItem(item: CalendarItem): item is RaceItem {
-  return item.kind === 'race';
 }
 
 /**

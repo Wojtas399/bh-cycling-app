@@ -1,6 +1,7 @@
 import {
   type DayCountLabels,
   dayCounts,
+  dayMarkers,
   formatDayLabel,
 } from '../calendarDayCounts';
 import type { CalendarItem } from '../calendarItems';
@@ -109,6 +110,38 @@ describe('dayCounts', () => {
       workouts: 0,
       activities: 0,
       notes: 0,
+    });
+  });
+});
+
+describe('dayMarkers', () => {
+  it('splits the Races, in Race order, from the Workouts and Activities', () => {
+    const items = [
+      race(1, 'B', '2026-11-12'),
+      race(2, 'C', '2026-11-12'),
+      workout(3, '2026-11-12'),
+      activity('a1', '2026-11-12'),
+    ];
+
+    expect(dayMarkers(items)).toEqual({
+      races: [items[0], items[1]],
+      markers: [items[2], items[3]],
+      hasARace: false,
+    });
+  });
+
+  it('rings the day when any of its Races is an A Race', () => {
+    expect(
+      dayMarkers([race(1, 'A', '2026-11-12'), race(2, 'C', '2026-11-12')])
+        .hasARace,
+    ).toBe(true);
+  });
+
+  it('holds nothing for an empty day', () => {
+    expect(dayMarkers([])).toEqual({
+      races: [],
+      markers: [],
+      hasARace: false,
     });
   });
 });

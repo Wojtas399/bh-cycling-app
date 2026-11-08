@@ -1,3 +1,4 @@
+import type { CalendarItem, RaceItem } from './calendarItems';
 import type { CalendarData } from './calendarWorkouts';
 import type { LocalDateString } from './localDate';
 import { notesOn } from './notes';
@@ -11,6 +12,16 @@ export interface DayCounts {
   activities: number;
   /** Every Note covering the day, those behind "+N" included. */
   notes: number;
+}
+
+/** A month-grid day's items, split the way its tile draws them. */
+export interface DayMarkers {
+  /** The day's Races, in Race order, each drawn as its rank icon. */
+  races: RaceItem[];
+  /** Its Workouts and Unplanned Activities, each drawn as a dot or a ring. */
+  markers: Exclude<CalendarItem, RaceItem>[];
+  /** An A Race rings the whole day. */
+  hasARace: boolean;
 }
 
 /** Each count as the screen reader says it, plural form included. */
@@ -39,6 +50,24 @@ export function dayCounts(
     activities: items.filter(item => item.kind === 'activity').length,
     notes: notesOn(notes, date).length,
   };
+}
+
+/** A day's items as its month-grid tile draws them (see `DayMarkers`). */
+export function dayMarkers(items: CalendarItem[]): DayMarkers {
+  // The day's items lead with its Races, already in Race order.
+  const races = items.filter(isRaceItem);
+
+  return {
+    races,
+    markers: items.filter(
+      (item): item is Exclude<CalendarItem, RaceItem> => !isRaceItem(item),
+    ),
+    hasARace: races.some(item => item.race.priority === 'A'),
+  };
+}
+
+function isRaceItem(item: CalendarItem): item is RaceItem {
+  return item.kind === 'race';
 }
 
 /**
