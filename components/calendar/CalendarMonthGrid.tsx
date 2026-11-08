@@ -9,6 +9,7 @@ import CalendarDayTile, {
   TILE_GAP,
 } from '@/components/calendar/CalendarDayTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
@@ -18,7 +19,12 @@ import {
   type CalendarGridCell,
   getMonthGrid,
 } from '@/lib/calendarGrid';
-import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
+import {
+  type CalendarItem,
+  type CalendarItemsByDate,
+  type RaceItem,
+  calendarItemKey,
+} from '@/lib/calendarItems';
 import {
   type CalendarData,
   eachDate,
@@ -33,11 +39,23 @@ import {
 } from '@/lib/noteBars';
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
+import type { RacePriority } from '@/lib/races';
 
 const DAY_NUMBER_SIZE = 24;
 /** A tile's padding, and the space between its day number and Note bars. */
 const TILE_SPACING = 'xs';
 const MARKER_SIZE = 6;
+/**
+ * A Race's rank icon, ranked by size like its tile: a C Race's grey flag is
+ * the smallest. Glyphs about twice a dot's size, so a red flag or trophy
+ * never reads as a red "missed" dot.
+ */
+const RACE_ICON_SIZE: Record<RacePriority, number> = { A: 13, B: 13, C: 11 };
+/**
+ * An A Race's ring around its whole tile: a tile-sized outline, unlike any
+ * dot.
+ */
+const A_RING_WIDTH = 2;
 const BAR_HEIGHT = 14;
 const BAR_GAP = 2;
 /** How far a bar's rounded end sits in from its cell's edge. */
@@ -59,10 +77,12 @@ export interface CalendarMonthGridProps {
  * not a taller grid. Under each day number, its Notes as coloured bars (two
  * lanes; a multi-day Note runs as one bar across the tiles and the gaps
  * between them), a "+N" for the Notes that don't fit, then a marker per
- * item — a status dot per Workout, a hollow green ring per Unplanned
- * Activity ("done, not planned"). A tile cuts off what doesn't fit; the day
- * sheet shows everything. Days from the neighbouring months are dimmer
- * tiles, empty and not tappable — their data was never fetched.
+ * item — a rank icon per Race in Race order, then a status dot per Workout
+ * and a hollow green ring per Unplanned Activity ("done, not planned"). A
+ * day with an A Race is ringed in red, past or future alike. A tile cuts off
+ * what doesn't fit; the day sheet shows everything. Days from the
+ * neighbouring months are dimmer tiles, empty and not tappable — their data
+ * was never fetched.
  */
 export default function CalendarMonthGrid({
   month,
@@ -260,10 +280,10 @@ function GridCell({
   isToday,
   onDayPress,
 }: GridCellProps) {
-  // A Race is never a Workout dot or an Activity ring.
-  const markers = (data.itemsByDate[cell.date] ?? []).filter(
-    item => item.kind !== 'race',
-  );
+  const items = data.itemsByDate[cell.date] ?? [];
+  // The day's items lead with its Races, already in Race order.
+  const races = items.filter(isRaceItem);
+  const markers = items.filter(item => !isRaceItem(item));
   const label = useDayLabel(cell, data);
 
   return (
@@ -306,6 +326,24 @@ function GridCell({
           </Text>
         )}
 
+        {races.length > 0 && (
+          <Box
+            flexDirection="row"
+            flexWrap="wrap"
+            alignItems="center"
+            gap="xs"
+            marginTop="xs"
+          >
+            {races.map(item => (
+              <RaceRankIcon
+                key={calendarItemKey(item)}
+                priority={item.race.priority}
+                size={RACE_ICON_SIZE[item.race.priority]}
+              />
+            ))}
+          </Box>
+        )}
+
         {markers.length > 0 && (
           <Box flexDirection="row" flexWrap="wrap" gap="xs" marginTop="xs">
             {markers.map(item =>
@@ -329,8 +367,38 @@ function GridCell({
             )}
           </Box>
         )}
+
+        {races.some(item => item.race.priority === 'A') && <ARaceRing />}
       </CalendarDayTile>
     </TouchableOpacity>
+  );
+}
+
+function isRaceItem(item: CalendarItem): item is RaceItem {
+  return item.kind === 'race';
+}
+
+/**
+ * The red ring around a day with an A Race. Drawn over the tile's edge
+ * rather than as its border, so the tile's content stays where every other
+ * tile has it. Decoration only: the day's label says "wyścig A".
+ */
+function ARaceRing() {
+  return (
+    <Box
+      position="absolute"
+      top={0}
+      right={0}
+      bottom={0}
+      left={0}
+      borderRadius="sm"
+      borderWidth={A_RING_WIDTH}
+      borderColor="race"
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      testID="calendar-a-race-ring"
+    />
   );
 }
 
@@ -340,6 +408,8 @@ function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
   const labels = useCalendarLabels();
 
   return formatDayLabel(labels.day(cell), dayCounts(data, cell.date), {
+    race: priority => t('race', { priority }),
+    races: (count, priorities) => t('races', { count, priorities }),
     workouts: count => t('workouts', { count }),
     activities: count => t('activities', { count }),
     notes: count => t('notes', { count }),

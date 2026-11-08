@@ -95,6 +95,27 @@ describe('useDaySheet', () => {
     expect(result.current.isEmpty).toBe(false);
   });
 
+  it('is not empty on a day holding only a Race', async () => {
+    const race: CalendarItem = {
+      kind: 'race',
+      race: {
+        id: 7,
+        name: 'Maraton Kraków',
+        priority: 'C',
+        date: '2026-10-24',
+        sport: 'Ride',
+      },
+    };
+    const { result } = await renderSheet(
+      data({ itemsByDate: { '2026-10-24': [race] } }),
+    );
+
+    await act(async () => result.current.open(OCT_24));
+
+    expect(result.current.items).toEqual([race]);
+    expect(result.current.isEmpty).toBe(false);
+  });
+
   it('reads the day from fresh data', async () => {
     const { result, rerender } = await renderSheet(data());
 

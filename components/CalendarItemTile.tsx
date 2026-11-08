@@ -16,11 +16,8 @@ export interface CalendarItemTileProps {
    * Activity's tile isn't tappable.
    */
   onActivityPress: (activity: UnplannedActivity) => void;
-  /**
-   * Opens an unpaired Race's sheet. Without it an unpaired Race's tile isn't
-   * tappable.
-   */
-  onRacePress?: (race: Race) => void;
+  /** Opens an unpaired Race's sheet. */
+  onRacePress: (race: Race) => void;
 }
 
 /**
@@ -43,9 +40,7 @@ export default function CalendarItemTile({
         item={item}
         dayLabel={dayLabel}
         onPress={
-          activity
-            ? () => onActivityPress(activity)
-            : onRacePress && (() => onRacePress(race))
+          activity ? () => onActivityPress(activity) : () => onRacePress(race)
         }
       />
     );
