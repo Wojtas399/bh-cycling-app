@@ -256,6 +256,44 @@ describe('getUpcomingItems', () => {
         },
       ]);
     });
+
+    it('lists a Race raced today as one completed item today, even when it was planned for yesterday', () => {
+      expect(
+        getUpcomingItems(
+          [
+            event({
+              id: 3,
+              category: 'RACE_C',
+              start_date_local: '2026-07-24T00:00:00',
+            }),
+          ],
+          [
+            activity({
+              id: 'raced',
+              paired_event_id: 3,
+              start_date_local: '2026-07-25T09:00:00',
+            }),
+          ],
+          [],
+          TODAY,
+          ZONE_CONFIG,
+        ),
+      ).toEqual([
+        {
+          kind: 'race',
+          race: expect.objectContaining({ id: 3, date: '2026-07-24' }),
+          activity: {
+            id: 'raced',
+            name: 'Zwift',
+            type: 'VirtualRide',
+            date: '2026-07-25',
+            durationSeconds: 1620,
+            distanceMeters: 14000,
+          },
+          dayLabel: 'today',
+        },
+      ]);
+    });
   });
 
   it('returns an empty list when nothing matches', () => {

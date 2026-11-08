@@ -3,11 +3,12 @@ import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
+import WorkoutStatusDot from '@/components/WorkoutStatusDot';
 import RacePriorityLabel from '@/components/race/RacePriorityLabel';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { useAppTheme } from '@/constants/theme';
 import type { RaceItem } from '@/lib/calendarItems';
-import { raceTileLabel, raceTileMeta } from '@/lib/raceLabels';
+import { raceItemMeta, raceTileLabel } from '@/lib/raceLabels';
 import type { Race } from '@/lib/races';
 import { sportIcon, sportLabel } from '@/lib/sportIcon';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,26 +27,35 @@ interface RankTileProps {
   dayLabel?: string;
   /** "Wyścig X". */
   priority: string;
-  /** The muted line (see `raceTileMeta`). */
+  /** The muted line (see `raceItemMeta`). */
   meta: string;
+  /** Paired to an Activity: draws a completed Workout's done marker. */
+  completed: boolean;
 }
 
 /**
  * A Race ranked by size: an A Race is a hero tile with a red border, a B Race
  * a Workout-sized card, a C Race a slim row. Always the fixed Race red, never
- * the Race's own colour. Read as one stop, by `raceTileLabel`.
+ * the Race's own colour. A paired Race keeps its rank's tile, shows the
+ * Activity's recorded figures and a completed Workout's done marker. Read as
+ * one stop, by `raceTileLabel`.
  */
 export default function RaceTile({ item, dayLabel, onPress }: RaceTileProps) {
   const { t } = useTranslation();
   const { race } = item;
   const priority = t('race.priority', { priority: race.priority });
   const sport = t(sportLabel(race.sport));
-  const label = raceTileLabel(item, { priority, sport });
+  const label = raceTileLabel(item, {
+    priority,
+    sport,
+    completed: t('race.completed'),
+  });
   const props: RankTileProps = {
     race,
     dayLabel,
     priority,
-    meta: raceTileMeta(race, sport),
+    meta: raceItemMeta(item, sport),
+    completed: item.activity !== undefined,
   };
 
   const tile =
@@ -79,7 +89,7 @@ export default function RaceTile({ item, dayLabel, onPress }: RaceTileProps) {
 }
 
 /** An A Race: taller than a Workout tile, red-bordered, the name on two lines. */
-function HeroTile({ race, dayLabel, meta }: RankTileProps) {
+function HeroTile({ race, dayLabel, meta, completed }: RankTileProps) {
   const theme = useAppTheme();
 
   return (
@@ -101,9 +111,12 @@ function HeroTile({ race, dayLabel, meta }: RankTileProps) {
           </Text>
         )}
       </Box>
-      <Text variant="h3" numberOfLines={2}>
-        {race.name}
-      </Text>
+      <Box flexDirection="row" alignItems="center">
+        {completed && <DoneMarker />}
+        <Text variant="h3" numberOfLines={2} style={{ flex: 1 }}>
+          {race.name}
+        </Text>
+      </Box>
       <Box flexDirection="row" alignItems="center" marginTop="xs">
         <Box marginRight="xs">
           <Ionicons
@@ -126,10 +139,17 @@ function HeroTile({ race, dayLabel, meta }: RankTileProps) {
 }
 
 /** A B Race: a Workout-sized card with a red flag. */
-function CardTile({ race, dayLabel, priority, meta }: RankTileProps) {
+function CardTile({
+  race,
+  dayLabel,
+  priority,
+  meta,
+  completed,
+}: RankTileProps) {
   return (
     <Box backgroundColor="bgSecondary" borderRadius="lg" padding="base">
       <Box flexDirection="row" alignItems="center">
+        {completed && <DoneMarker />}
         <Box marginRight="sm">
           <RaceRankIcon priority="B" size={16} />
         </Box>
@@ -158,9 +178,10 @@ function CardTile({ race, dayLabel, priority, meta }: RankTileProps) {
  * A C Race: one line, not a card — a grey outlined flag, the name with its
  * muted meta, and "Wyścig C" on the right.
  */
-function SlimRow({ race, dayLabel, priority, meta }: RankTileProps) {
+function SlimRow({ race, dayLabel, priority, meta, completed }: RankTileProps) {
   return (
     <Box flexDirection="row" alignItems="center" padding="xs">
+      {completed && <DoneMarker />}
       <Box marginRight="sm">
         <RaceRankIcon priority="C" size={14} />
       </Box>
@@ -173,6 +194,15 @@ function SlimRow({ race, dayLabel, priority, meta }: RankTileProps) {
       <Text variant="body-xs-regular" color="textSecondary" marginLeft="sm">
         {dayLabel === undefined ? priority : `${priority} · ${dayLabel}`}
       </Text>
+    </Box>
+  );
+}
+
+/** A completed Workout's done marker, as `WorkoutTile` draws it. */
+function DoneMarker() {
+  return (
+    <Box marginRight="sm">
+      <WorkoutStatusDot status="completed" size={8} />
     </Box>
   );
 }

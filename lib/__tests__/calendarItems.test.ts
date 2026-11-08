@@ -492,6 +492,115 @@ describe('joinCalendarItems', () => {
         'workout-6',
       ]);
     });
+
+    describe('paired from the Activity side (ADR 0009)', () => {
+      const race = (overrides: Partial<IntervalsCalendarEvent> = {}) =>
+        event({
+          id: 3,
+          category: 'RACE_B',
+          name: 'Gravel Race',
+          type: 'Ride',
+          start_date_local: '2026-10-14T09:00:00',
+          moving_time: 10800,
+          distance: 80000,
+          ...overrides,
+        });
+
+      it('makes an Activity naming a Race part of the Race item, with its recorded figures, and lists no Unplanned Activity', () => {
+        const { items } = joinCalendarItems(
+          [race()],
+          [
+            activity({
+              id: 'raced',
+              paired_event_id: 3,
+              start_date_local: '2026-10-14T09:02:00',
+              moving_time: 9876,
+              distance: 81234,
+            }),
+          ],
+          ZONE_CONFIG,
+        );
+
+        expect(items).toEqual([
+          {
+            kind: 'race',
+            race: {
+              id: 3,
+              name: 'Gravel Race',
+              priority: 'B',
+              date: '2026-10-14',
+              startTime: '09:00',
+              sport: 'Ride',
+              durationSeconds: 10800,
+              distanceMeters: 80000,
+            },
+            activity: {
+              id: 'raced',
+              name: 'Zwift',
+              type: 'VirtualRide',
+              date: '2026-10-14',
+              durationSeconds: 9876,
+              distanceMeters: 81234,
+              load: 26,
+            },
+          },
+        ]);
+      });
+
+      it("shows a paired Race on its earliest Activity's day, still first on that day", () => {
+        const { items } = joinCalendarItems(
+          [
+            race({ start_date_local: '2026-10-15T00:00:00' }),
+            event({ id: 1, start_date_local: '2026-10-14T06:00:00' }),
+          ],
+          [
+            activity({
+              id: 'later',
+              paired_event_id: 3,
+              start_date_local: '2026-10-16T08:00:00',
+            }),
+            activity({
+              id: 'earlier',
+              paired_event_id: 3,
+              start_date_local: '2026-10-14T08:00:00',
+            }),
+          ],
+          ZONE_CONFIG,
+        );
+
+        expect(
+          items.map(item => [calendarItemKey(item), calendarItemDate(item)]),
+        ).toEqual([
+          ['race-3', '2026-10-14'],
+          ['workout-1', '2026-10-14'],
+        ]);
+        expect(items[0]).toMatchObject({
+          race: { date: '2026-10-15' },
+          activity: { id: 'earlier' },
+        });
+      });
+
+      it('keeps a Strava Activity on the Race day a separate Unplanned Activity, as its paired_event_id is always null', () => {
+        const { items } = joinCalendarItems(
+          [race()],
+          [
+            activity({
+              id: '20664018356',
+              name: undefined,
+              type: undefined,
+              start_date_local: '2026-10-14T09:02:00',
+            }),
+          ],
+          ZONE_CONFIG,
+        );
+
+        expect(items.map(calendarItemKey)).toEqual([
+          'race-3',
+          'activity-20664018356',
+        ]);
+        expect(items[0]).not.toHaveProperty('activity');
+      });
+    });
   });
 
   it('lists an Activity with no type or name, paired from neither side, as a Strava Activity on its day', () => {

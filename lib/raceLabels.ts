@@ -11,17 +11,24 @@ export interface RaceTileLabelParts {
   priority: string;
   /** The sport's label, e.g. "Bieg". */
   sport: string;
+  /** How a paired Race is marked done, e.g. "ukończony". */
+  completed: string;
 }
 
 /**
- * A Race tile's screen-reader label: "Wyścig A: {name}, {sport}, {when}",
- * where `{when}` is the start time, left out for an all-day Race.
+ * A Race tile's screen-reader label. An unpaired Race reads "Wyścig A:
+ * {name}, {sport}, {when}", where `{when}` is the start time, left out for an
+ * all-day Race. A paired Race reads "Wyścig A: {name}, {sport}, ukończony,
+ * {duration}, {distance}" with the Activity's recorded figures, each when
+ * present.
  */
 export function raceTileLabel(
-  { race }: RaceItem,
-  { priority, sport }: RaceTileLabelParts,
+  { race, activity }: RaceItem,
+  { priority, sport, completed }: RaceTileLabelParts,
 ): string {
-  const details = [sport, ...startTime(race)];
+  const details = activity
+    ? [sport, completed, ...figures(activity)]
+    : [sport, ...startTime(race)];
 
   return `${priority}: ${race.name}, ${details.join(', ')}`;
 }
@@ -31,15 +38,23 @@ export function raceTileLabel(
  * each when set ("14:00 · 2h · 50,0 km"), else the sport.
  */
 export function raceTileMeta(race: Race, sport: string): string {
-  const parts = [
-    ...startTime(race),
-    ...(race.durationSeconds === undefined
-      ? []
-      : [formatMetric('duration', race.durationSeconds)]),
-    ...(race.distanceMeters === undefined
-      ? []
-      : [formatMetric('distance', race.distanceMeters)]),
-  ];
+  const parts = [...startTime(race), ...figures(race)];
+
+  return parts.length > 0 ? parts.join(' · ') : sport;
+}
+
+/**
+ * A Race tile's muted line for its item: a paired Race swaps its start time
+ * and plan for the Activity's recorded duration and distance, each when set,
+ * else the sport; an unpaired Race shows `raceTileMeta`.
+ */
+export function raceItemMeta(
+  { race, activity }: RaceItem,
+  sport: string,
+): string {
+  if (!activity) return raceTileMeta(race, sport);
+
+  const parts = figures(activity);
 
   return parts.length > 0 ? parts.join(' · ') : sport;
 }
@@ -50,6 +65,21 @@ export function raceTileMeta(race: Race, sport: string): string {
  */
 export function formatRaceDate(race: Race, labels: NoteDateLabels): string {
   return [formatLongDate(race.date, labels), ...startTime(race)].join(' · ');
+}
+
+/** The duration and distance, each when set, formatted for display. */
+function figures({
+  durationSeconds,
+  distanceMeters,
+}: Pick<Race, 'durationSeconds' | 'distanceMeters'>): string[] {
+  return [
+    ...(durationSeconds === undefined
+      ? []
+      : [formatMetric('duration', durationSeconds)]),
+    ...(distanceMeters === undefined
+      ? []
+      : [formatMetric('distance', distanceMeters)]),
+  ];
 }
 
 /** The start time as `H:mm`, like every other time in the app; none if unset. */

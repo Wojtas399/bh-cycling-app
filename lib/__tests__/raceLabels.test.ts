@@ -1,5 +1,10 @@
 import type { RaceItem } from '../calendarItems';
-import { formatRaceDate, raceTileLabel, raceTileMeta } from '../raceLabels';
+import {
+  formatRaceDate,
+  raceItemMeta,
+  raceTileLabel,
+  raceTileMeta,
+} from '../raceLabels';
 import type { Race } from '../races';
 
 function race(overrides: Partial<Race>): Race {
@@ -18,7 +23,11 @@ function item(overrides: Partial<Race>): RaceItem {
 }
 
 describe('raceTileLabel', () => {
-  const PARTS = { priority: 'Wyścig A', sport: 'Jazda rowerem' };
+  const PARTS = {
+    priority: 'Wyścig A',
+    sport: 'Jazda rowerem',
+    completed: 'ukończony',
+  };
 
   it('reads an unpaired Race as its priority, name, sport and start time', () => {
     expect(raceTileLabel(item({ startTime: '09:05' }), PARTS)).toBe(
@@ -28,8 +37,51 @@ describe('raceTileLabel', () => {
 
   it('leaves out the start time of an all-day Race', () => {
     expect(
-      raceTileLabel(item({}), { priority: 'Wyścig C', sport: 'Bieg' }),
+      raceTileLabel(item({}), {
+        ...PARTS,
+        priority: 'Wyścig C',
+        sport: 'Bieg',
+      }),
     ).toBe('Wyścig C: Gravel Race, Bieg');
+  });
+
+  it("reads a paired Race as completed, with the Activity's recorded figures instead of the start time and plan", () => {
+    const paired: RaceItem = {
+      ...item({
+        startTime: '09:05',
+        durationSeconds: 7200,
+        distanceMeters: 50000,
+      }),
+      activity: {
+        id: 'raced',
+        name: 'Gravel Race',
+        type: 'Ride',
+        date: '2026-11-13',
+        durationSeconds: 6900,
+        distanceMeters: 51234,
+      },
+    };
+
+    expect(raceTileLabel(paired, PARTS)).toBe(
+      'Wyścig A: Gravel Race, Jazda rowerem, ukończony, 1h 55m, 51,2 km',
+    );
+  });
+
+  it('reads only the recorded figures a paired Race has', () => {
+    const paired: RaceItem = {
+      ...item({ distanceMeters: 50000 }),
+      activity: {
+        id: 'raced',
+        name: 'Gravel Race',
+        type: 'Ride',
+        date: '2026-11-13',
+        durationSeconds: 3600,
+      },
+    };
+
+    expect(raceTileLabel(paired, PARTS)).toBe(
+      'Wyścig A: Gravel Race, Jazda rowerem, ukończony, 1h',
+    );
   });
 });
 
@@ -55,6 +107,54 @@ describe('raceTileMeta', () => {
 
   it('shows the sport when none is set', () => {
     expect(raceTileMeta(race({}), 'Bieg')).toBe('Bieg');
+  });
+});
+
+describe('raceItemMeta', () => {
+  it("shows an unpaired Race's start time and plan", () => {
+    expect(
+      raceItemMeta(item({ startTime: '14:00', durationSeconds: 7200 }), 'Bieg'),
+    ).toBe('14:00 · 2h');
+  });
+
+  it("shows a paired Race's recorded duration and distance in place of its start time and plan", () => {
+    expect(
+      raceItemMeta(
+        {
+          ...item({
+            startTime: '14:00',
+            durationSeconds: 7200,
+            distanceMeters: 50000,
+          }),
+          activity: {
+            id: 'raced',
+            name: 'Gravel Race',
+            type: 'Ride',
+            date: '2026-11-13',
+            durationSeconds: 6900,
+            distanceMeters: 51234,
+          },
+        },
+        'Jazda rowerem',
+      ),
+    ).toBe('1h 55m · 51,2 km');
+  });
+
+  it('shows the sport for a paired Race with no recorded figures', () => {
+    expect(
+      raceItemMeta(
+        {
+          ...item({ startTime: '14:00', durationSeconds: 7200 }),
+          activity: {
+            id: 'raced',
+            name: 'Gravel Race',
+            type: 'Ride',
+            date: '2026-11-13',
+          },
+        },
+        'Bieg',
+      ),
+    ).toBe('Bieg');
   });
 });
 

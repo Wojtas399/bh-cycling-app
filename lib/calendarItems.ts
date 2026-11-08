@@ -40,15 +40,17 @@ export type UnplannedActivity =
     })
   | (UnplannedActivityBase & { isStravaActivity: true });
 
-/** The recorded figures of the Activity paired to a Race. */
-export type RaceActivity = Pick<
-  UnplannedActivityBase,
-  'id' | 'durationSeconds' | 'distanceMeters'
->;
+/**
+ * The Activity paired to a Race. It sets the Race item's day (ADR 0007) and
+ * gives its recorded figures. It's read like an Unplanned Activity, so a tap
+ * opens it the same way, but it isn't one: it's never listed on its own.
+ */
+export type RaceActivity = UnplannedActivity;
 
 /**
- * A Race on its day. It never gets a Workout Status: an unpaired Race is
- * never planned or missed, whatever its date.
+ * A Race on its day: its earliest paired Activity's, else its own. It never
+ * gets a Workout Status: the Activity it carries completes it, and an
+ * unpaired Race is never planned or missed, whatever its date.
  */
 export interface RaceItem {
   kind: 'race';
@@ -89,17 +91,20 @@ interface SortableItem {
 
 /**
  * Joins calendar events against Activities with the pairing rule in
- * `pairWorkouts` (ADR 0009): a Workout and an Activity are paired when either
- * names the other. Primary-key matching only — never by date or type.
+ * `pairWorkouts` (ADR 0009): a Workout or a Race and an Activity are paired
+ * when either names the other. Primary-key matching only — never by date or
+ * type. A Race event never names an Activity, so only an Activity naming the
+ * Race pairs it.
  *
- * A paired Workout and its Activities are one item on the earliest
+ * A paired Workout or Race and its Activities are one item on the earliest
  * Activity's day, as on Intervals.icu (ADR 0007). A Workout whose event names
- * an Activity outside `activities` is still completed, on its planned day.
- * Every other Activity is an Unplanned Activity — including one paired to a
- * Race, or to an event not among `events` (a Workout outside the fetched
- * window), so it still shows once rather than vanishing.
+ * an Activity outside `activities` is still completed, on its planned day; a
+ * Race is completed only by the Activity it carries. Every other Activity is
+ * an Unplanned Activity — including one paired to an event not among
+ * `events` (a Workout outside the fetched window), so it still shows once
+ * rather than vanishing.
  *
- * Every Race among `events` is a Race item on its own day.
+ * Every other Race among `events` is an unpaired Race item on its own day.
  *
  * Items come out day by day. Within a day, the Races lead in Race order (see
  * `compareRaces`); the Workouts and Activities follow by `start_date_local`,
@@ -111,8 +116,13 @@ export function joinCalendarItems(
   zoneConfig: ZoneConfig,
 ): JoinedCalendarItems {
   const workoutEvents = toSortedDatedWorkoutEvents(events);
+  const raceEvents = events.flatMap(event => {
+    const race = toRace(event);
+
+    return race ? [{ event, race }] : [];
+  });
   const { byEventId, pairedActivityIds, completedEventIds } = pairWorkouts(
-    workoutEvents.map(({ event }) => event),
+    [...workoutEvents, ...raceEvents].map(({ event }) => event),
     activities,
   );
 
@@ -145,12 +155,17 @@ export function joinCalendarItems(
     };
   });
 
-  const races = events.flatMap((event): SortableItem[] => {
-    const race = toRace(event);
+  const races = raceEvents.map(({ event, race }): SortableItem => {
+    const paired = byEventId.get(event.id)?.activity;
 
-    return race
-      ? [{ start: event.start_date_local, item: { kind: 'race', race } }]
-      : [];
+    return {
+      start: event.start_date_local,
+      item: {
+        kind: 'race',
+        race,
+        ...(paired && { activity: toUnplannedActivity(paired) }),
+      },
+    };
   });
 
   // Stable, and Workouts go in before Activities, so they lead on a tie.
@@ -188,7 +203,7 @@ export function calendarItemDate(item: StoredCalendarItem): LocalDateString {
     case 'workout':
       return item.workout.date;
     case 'race':
-      return item.race.date;
+      return item.activity?.date ?? item.race.date;
     case 'activity':
       return item.activity.date;
   }

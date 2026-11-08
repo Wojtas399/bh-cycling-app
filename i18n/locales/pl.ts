@@ -271,6 +271,8 @@ const pl = {
   race: {
     /** A Race Priority as shown and spoken: "Wyścig A". */
     priority: 'Wyścig {{priority}}',
+    /** Read on a paired Race's tile: "Wyścig A: {name}, {sport}, ukończony, …". */
+    completed: 'ukończony',
     /** The Race Detail Sheet's rows. */
     sport: 'Sport',
     date: 'Termin',
