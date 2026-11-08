@@ -6,6 +6,7 @@ import Box from '@/components/Box';
 import NoteMarkdown from '@/components/NoteMarkdown';
 import Text from '@/components/Text';
 import RacePriorityLabel from '@/components/race/RacePriorityLabel';
+import { useNoteDateLabels } from '@/hooks/useNoteDateLabels';
 import type { RaceSheetController } from '@/hooks/useRaceSheet';
 import { formatMetric } from '@/lib/formatWorkoutMetric';
 import { formatRaceDate } from '@/lib/raceLabels';
@@ -23,6 +24,7 @@ export interface RaceDetailSheetProps {
  */
 export default function RaceDetailSheet({ sheet }: RaceDetailSheetProps) {
   const { t } = useTranslation();
+  const dateLabels = useNoteDateLabels();
   const { race } = sheet;
   const description = race?.description
     ? stripNoteHtml(race.description).trim()
@@ -43,12 +45,7 @@ export default function RaceDetailSheet({ sheet }: RaceDetailSheetProps) {
             <Row label={t('race.sport')} first>
               {t(sportLabel(race.sport))}
             </Row>
-            <Row label={t('race.date')}>
-              {formatRaceDate(race, {
-                weekdaysShort: t('note.weekdaysShort', { returnObjects: true }),
-                monthsShort: t('note.monthsShort', { returnObjects: true }),
-              })}
-            </Row>
+            <Row label={t('race.date')}>{formatRaceDate(race, dateLabels)}</Row>
             {race.durationSeconds !== undefined && (
               <Row label={t('race.duration')}>
                 {formatMetric('duration', race.durationSeconds)}

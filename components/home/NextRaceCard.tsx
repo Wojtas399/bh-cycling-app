@@ -5,6 +5,7 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
 import type { NextRace } from '@/hooks/home/useNextRace';
+import { useNoteDateLabels } from '@/hooks/useNoteDateLabels';
 import { formatShortDate } from '@/lib/noteDates';
 import { raceTileMeta } from '@/lib/raceLabels';
 import type { Race } from '@/lib/races';
@@ -24,11 +25,9 @@ export default function NextRaceCard({
   onPress: (race: Race) => void;
 }) {
   const { t } = useTranslation();
+  const dateLabels = useNoteDateLabels();
   const priority = t('race.priority', { priority: race.priority });
-  const date = formatShortDate(race.date, {
-    weekdaysShort: t('note.weekdaysShort', { returnObjects: true }),
-    monthsShort: t('note.monthsShort', { returnObjects: true }),
-  });
+  const date = formatShortDate(race.date, dateLabels);
   const meta = raceTileMeta(race, t(sportLabel(race.sport)));
   const inDays = typeof countdown === 'number';
   const label = t('home.nextRace.accessibilityLabel', {
