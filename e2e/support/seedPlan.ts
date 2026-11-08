@@ -4,6 +4,8 @@ export interface SeedWorkout {
   name: string;
   /** Local calendar date, `YYYY-MM-DD`. */
   date: string;
+  /** The same local day, at midnight. */
+  day: Date;
   type: 'Ride';
   description: string;
 }
@@ -36,20 +38,24 @@ const ENDURANCE_DESCRIPTION = ['Endurance', '- 90m 60-70%'].join('\n');
 export function planSeed(today: Date): SeedPlan {
   const year = today.getFullYear();
   const month = today.getMonth();
+  const sweetSpotDay = new Date(year, month, today.getDate());
+  const enduranceDay = new Date(year, month + 1, 15);
 
   return {
     events: {
       sweetSpot: {
         external_id: `${SEED_PREFIX}today`,
         name: 'E2E Sweet Spot',
-        date: toLocalDate(today),
+        date: toLocalDate(sweetSpotDay),
+        day: sweetSpotDay,
         type: 'Ride',
         description: SWEET_SPOT_DESCRIPTION,
       },
       endurance: {
         external_id: `${SEED_PREFIX}next-month`,
         name: 'E2E Endurance',
-        date: toLocalDate(new Date(year, month + 1, 15)),
+        date: toLocalDate(enduranceDay),
+        day: enduranceDay,
         type: 'Ride',
         description: ENDURANCE_DESCRIPTION,
       },

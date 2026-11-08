@@ -16,8 +16,7 @@ test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async (
   screen,
 }) => {
   const today = new Date();
-  const { date } = planSeed(today).events.endurance;
-  const [year, month, day] = date.split('-').map(Number);
+  const { date, day } = planSeed(today).events.endurance;
   const currentMonth = monthTitle(today);
 
   await signIn(screen);
@@ -32,9 +31,7 @@ test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async (
   // The chevron has no visible text, only its accessibility label.
   await screen.getByLabel(/^Następny$/).tap();
 
-  await expect(
-    screen.getByText(monthTitle(new Date(year, month - 1, day))),
-  ).toBeVisible();
+  await expect(screen.getByText(monthTitle(day))).toBeVisible();
   // The day's label is "<day>. <counts>", Workouts first, e.g.
   // "Wtorek, 15 grudnia. 1 trening".
   await expect(screen.getByTestId(`calendar-day-${date}`)).toHaveAccessibleName(

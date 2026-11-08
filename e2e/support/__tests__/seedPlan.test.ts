@@ -18,6 +18,13 @@ describe('planSeed', () => {
     });
   });
 
+  it('gives each Workout its local day as a Date, so a test needs no date parsing', () => {
+    const { events } = planSeed(new Date(2026, 11, 31, 23, 59));
+
+    expect(events.sweetSpot.day).toEqual(new Date(2026, 11, 31));
+    expect(events.endurance.day).toEqual(new Date(2027, 0, 15));
+  });
+
   it.each([
     [
       'the last day of a 31-day month',
