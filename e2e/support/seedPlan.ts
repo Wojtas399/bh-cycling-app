@@ -1,17 +1,27 @@
-/** A Workout the seed creates on the test athlete's Intervals.icu calendar. */
-export interface SeedWorkout {
+/** An event the seed creates on the test athlete's Intervals.icu calendar. */
+interface SeedEventBase {
   external_id: string;
   name: string;
   /** Local calendar date, `YYYY-MM-DD`. */
   date: string;
   /** The same local day, at midnight. */
   day: Date;
+}
+
+export interface SeedWorkout extends SeedEventBase {
+  category: 'WORKOUT';
   type: 'Ride';
   description: string;
 }
 
+/** An all-day Race with no description, duration or distance. */
+export interface SeedRace extends SeedEventBase {
+  category: 'RACE_A';
+  type: 'Run';
+}
+
 export interface SeedPlan {
-  events: { sweetSpot: SeedWorkout; endurance: SeedWorkout };
+  events: { sweetSpot: SeedWorkout; endurance: SeedWorkout; race: SeedRace };
   /** Inclusive local dates to clear seed-owned events from. */
   deleteWindow: { oldest: string; newest: string };
   /** Whether the seed owns an existing event and may delete it. */
@@ -40,10 +50,12 @@ export function planSeed(today: Date): SeedPlan {
   const month = today.getMonth();
   const sweetSpotDay = new Date(year, month, today.getDate());
   const enduranceDay = new Date(year, month + 1, 15);
+  const raceDay = new Date(year, month, today.getDate() + 1);
 
   return {
     events: {
       sweetSpot: {
+        category: 'WORKOUT',
         external_id: `${SEED_PREFIX}today`,
         name: 'E2E Sweet Spot',
         date: toLocalDate(sweetSpotDay),
@@ -52,12 +64,21 @@ export function planSeed(today: Date): SeedPlan {
         description: SWEET_SPOT_DESCRIPTION,
       },
       endurance: {
+        category: 'WORKOUT',
         external_id: `${SEED_PREFIX}next-month`,
         name: 'E2E Endurance',
         date: toLocalDate(enduranceDay),
         day: enduranceDay,
         type: 'Ride',
         description: ENDURANCE_DESCRIPTION,
+      },
+      race: {
+        category: 'RACE_A',
+        external_id: `${SEED_PREFIX}tomorrow-race`,
+        name: 'E2E Goal Race',
+        date: toLocalDate(raceDay),
+        day: raceDay,
+        type: 'Run',
       },
     },
     deleteWindow: {

@@ -19,6 +19,7 @@ import {
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import { formatNoteRange, formatNoteShortRange } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
+import type { Race } from '@/lib/races';
 import { weekNotes } from '@/lib/weekNotes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
@@ -34,18 +35,19 @@ export interface CalendarWeekAgendaProps {
   onDayPress: (day: CalendarDay) => void;
   onWorkoutPress: (workout: CalendarWorkout) => void;
   onActivityPress: (activity: UnplannedActivity) => void;
+  onRacePress: (race: Race) => void;
   onNotePress: (note: Note) => void;
 }
 
 /**
  * The weekly agenda: a banner per multi-day Note above Monday, then Monday to
  * Sunday, each day a tile (the month grid's surface) holding its label, a
- * chip per single-day Note and a card per item — Workouts and Unplanned
- * Activities in one list. Days a multi-day Note covers get a stripe in its
- * colour along the tile's left edge. A rest day is a short tile holding its
- * label alone. Tapping a banner or chip opens the Note, a Workout or an
- * Activity opens it, and tapping elsewhere in the tile, a Strava Activity
- * included, opens the day sheet.
+ * chip per single-day Note and a card per item — the day's Races first, then
+ * its Workouts and Unplanned Activities in one list. Days a multi-day Note
+ * covers get a stripe in its colour along the tile's left edge. A rest day is
+ * a short tile holding its label alone. Tapping a banner or chip opens the
+ * Note, a Workout, Race or Activity opens it, and tapping elsewhere in the
+ * tile, a Strava Activity included, opens the day sheet.
  */
 export default function CalendarWeekAgenda({
   week,
@@ -54,6 +56,7 @@ export default function CalendarWeekAgenda({
   onDayPress,
   onWorkoutPress,
   onActivityPress,
+  onRacePress,
   onNotePress,
 }: CalendarWeekAgendaProps) {
   const labels = useCalendarLabels();
@@ -147,6 +150,7 @@ export default function CalendarWeekAgenda({
                         item={item}
                         onWorkoutPress={onWorkoutPress}
                         onActivityPress={onActivityPress}
+                        onRacePress={onRacePress}
                       />
                     </Box>
                   ))}

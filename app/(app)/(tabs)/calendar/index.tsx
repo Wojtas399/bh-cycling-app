@@ -11,9 +11,11 @@ import CalendarHeader from '@/components/calendar/CalendarHeader';
 import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import { useAppTheme } from '@/constants/theme';
 import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useCalendarNoteSheet } from '@/hooks/calendar/useCalendarNoteSheet';
+import { useCalendarRaceSheet } from '@/hooks/calendar/useCalendarRaceSheet';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
@@ -28,6 +30,7 @@ import type {
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import { type CalendarView, otherViewStartDate } from '@/lib/calendarView';
 import type { Note } from '@/lib/notes';
+import type { Race } from '@/lib/races';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 interface CalendarPlace {
@@ -115,6 +118,7 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
         onDayPress,
         onWorkoutPress,
         onActivityPress,
+        onRacePress,
         onNotePress,
       }) => (
         <CalendarWeekAgenda
@@ -124,6 +128,7 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
           onDayPress={onDayPress}
           onWorkoutPress={onWorkoutPress}
           onActivityPress={onActivityPress}
+          onRacePress={onRacePress}
           onNotePress={onNotePress}
         />
       )}
@@ -154,14 +159,16 @@ interface LoadedViewProps {
   onWorkoutPress: (workout: CalendarWorkout) => void;
   /** Opens the Activity's details. */
   onActivityPress: (activity: UnplannedActivity) => void;
+  /** Opens the Race Detail Sheet straight from the view (no day sheet). */
+  onRacePress: (race: Race) => void;
   /** Opens the Note Detail Sheet straight from the view (no day sheet). */
   onNotePress: (note: Note) => void;
 }
 
 /**
  * Everything the two views share: the header (toggle, "Dziś", refresh, range
- * navigation), the loading/error/ready body, the day sheet and the Note
- * Detail Sheet.
+ * navigation), the loading/error/ready body, the day sheet, and the Note and
+ * Race Detail Sheets.
  */
 function CalendarLayout({
   view,
@@ -177,6 +184,7 @@ function CalendarLayout({
   const insets = useSafeAreaInsets();
   const sheet = useDaySheet(query.data);
   const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.closeThen);
+  const raceSheet = useCalendarRaceSheet(sheet.closeThen);
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
 
@@ -210,6 +218,7 @@ function CalendarLayout({
             onDayPress: sheet.open,
             onWorkoutPress: workout => openWorkout(workout.id),
             onActivityPress: activity => openActivity(activity.id),
+            onRacePress: raceSheet.open,
             onNotePress: note => noteSheet.open(note.id),
           })
         }
@@ -229,10 +238,12 @@ function CalendarLayout({
         onActivityPress={activity =>
           sheet.closeThen(() => openActivity(activity.id))
         }
+        onRacePress={raceSheet.openFromDaySheet}
         onNotePress={note => noteSheet.openFromDaySheet(note.id)}
       />
 
       <NoteDetailSheet sheet={noteSheet} />
+      <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );
 }

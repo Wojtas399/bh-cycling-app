@@ -1,17 +1,35 @@
+import type { CalendarItem, RaceItem } from './calendarItems';
 import type { CalendarData } from './calendarWorkouts';
 import type { LocalDateString } from './localDate';
 import { notesOn } from './notes';
+import type { RacePriority } from './races';
 
 /** What a Calendar day holds, as its screen-reader summary counts it. */
 export interface DayCounts {
+  /** The day's Races, by priority, in Race order (see `compareRaces`). */
+  races: RacePriority[];
   workouts: number;
   activities: number;
   /** Every Note covering the day, those behind "+N" included. */
   notes: number;
 }
 
+/** A month-grid day's items, split the way its tile draws them. */
+export interface DayMarkers {
+  /** The day's Races, in Race order, each drawn as its rank icon. */
+  races: RaceItem[];
+  /** Its Workouts and Unplanned Activities, each drawn as a dot or a ring. */
+  markers: Exclude<CalendarItem, RaceItem>[];
+  /** An A Race rings the whole day. */
+  hasARace: boolean;
+}
+
 /** Each count as the screen reader says it, plural form included. */
 export interface DayCountLabels {
+  /** A lone Race, with its priority: "wyścig A". */
+  race: (priority: RacePriority) => string;
+  /** Several Races, then their priorities joined: "2 wyścigi: A, C". */
+  races: (count: number, priorities: string) => string;
   workouts: (count: number) => string;
   activities: (count: number) => string;
   notes: (count: number) => string;
@@ -24,25 +42,59 @@ export function dayCounts(
   const items = itemsByDate[date] ?? [];
 
   return {
+    // The day's items lead with its Races, already in Race order.
+    races: items.flatMap(item =>
+      item.kind === 'race' ? [item.race.priority] : [],
+    ),
     workouts: items.filter(item => item.kind === 'workout').length,
     activities: items.filter(item => item.kind === 'activity').length,
     notes: notesOn(notes, date).length,
   };
 }
 
+/** A day's items as its month-grid tile draws them (see `DayMarkers`). */
+export function dayMarkers(items: CalendarItem[]): DayMarkers {
+  // The day's items lead with its Races, already in Race order.
+  const races = items.filter(isRaceItem);
+
+  return {
+    races,
+    markers: items.filter(
+      (item): item is Exclude<CalendarItem, RaceItem> => !isRaceItem(item),
+    ),
+    hasARace: races.some(item => item.race.priority === 'A'),
+  };
+}
+
+function isRaceItem(item: CalendarItem): item is RaceItem {
+  return item.kind === 'race';
+}
+
 /**
- * A Calendar day's screen-reader label: the day, then what it holds, zero
- * counts left out ("Poniedziałek, 5 października. 2 treningi, 3 notatki"), or
- * the day alone when it holds nothing.
+ * A Calendar day's screen-reader label: the day, then what it holds, its
+ * Races first, zero counts left out ("Czwartek, 12 listopada. wyścig A,
+ * 2 treningi, 3 notatki"), or the day alone when it holds nothing.
  */
 export function formatDayLabel(
   dayLabel: string,
   counts: DayCounts,
   labels: DayCountLabels,
 ): string {
-  const parts = (['workouts', 'activities', 'notes'] as const)
-    .filter(kind => counts[kind] > 0)
-    .map(kind => labels[kind](counts[kind]));
+  const parts = [
+    ...racesLabel(counts.races, labels),
+    ...(['workouts', 'activities', 'notes'] as const)
+      .filter(kind => counts[kind] > 0)
+      .map(kind => labels[kind](counts[kind])),
+  ];
 
   return parts.length > 0 ? `${dayLabel}. ${parts.join(', ')}` : dayLabel;
+}
+
+/** The day's Races with their priorities, or nothing when it has none. */
+function racesLabel(races: RacePriority[], labels: DayCountLabels): string[] {
+  if (races.length === 0) return [];
+
+  if (races.length === 1) return [labels.race(races[0])];
+
+  return [labels.races(races.length, races.join(', '))];
 }

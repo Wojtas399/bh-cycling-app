@@ -4,6 +4,9 @@
  */
 export type LocalDateTimeString = string;
 
+/** A local time of day with no zone, `HH:mm`. */
+export type LocalTimeString = string;
+
 const pad = (value: number) => String(value).padStart(2, '0');
 
 /**

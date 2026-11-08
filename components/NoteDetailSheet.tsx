@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import BottomSheet from '@/components/BottomSheet';
 import NoteMarkdown from '@/components/NoteMarkdown';
 import Text from '@/components/Text';
+import { useNoteDateLabels } from '@/hooks/useNoteDateLabels';
 import type { NoteSheetController } from '@/hooks/useNoteSheet';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { formatNoteDates } from '@/lib/noteDates';
@@ -21,6 +22,7 @@ export interface NoteDetailSheetProps {
 export default function NoteDetailSheet({ sheet }: NoteDetailSheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
   const noteTitle = useNoteTitle();
+  const dateLabels = useNoteDateLabels();
   const { note } = sheet;
   const text = note?.description ? stripNoteHtml(note.description).trim() : '';
 
@@ -30,14 +32,7 @@ export default function NoteDetailSheet({ sheet }: NoteDetailSheetProps) {
       onClose={sheet.close}
       fullHeight
       title={note ? noteTitle(note) : undefined}
-      subtitle={
-        note
-          ? formatNoteDates(note, {
-              weekdaysShort: t('weekdaysShort', { returnObjects: true }),
-              monthsShort: t('monthsShort', { returnObjects: true }),
-            })
-          : undefined
-      }
+      subtitle={note ? formatNoteDates(note, dateLabels) : undefined}
       testID="note-detail-sheet"
     >
       {text ? (

@@ -153,6 +153,34 @@ describe('useUpcomingWorkouts', () => {
     );
   });
 
+  it("lists today's Race first, from the events call it already makes", async () => {
+    mockConnected();
+    const today = toLocalDateString(new Date());
+    const race: IntervalsCalendarEvent = {
+      id: 5,
+      category: 'RACE_A',
+      name: 'Mistrzostwa Polski',
+      start_date_local: `${today}T00:00:00`,
+      type: 'Ride',
+    };
+
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE' ? [] : [todayEvent(), race],
+    );
+
+    const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
+
+    await waitFor(() =>
+      expect(result.current.query.data).toMatchObject([
+        { kind: 'race', dayLabel: 'today', race: { id: 5, priority: 'A' } },
+        { kind: 'workout', dayLabel: 'today', workout: { id: 1 } },
+      ]),
+    );
+    // The events call and the Notes call, as before Races.
+    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
+  });
+
   it("lists today's Notes from the Notes call after today's Workouts", async () => {
     mockConnected();
     const today = toLocalDateString(new Date());

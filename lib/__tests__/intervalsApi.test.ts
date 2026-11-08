@@ -77,6 +77,24 @@ describe('intervalsApi', () => {
     );
   });
 
+  it('getCalendarEvents sends several categories comma-joined', async () => {
+    mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+
+    await getCalendarEvents('token-1', 'athlete-1', {
+      oldest: '2026-11-08',
+      newest: '2026-12-08',
+      category: ['RACE_A', 'RACE_B', 'RACE_C'],
+    });
+
+    const url = new URL((global.fetch as jest.Mock).mock.calls[0][0]);
+
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      oldest: '2026-11-08',
+      newest: '2026-12-08',
+      category: 'RACE_A,RACE_B,RACE_C',
+    });
+  });
+
   it("getAthleteSettings reads the token owner athlete's Ride power zones on 200", async () => {
     const athlete = {
       sportSettings: [

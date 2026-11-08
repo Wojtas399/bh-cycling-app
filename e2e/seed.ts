@@ -1,5 +1,5 @@
 /**
- * Recreates the test athlete's `e2e-` Workouts on Intervals.icu, so every
+ * Recreates the test athlete's `e2e-` Workouts and Race on Intervals.icu, so every
  * suite run starts from the same data. `npm run e2e:ios` and
  * `npm run e2e:android` run it before `e2e run`, because e2e 0.23 has no
  * global setup and its `test.setup` isn't available on mobile. `planSeed`
@@ -68,20 +68,20 @@ try {
     await call('DELETE', `${eventsPath}/${event.id}`);
   }
 
-  for (const workout of Object.values(plan.events)) {
+  for (const event of Object.values(plan.events)) {
     await call('POST', eventsPath, {
-      category: 'WORKOUT',
-      start_date_local: `${workout.date}T00:00:00`,
-      type: workout.type,
-      name: workout.name,
-      description: workout.description,
-      external_id: workout.external_id,
+      category: event.category,
+      start_date_local: `${event.date}T00:00:00`,
+      type: event.type,
+      name: event.name,
+      description: 'description' in event ? event.description : undefined,
+      external_id: event.external_id,
     });
   }
 
   const created = Object.values(plan.events)
-    .map(workout => `"${workout.name}" on ${workout.date}`)
-    .join(' and ');
+    .map(event => `"${event.name}" on ${event.date}`)
+    .join(', ');
 
   process.stdout.write(
     `E2E seed: deleted ${owned.length} e2e- event(s) from ${oldest} to ${newest}, created ${created}.\n`,

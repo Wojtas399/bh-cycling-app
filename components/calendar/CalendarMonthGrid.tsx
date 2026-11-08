@@ -9,10 +9,12 @@ import CalendarDayTile, {
   TILE_GAP,
 } from '@/components/calendar/CalendarDayTile';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import RaceRankIcon from '@/components/race/RaceRankIcon';
+import { RACE_RANKS } from '@/components/race/raceRanks';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
-import { dayCounts, formatDayLabel } from '@/lib/calendarDayCounts';
+import { dayCounts, dayMarkers, formatDayLabel } from '@/lib/calendarDayCounts';
 import {
   type CalendarDay,
   type CalendarGridCell,
@@ -38,6 +40,11 @@ const DAY_NUMBER_SIZE = 24;
 /** A tile's padding, and the space between its day number and Note bars. */
 const TILE_SPACING = 'xs';
 const MARKER_SIZE = 6;
+/**
+ * An A Race's ring around its whole tile: a tile-sized outline, unlike any
+ * dot.
+ */
+const A_RING_WIDTH = 2;
 const BAR_HEIGHT = 14;
 const BAR_GAP = 2;
 /** How far a bar's rounded end sits in from its cell's edge. */
@@ -59,10 +66,12 @@ export interface CalendarMonthGridProps {
  * not a taller grid. Under each day number, its Notes as coloured bars (two
  * lanes; a multi-day Note runs as one bar across the tiles and the gaps
  * between them), a "+N" for the Notes that don't fit, then a marker per
- * item — a status dot per Workout, a hollow green ring per Unplanned
- * Activity ("done, not planned"). A tile cuts off what doesn't fit; the day
- * sheet shows everything. Days from the neighbouring months are dimmer
- * tiles, empty and not tappable — their data was never fetched.
+ * item — a rank icon per Race in Race order, then a status dot per Workout
+ * and a hollow green ring per Unplanned Activity ("done, not planned"). A
+ * day with an A Race is ringed in red, past or future alike. A tile cuts off
+ * what doesn't fit; the day sheet shows everything. Days from the
+ * neighbouring months are dimmer tiles, empty and not tappable — their data
+ * was never fetched.
  */
 export default function CalendarMonthGrid({
   month,
@@ -260,7 +269,9 @@ function GridCell({
   isToday,
   onDayPress,
 }: GridCellProps) {
-  const items = data.itemsByDate[cell.date] ?? [];
+  const { races, markers, hasARace } = dayMarkers(
+    data.itemsByDate[cell.date] ?? [],
+  );
   const label = useDayLabel(cell, data);
 
   return (
@@ -303,9 +314,27 @@ function GridCell({
           </Text>
         )}
 
-        {items.length > 0 && (
+        {races.length > 0 && (
+          <Box
+            flexDirection="row"
+            flexWrap="wrap"
+            alignItems="center"
+            gap="xs"
+            marginTop="xs"
+          >
+            {races.map(item => (
+              <RaceRankIcon
+                key={calendarItemKey(item)}
+                priority={item.race.priority}
+                size={RACE_RANKS[item.race.priority].gridIconSize}
+              />
+            ))}
+          </Box>
+        )}
+
+        {markers.length > 0 && (
           <Box flexDirection="row" flexWrap="wrap" gap="xs" marginTop="xs">
-            {items.map(item =>
+            {markers.map(item =>
               item.kind === 'workout' ? (
                 <WorkoutStatusDot
                   key={calendarItemKey(item)}
@@ -326,8 +355,34 @@ function GridCell({
             )}
           </Box>
         )}
+
+        {hasARace && <ARaceRing />}
       </CalendarDayTile>
     </TouchableOpacity>
+  );
+}
+
+/**
+ * The red ring around a day with an A Race. Drawn over the tile's edge
+ * rather than as its border, so the tile's content stays where every other
+ * tile has it. Decoration only: the day's label says "wyścig A".
+ */
+function ARaceRing() {
+  return (
+    <Box
+      position="absolute"
+      top={0}
+      right={0}
+      bottom={0}
+      left={0}
+      borderRadius="sm"
+      borderWidth={A_RING_WIDTH}
+      borderColor="race"
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      testID="calendar-a-race-ring"
+    />
   );
 }
 
@@ -337,6 +392,8 @@ function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
   const labels = useCalendarLabels();
 
   return formatDayLabel(labels.day(cell), dayCounts(data, cell.date), {
+    race: priority => t('race', { priority }),
+    races: (count, priorities) => t('races', { count, priorities }),
     workouts: count => t('workouts', { count }),
     activities: count => t('activities', { count }),
     notes: count => t('notes', { count }),

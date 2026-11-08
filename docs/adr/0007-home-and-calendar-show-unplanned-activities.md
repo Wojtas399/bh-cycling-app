@@ -4,7 +4,7 @@
 
 Accepted. Supersedes the parts of ADR-0005 that call Home's query "events-only" and say a month stores "its workouts". The rest of ADR-0005 stands.
 
-Superseded in part by ADR-0009: the parts that join only on the Activity's `paired_event_id`, and the consequence that a pairing across a month edge shows the Workout as missed or planned in its planned month. The rest of this ADR stands.
+Superseded in part by ADR-0009: the parts that join only on the Activity's `paired_event_id`, and the consequence that a pairing across a month edge shows the Workout as missed or planned in its planned month. Its "Races pair from the Activity side only" consequence also replaces the race example below: an Activity paired to a Race is now part of that Race's item, not an Unplanned Activity with the "done, not planned" ring. The rest of this ADR stands.
 
 ## Context
 

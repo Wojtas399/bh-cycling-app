@@ -1,6 +1,5 @@
-import { fromLocalDateString } from './localDate';
 import { type LocalDateTimeString, formatLocalTime } from './localDateTime';
-import type { NoteDateLabels } from './noteDates';
+import { type NoteDateLabels, formatLongDate } from './noteDates';
 
 /** How Activity Details' hero dates an Activity's start. */
 export interface ActivityStartLabel {
@@ -19,10 +18,7 @@ export function formatActivityStart(
   startLocal: LocalDateTimeString,
   labels: NoteDateLabels,
 ): ActivityStartLabel {
-  const day = fromLocalDateString(startLocal.split('T')[0]);
-  // getDay() counts from Sunday; the labels start on Monday.
-  const weekday = labels.weekdaysShort[(day.getDay() + 6) % 7];
-  const date = `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]} ${day.getFullYear()}`;
+  const date = formatLongDate(startLocal.split('T')[0], labels);
   const time = formatLocalTime(startLocal);
 
   return {

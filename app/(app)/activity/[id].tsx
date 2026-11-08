@@ -10,6 +10,8 @@ import ActivityDetailsHero from '@/components/activity/ActivityDetailsHero';
 import ActivityDetailsProfile from '@/components/activity/ActivityDetailsProfile';
 import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
+import RaceDetailSheet from '@/components/race/RaceDetailSheet';
+import RaceHeader from '@/components/race/RaceHeader';
 import RouteBanner from '@/components/route/RouteBanner';
 import ActivityMetricGrid from '@/components/workout/ActivityMetricGrid';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
@@ -17,15 +19,23 @@ import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
+import { usePairedRace } from '@/hooks/activity/usePairedRace';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
-import { type ActivityDetails, routeOf } from '@/lib/activityDetails';
+import { useRaceSheet } from '@/hooks/useRaceSheet';
+import {
+  type ActivityDetails,
+  pairedEventIdOf,
+  routeOf,
+} from '@/lib/activityDetails';
+import type { Race } from '@/lib/races';
 import { useLocalSearchParams } from 'expo-router';
 
 /**
- * Activity Details: one Unplanned Activity, pushed over the tabs from its
- * tile. Mirrors Workout Details and branches on the raw query (ADR 0005):
- * data wins over an error, so a failed pull-to-refresh keeps the Activity on
- * screen.
+ * Activity Details: one Unplanned Activity or paired Race, pushed over the
+ * tabs from its tile. Mirrors Workout Details and branches on the raw query
+ * (ADR 0005): data wins over an error, so a failed pull-to-refresh keeps the
+ * Activity on screen. An Activity paired to a Race gets the Race header,
+ * which opens the Race Detail Sheet.
  */
 export default function ActivityDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
@@ -34,6 +44,9 @@ export default function ActivityDetailsScreen() {
   // The same Route query the banner reads, so a refresh can retry it. It's
   // skipped when there's no Route.
   const route = useActivityRoute(routeOf(query.data)?.activityId ?? null);
+  // Skipped when the Activity isn't paired.
+  const pairedRace = usePairedRace(pairedEventIdOf(query.data));
+  const raceSheet = useRaceSheet();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -43,7 +56,11 @@ export default function ActivityDetailsScreen() {
 
     try {
       // A loaded Route is never fetched again; a failed one is retried.
-      await Promise.all([refetch(), route.refetchIfFailed()]);
+      await Promise.all([
+        refetch(),
+        route.refetchIfFailed(),
+        pairedRace.refetch(),
+      ]);
     } finally {
       setRefreshing(false);
     }
@@ -60,7 +77,12 @@ export default function ActivityDetailsScreen() {
       return query.data.isStravaActivity ? (
         <ActivityUnavailable />
       ) : (
-        <ActivityDetailsContent activityId={id} details={query.data} />
+        <ActivityDetailsContent
+          activityId={id}
+          details={query.data}
+          race={pairedRace.race}
+          onRacePress={raceSheet.open}
+        />
       );
     }
 
@@ -97,25 +119,33 @@ export default function ActivityDetailsScreen() {
       >
         {body()}
       </ScrollView>
+      <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );
 }
 
 /**
- * The loaded Activity: the Route banner, the hero, the Activity
- * Profile, then Podsumowanie and Opis.
+ * The loaded Activity: the Race header when it's paired to a Race, the Route
+ * banner, the hero, the Activity Profile, then Podsumowanie and Opis.
  */
 function ActivityDetailsContent({
   activityId,
   details,
+  race,
+  onRacePress,
 }: {
   activityId: string;
   details: Extract<ActivityDetails, { isStravaActivity: false }>;
+  /** Undefined until the paired Race loads, and when there is none. */
+  race: Race | undefined;
+  onRacePress: (race: Race) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
 
   return (
     <Box gap="md">
+      {race && <RaceHeader race={race} onPress={onRacePress} />}
+
       {/* `route` is `null` for a trainer ride, a VirtualRide or no GPS. */}
       {details.route && (
         <RouteBanner

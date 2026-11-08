@@ -442,6 +442,23 @@ describe('useActivityDetails', () => {
     });
   });
 
+  describe('paired event', () => {
+    it('is the event the Activity is paired to, for the Race header', async () => {
+      const details = await shownDetailsOf(activity({ paired_event_id: 4242 }));
+
+      expect(details.pairedEventId).toBe(4242);
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['null', null as unknown as undefined],
+    ])('is null when the paired event id is %s', async (_, paired_event_id) => {
+      const details = await shownDetailsOf(activity({ paired_event_id }));
+
+      expect(details.pairedEventId).toBeNull();
+    });
+  });
+
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
       // The body intervals.icu returns for a Strava Activity, as verified.
@@ -497,6 +514,7 @@ describe('useActivityDetails', () => {
         icu_variability_index: 1.12,
         stream_types: ['time', 'watts', 'latlng'],
         trainer: false,
+        paired_event_id: 4242,
         icu_intervals: [
           {
             start_time: 0,
@@ -558,6 +576,7 @@ describe('useActivityDetails', () => {
           icu_variability_index: 1.12,
           stream_types: ['time', 'watts', 'latlng'],
           trainer: false,
+          paired_event_id: 4242,
           icu_intervals: [
             { start_time: 0, end_time: 900, intensity: 62, zone: 2 },
             { start_time: 900, end_time: 6180, intensity: 104, zone: 4 },

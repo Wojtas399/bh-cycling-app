@@ -238,6 +238,23 @@ const pl = {
         restingHr: 'Tętno spocz.',
       },
     },
+    /** The next-race card at the top of Home. */
+    nextRace: {
+      eyebrow: 'Następny wyścig',
+      /** The countdown as drawn: "Dziś", "Jutro", else the number over "dni". */
+      today: 'Dziś',
+      tomorrow: 'Jutro',
+      days: 'dni',
+      /** The card's screen-reader label; `when` is one of `when.*`. */
+      accessibilityLabel:
+        'Najbliższy wyścig: {{priority}}, {{name}}, {{when}}. Otwiera szczegóły wyścigu',
+      when: {
+        today: 'dziś',
+        tomorrow: 'jutro',
+        /** Every count but 1 takes "dni", and 1 is "jutro". */
+        days: 'za {{days}} dni',
+      },
+    },
     upcomingWorkouts: {
       title: 'Dziś i jutro',
       empty: 'Brak treningów i aktywności na dziś i jutro.',
@@ -267,6 +284,17 @@ const pl = {
       'lis',
       'gru',
     ],
+  },
+  race: {
+    /** A Race Priority as shown and spoken: "Wyścig A". */
+    priority: 'Wyścig {{priority}}',
+    /** Read on a paired Race's tile: "Wyścig A: {name}, {sport}, ukończony, …". */
+    completed: 'ukończony',
+    /** The Race Detail Sheet's rows. */
+    sport: 'Sport',
+    date: 'Termin',
+    duration: 'Planowany czas',
+    distance: 'Planowany dystans',
   },
   /** An Activity's sport, by `sportLabel(type)`. */
   sport: {
@@ -298,6 +326,11 @@ const pl = {
     notes: 'Notatki',
     /** A month-grid day's screen-reader summary, after the day's label. */
     dayCounts: {
+      /** A lone Race; several read as `races`, never "1 wyścig: A". */
+      race: 'wyścig {{priority}}',
+      races_few: '{{count}} wyścigi: {{priorities}}',
+      races_many: '{{count}} wyścigów: {{priorities}}',
+      races_other: '{{count}} wyścigu: {{priorities}}',
       workouts_one: '{{count}} trening',
       workouts_few: '{{count}} treningi',
       workouts_many: '{{count}} treningów',
@@ -465,6 +498,8 @@ const pl = {
   },
   activityDetails: {
     title: 'Aktywność',
+    /** The Race header's screen-reader label: "Wyścig A: {name}. Otwiera …". */
+    raceHeader: '{{priority}}: {{name}}. Otwiera szczegóły wyścigu',
     /** The card of the Activity's summary metrics. */
     summary: 'Podsumowanie',
     profileLabel:

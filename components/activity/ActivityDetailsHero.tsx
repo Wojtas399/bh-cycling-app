@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
+import { useNoteDateLabels } from '@/hooks/useNoteDateLabels';
 import { formatActivityStart } from '@/lib/activityStart';
 import type { LocalDateTimeString } from '@/lib/localDateTime';
 import { sportIcon, sportLabel } from '@/lib/sportIcon';
@@ -28,11 +29,9 @@ export default function ActivityDetailsHero({
 }: ActivityDetailsHeroProps) {
   const { t } = useTranslation();
   const theme = useAppTheme();
+  const dateLabels = useNoteDateLabels();
   const sport = t(sportLabel(type));
-  const start = formatActivityStart(startLocal, {
-    weekdaysShort: t('note.weekdaysShort', { returnObjects: true }),
-    monthsShort: t('note.monthsShort', { returnObjects: true }),
-  });
+  const start = formatActivityStart(startLocal, dateLabels);
   const titleIsSport = title === null;
 
   return (

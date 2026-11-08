@@ -45,20 +45,24 @@ export interface IntervalsDateRangeParams {
 }
 
 /**
- * The calendar event categories the app reads. intervals.icu has more (races,
- * holidays, …), which arrive as plain strings on `IntervalsCalendarEvent`.
+ * The calendar event categories the app reads, a Race's being its Race
+ * Priority. intervals.icu has more (holidays, targets, …), which arrive as
+ * plain strings on `IntervalsCalendarEvent`.
  */
 export const EVENT_CATEGORY = {
   workout: 'WORKOUT',
   note: 'NOTE',
+  raceA: 'RACE_A',
+  raceB: 'RACE_B',
+  raceC: 'RACE_C',
 } as const;
 
 export type EventCategory =
   (typeof EVENT_CATEGORY)[keyof typeof EVENT_CATEGORY];
 
 export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
-  /** Only events of this category. */
-  category?: EventCategory;
+  /** Only events of this category, or of any of these. */
+  category?: EventCategory | readonly EventCategory[];
   /** Adds each Workout step's target in watts (`_power`). */
   resolve?: boolean;
 }
@@ -272,9 +276,15 @@ async function request<T>(
   if (params) {
     for (const [key, value] of Object.entries(params) as [
       string,
-      string | boolean | undefined,
+      string | readonly string[] | boolean | undefined,
     ][]) {
-      if (value !== undefined) url.searchParams.set(key, String(value));
+      if (value === undefined) continue;
+
+      // A multi-value param is one comma-joined value, e.g. `RACE_A,RACE_B`.
+      url.searchParams.set(
+        key,
+        Array.isArray(value) ? value.join(',') : String(value),
+      );
     }
   }
 

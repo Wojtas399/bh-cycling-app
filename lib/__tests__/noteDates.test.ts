@@ -1,8 +1,10 @@
 import {
   daySheetNoteDates,
+  formatLongDate,
   formatNoteDates,
   formatNoteRange,
   formatNoteShortRange,
+  formatShortDate,
 } from '../noteDates';
 import type { Note } from '../notes';
 import pl from '@/i18n/locales/pl';
@@ -98,5 +100,21 @@ describe('daySheetNoteDates', () => {
       when: '19 – 22 października',
       subtitle: '19 – 22 października',
     });
+  });
+});
+
+describe('formatShortDate', () => {
+  it('shows the short weekday, the day and the short month', () => {
+    expect(formatShortDate('2026-10-22', LABELS)).toBe('czw., 22 paź');
+  });
+
+  it('names a Sunday by the last weekday label', () => {
+    expect(formatShortDate('2026-10-25', LABELS)).toBe('niedz., 25 paź');
+  });
+});
+
+describe('formatLongDate', () => {
+  it('follows the short date with the year', () => {
+    expect(formatLongDate('2026-12-31', LABELS)).toBe('czw., 31 gru 2026');
   });
 });
