@@ -48,12 +48,8 @@ has_matching_build() {
   jq -e 'any(.[]; .status != "ERRORED" and .status != "CANCELED")' <<<"$builds" >/dev/null
 }
 
-# Android builds are not submitted until Google Play has a service account key,
-# which waits on the Play developer account verification.
 build() {
-  local submit=""
-  [[ "$platform" == ios ]] && submit=--auto-submit
-  eas build --platform "$platform" --profile "$profile" --non-interactive --no-wait $submit
+  eas build --platform "$platform" --profile "$profile" --non-interactive --no-wait --auto-submit
 }
 
 update() {

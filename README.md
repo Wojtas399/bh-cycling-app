@@ -99,7 +99,7 @@ The app side needs the matching public client ID to build the authorization requ
 | Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                        |
 | Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                              |
 
-Android builds are not submitted yet: Google Play needs a service account key first. Install them from their EAS build page. The production submit profile also needs its own `ascAppId` before the first `vX.Y.Z` tag.
+New staging builds go to TestFlight and to the Google Play internal testing track. Android submits use the Google Play service account key in EAS credentials, which is assigned to the staging package only. Before the first `vX.Y.Z` tag, assign it to the production package (`eas credentials -p android`, `production` profile) and give the production submit profile its own `ascAppId`.
 
 The release script pulls the Firebase files from EAS, so their variables must have `Sensitive` visibility. `Secret` values cannot be read outside EAS servers.
 
