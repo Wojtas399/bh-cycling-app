@@ -37,9 +37,7 @@ export function raceTileLabel(
  * each when set ("14:00 · 2h · 50,0 km"), else the sport.
  */
 export function raceTileMeta(race: Race, sport: string): string {
-  const parts = [...startTime(race), ...figures(race)];
-
-  return parts.length > 0 ? parts.join(' · ') : sport;
+  return metaLine([...startTime(race), ...figures(race)], sport);
 }
 
 /**
@@ -53,9 +51,7 @@ export function raceItemMeta(
 ): string {
   if (!activity) return raceTileMeta(race, sport);
 
-  const parts = figures(activity);
-
-  return parts.length > 0 ? parts.join(' · ') : sport;
+  return metaLine(figures(activity), sport);
 }
 
 /**
@@ -64,6 +60,11 @@ export function raceItemMeta(
  */
 export function formatRaceDate(race: Race, labels: NoteDateLabels): string {
   return [formatLongDate(race.date, labels), ...startTime(race)].join(' · ');
+}
+
+/** The parts as a tile's muted line, or the sport when there are none. */
+function metaLine(parts: string[], sport: string): string {
+  return parts.length > 0 ? parts.join(' · ') : sport;
 }
 
 /** The duration and distance, each when set, formatted for display. */
