@@ -101,7 +101,7 @@ The output goes to `.e2e/`, which is gitignored: the run's `report.json`, a `tra
 - Import `test` from `../support/fixtures`, not from `@e2e-dev/mobile`, so the test starts signed out. Sign in with `signIn(screen)` from `../support/signIn`.
 - Follow the locator rules in `CODING_STANDARDS.md`. Match visible text with a regex, reach fields by placeholder, and add a `testID` only when text is ambiguous or missing.
 - Assert only on the seeded Workouts, by name.
-- Confirm a React Native `Alert` by locator on its button text, with `/i`, because Android may report the button in capitals. Don't use `device.alert('accept')`, which matches only English labels on iOS.
+- Confirm a React Native `Alert` by locator on its button text, with `/i`, because Android may report the button in capitals. Don't use `device.alert('accept')`, which matches only English labels on iOS. A locator is expected to reach the alert on both platforms, but that isn't yet confirmed on a device.
 - Scroll to a row below the fold with `screen.scrollUntilVisible(locator)` before you tap it.
 - Let `test` infer its fixture types. Typing them as `any` stops `tsc` checking the `expect` calls.
 - Don't name a support file `test.ts` or `*.test.ts`, because Jest runs any file with that name. Jest tests of e2e support code, such as the seed planner, go in a `__tests__/` folder beside it.
