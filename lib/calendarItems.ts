@@ -41,13 +41,6 @@ export type UnplannedActivity =
   | (UnplannedActivityBase & { isStravaActivity: true });
 
 /**
- * The Activity paired to a Race. It sets the Race item's day (ADR 0007) and
- * gives its recorded figures. It's read like an Unplanned Activity, so a tap
- * opens it the same way, but it isn't one: it's never listed on its own.
- */
-export type RaceActivity = UnplannedActivity;
-
-/**
  * A Race on its day: its earliest paired Activity's, else its own. It never
  * gets a Workout Status: the Activity it carries completes it, and an
  * unpaired Race is never planned or missed, whatever its date.
@@ -55,8 +48,13 @@ export type RaceActivity = UnplannedActivity;
 export interface RaceItem {
   kind: 'race';
   race: Race;
-  /** The Activity paired to the Race, which completes it. */
-  activity?: RaceActivity;
+  /**
+   * The Activity paired to the Race, which completes it, sets its day
+   * (ADR 0007) and gives its recorded figures. It has an Unplanned Activity's
+   * shape, so a tap opens it the same way, but it isn't one: it's never
+   * listed on its own.
+   */
+  activity?: UnplannedActivity;
 }
 
 /** One entry of a day's list: a Workout, a Race or an Unplanned Activity. */
