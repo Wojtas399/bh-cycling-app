@@ -498,6 +498,8 @@ const pl = {
   },
   activityDetails: {
     title: 'Aktywność',
+    /** The Race header's screen-reader label: "Wyścig A: {name}. Otwiera …". */
+    raceHeader: '{{priority}}: {{name}}. Otwiera szczegóły wyścigu',
     /** The card of the Activity's summary metrics. */
     summary: 'Podsumowanie',
     profileLabel:

@@ -39,6 +39,7 @@ function ride(
     profileSummary: { durationSeconds, segmentCount: 2, peakFtpPct: 98 },
     metrics: [],
     route: null,
+    pairedEventId: null,
   };
 }
 

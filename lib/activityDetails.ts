@@ -14,8 +14,9 @@ import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 /**
  * The Activity fields Activity Details keeps from the ~71 KB body: the hero,
- * Opis, the summary metrics and the Route gate (see `activityHasRoute`). A
- * Route summary's `distance` and `elapsed_time` are metrics already.
+ * Opis, the summary metrics, the Route gate (see `activityHasRoute`) and the
+ * paired event the Race header reads. A Route summary's `distance` and
+ * `elapsed_time` are metrics already.
  */
 const STORED_ACTIVITY_FIELDS = [
   'id',
@@ -26,6 +27,7 @@ const STORED_ACTIVITY_FIELDS = [
   ...ACTIVITY_METRIC_FIELD_NAMES,
   'stream_types',
   'trainer',
+  'paired_event_id',
 ] as const;
 
 /** What the Activity Profile needs of each detected interval. */
@@ -103,6 +105,11 @@ export type ActivityDetails =
       description?: string;
       /** What the Route banner needs, `null` when there is no Route. */
       route: RouteSummary | null;
+      /**
+       * The intervals.icu event the Activity is paired to, a Race or a
+       * Workout; `null` when it isn't paired.
+       */
+      pairedEventId: number | null;
     }
   | { isStravaActivity: true };
 
@@ -152,6 +159,7 @@ export function buildActivityDetails(
     metrics: summariseActivity(activity),
     ...descriptionOf(activity),
     route: summariseRoute(activity),
+    pairedEventId: activity.paired_event_id ?? null,
   };
 }
 
@@ -165,6 +173,18 @@ export function routeOf(
   if (details === undefined) return undefined;
 
   return details.isStravaActivity ? null : details.route;
+}
+
+/**
+ * The event loaded details are paired to, for the Race header: `null` while
+ * they load, when the Activity isn't paired, and for a Strava Activity.
+ */
+export function pairedEventIdOf(
+  details: ActivityDetails | undefined,
+): number | null {
+  if (details === undefined || details.isStravaActivity) return null;
+
+  return details.pairedEventId;
 }
 
 /**

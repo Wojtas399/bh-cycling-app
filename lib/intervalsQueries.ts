@@ -49,6 +49,7 @@ import {
   NEXT_RACE_WINDOW_DAYS,
   type Race,
   compareRacesByDate,
+  toRace,
   toRaces,
 } from './races';
 import { type Route, toRoute } from './route';
@@ -105,6 +106,12 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
+  /**
+   * The Race behind an Activity's paired event, by its intervals.icu event id.
+   * The id is `null` only in the key of a query skipped for want of one.
+   */
+  race: (athleteId: string | undefined, eventId: number | null) =>
+    [...intervalsKeys.athlete(athleteId), 'race', eventId] as const,
   /**
    * One Activity's details, by its intervals.icu id. The id is `null` only in
    * the key of a query skipped for want of one.
@@ -465,6 +472,35 @@ export function activityDetailsQueryOptions(
             )
         : skipToken,
     select,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * The Race an Activity is paired to, for the Race header on Activity Details:
+ * one read of the paired event, `null` when that event isn't a Race (a
+ * Workout, say). Never reads from or writes into the month or upcoming
+ * caches. Fresh as long as a Workout's details. Skipped without credentials
+ * or an event id.
+ */
+export function raceQueryOptions(
+  credentials: IntervalsCredentials | null,
+  eventId: number | null,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.race(credentials?.athleteId, eventId),
+    queryFn:
+      credentials && eventId !== null
+        ? async ({ signal }): Promise<Race | null> =>
+            toRace(
+              await getCalendarEvent(
+                credentials.accessToken,
+                credentials.athleteId,
+                eventId,
+                { signal },
+              ),
+            ) ?? null
+        : skipToken,
     ...WORKOUTS_FRESHNESS,
   });
 }

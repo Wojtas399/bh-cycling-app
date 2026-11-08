@@ -1,4 +1,8 @@
-import { type ActivityDetails, routeOf } from '../activityDetails';
+import {
+  type ActivityDetails,
+  pairedEventIdOf,
+  routeOf,
+} from '../activityDetails';
 import type { RouteSummary } from '../route';
 
 const ROUTE: RouteSummary = {
@@ -8,7 +12,13 @@ const ROUTE: RouteSummary = {
   finishLocal: '2026-10-23T18:25:00',
 };
 
-function shown(route: RouteSummary | null): ActivityDetails {
+function shown({
+  route = null,
+  pairedEventId = null,
+}: {
+  route?: RouteSummary | null;
+  pairedEventId?: number | null;
+} = {}): ActivityDetails {
   return {
     isStravaActivity: false,
     title: null,
@@ -18,16 +28,17 @@ function shown(route: RouteSummary | null): ActivityDetails {
     profileSummary: null,
     metrics: [],
     route,
+    pairedEventId,
   };
 }
 
 describe('routeOf', () => {
   it("is the Activity's Route summary", () => {
-    expect(routeOf(shown(ROUTE))).toBe(ROUTE);
+    expect(routeOf(shown({ route: ROUTE }))).toBe(ROUTE);
   });
 
   it('is null for an Activity without a Route', () => {
-    expect(routeOf(shown(null))).toBeNull();
+    expect(routeOf(shown({ route: null }))).toBeNull();
   });
 
   it('is null for a Strava Activity', () => {
@@ -36,5 +47,23 @@ describe('routeOf', () => {
 
   it('is undefined while the details are still loading', () => {
     expect(routeOf(undefined)).toBeUndefined();
+  });
+});
+
+describe('pairedEventIdOf', () => {
+  it('is the event the Activity is paired to', () => {
+    expect(pairedEventIdOf(shown({ pairedEventId: 4242 }))).toBe(4242);
+  });
+
+  it('is null for an Activity that is not paired', () => {
+    expect(pairedEventIdOf(shown({ pairedEventId: null }))).toBeNull();
+  });
+
+  it('is null for a Strava Activity', () => {
+    expect(pairedEventIdOf({ isStravaActivity: true })).toBeNull();
+  });
+
+  it('is null while the details are still loading', () => {
+    expect(pairedEventIdOf(undefined)).toBeNull();
   });
 });
