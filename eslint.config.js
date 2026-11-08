@@ -135,4 +135,11 @@ module.exports = defineConfig([
       'no-restricted-imports': 'off',
     },
   },
+  {
+    // e2e code isn't React: a fixture's `use` callback isn't a hook.
+    files: ['e2e/**'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+    },
+  },
 ]);

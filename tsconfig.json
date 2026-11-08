@@ -2,6 +2,8 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // The e2e seed runs under plain Node, which needs `.ts` import paths.
+    "allowImportingTsExtensions": true,
     "types": ["jest", "node"],
     "paths": {
       "@/*": ["./*"]

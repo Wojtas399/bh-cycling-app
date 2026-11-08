@@ -52,6 +52,7 @@ Expo Go does **not** include this app’s native Firebase stack. Use the dev cli
 | --------------------------------------------------- | --------------------------------------------------------------------------- |
 | `npm run lint`                                      | ESLint via Expo config                                                      |
 | `npm run ios:prebuild` / `npm run android:prebuild` | Regenerate native projects (`expo prebuild --clean`)                        |
+| `npm run e2e:ios` / `npm run e2e:android`           | Run the e2e suite on the dedicated simulator or emulator (`docs/e2e.md`)    |
 | `npm run reset-project`                             | Moves starter `app` code to `app-example` and gives a blank `app` directory |
 
 ## Cloud Functions (`functions/`)
@@ -89,6 +90,8 @@ npx firebase functions:secrets:set INTERVALS_CLIENT_SECRET
 The app side needs the matching public client ID to build the authorization request: set `EXPO_PUBLIC_INTERVALS_CLIENT_ID` in `.env.local` for local development, and as an EAS environment variable for the `development`, `preview`, and `production` environments (`eas env:create --name EXPO_PUBLIC_INTERVALS_CLIENT_ID --environment <env>` — this hasn't been run yet and needs an authenticated `eas login`).
 
 ## Releasing
+
+Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI doesn't run it. See `docs/e2e.md`.
 
 `.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. The ref decides what ships.
 
