@@ -41,7 +41,7 @@ The tri-state of a planned workout: `completed` (the Workout is paired to an Act
 _Avoid_: Completion state, sync status
 
 **Race**:
-A competition on the athlete's Intervals.icu calendar, of any sport, with a Race Priority. It is not a Workout: it's the event the training builds toward. Read-only in BH Cycling.
+A competition on the athlete's Intervals.icu calendar, of any sport, with a Race Priority. It is not a Workout: it's the event the training builds toward. A Race paired to an Activity is completed and carries the same done marker as a completed Workout. An unpaired Race has no status: it's never planned or missed, because a Race paired to a Strava Activity can't be detected. Read-only in BH Cycling.
 _Avoid_: Event, competition, race workout
 
 **Race Priority**:
