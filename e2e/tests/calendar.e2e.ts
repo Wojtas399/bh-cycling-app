@@ -1,0 +1,48 @@
+import pl from '../../i18n/locales/pl';
+import { formatMonthTitle } from '../../lib/formatMonthTitle';
+import { test } from '../support/fixtures';
+import { planSeed } from '../support/seedPlan';
+import { signIn } from '../support/signIn';
+import { expect } from 'e2e';
+
+const { monthNames } = pl.calendar;
+
+/** The monthly Calendar's title for `date`'s month, matched whole. */
+function monthTitle(date: Date): RegExp {
+  return new RegExp(`^${formatMonthTitle(date, monthNames)}$`);
+}
+
+test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async ({
+  screen,
+}) => {
+  const today = new Date();
+  const { date } = planSeed(today).events.endurance;
+  const [year, month, day] = date.split('-').map(Number);
+  const currentMonth = monthTitle(today);
+
+  await signIn(screen);
+
+  await screen.getByText(/Kalendarz/).tap();
+
+  await expect(screen.getByText(currentMonth)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(screen.getByTestId('calendar-today')).toBeVisible();
+
+  // The chevron has no visible text, only its accessibility label.
+  await screen.getByLabel(/^Następny$/).tap();
+
+  await expect(
+    screen.getByText(monthTitle(new Date(year, month - 1, day))),
+  ).toBeVisible();
+  // The day's label is "<day>. <counts>", Workouts first, e.g.
+  // "Wtorek, 15 grudnia. 1 trening".
+  await expect(screen.getByTestId(`calendar-day-${date}`)).toHaveAccessibleName(
+    /\. 1 trening(,|$)/,
+    { timeout: 30_000 },
+  );
+
+  await screen.getByText(/^Dziś$/).tap();
+
+  await expect(screen.getByText(currentMonth)).toBeVisible();
+});
