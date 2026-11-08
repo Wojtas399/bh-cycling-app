@@ -1,6 +1,7 @@
 import { EVENT_CATEGORY, type IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { type LocalDateString, daysBetween } from './localDate';
+import type { LocalTimeString } from './localDateTime';
 
 /** How much a Race matters to the season, per the glossary in CONTEXT.md. */
 export type RacePriority = 'A' | 'B' | 'C';
@@ -16,8 +17,8 @@ export interface Race {
   name: string;
   priority: RacePriority;
   date: LocalDateString;
-  /** Local `HH:mm`; left out for an all-day Race. */
-  startTime?: string;
+  /** Left out for an all-day Race. */
+  startTime?: LocalTimeString;
   /** intervals.icu's sport type, e.g. `Ride`, `Run`. */
   sport: string;
   /** Planned duration, s. */
