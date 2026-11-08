@@ -125,6 +125,46 @@ describe('useWeeklyCalendar', () => {
     );
   });
 
+  it("shows a Race in a week across two months once, though both months' events calls return it", async () => {
+    // Sat 2 Jan 2021 is in December's pairing window as well as in January.
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE'
+          ? []
+          : [
+              {
+                id: 7,
+                category: 'RACE_A',
+                name: 'Noworoczny Maraton',
+                type: 'Ride',
+                start_date_local: '2021-01-02T00:00:00',
+              },
+            ],
+    );
+
+    const { result } = await renderHookWithClient(() =>
+      useWeeklyCalendar(new Date(2020, 11, 30)),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+
+    const itemsByDate = result.current.query.data?.itemsByDate ?? {};
+
+    expect(itemsByDate['2021-01-02']).toEqual([
+      {
+        kind: 'race',
+        race: {
+          id: 7,
+          name: 'Noworoczny Maraton',
+          priority: 'A',
+          date: '2021-01-02',
+          sport: 'Ride',
+        },
+      },
+    ]);
+    expect(Object.values(itemsByDate).flat()).toHaveLength(1);
+  });
+
   it('goToNextWeek/goToPreviousWeek step by seven days', async () => {
     const { result } = await renderHookWithClient(() => useWeeklyCalendar());
 

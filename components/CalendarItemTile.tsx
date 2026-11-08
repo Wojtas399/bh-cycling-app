@@ -13,8 +13,8 @@ export interface CalendarItemTileProps {
   onWorkoutPress: (workout: CalendarWorkout) => void;
   /** Opens an Activity's details. A Strava Activity's tile isn't tappable. */
   onActivityPress: (activity: UnplannedActivity) => void;
-  /** Opens a Race's sheet. Without it a Race's tile isn't tappable. */
-  onRacePress?: (race: Race) => void;
+  /** Opens a Race's sheet. */
+  onRacePress: (race: Race) => void;
 }
 
 /**
@@ -33,7 +33,7 @@ export default function CalendarItemTile({
       <RaceTile
         item={item}
         dayLabel={dayLabel}
-        onPress={onRacePress && (() => onRacePress(item.race))}
+        onPress={() => onRacePress(item.race)}
       />
     );
   }
