@@ -50,3 +50,6 @@ app-example
 
 # Claude Code
 .claude/settings.local.json
+
+# e2e output: traces, results, replay cache and run logs (traces hold the test email)
+/.e2e/
