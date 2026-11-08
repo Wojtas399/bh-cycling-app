@@ -1,5 +1,6 @@
 import pl from '../../i18n/locales/pl';
 import { formatMonthTitle } from '../../lib/formatMonthTitle';
+import { LOAD_TIMEOUT } from '../support/constants';
 import { test } from '../support/fixtures';
 import { planSeed } from '../support/seedPlan';
 import { signIn } from '../support/signIn';
@@ -23,9 +24,7 @@ test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async (
 
   await screen.getByText(/Kalendarz/).tap();
 
-  await expect(screen.getByText(currentMonth)).toBeVisible({
-    timeout: 30_000,
-  });
+  await expect(screen.getByText(currentMonth)).toBeVisible(LOAD_TIMEOUT);
   await expect(screen.getByTestId('calendar-today')).toBeVisible();
 
   // The chevron has no visible text, only its accessibility label.
@@ -36,7 +35,7 @@ test('Kalendarz → Następny shows E2E Endurance → Dziś comes back', async (
   // "Wtorek, 15 grudnia. 1 trening".
   await expect(screen.getByTestId(`calendar-day-${date}`)).toHaveAccessibleName(
     /\. 1 trening(,|$)/,
-    { timeout: 30_000 },
+    LOAD_TIMEOUT,
   );
 
   await screen.getByText(/^Dziś$/).tap();

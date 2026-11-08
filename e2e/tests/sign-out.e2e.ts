@@ -1,3 +1,4 @@
+import { EMAIL_PLACEHOLDER, LOAD_TIMEOUT } from '../support/constants';
 import { test } from '../support/fixtures';
 import { signIn } from '../support/signIn';
 import { expect } from 'e2e';
@@ -26,12 +27,12 @@ test('sign out from Ustawienia → still signed out after a relaunch', async ({
   // `await agent.act('Tap "Wyloguj" in the alert')`.
   await screen.getByText(/^Wyloguj$/i).tap();
 
-  const emailField = screen.getByPlaceholder('you@example.com');
+  const emailField = screen.getByPlaceholder(EMAIL_PLACEHOLDER);
 
-  await expect(emailField).toBeVisible({ timeout: 30_000 });
+  await expect(emailField).toBeVisible(LOAD_TIMEOUT);
 
   // The root route stays blank until Firebase restores the session, so the
   // sign-in screen only shows once it has found none.
   await app.restart();
-  await expect(emailField).toBeVisible({ timeout: 30_000 });
+  await expect(emailField).toBeVisible(LOAD_TIMEOUT);
 });

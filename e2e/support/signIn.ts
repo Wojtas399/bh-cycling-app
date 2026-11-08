@@ -1,4 +1,5 @@
 import { athleteFromEnv } from './athlete';
+import { EMAIL_PLACEHOLDER, LOAD_TIMEOUT } from './constants';
 import { credentials, expect } from 'e2e';
 import type { Screen } from 'e2e';
 
@@ -8,7 +9,7 @@ export async function signIn(screen: Screen): Promise<void> {
 
   const passwordField = screen.getByPlaceholder('••••••••');
 
-  await screen.getByPlaceholder('you@example.com').fill(athlete.username);
+  await screen.getByPlaceholder(EMAIL_PLACEHOLDER).fill(athlete.username);
   // tester-army/e2e#1631: on iOS, typing into a secure text field fails with
   // "No focused text input" unless the field was tapped first, and `fill`
   // fails either way. So tap, then type the password as a plain string,
@@ -22,7 +23,5 @@ export async function signIn(screen: Screen): Promise<void> {
     .getByText(/^Zaloguj się$/)
     .last()
     .tap();
-  await expect(screen.getByText(/Dziś i jutro/)).toBeVisible({
-    timeout: 30_000,
-  });
+  await expect(screen.getByText(/Dziś i jutro/)).toBeVisible(LOAD_TIMEOUT);
 }
