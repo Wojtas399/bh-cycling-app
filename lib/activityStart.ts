@@ -36,9 +36,17 @@ export function formatLongDate(
   date: LocalDateString,
   labels: NoteDateLabels,
 ): string {
+  return `${formatShortDate(date, labels)} ${fromLocalDateString(date).getFullYear()}`;
+}
+
+/** A date as the short weekday, the day and the short month: "czw., 22 paź". */
+export function formatShortDate(
+  date: LocalDateString,
+  labels: NoteDateLabels,
+): string {
   const day = fromLocalDateString(date);
   // getDay() counts from Sunday; the labels start on Monday.
   const weekday = labels.weekdaysShort[(day.getDay() + 6) % 7];
 
-  return `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]} ${day.getFullYear()}`;
+  return `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]}`;
 }

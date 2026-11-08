@@ -1,6 +1,6 @@
 import { EVENT_CATEGORY, type IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
-import type { LocalDateString } from './localDate';
+import { type LocalDateString, daysBetween } from './localDate';
 
 /** How much a Race matters to the season, per the glossary in CONTEXT.md. */
 export type RacePriority = 'A' | 'B' | 'C';
@@ -80,6 +80,57 @@ export function compareRaces(a: Race, b: Race): number {
     (a.startTime ?? '').localeCompare(b.startTime ?? '') ||
     a.name.localeCompare(b.name, 'pl')
   );
+}
+
+/** How many days past today the next-race card looks for a Race. */
+export const NEXT_RACE_WINDOW_DAYS = 30;
+
+/**
+ * The Race the next-race card counts down to: the one on the nearest day from
+ * `today` to `NEXT_RACE_WINDOW_DAYS` days ahead, whatever its priority, ties
+ * on that day broken by the Race order (see `compareRaces`). Nothing when no
+ * Race falls in that window.
+ */
+export function nextRace(
+  races: Race[],
+  today: LocalDateString,
+): Race | undefined {
+  return races
+    .filter(race => {
+      const days = daysBetween(today, race.date);
+
+      return days >= 0 && days <= NEXT_RACE_WINDOW_DAYS;
+    })
+    .reduce<Race | undefined>(
+      (next, race) =>
+        next === undefined || compareRacesByDate(race, next) < 0 ? race : next,
+      undefined,
+    );
+}
+
+/**
+ * How far off a Race is, in whole local calendar days, so it changes at
+ * midnight rather than at the start time: `today`, `tomorrow`, else the number
+ * of days.
+ */
+export type RaceCountdown = 'today' | 'tomorrow' | number;
+
+export function raceCountdown(
+  race: Race,
+  today: LocalDateString,
+): RaceCountdown {
+  const days = daysBetween(today, race.date);
+
+  if (days === 0) return 'today';
+
+  if (days === 1) return 'tomorrow';
+
+  return days;
+}
+
+/** Races by date, a day's Races in the Race order. */
+export function compareRacesByDate(a: Race, b: Race): number {
+  return a.date.localeCompare(b.date) || compareRaces(a, b);
 }
 
 function isPositive(value: number | undefined): value is number {

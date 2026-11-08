@@ -238,6 +238,23 @@ const pl = {
         restingHr: 'Tętno spocz.',
       },
     },
+    /** The next-race card at the top of Home. */
+    nextRace: {
+      eyebrow: 'Następny wyścig',
+      /** The countdown as drawn: "Dziś", "Jutro", else the number over "dni". */
+      today: 'Dziś',
+      tomorrow: 'Jutro',
+      days: 'dni',
+      /** The card's screen-reader label; `when` is one of `when.*`. */
+      accessibilityLabel:
+        'Najbliższy wyścig: {{priority}}, {{name}}, {{when}}. Otwiera szczegóły wyścigu',
+      when: {
+        today: 'dziś',
+        tomorrow: 'jutro',
+        /** Every count but 1 takes "dni", and 1 is "jutro". */
+        days: 'za {{days}} dni',
+      },
+    },
     upcomingWorkouts: {
       title: 'Dziś i jutro',
       empty: 'Brak treningów i aktywności na dziś i jutro.',
