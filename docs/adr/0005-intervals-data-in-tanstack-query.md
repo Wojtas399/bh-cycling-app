@@ -4,6 +4,8 @@
 
 Accepted. Supersedes ADR-0001.
 
+Superseded in part by ADR-0010: a read gated on a permission or scope check may hand its screen a view state instead of the raw query. The rest of this ADR stands.
+
 ## Context
 
 ADR 0001 gave the Calendar a hand-rolled, module-level per-day cache with its own owner tracking, generation counter and in-flight dedupe, while Home refetched with no cache. Every new screen reading Intervals.icu would need that machinery again, and data could only get fresher through the refresh button.

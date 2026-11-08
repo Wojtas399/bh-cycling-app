@@ -73,6 +73,12 @@ const theme = createTheme({
     workoutPlanned: palette.zone1,
     workoutDone: palette.green,
     workoutMissed: palette.red,
+
+    // Fitness chart series, in intervals.icu's colours
+    chartFitness: palette.blue,
+    chartFatigue: palette.purple,
+    chartForm: palette.yellow,
+    chartLoad: palette.gray800,
   },
 
   spacing: {

@@ -20,6 +20,7 @@ import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import WorkoutStravaCard from '@/components/workout/WorkoutStravaCard';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
+import { useProfileCard } from '@/hooks/workout/useProfileCard';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useLocalSearchParams } from 'expo-router';
@@ -98,7 +99,8 @@ export default function WorkoutDetailsScreen() {
 }
 
 /**
- * The loaded Workout, Variant A: hero, then stacked cards. On a Cycling
+ * The loaded Workout, Variant A: hero, then stacked cards. A completed
+ * Workout's profile card draws the ride below the plan. On a Cycling
  * Workout the mode-specific metrics, Kroki and Opis cards slot in below the
  * profile. A non-cycling Workout's description is its content, so Opis leads,
  * straight under the hero.
@@ -110,6 +112,7 @@ function WorkoutDetailsContent({
   eventId: string;
   details: WorkoutDetails;
 }) {
+  const profile = useProfileCard(details);
   const description = details.description !== undefined && (
     <WorkoutDescriptionCard description={details.description} markdown />
   );
@@ -132,12 +135,9 @@ function WorkoutDetailsContent({
 
       {!details.isCyclingWorkout && description}
 
-      {details.profileSummary && (
+      {profile && (
         <WorkoutDetailsCard>
-          <WorkoutDetailsProfile
-            blocks={details.blocks}
-            summary={details.profileSummary}
-          />
+          <WorkoutDetailsProfile card={profile} />
         </WorkoutDetailsCard>
       )}
 

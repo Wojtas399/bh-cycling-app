@@ -117,6 +117,8 @@ const pl = {
     about: {
       title: 'O aplikacji',
       version: 'Wersja',
+      /** The Version row's subtitle on a downloaded OTA update. */
+      update: 'Aktualizacja {{id}} · {{date}}',
       privacyPolicy: 'Polityka prywatności',
       termsOfService: 'Regulamin',
     },
@@ -184,7 +186,58 @@ const pl = {
       generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
     },
   },
+  /** Fitness, Fatigue and Form: Home's Fitness card and the chart share these. */
+  fitness: {
+    /** Labels, by `FitnessDay` key. */
+    labels: {
+      fitness: 'Fitness',
+      fatigue: 'Zmęczenie',
+      form: 'Forma',
+      load: 'Obciążenie',
+    },
+    /** The screen-reader label while the values load. */
+    loading: 'Wczytywanie Fitness',
+    /** The Home card on a day without values. */
+    noValueToday: 'Brak danych na dziś.',
+    /** The Home card's link to the chart screen. */
+    seeMore: 'Zobacz więcej',
+    /** The Home card's screen-reader button label: its values and where it leads. */
+    cardLabel:
+      'Fitness {{fitness}}, Zmęczenie {{fatigue}}, Forma {{form}}. Otwiera ekran Fitness i zmęczenie',
+    /** The same on a day without values. */
+    cardLabelNoValue: 'Brak danych na dziś. Otwiera ekran Fitness i zmęczenie',
+    chart: {
+      title: 'Fitness i zmęczenie',
+      /** The readout's date for today. */
+      today: 'Dziś',
+      /** By `FitnessRange`. */
+      ranges: {
+        '6w': '6 tygodni',
+        '3m': '3 miesiące',
+        '1y': 'rok',
+      },
+      /** No day in the year has values. */
+      empty: 'Brak danych Fitness z Intervals.icu.',
+      error: 'Nie udało się wczytać danych Fitness.',
+      retry: 'Spróbuj ponownie',
+    },
+  },
   home: {
+    wellness: {
+      title: 'Wellness',
+      /** The loading card's screen-reader label. */
+      loading: 'Wczytywanie Wellness',
+      empty: 'Brak danych na dziś.',
+      /** Row labels, by `WellnessRow` key. */
+      rows: {
+        readiness: 'Gotowość',
+        sleep: 'Sen',
+        sleepScore: 'Ocena snu',
+        hrv: 'HRV',
+        hrvSdnn: 'HRV (SDNN)',
+        restingHr: 'Tętno spocz.',
+      },
+    },
     upcomingWorkouts: {
       title: 'Dziś i jutro',
       empty: 'Brak treningów i aktywności na dziś i jutro.',
@@ -310,6 +363,13 @@ const pl = {
       'Ten trening nie został wykonany — brak sparowanej aktywności.',
     profileLabel:
       'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
+    /** The plan above the recorded Activity Profile, in one card. */
+    comparedProfilesLabel: 'Plan i wykonanie. {{planned}}. {{recorded}}',
+    /** Captions over the two strips of a completed Workout's profile card. */
+    strip: {
+      planned: 'Plan',
+      recorded: 'Wykonanie',
+    },
     steps_one: '{{count}} krok',
     steps_few: '{{count}} kroki',
     steps_many: '{{count}} kroków',
@@ -451,6 +511,12 @@ const pl = {
     },
     reconnectBanner: {
       message: 'Połączenie z Intervals.icu wygasło.',
+      action: 'Połącz ponownie',
+    },
+    /** Asks once for the Wellness scope that Fitness and Wellness are read with. */
+    wellnessScopePrompt: {
+      message:
+        'Połącz ponownie Intervals.icu i zezwól na dostęp do Wellness, aby zobaczyć Fitness i Wellness.',
       action: 'Połącz ponownie',
     },
   },

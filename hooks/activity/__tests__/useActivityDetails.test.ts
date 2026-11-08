@@ -210,20 +210,9 @@ describe('useActivityDetails', () => {
       ['no intervals', undefined],
       ['an empty interval list', []],
       [
-        'one steady block',
-        [{ start_time: 0, end_time: 5400, intensity: 72, zone: 2 }],
-      ],
-      [
         'no power',
         [
           { start_time: 0, end_time: 1800, intensity: null, zone: null },
-          { start_time: 1800, end_time: 3600, intensity: null, zone: null },
-        ],
-      ],
-      [
-        'only one interval with power',
-        [
-          { start_time: 0, end_time: 1800, intensity: 88, zone: 3 },
           { start_time: 1800, end_time: 3600, intensity: null, zone: null },
         ],
       ],
@@ -232,6 +221,46 @@ describe('useActivityDetails', () => {
 
       expect(details.blocks).toEqual([]);
       expect(details.profileSummary).toBeNull();
+    });
+
+    it('draws a steady ride with one interval as one full-width block', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 0, end_time: 5400, intensity: 72, zone: 2 },
+          ],
+        }),
+      );
+
+      expect(details.blocks).toEqual([
+        { widthFraction: 1, minPct: 72, maxPct: 72, zone: 2 },
+      ]);
+      expect(details.profileSummary).toEqual({
+        durationSeconds: 5400,
+        segmentCount: 1,
+        peakFtpPct: 72,
+      });
+    });
+
+    it('keeps the empty gap beside the only interval with power', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 0, end_time: 1800, intensity: 88, zone: 3 },
+            { start_time: 1800, end_time: 3600, intensity: null, zone: null },
+          ],
+        }),
+      );
+
+      expect(details.blocks).toEqual([
+        { widthFraction: 0.5, minPct: 88, maxPct: 88, zone: 3 },
+        { widthFraction: 0.5, minPct: 0, maxPct: 0, zone: 1 },
+      ]);
+      expect(details.profileSummary).toEqual({
+        durationSeconds: 3600,
+        segmentCount: 1,
+        peakFtpPct: 88,
+      });
     });
 
     it('leaves an interval without power as an empty gap, over the whole elapsed span', async () => {

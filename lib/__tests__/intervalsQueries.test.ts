@@ -11,6 +11,7 @@ import {
 import {
   activityDetailsQueryOptions,
   athleteSettingsQueryOptions,
+  fitnessQueryOptions,
   intervalsKeys,
   monthQueryOptions,
   routeQueryOptions,
@@ -140,6 +141,19 @@ describe('freshness', () => {
     expect(options.staleTime).toBe(FIVE_MINUTES);
     expect(options.refetchOnWindowFocus).toBe(true);
   });
+
+  it('lets the Fitness year go stale after 5 minutes and refetch on focus', () => {
+    const options = fitnessQueryOptions(CREDENTIALS, '2026-11-06');
+
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
+  });
+});
+
+describe('fitnessQueryOptions', () => {
+  it('is skipped without credentials', () => {
+    expect(fitnessQueryOptions(null, '2026-11-06').queryFn).toBe(skipToken);
+  });
 });
 
 describe('activityDetailsQueryOptions', () => {
@@ -153,6 +167,13 @@ describe('activityDetailsQueryOptions', () => {
   it('is skipped without credentials', () => {
     expect(
       activityDetailsQueryOptions(null, 'i42', buildActivityDetails).queryFn,
+    ).toBe(skipToken);
+  });
+
+  it('is skipped without an Activity id', () => {
+    expect(
+      activityDetailsQueryOptions(CREDENTIALS, null, buildActivityDetails)
+        .queryFn,
     ).toBe(skipToken);
   });
 });

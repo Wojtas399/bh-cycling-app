@@ -6,6 +6,8 @@ import {
   intervalsActivityPath,
   intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
+  intervalsWellnessPath,
+  intervalsWellnessRangePath,
 } from './intervalsApiPaths';
 import type { AthleteZoneSettings } from './powerZones';
 import type { WorkoutStep } from './workoutProfile';
@@ -32,6 +34,11 @@ export function isNotFoundError(error: unknown): boolean {
   return error instanceof IntervalsApiError && error.status === 404;
 }
 
+/** True when Intervals.icu answered 403: the token lacks the scope needed. */
+export function isForbiddenError(error: unknown): boolean {
+  return error instanceof IntervalsApiError && error.status === 403;
+}
+
 export interface IntervalsDateRangeParams {
   oldest?: string;
   newest?: string;
@@ -52,10 +59,13 @@ export type EventCategory =
 export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
   /** Only events of this category. */
   category?: EventCategory;
+  /** Adds each Workout step's target in watts (`_power`). */
+  resolve?: boolean;
 }
 
-export interface IntervalsActivitiesParams extends IntervalsDateRangeParams {
-  /** Comma-separated field projection, e.g. `'id,start_date_local,type,paired_event_id'`. */
+/** A date range read of Activities or Wellness Entries, each projected to `fields`. */
+export interface IntervalsProjectedRangeParams extends IntervalsDateRangeParams {
+  /** Comma-separated field projection, e.g. `'id,ctl,atl,ctlLoad'`. */
   fields?: string;
 }
 
@@ -208,6 +218,38 @@ export interface IntervalsCalendarEvent {
   paired_activity_id?: string | null;
 }
 
+/**
+ * One athlete's Wellness Entry for one day. intervals.icu returns it for any
+ * date, with every metric `null` on a day without data. Only the metrics the
+ * app reads are typed; the rest, such as `updated`, are ignored.
+ */
+export interface IntervalsWellness {
+  /** The API's field for Fitness. */
+  ctl?: number | null;
+  /** The API's field for Fatigue. */
+  atl?: number | null;
+  /** The day's training load, the one Fitness and Fatigue are built from. */
+  ctlLoad?: number | null;
+  /** The device's readiness score, on the device's own scale. */
+  readiness?: number | null;
+  /** s. */
+  sleepSecs?: number | null;
+  /** The device's sleep score, on the device's own scale. */
+  sleepScore?: number | null;
+  /** rMSSD, ms. */
+  hrv?: number | null;
+  /** SDNN, ms. Apple Watch reports this one instead of `hrv`. */
+  hrvSDNN?: number | null;
+  /** bpm. */
+  restingHR?: number | null;
+}
+
+/** A Wellness Entry from a range read, dated by its `id`. */
+export interface IntervalsWellnessDay extends IntervalsWellness {
+  /** The entry's local `YYYY-MM-DD` date. */
+  id: string;
+}
+
 export interface IntervalsRequestOptions {
   /** Aborts the request in flight, e.g. when React Query cancels its query. */
   signal?: AbortSignal;
@@ -216,7 +258,7 @@ export interface IntervalsRequestOptions {
 /** The query parameters some endpoint accepts; each public call takes only its own. */
 type IntervalsQueryParams =
   | IntervalsCalendarEventsParams
-  | IntervalsActivitiesParams
+  | IntervalsProjectedRangeParams
   | IntervalsActivityParams;
 
 async function request<T>(
@@ -255,7 +297,7 @@ async function request<T>(
 export function getActivities(
   token: string,
   athleteId: string,
-  params?: IntervalsActivitiesParams,
+  params?: IntervalsProjectedRangeParams,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
@@ -267,19 +309,37 @@ export function getActivities(
 }
 
 /**
- * Reads the settings of the athlete the token belongs to. Only the zone slice
- * is typed — the endpoint returns a far larger athlete record the app ignores.
+ * The slice of the athlete record the app reads. Power zones are per sport:
+ * each `sportSettings` entry covers the activity types in its `types`.
  */
-export function getAthleteSettings(
+interface IntervalsAthlete {
+  sportSettings?:
+    | { types?: string[] | null; power_zones?: number[] | null }[]
+    | null;
+}
+
+/** The sport whose settings hold the zones Workout Profiles are coloured by. */
+const CYCLING_SPORT_TYPE = 'Ride';
+
+/**
+ * Reads the power zones of the athlete the token belongs to, from their Ride
+ * settings. The endpoint returns a far larger athlete record the app ignores.
+ */
+export async function getAthleteSettings(
   token: string,
   options?: IntervalsRequestOptions,
 ): Promise<AthleteZoneSettings> {
-  return request<AthleteZoneSettings>(
+  const athlete = await request<IntervalsAthlete>(
     INTERVALS_CURRENT_ATHLETE_PATH,
     token,
     undefined,
     options,
   );
+  const ride = athlete.sportSettings?.find(sport =>
+    sport.types?.includes(CYCLING_SPORT_TYPE),
+  );
+
+  return { powerZones: ride?.power_zones };
 }
 
 export function getCalendarEvents(
@@ -347,6 +407,45 @@ export function getActivityMap(
     intervalsActivityMapPath(activityId),
     token,
     undefined,
+    options,
+  );
+}
+
+/**
+ * Reads one day's Wellness Entry by its local `YYYY-MM-DD` date. A day without
+ * data is a 200 with every metric `null`, never a 404. A token without
+ * `WELLNESS:READ` surfaces as an `IntervalsApiError` with status 403.
+ */
+export function getWellness(
+  token: string,
+  athleteId: string,
+  date: string,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsWellness> {
+  return request<IntervalsWellness>(
+    intervalsWellnessPath(athleteId, date),
+    token,
+    undefined,
+    options,
+  );
+}
+
+/**
+ * Reads the Wellness Entries from `oldest` to `newest`, each projected to
+ * `fields`. Whether intervals.icu returns a row for every day isn't confirmed,
+ * so a day may come without one. A token without `WELLNESS:READ` surfaces as
+ * an `IntervalsApiError` with status 403.
+ */
+export function getWellnessRange(
+  token: string,
+  athleteId: string,
+  params: IntervalsProjectedRangeParams,
+  options?: IntervalsRequestOptions,
+): Promise<IntervalsWellnessDay[]> {
+  return request<IntervalsWellnessDay[]>(
+    intervalsWellnessRangePath(athleteId),
+    token,
+    params,
     options,
   );
 }

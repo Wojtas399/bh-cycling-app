@@ -15,6 +15,14 @@ import {
   withItemStatuses,
 } from './calendarWorkouts';
 import {
+  FITNESS_FIELDS,
+  type FitnessDay,
+  type FitnessValues,
+  fitnessHistoryWindow,
+  toFitnessDays,
+  toFitnessValues,
+} from './fitness';
+import {
   EVENT_CATEGORY,
   type IntervalsActivity,
   type IntervalsCalendarEvent,
@@ -24,6 +32,8 @@ import {
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
+  getWellness,
+  getWellnessRange,
   isNotFoundError,
 } from './intervalsApi';
 import {
@@ -36,6 +46,7 @@ import { pairWorkout } from './pairing';
 import { type ZoneConfig, resolveZoneConfig } from './powerZones';
 import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
+import { type WellnessRow, toWellnessRows } from './wellness';
 import {
   type StoredWorkoutDetails,
   WORKOUT_DETAILS_ACTIVITY_FIELDS,
@@ -70,6 +81,12 @@ export const intervalsKeys = {
   /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'upcoming', today] as const,
+  /** `today` is the day whose Wellness Entry is read. */
+  wellness: (athleteId: string | undefined, today: LocalDateString) =>
+    [...intervalsKeys.athlete(athleteId), 'wellness', today] as const,
+  /** `today` is the last day of the year of Fitness read. */
+  fitness: (athleteId: string | undefined, today: LocalDateString) =>
+    [...intervalsKeys.athlete(athleteId), 'fitness', today] as const,
   /** Every Calendar month. */
   calendar: (athleteId: string | undefined) =>
     [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
@@ -78,8 +95,11 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
-  /** One Activity's details, by its intervals.icu id. */
-  activity: (athleteId: string | undefined, activityId: string) =>
+  /**
+   * One Activity's details, by its intervals.icu id. The id is `null` only in
+   * the key of a query skipped for want of one.
+   */
+  activity: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.athlete(athleteId), 'activity', activityId] as const,
   /**
    * One Activity's Route, by its intervals.icu id. The id is `null` only in
@@ -159,6 +179,77 @@ export function upcomingQueryOptions(
   });
 }
 
+/** Today's Wellness Entry as Home's two top cards show it. */
+export interface TodayEntry {
+  /** `null` on a day without Fitness and Fatigue (see `toFitnessValues`). */
+  fitness: FitnessValues | null;
+  /** None on a day without data (see `toWellnessRows`). */
+  wellness: WellnessRow[];
+}
+
+/**
+ * Today's Wellness Entry, the one read behind both the Fitness and the
+ * Wellness card. `today` is in the key, so the cards move to the new day at
+ * midnight. Fresh as long as the upcoming workouts. Retries are the global
+ * default (none), so a 403 is never retried. Skipped while there are no
+ * credentials.
+ */
+export function todayQueryOptions(
+  credentials: IntervalsCredentials | null,
+  today: LocalDateString,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.wellness(credentials?.athleteId, today),
+    queryFn: credentials
+      ? async ({ signal }): Promise<TodayEntry> => {
+          const entry = await getWellness(
+            credentials.accessToken,
+            credentials.athleteId,
+            today,
+            { signal },
+          );
+
+          return {
+            fitness: toFitnessValues(entry),
+            wellness: toWellnessRows(entry),
+          };
+        }
+      : skipToken,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * The Fitness chart's year ending `today`, a day for every date (see
+ * `toFitnessDays`), from one Wellness range read. Every range is a slice of
+ * it, so switching ranges never fetches. It never asks past `today`, so no
+ * projected value arrives. `today` is in the key, so the year moves on at
+ * midnight. Separate from today's Wellness Entry, which Home reads. Fresh as
+ * long as the upcoming workouts. Retries are the global default (none), so a
+ * 403 is never retried. Skipped while there are no credentials.
+ */
+export function fitnessQueryOptions(
+  credentials: IntervalsCredentials | null,
+  today: LocalDateString,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.fitness(credentials?.athleteId, today),
+    queryFn: credentials
+      ? async ({ signal }): Promise<FitnessDay[]> => {
+          const rows = await getWellnessRange(
+            credentials.accessToken,
+            credentials.athleteId,
+            { ...fitnessHistoryWindow(today), fields: FITNESS_FIELDS },
+            { signal },
+          );
+
+          return toFitnessDays(rows, today);
+        }
+      : skipToken,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
 /** Derives a stored month's Workout Statuses for display; Notes pass through. */
 export type MonthSelect = (month: StoredMonth) => CalendarData;
 
@@ -229,10 +320,10 @@ export function selectWorkoutDetailsAsOf(
 
 /**
  * One Workout with how it is paired. The single event read lacks
- * `paired_activity_id` (#191), so it only dates the Workout: the event itself
- * is then taken from that day's Workouts list, which carries it, alongside the
- * Activities a pairing window around the day. Should the list lack the event,
- * the single read stands in. The query stores no status; `select` (see
+ * `paired_activity_id` (#191) and can't resolve step watts, so it only dates
+ * the Workout: the event itself is then taken from that day's Workouts list,
+ * which has both, alongside the Activities a pairing window around the day.
+ * Should the list lack the event, the single read stands in. The query stores no status; `select` (see
  * `selectWorkoutDetailsAsOf`) derives it, so a planned Workout turns missed at
  * midnight without a fetch. Never reads from or writes into the month or
  * upcoming caches. Skipped while there are no credentials.
@@ -260,7 +351,12 @@ export function workoutDetailsQueryOptions(
             getCalendarEvents(
               accessToken,
               athleteId,
-              { oldest: day, newest: day, category: EVENT_CATEGORY.workout },
+              {
+                oldest: day,
+                newest: day,
+                category: EVENT_CATEGORY.workout,
+                resolve: true,
+              },
               { signal },
             ),
             getActivities(
@@ -294,28 +390,30 @@ export type ActivityDetailsSelect = (
  * One Activity, with its detected intervals, for Activity Details. The query
  * stores the body trimmed to what the screen needs (see
  * `toStoredActivityDetails`), never the whole of it; `select` builds the view
- * model. Never reads from or writes into the month, upcoming or Workout
- * Details caches. Fresh as long as a Workout's details. Skipped while there
- * are no credentials.
+ * model. Activity Details and a completed Workout's profile card share it.
+ * Never reads from or writes into the month, upcoming or Workout Details
+ * caches. Fresh as long as a Workout's details. Skipped without credentials or
+ * an Activity id.
  */
 export function activityDetailsQueryOptions(
   credentials: IntervalsCredentials | null,
-  activityId: string,
+  activityId: string | null,
   select: ActivityDetailsSelect,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.activity(credentials?.athleteId, activityId),
-    queryFn: credentials
-      ? async ({ signal }): Promise<StoredActivityDetails> =>
-          toStoredActivityDetails(
-            await getActivity(
-              credentials.accessToken,
-              activityId,
-              { intervals: true },
-              { signal },
-            ),
-          )
-      : skipToken,
+    queryFn:
+      credentials && activityId !== null
+        ? async ({ signal }): Promise<StoredActivityDetails> =>
+            toStoredActivityDetails(
+              await getActivity(
+                credentials.accessToken,
+                activityId,
+                { intervals: true },
+                { signal },
+              ),
+            )
+        : skipToken,
     select,
     ...WORKOUTS_FRESHNESS,
   });

@@ -1,28 +1,38 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import CalendarItemTile from '@/components/CalendarItemTile';
+import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
+import TodayCards from '@/components/home/TodayCards';
 import { useAppTheme } from '@/constants/theme';
 import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
+import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
+/**
+ * Home: the Fitness and Wellness cards above "Dziś i jutro". Gates on
+ * availability like the other Intervals-backed screens. "Dziś i jutro"
+ * branches on the raw query (ADR 0005); the cards render the state
+ * `useTodayCards` hands them (ADR 0010).
+ */
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'home.upcomingWorkouts',
   });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { availability, query } = useUpcomingWorkouts();
+  const { availability, query, refetch } = useUpcomingWorkouts();
+  const { state: todayCards, refetch: refetchTodayCards } = useTodayCards();
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
   const notes = useMemo(
@@ -33,54 +43,91 @@ export default function HomeScreen() {
     [query.data],
   );
   const noteSheet = useNoteSheet(notes);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Home has no error state: like a disconnect, any failed fetch hides it.
-  if (
-    availability === 'unavailable' ||
-    (query.data === undefined && query.isError)
-  ) {
-    return <Box flex={1} backgroundColor="bgPrimary" />;
+  async function handleRefresh() {
+    setRefreshing(true);
+
+    try {
+      await Promise.all([refetch(), refetchTodayCards()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  function body() {
+    if (availability === 'unavailable') return <IntervalsConnectPrompt />;
+
+    // Home has no error state: a failed fetch with nothing to show leaves it
+    // blank.
+    if (query.data === undefined && query.isError) return null;
+
+    return (
+      <Box gap="xl">
+        <TodayCards state={todayCards} />
+
+        <Box>
+          <Text variant="h2">{t('title')}</Text>
+
+          {query.data === undefined && (
+            <Box marginTop="md" testID="upcoming-workouts-loading">
+              <ActivityIndicator color={theme.colors.textPrimary} />
+            </Box>
+          )}
+
+          {query.data?.length === 0 && (
+            <Text variant="body-l-regular" color="textSecondary" marginTop="md">
+              {t('empty')}
+            </Text>
+          )}
+
+          {query.data?.map(item => (
+            <Box key={upcomingItemKey(item)} marginTop="md">
+              {item.kind === 'note' ? (
+                <NoteCard
+                  note={item.note}
+                  when={t(item.dayLabel)}
+                  onPress={() => noteSheet.open(item.note.id)}
+                />
+              ) : (
+                <CalendarItemTile
+                  item={item}
+                  dayLabel={t(item.dayLabel)}
+                  onWorkoutPress={workout => openWorkout(workout.id)}
+                  onActivityPress={activity => openActivity(activity.id)}
+                />
+              )}
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
   }
 
   return (
     <Box
       flex={1}
       backgroundColor="bgPrimary"
-      paddingHorizontal="lg"
-      style={{ paddingTop: insets.top + theme.spacing.xl }}
+      style={{ paddingTop: insets.top }}
     >
-      <Text variant="h2">{t('title')}</Text>
-
-      {query.data === undefined && (
-        <Box marginTop="md" testID="upcoming-workouts-loading">
-          <ActivityIndicator color={theme.colors.textPrimary} />
-        </Box>
-      )}
-
-      {query.data?.length === 0 && (
-        <Text variant="body-l-regular" color="textSecondary" marginTop="md">
-          {t('empty')}
-        </Text>
-      )}
-
-      {query.data?.map(item => (
-        <Box key={upcomingItemKey(item)} marginTop="md">
-          {item.kind === 'note' ? (
-            <NoteCard
-              note={item.note}
-              when={t(item.dayLabel)}
-              onPress={() => noteSheet.open(item.note.id)}
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.xl,
+          paddingBottom: theme.spacing.xl,
+        }}
+        refreshControl={
+          availability === 'available' ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.colors.textSecondary}
             />
-          ) : (
-            <CalendarItemTile
-              item={item}
-              dayLabel={t(item.dayLabel)}
-              onWorkoutPress={workout => openWorkout(workout.id)}
-              onActivityPress={activity => openActivity(activity.id)}
-            />
-          )}
-        </Box>
-      ))}
+          ) : undefined
+        }
+      >
+        {body()}
+      </ScrollView>
 
       <NoteDetailSheet sheet={noteSheet} />
     </Box>
