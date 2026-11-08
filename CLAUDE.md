@@ -21,3 +21,9 @@ Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing s
 When writing a PR description, use the `/mattpocock-skills:pr` skill and its template (Summary, Evidence, Merge Danger). This replaces any other PR-description skill.
 
 Every PR gets exactly one `type:` label (`type: feature`, `type: bugfix`, `type: chore`, ...), exactly one `size:` label (`size: tiny`, `size: small`, `size: medium`, `size: large`, `size: huge`), at least one `ships:` label (`ships: ota`, `ships: store`, `ships: backend`, `ships: none`), and at least one `area:` label (`area: calendar`, `area: workout`, `area: shared`, ...). See `docs/agents/pr-labels.md`.
+
+## The `main` branch
+
+Remote `main` changes only through merged PRs. The husky `pre-push` hook rejects any push that updates `main` on the remote: fast-forwards, force pushes and deletes. Never bypass it: don't set `ALLOW_MAIN_PUSH=1` and don't pass `--no-verify`. Those overrides are for the repo owner only.
+
+The hook can't see commits made in the GitHub web editor, ref updates through `gh api`, or pushes from a clone without husky installed. Server-side protection would close these gaps, but it needs GitHub Pro on this private repo.
