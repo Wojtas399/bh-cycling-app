@@ -14,7 +14,7 @@ Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain
 
 ## Coding standards
 
-Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing scope (business logic only, no UI tests) and says ADRs are binding.
+Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing scope (Jest for business logic, e2e for user-facing flows, no Jest render tests of components or screens) and says ADRs are binding.
 
 ## Pull requests
 
