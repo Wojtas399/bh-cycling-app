@@ -7,8 +7,6 @@ import type { E2EConfig } from 'e2e';
 // Every worker imports this file again, so the env reaches the tests too.
 loadLocalEnv();
 
-process.env.E2E_TELEMETRY_DISABLED = '1';
-
 const athlete = athleteFromEnv();
 const app = { bundleId: 'com.wojtas.blackhorsecyclingapp.staging' };
 
