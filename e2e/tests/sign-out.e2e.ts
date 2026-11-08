@@ -1,0 +1,36 @@
+import { EMAIL_PLACEHOLDER, LOAD_TIMEOUT } from '../support/constants';
+import { test } from '../support/fixtures';
+import { signIn } from '../support/signIn';
+import { expect } from 'e2e';
+
+test('sign out from Ustawienia → still signed out after a relaunch', async ({
+  app,
+  screen,
+}) => {
+  await signIn(screen);
+
+  await screen.getByText(/Ustawienia/).tap();
+
+  const signOutRow = screen.getByText(/Wyloguj się/);
+
+  // The row is the last one in a scroll view; on a short screen it starts
+  // below the fold.
+  await screen.scrollUntilVisible(signOutRow);
+  await signOutRow.tap();
+
+  // React Native's `Alert` is the platform's own dialog inside the app, and
+  // agent-device lists its buttons in the tree on both platforms, so a
+  // locator reaches "Wyloguj". `device.alert('accept')` isn't used because on
+  // iOS it only matches English labels like "OK" and "Allow". `/i` because
+  // Android's dialog may report the button in capitals.
+  await screen.getByText(/^Wyloguj$/i).tap();
+
+  const emailField = screen.getByPlaceholder(EMAIL_PLACEHOLDER);
+
+  await expect(emailField).toBeVisible(LOAD_TIMEOUT);
+
+  // The root route stays blank until Firebase restores the session, so the
+  // sign-in screen only shows once it has found none.
+  await app.restart();
+  await expect(emailField).toBeVisible(LOAD_TIMEOUT);
+});
