@@ -1,4 +1,6 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { withGradleProperties } from 'expo/config-plugins';
+import type { ConfigPlugin } from 'expo/config-plugins';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -30,7 +32,23 @@ const BUNDLE_ID = IS_PRODUCTION
   ? 'com.wojtas.blackhorsecyclingapp'
   : 'com.wojtas.blackhorsecyclingapp.staging';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+// The release build hangs on a Metaspace out-of-memory error with the
+// template's 512m. Prebuild rewrites gradle.properties, so it's set here.
+const GRADLE_JVM_ARGS = '-Xmx4096m -XX:MaxMetaspaceSize=1536m';
+
+const withGradleMemory: ConfigPlugin = config =>
+  withGradleProperties(config, gradle => {
+    gradle.modResults = [
+      ...gradle.modResults.filter(
+        item => item.type !== 'property' || item.key !== 'org.gradle.jvmargs',
+      ),
+      { type: 'property', key: 'org.gradle.jvmargs', value: GRADLE_JVM_ARGS },
+    ];
+
+    return gradle;
+  });
+
+const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_PRODUCTION ? 'BH Cycling' : 'BH Cycling (Staging)',
   slug: 'black-horse-cycling-app',
@@ -123,3 +141,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
 });
+
+export default (context: ConfigContext): ExpoConfig =>
+  withGradleMemory(appConfig(context));
