@@ -40,6 +40,14 @@ _Avoid_: Workout route, track, GPS trace
 The tri-state of a planned workout: `completed` (the Workout is paired to an Activity), `planned` (in the future, not paired yet), or `missed` (in the past, not paired). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.
 _Avoid_: Completion state, sync status
 
+**Race**:
+A competition on the athlete's Intervals.icu calendar, of any sport, with a Race Priority. It is not a Workout: it's the event the training builds toward. Read-only in BH Cycling.
+_Avoid_: Event, competition, race workout
+
+**Race Priority**:
+How much a Race matters to the athlete's season: `A` (a goal race), `B` (important) or `C` (a lower-key race, often ridden as training). Set by the athlete on Intervals.icu.
+_Avoid_: Race type, race category, race level
+
 **Note**:
 A free-text entry on the athlete's Intervals.icu calendar, for a single day or a range of days. It is not a Workout: it has no structure and no Workout Status. Read-only in BH Cycling.
 _Avoid_: Comment, Workout description
