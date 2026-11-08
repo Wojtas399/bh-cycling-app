@@ -12,6 +12,10 @@ Default vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, 
 
 Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
 
+### E2E tests
+
+The end-to-end suite runs on dedicated simulator and emulator devices against real staging. See `docs/agents/e2e-tests.md` before you run or write one.
+
 ## Coding standards
 
 Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing scope (Jest for business logic, e2e for user-facing flows, no Jest render tests of components or screens) and says ADRs are binding.
