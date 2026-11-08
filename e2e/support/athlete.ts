@@ -20,3 +20,25 @@ export function athleteFromEnv(): { email: string; password: string } {
 
   return { email, password };
 }
+
+/**
+ * The test athlete's Intervals.icu API key and athlete id, which the seed
+ * uses to recreate its Workouts before a run.
+ */
+export function intervalsFromEnv(): { apiKey: string; athleteId: string } {
+  const apiKey = process.env.E2E_INTERVALS_API_KEY;
+  const athleteId = process.env.E2E_INTERVALS_ATHLETE_ID;
+
+  if (!apiKey || !athleteId) {
+    const missing = [
+      ...(apiKey ? [] : ['E2E_INTERVALS_API_KEY']),
+      ...(athleteId ? [] : ['E2E_INTERVALS_ATHLETE_ID']),
+    ];
+
+    throw new Error(
+      `Set ${missing.join(' and ')} in .env.local: the e2e seed writes the test athlete's Workouts on Intervals.icu with them.`,
+    );
+  }
+
+  return { apiKey, athleteId };
+}
