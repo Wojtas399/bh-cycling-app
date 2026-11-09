@@ -5,6 +5,9 @@ import Box from '@/components/Box';
 /** Between neighbouring tiles, and between the month grid's rows. */
 export const TILE_GAP = 2;
 
+/** A neighbouring month's tile fill, over the page. Its day number stays put. */
+const OUTSIDE_MONTH_FILL_OPACITY = 0.5;
+
 export type CalendarDayTileProps = Omit<
   ComponentProps<typeof Box>,
   'backgroundColor' | 'bg' | 'borderRadius'
@@ -14,19 +17,38 @@ export type CalendarDayTileProps = Omit<
 };
 
 /**
- * The day tile both Calendar views draw: each day on its own lighter surface,
- * a thin gap away from the next, so the days read as separate. Lays out its
- * content as a `Box` does.
+ * The day tile both Calendar views draw: each day on its own flat, lighter
+ * surface, a thin gap away from the next, so the days read as separate. Flat,
+ * never Sheen, so the Sheen item tiles in the week agenda never sit
+ * Sheen-inside-Sheen. Lays out its content as a `Box` does.
  */
 export default function CalendarDayTile({
   outsideMonth = false,
+  children,
   ...box
 }: CalendarDayTileProps) {
+  if (!outsideMonth) {
+    return (
+      <Box borderRadius="sm" backgroundColor="bgTertiary" {...box}>
+        {children}
+      </Box>
+    );
+  }
+
+  // Only the fill fades: dimming the whole tile would fade the day number too.
   return (
-    <Box
-      borderRadius="sm"
-      backgroundColor={outsideMonth ? 'bgSecondary' : 'bgTertiary'}
-      {...box}
-    />
+    <Box borderRadius="sm" {...box}>
+      <Box
+        position="absolute"
+        top={0}
+        right={0}
+        bottom={0}
+        left={0}
+        borderRadius="sm"
+        backgroundColor="bgTertiary"
+        opacity={OUTSIDE_MONTH_FILL_OPACITY}
+      />
+      {children}
+    </Box>
   );
 }
