@@ -27,8 +27,6 @@ for (const [dest, srcPath] of Object.entries(FIREBASE_FILES)) {
 
 type AppEnv = 'production' | 'staging' | 'dev';
 
-const APP_ENV = (process.env.APP_ENV ?? 'staging') as AppEnv;
-
 const IDENTITY: Record<AppEnv, { name: string; bundleId: string }> = {
   production: {
     name: 'BH Cycling',
@@ -44,14 +42,21 @@ const IDENTITY: Record<AppEnv, { name: string; bundleId: string }> = {
   },
 };
 
-// Icons and Firebase files are named after the env.
-const identity = IDENTITY[APP_ENV];
+const isAppEnv = (env: string): env is AppEnv =>
+  Object.keys(IDENTITY).includes(env);
 
-if (!identity) {
-  throw new Error(
-    `Unknown APP_ENV "${APP_ENV}". Use production, staging or dev.`,
-  );
-}
+const resolveAppEnv = (env = 'staging'): AppEnv => {
+  if (!isAppEnv(env)) {
+    throw new Error(
+      `Unknown APP_ENV "${env}". Use production, staging or dev.`,
+    );
+  }
+
+  return env;
+};
+
+const APP_ENV = resolveAppEnv(process.env.APP_ENV);
+const identity = IDENTITY[APP_ENV];
 
 const EAS_PROJECT_ID = 'a5a05625-f7f4-4b0c-89b8-72de6a9dbdd8';
 
@@ -77,6 +82,7 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'black-horse-cycling-app',
   version: '0.0.1',
   orientation: 'portrait',
+  // Here and below, icons and Firebase files are named after the env.
   icon: `./assets/images/icon-${APP_ENV}.png`,
   scheme: 'blackhorsecyclingapp',
   userInterfaceStyle: 'automatic',
