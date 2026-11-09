@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
 import RacePriorityLabel from '@/components/race/RacePriorityLabel';
@@ -88,9 +89,7 @@ function HeroTile({ race, dayLabel, meta, completed }: RankTileProps) {
   const theme = useAppTheme();
 
   return (
-    <Box
-      backgroundColor="bgSecondary"
-      borderRadius="xl"
+    <SheenSurface
       borderWidth={1.5}
       borderColor="race"
       paddingVertical="lg"
@@ -129,7 +128,7 @@ function HeroTile({ race, dayLabel, meta, completed }: RankTileProps) {
           {meta}
         </Text>
       </Box>
-    </Box>
+    </SheenSurface>
   );
 }
 
@@ -142,7 +141,7 @@ function CardTile({
   completed,
 }: RankTileProps) {
   return (
-    <Box backgroundColor="bgSecondary" borderRadius="lg" padding="base">
+    <SheenSurface padding="base">
       <Box flexDirection="row" alignItems="center">
         {completed && <DoneMarker />}
         <Box marginRight="sm">
@@ -165,7 +164,7 @@ function CardTile({
       >
         {`${priority} · ${meta}`}
       </Text>
-    </Box>
+    </SheenSurface>
   );
 }
 

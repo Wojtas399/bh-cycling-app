@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
 import type { NextRace } from '@/hooks/home/useNextRace';
@@ -46,13 +47,7 @@ export default function NextRaceCard({
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       testID="next-race-card"
     >
-      <Box
-        backgroundColor="bgSecondary"
-        borderRadius="lg"
-        padding="base"
-        flexDirection="row"
-        alignItems="center"
-      >
+      <SheenSurface padding="base" flexDirection="row" alignItems="center">
         <Box
           alignItems="center"
           justifyContent="center"
@@ -98,7 +93,7 @@ export default function NextRaceCard({
             </Text>
           </Box>
         </Box>
-      </Box>
+      </SheenSurface>
     </Pressable>
   );
 }

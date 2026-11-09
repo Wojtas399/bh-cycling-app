@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import SkeletonBar from '@/components/SkeletonBar';
 import Text from '@/components/Text';
 import type { ShownTodayCardsState } from '@/hooks/home/useTodayCards';
@@ -97,16 +98,14 @@ function Card({
   children: ReactNode;
 }) {
   return (
-    <Box
-      backgroundColor="bgSecondary"
-      borderRadius="lg"
+    <SheenSurface
       padding="base"
       accessible={busyLabel !== undefined}
       accessibilityLabel={busyLabel}
       accessibilityState={busyLabel ? { busy: true } : undefined}
     >
       {children}
-    </Box>
+    </SheenSurface>
   );
 }
 

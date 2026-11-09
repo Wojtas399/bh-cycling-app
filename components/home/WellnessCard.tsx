@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import type { ShownTodayCardsState } from '@/hooks/home/useTodayCards';
 
@@ -68,9 +69,7 @@ function Card({
   const { t } = useTranslation(undefined, { keyPrefix: 'home.wellness' });
 
   return (
-    <Box
-      backgroundColor="bgSecondary"
-      borderRadius="lg"
+    <SheenSurface
       padding="base"
       accessible={busyLabel !== undefined}
       accessibilityLabel={busyLabel}
@@ -80,7 +79,7 @@ function Card({
         {t('title')}
       </Text>
       {children}
-    </Box>
+    </SheenSurface>
   );
 }
 

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import WorkoutProfile from '@/components/WorkoutProfile';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
@@ -43,7 +44,7 @@ export default function WorkoutTile({
 }: WorkoutTileProps) {
   const { t } = useTranslation();
   const card = (
-    <Box backgroundColor="bgSecondary" borderRadius="lg" padding="base">
+    <SheenSurface padding="base">
       <Box
         flexDirection="row"
         justifyContent="space-between"
@@ -86,7 +87,7 @@ export default function WorkoutTile({
           <WorkoutProfile blocks={blocks} />
         </Box>
       )}
-    </Box>
+    </SheenSurface>
   );
 
   if (!onPress) return card;
