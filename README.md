@@ -1,6 +1,6 @@
 # BH Cycling
 
-Expo (SDK 54) app with [Expo Router](https://docs.expo.dev/router/introduction/), a [development client](https://docs.expo.dev/develop/development-builds/introduction/), and React Native Firebase. This is not a plain Expo Go project: native modules require a **dev build** on a simulator or device.
+Expo (SDK 54) app with [Expo Router](https://docs.expo.dev/router/introduction/), a [development client](https://docs.expo.dev/develop/development-builds/introduction/), and React Native Firebase. This is not a plain Expo Go project: native modules require a **Dev client** on a simulator or device.
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ At build time, `app.config.ts` can copy Firebase config from paths in those env 
 npm start
 ```
 
-**2. Run a native dev build** (first run compiles native code; later runs are faster). Use a second terminal while Metro is running, or press `i` / `a` in the Expo CLI once a dev client is already installed.
+**2. Build and run the Dev client** (first run compiles native code; later runs are faster). Use a second terminal while Metro is running, or press `i` / `a` in the Expo CLI once a dev client is already installed.
 
 - iOS Simulator: `npm run ios`
 - Android emulator or device: `npm run android`
