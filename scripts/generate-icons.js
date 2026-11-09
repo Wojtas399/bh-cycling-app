@@ -89,16 +89,19 @@ const ribbonedSilhouette = ({ label }) =>
     inAndroidSafeZone(label),
   );
 
+const mapRibbons = f =>
+  Object.fromEntries(
+    Object.entries(RIBBONS).map(([variant, spec]) => [variant, f(spec)]),
+  );
+
 const TILE = {
   production: mark,
-  staging: ribbonedTile(RIBBONS.staging),
-  dev: ribbonedTile(RIBBONS.dev),
+  ...mapRibbons(ribbonedTile),
 };
 
 const ANDROID_SILHOUETTE = {
   production: inAndroidSafeZone(mark),
-  staging: ribbonedSilhouette(RIBBONS.staging),
-  dev: ribbonedSilhouette(RIBBONS.dev),
+  ...mapRibbons(ribbonedSilhouette),
 };
 
 const opaqueTile = variant => canvas(onNearBlack(TILE[variant]));
@@ -169,8 +172,7 @@ const ICON_CONTENTS = {
     assets: { 'mark.svg': master },
     layers: ['mark'],
   },
-  staging: ribbonedIconContents(RIBBONS.staging),
-  dev: ribbonedIconContents(RIBBONS.dev),
+  ...mapRibbons(ribbonedIconContents),
 };
 
 const ICON_DOCUMENTS = VARIANTS.map(variant => ({
