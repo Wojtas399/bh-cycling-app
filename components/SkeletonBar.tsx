@@ -10,9 +10,9 @@ export default function SkeletonBar({
   marginVertical,
   onPage = false,
 }: {
-  width: number;
+  width: number | `${number}%`;
   height: number;
-  marginVertical: number;
+  marginVertical?: number;
   onPage?: boolean;
 }) {
   return (
