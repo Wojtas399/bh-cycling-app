@@ -93,14 +93,15 @@ The app side needs the matching public client ID to build the authorization requ
 
 Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI doesn't run it. See `docs/e2e.md`.
 
-`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. The ref decides what ships.
+`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. It runs on every push to `main` too, so CI doesn't run separately there. The ref decides what ships.
 
-| Ref                                      | Result                                                                                                        |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging       |
-| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store |
-| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                        |
-| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                              |
+| Ref                                      | Result                                                                                                                                                      |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning when only 3 builds are left this month |
+| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging                                                     |
+| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                               |
+| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                      |
+| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                            |
 
 Android builds are not submitted yet: Google Play needs a service account key first. Install them from their EAS build page. The production submit profile also needs its own `ascAppId` before the first `vX.Y.Z` tag.
 
