@@ -76,11 +76,11 @@ dev_build_fits_quota() {
 }
 
 skip_dev_build() {
-  local name
+  local used="$1" limit="$2" resets="$3" name
   [[ "$platform" == ios ]] && name=iOS || name=Android
   local line="Dev $name build skipped: $used/$limit used, resets $resets"
   echo "::warning::$line"
-  echo "$line" >>"$GITHUB_STEP_SUMMARY"
+  echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 }
 
 update() {
@@ -102,7 +102,7 @@ if [[ "$ref" =~ ^branch:main$ ]]; then
   elif dev_build_fits_quota; then
     build || die "Dev build failed"
   else
-    skip_dev_build
+    skip_dev_build "$used" "$limit" "$resets"
   fi
 elif [[ "$ref" =~ ^branch:rc/($semver)$ ]]; then
   use_target staging
