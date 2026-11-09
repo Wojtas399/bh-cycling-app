@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { TouchableOpacity } from 'react-native';
 
-import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import { useReconnectIntervals } from '@/hooks/useReconnectIntervals';
 
 /**
  * Asks to reconnect Intervals.icu for the Wellness scope that Fitness and
- * Wellness are both read with, on a card surface and with no dismiss. Home
+ * Wellness are both read with, on a Sheen card and with no dismiss. Home
  * and the Fitness chart show the same one. "Połącz ponownie" opens Settings
  * and starts the connect flow.
  */
@@ -18,13 +18,7 @@ export default function WellnessScopePrompt() {
   const reconnect = useReconnectIntervals();
 
   return (
-    <Box
-      backgroundColor="bgSecondary"
-      borderRadius="lg"
-      padding="base"
-      gap="sm"
-      alignItems="flex-start"
-    >
+    <SheenSurface padding="base" gap="sm" alignItems="flex-start">
       <Text variant="body-s-regular" color="textSecondary">
         {t('message')}
       </Text>
@@ -38,6 +32,6 @@ export default function WellnessScopePrompt() {
           {t('action')}
         </Text>
       </TouchableOpacity>
-    </Box>
+    </SheenSurface>
   );
 }

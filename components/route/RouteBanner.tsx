@@ -41,7 +41,7 @@ export default function RouteBanner({ mapHref, summary }: RouteBannerProps) {
 
   if (query.isError) {
     return (
-      <Box backgroundColor="bgSecondary" justifyContent="center" style={bleed}>
+      <Box backgroundColor="bgTertiary" justifyContent="center" style={bleed}>
         <RouteLoadError onRetry={() => void refetch()} />
       </Box>
     );
