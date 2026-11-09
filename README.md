@@ -17,7 +17,7 @@ npm install
 
 ## Environment and Firebase
 
-`APP_ENV` selects staging vs production bundles and Firebase files. It defaults to **`staging`** if unset.
+`APP_ENV` (`staging`, `production` or `dev`) selects the bundle ID, name, icon and Firebase files. It defaults to **`staging`** if unset.
 
 To sync secrets from EAS into `.env.local` (requires `eas login` and access to the Expo project):
 
@@ -44,7 +44,7 @@ npm start
 
 After the dev client is installed on the simulator or emulator, you usually only need `npm start` and launch the app; it connects to Metro.
 
-Expo Go does **not** include this app’s native Firebase stack. Use the dev client from `expo run:ios` / `expo run:android` (or a prebuilt development build from EAS).
+Expo Go does **not** include this app’s native Firebase stack. Use the dev client from `expo run:ios` / `expo run:android` (or a Dev client build from EAS: `eas build --profile dev-client`).
 
 ## Other scripts
 
@@ -107,6 +107,66 @@ Android builds are not submitted yet: Google Play needs a service account key fi
 The release script pulls the Firebase files from EAS, so their variables must have `Sensitive` visibility. `Secret` values cannot be read outside EAS servers.
 
 `hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
+
+## Dev build
+
+The **Dev build** is a standalone release-mode app that tracks `main`. It installs next to the staging app as "BH Cycling (Dev)" (`com.wojtas.blackhorsecyclingapp.dev`, a staging icon with a DEV ribbon), uses the staging backend, and shows `0.0.0 (dev)` in Settings. Its EAS build profile, update channel and `APP_ENV` are all `dev`. It's installed through EAS internal distribution: an ad hoc build on iOS and an APK on Android.
+
+The **Dev client** is the Metro-loading `expo-dev-client` build, built with `eas build --profile dev-client`. It keeps the staging bundle ID.
+
+### One-time setup
+
+Run these once, from the repo root, with `eas login` and `npx firebase login` done.
+
+1. Create the Dev apps in the staging Firebase project and download their config files:
+
+   ```bash
+   npx firebase apps:create IOS "BH Cycling (Dev)" --bundle-id com.wojtas.blackhorsecyclingapp.dev --project bh-cycling-staging
+   npx firebase apps:create ANDROID "BH Cycling (Dev)" --package-name com.wojtas.blackhorsecyclingapp.dev --project bh-cycling-staging
+   npx firebase apps:sdkconfig IOS <ios-app-id> --project bh-cycling-staging --out firebase/GoogleService-Info.dev.plist
+   npx firebase apps:sdkconfig ANDROID <android-app-id> --project bh-cycling-staging --out firebase/google-services.dev.json
+   ```
+
+   `apps:create` prints each app ID.
+
+2. Store both files as `Sensitive` file variables in the EAS `development` environment, so the release script can pull them:
+
+   ```bash
+   eas env:create --environment development --name GOOGLE_SERVICE_INFO_DEV_PLIST --type file --visibility sensitive --value ./firebase/GoogleService-Info.dev.plist
+   eas env:create --environment development --name GOOGLE_SERVICES_DEV_JSON --type file --visibility sensitive --value ./firebase/google-services.dev.json
+   ```
+
+3. Register your iPhone for ad hoc builds with `eas device:create`, and install the profile it gives you.
+
+4. Run the first Dev build per platform interactively. It creates the Apple App ID, the ad hoc provisioning profile and the Android keystore:
+
+   ```bash
+   eas build --profile dev --platform ios
+   eas build --profile dev --platform android
+   ```
+
+5. Add the Dev keystore's SHA-1 to the Firebase Dev Android app, or Google Sign-In fails on Android. Read the SHA-1 from `eas credentials --platform android` (pick the `dev` profile), then:
+
+   ```bash
+   npx firebase apps:android:sha:create <android-app-id> <sha1> --project bh-cycling-staging
+   npx firebase apps:sdkconfig ANDROID <android-app-id> --project bh-cycling-staging --out firebase/google-services.dev.json
+   ```
+
+   If the re-downloaded file differs from the one in EAS, update the variable and rebuild Android:
+
+   ```bash
+   eas env:update --variable-environment development --variable-name GOOGLE_SERVICES_DEV_JSON --value ./firebase/google-services.dev.json
+   eas build --profile dev --platform android
+   ```
+
+6. Install each build from its EAS build page.
+
+### New phone or lost install
+
+CI starts a Dev build only when native code changes, so rebuild by hand:
+
+- **New iPhone:** `eas device:create`, then `eas build --profile dev --platform ios`. To skip the build queue, re-sign the latest build with `eas build:resign --platform ios --source-profile dev --target-profile dev` instead.
+- **Lost install:** reinstall from the latest build's EAS page, or run `eas build --profile dev --platform <ios|android>`.
 
 ## Learn more
 
