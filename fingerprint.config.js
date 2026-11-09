@@ -1,4 +1,3 @@
-/** @type {import('expo/fingerprint').Config} */
 const { SourceSkips } = require('expo/fingerprint');
 
 // Leave npm scripts out of the native fingerprint. Every script edit changed
@@ -8,6 +7,7 @@ const { SourceSkips } = require('expo/fingerprint');
 // Warning: this also drops any `postinstall` or `eas-build-*` hook from the
 // fingerprint. Whoever adds or changes one must start a rebuild by hand
 // (`eas build --profile <profile> --platform <platform>`), because CI won't.
+/** @type {import('expo/fingerprint').Config} */
 module.exports = {
   sourceSkips: SourceSkips.PackageJsonScriptsAll,
 };
