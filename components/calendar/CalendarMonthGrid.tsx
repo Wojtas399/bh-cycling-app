@@ -66,8 +66,9 @@ export interface CalendarMonthGridProps {
  * not a taller grid. Under each day number, its Notes as coloured bars (two
  * lanes; a multi-day Note runs as one bar across the tiles and the gaps
  * between them), a "+N" for the Notes that don't fit, then a marker per
- * item — a rank icon per Race in Race order, then a status dot per Workout
- * and a hollow green ring per Unplanned Activity ("done, not planned"). A
+ * Workout (a status dot) and Unplanned Activity (a hollow green ring, "done,
+ * not planned"). A rank icon per Race, in Race order, sits beside the day
+ * number, so a Race day's dots stay in line with the rest of its row. A
  * day with an A Race is ringed in red, past or future alike. A tile cuts off
  * what doesn't fit; the day sheet shows everything. Days from the
  * neighbouring months are dimmer tiles, empty and not tappable — their data
@@ -283,21 +284,43 @@ function GridCell({
       testID={`calendar-day-${cell.date}`}
     >
       <CalendarDayTile flex={1} padding={TILE_SPACING} overflow="hidden">
-        <Box
-          width={DAY_NUMBER_SIZE}
-          height={DAY_NUMBER_SIZE}
-          borderRadius="full"
-          alignItems="center"
-          justifyContent="center"
-          backgroundColor={isToday ? 'interactiveDefault' : 'transparent'}
-          testID={isToday ? 'calendar-today' : undefined}
-        >
-          <Text
-            variant={isToday ? 'body-s-medium' : 'body-s-regular'}
-            color={isToday ? 'textInverse' : 'textPrimary'}
+        {/* The rank icons sit beside the day number, so the dots below line
+            up across the row whether or not a day has a Race. */}
+        <Box flexDirection="row" alignItems="center" gap="xs">
+          <Box
+            width={DAY_NUMBER_SIZE}
+            height={DAY_NUMBER_SIZE}
+            borderRadius="full"
+            alignItems="center"
+            justifyContent="center"
+            backgroundColor={isToday ? 'interactiveDefault' : 'transparent'}
+            testID={isToday ? 'calendar-today' : undefined}
           >
-            {cell.dayOfMonth}
-          </Text>
+            <Text
+              variant={isToday ? 'body-s-medium' : 'body-s-regular'}
+              color={isToday ? 'textInverse' : 'textPrimary'}
+            >
+              {cell.dayOfMonth}
+            </Text>
+          </Box>
+
+          {races.length > 0 && (
+            <Box
+              flex={1}
+              flexDirection="row"
+              alignItems="center"
+              gap="xs"
+              overflow="hidden"
+            >
+              {races.map(item => (
+                <RaceRankIcon
+                  key={calendarItemKey(item)}
+                  priority={item.race.priority}
+                  size={RACE_RANKS[item.race.priority].gridIconSize}
+                />
+              ))}
+            </Box>
+          )}
         </Box>
 
         {barsHeight > 0 && (
@@ -312,24 +335,6 @@ function GridCell({
           >
             +{overflow}
           </Text>
-        )}
-
-        {races.length > 0 && (
-          <Box
-            flexDirection="row"
-            flexWrap="wrap"
-            alignItems="center"
-            gap="xs"
-            marginTop="xs"
-          >
-            {races.map(item => (
-              <RaceRankIcon
-                key={calendarItemKey(item)}
-                priority={item.race.priority}
-                size={RACE_RANKS[item.race.priority].gridIconSize}
-              />
-            ))}
-          </Box>
         )}
 
         {markers.length > 0 && (
