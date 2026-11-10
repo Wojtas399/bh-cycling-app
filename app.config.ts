@@ -56,9 +56,7 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   icon: `./assets/images/icon-${ICON_VARIANT}.png`,
   scheme: 'blackhorsecyclingapp',
-  // Dark only. Takes effect with the next store build; until then the app
-  // forces dark at startup (app/_layout.tsx).
-  userInterfaceStyle: 'dark',
+  userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'fingerprint' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
