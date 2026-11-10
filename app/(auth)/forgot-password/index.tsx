@@ -77,10 +77,9 @@ export default function ForgotPasswordScreen() {
         <Box width="100%" marginTop="xl">
           <Button
             variant="secondary"
-            opacity={busy || cooldown > 0 ? 0.6 : 1}
+            placement="content"
             onPress={resend}
             disabled={busy || cooldown > 0}
-            activeOpacity={0.8}
           >
             {busy ? (
               <ActivityIndicator color={theme.colors.textPrimary} />
@@ -149,10 +148,9 @@ export default function ForgotPasswordScreen() {
         <Box width="100%" marginTop="xl">
           <Button
             variant="primary"
-            opacity={busy ? 0.6 : 1}
+            placement="content"
             onPress={submit}
             disabled={busy}
-            activeOpacity={0.8}
           >
             {busy ? (
               <ActivityIndicator color={theme.colors.textInverse} />

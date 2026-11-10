@@ -15,6 +15,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DeleteAccountScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'deleteAccount' });
@@ -75,16 +76,23 @@ export default function DeleteAccountScreen() {
 
           <Box marginTop="xl">
             <Button
-              backgroundColor="danger"
-              opacity={busy ? 0.6 : 1}
+              variant="secondary"
+              placement="chrome"
               onPress={submit}
               disabled={busy}
-              activeOpacity={0.8}
             >
               {busy ? (
-                <ActivityIndicator color={theme.colors.white} />
+                <ActivityIndicator color={theme.colors.textPrimary} />
               ) : (
-                <Text variant="body-l-semibold">{t('deleteButton')}</Text>
+                <>
+                  {/* Red on the icon only: a red label fails AA on Frost. */}
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color={theme.colors.danger}
+                  />
+                  <Text variant="body-l-semibold">{t('deleteButton')}</Text>
+                </>
               )}
             </Button>
             {formError ? (

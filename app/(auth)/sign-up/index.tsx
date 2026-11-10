@@ -138,10 +138,9 @@ export default function SignUpScreen() {
             <Box width="100%" marginTop="xl">
               <Button
                 variant="primary"
-                opacity={busy ? 0.6 : 1}
+                placement="content"
                 onPress={submit}
                 disabled={busy}
-                activeOpacity={0.8}
               >
                 {emailPending ? (
                   <ActivityIndicator color={theme.colors.textInverse} />
@@ -168,29 +167,29 @@ export default function SignUpScreen() {
               <Box flex={1} height={1} backgroundColor="borderDefault" />
             </Box>
 
-            <Button
-              variant="secondary"
-              marginTop="xl"
-              opacity={busy ? 0.6 : 1}
-              onPress={signUpWithGoogle}
-              disabled={busy}
-              activeOpacity={0.8}
-            >
-              {googlePending ? (
-                <ActivityIndicator color={theme.colors.textPrimary} />
-              ) : (
-                <>
-                  <Ionicons
-                    name="logo-google"
-                    size={20}
-                    color={theme.colors.textPrimary}
-                  />
-                  <Text variant="body-s-medium" color="textPrimary">
-                    {t('signUp.signUpWithGoogle')}
-                  </Text>
-                </>
-              )}
-            </Button>
+            <Box width="100%" marginTop="xl">
+              <Button
+                variant="secondary"
+                placement="content"
+                onPress={signUpWithGoogle}
+                disabled={busy}
+              >
+                {googlePending ? (
+                  <ActivityIndicator color={theme.colors.textPrimary} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="logo-google"
+                      size={20}
+                      color={theme.colors.textPrimary}
+                    />
+                    <Text variant="body-s-medium" color="textPrimary">
+                      {t('signUp.signUpWithGoogle')}
+                    </Text>
+                  </>
+                )}
+              </Button>
+            </Box>
 
             <Box
               width="100%"

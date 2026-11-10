@@ -1,15 +1,30 @@
 import { useEffect, useId } from 'react';
-import type { TextStyle } from 'react-native';
+import { StyleSheet, type TextStyle } from 'react-native';
 
 import theme from '@/constants/theme';
+import { liquidGlassAvailable } from '@/lib/liquidGlass';
 import { registerSheetHost, unregisterSheetHost } from '@/lib/toast';
 import { Ionicons } from '@expo/vector-icons';
+import { GlassView } from 'expo-glass-effect';
 import { Toaster, type ToasterProps } from 'sonner-native';
 
 const { colors, spacing, borderRadii, textVariants } = theme;
 
 const ICON_SIZE = 20;
 const label = textVariants['body-s-medium'];
+
+/**
+ * The pill's surface. On iOS 26 it is native glass behind a transparent
+ * toast, and the glass draws its own edge. Elsewhere it is a solid pill with
+ * a ring.
+ */
+const surface = liquidGlassAvailable
+  ? { backgroundColor: 'transparent' }
+  : {
+      backgroundColor: colors.bgTertiary,
+      borderWidth: 1,
+      borderColor: colors.borderStrong,
+    };
 
 /**
  * The Toast look and behaviour (ADR 0004). Every host spreads this, so a
@@ -26,10 +41,8 @@ export const toasterConfig = {
   swipeToDismissDirection: 'up',
   toastOptions: {
     style: {
-      backgroundColor: colors.bgTertiary,
+      ...surface,
       borderRadius: borderRadii.full,
-      borderWidth: 1,
-      borderColor: colors.borderStrong,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.base,
       marginHorizontal: spacing['2xl'],
@@ -58,6 +71,13 @@ export const toasterConfig = {
       <Ionicons name="alert-circle" size={ICON_SIZE} color={colors.danger} />
     ),
   },
+  backgroundComponent: liquidGlassAvailable ? (
+    <GlassView
+      glassEffectStyle="regular"
+      colorScheme="dark"
+      style={StyleSheet.absoluteFill}
+    />
+  ) : undefined,
 } satisfies Omit<ToasterProps, 'id'>;
 
 interface ToastHostProps {

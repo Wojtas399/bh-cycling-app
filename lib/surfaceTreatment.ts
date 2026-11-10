@@ -20,16 +20,28 @@ export type BackdropTreatment = {
   hairlineStrong: boolean;
 };
 
-export type ControlTreatment = {
-  paint: 'native' | 'frost' | 'opaque';
-  /** On Frost, also raises the fill from 8% to 14% white. */
-  hairlineStrong: boolean;
+export type ControlTreatment =
+  /** System glass, tinted near-white when prominent; the system adapts it. */
+  | { paint: 'native'; prominent: boolean }
+  /** On plain Frost, `hairlineStrong` also raises the fill from 8% to 14%. */
+  | { paint: 'frost'; prominent: boolean; hairlineStrong: boolean }
+  /**
+   * Solid, for Reduce Transparency. A prominent control's near-black label
+   * can't be read on `bgTertiary`, so it turns solid `interactiveDefault`.
+   */
+  | {
+      paint: 'opaque';
+      fill: 'bgTertiary' | 'interactiveDefault';
+      hairlineStrong: boolean;
+    };
+
+type ControlSurface = {
+  kind: 'control';
+  placement: SurfacePlacement;
+  prominent: boolean;
 };
 
-type Surface =
-  | { kind: 'sheen' }
-  | { kind: 'backdrop' }
-  | { kind: 'control'; placement: SurfacePlacement };
+type Surface = { kind: 'sheen' } | { kind: 'backdrop' } | ControlSurface;
 
 /**
  * Decides how a surface primitive paints. Native glass draws and adapts its
@@ -45,7 +57,7 @@ export function resolveSurfaceTreatment(
   environment: SurfaceEnvironment,
 ): BackdropTreatment;
 export function resolveSurfaceTreatment(
-  surface: { kind: 'control'; placement: SurfacePlacement },
+  surface: ControlSurface,
   environment: SurfaceEnvironment,
 ): ControlTreatment;
 export function resolveSurfaceTreatment(
@@ -63,18 +75,31 @@ export function resolveSurfaceTreatment(
     };
   }
 
-  const native =
-    liquidGlassAvailable &&
-    (surface.kind === 'backdrop' || surface.placement === 'chrome');
+  if (surface.kind === 'backdrop') {
+    if (liquidGlassAvailable) return { paint: 'native', hairlineStrong: false };
 
-  if (native) {
-    return { paint: 'native', hairlineStrong: false };
+    return {
+      paint: reduceTransparency ? 'opaque' : 'tint',
+      hairlineStrong: increaseContrast,
+    };
   }
 
-  const fallback = surface.kind === 'backdrop' ? 'tint' : 'frost';
+  const { placement, prominent } = surface;
 
-  return {
-    paint: reduceTransparency ? 'opaque' : fallback,
-    hairlineStrong: increaseContrast,
-  };
+  if (liquidGlassAvailable && placement === 'chrome') {
+    return { paint: 'native', prominent };
+  }
+
+  // A prominent control's edge is already brighter than `hairlineStrong`.
+  const hairlineStrong = increaseContrast && !prominent;
+
+  if (reduceTransparency) {
+    return {
+      paint: 'opaque',
+      fill: prominent ? 'interactiveDefault' : 'bgTertiary',
+      hairlineStrong,
+    };
+  }
+
+  return { paint: 'frost', prominent, hairlineStrong };
 }

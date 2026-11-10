@@ -75,10 +75,9 @@ export default function VerifyEmailScreen() {
           <Box width="100%" marginTop="xl">
             <Button
               variant="primary"
-              opacity={loading ? 0.6 : 1}
+              placement="content"
               onPress={handleVerified}
               disabled={loading}
-              activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color={theme.colors.textInverse} />
@@ -93,10 +92,9 @@ export default function VerifyEmailScreen() {
           <Box width="100%" marginTop="lg">
             <Button
               variant="secondary"
-              opacity={loading || cooldown > 0 ? 0.6 : 1}
+              placement="content"
               onPress={handleResend}
               disabled={loading || cooldown > 0}
-              activeOpacity={0.8}
             >
               <Text variant="body-s-medium" color="textPrimary">
                 {renderResendLabel()}

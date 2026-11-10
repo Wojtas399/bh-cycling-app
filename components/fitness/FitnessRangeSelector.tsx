@@ -2,10 +2,15 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import GlassControl, { GLASS_EDGE } from '@/components/GlassControl';
 import Text from '@/components/Text';
+import { useAppTheme } from '@/constants/theme';
 import { FITNESS_RANGES, type FitnessRange } from '@/lib/fitness';
 
-/** Segmented control choosing the chart's range: 6 tygodni, 3 miesiące, rok. */
+/**
+ * Segmented control choosing the chart's range: 6 tygodni, 3 miesiące, rok.
+ * A glass track with the selected range on prominent glass.
+ */
 export default function FitnessRangeSelector({
   range,
   onRangeChange,
@@ -16,41 +21,52 @@ export default function FitnessRangeSelector({
   const { t } = useTranslation(undefined, {
     keyPrefix: 'fitness.chart.ranges',
   });
+  const { spacing } = useAppTheme();
+  const segment = {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  } as const;
 
   return (
-    <Box
-      flexDirection="row"
-      backgroundColor="bgSecondary"
-      borderRadius="md"
-      padding="xs"
+    <GlassControl
+      placement="chrome"
+      style={{ flexDirection: 'row', padding: spacing.xs }}
     >
       {FITNESS_RANGES.map(option => {
         const selected = option === range;
+        const label = (
+          <Text
+            variant="body-s-medium"
+            color={selected ? 'textInverse' : 'textSecondary'}
+          >
+            {t(option)}
+          </Text>
+        );
 
-        return (
+        return selected ? (
+          <Box key={option} flex={1}>
+            <GlassControl
+              placement="chrome"
+              prominent
+              onPress={() => onRangeChange(option)}
+              accessibilityState={{ selected }}
+              style={segment}
+            >
+              {label}
+            </GlassControl>
+          </Box>
+        ) : (
           <Pressable
             key={option}
-            style={{ flex: 1 }}
             onPress={() => onRangeChange(option)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            style={[{ flex: 1 }, segment, GLASS_EDGE]}
           >
-            <Box
-              alignItems="center"
-              paddingVertical="sm"
-              borderRadius="sm"
-              backgroundColor={selected ? 'bgTertiary' : 'transparent'}
-            >
-              <Text
-                variant="body-s-medium"
-                color={selected ? 'textPrimary' : 'textSecondary'}
-              >
-                {t(option)}
-              </Text>
-            </Box>
+            {label}
           </Pressable>
         );
       })}
-    </Box>
+    </GlassControl>
   );
 }
