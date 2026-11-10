@@ -5,16 +5,19 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import GlassHeader from '@/components/GlassHeader';
+import TabBarFade from '@/components/TabBarFade';
 import Text from '@/components/Text';
 import SettingsRow from '@/components/settings/SettingsRow';
 import SettingsSection from '@/components/settings/SettingsSection';
 import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '@/constants/legal';
 import { useAppTheme } from '@/constants/theme';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
+import { useTabBarFade } from '@/hooks/useTabBarFade';
 import { formatRunningUpdate } from '@/lib/appUpdate';
 import { formatAppVersion } from '@/lib/appVersion';
 import { auth } from '@/lib/firebase';
@@ -45,7 +48,8 @@ export default function SettingsScreen() {
   const { t: tNote } = useTranslation(undefined, { keyPrefix: 'note' });
   const theme = useAppTheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const header = useGlassHeader('tab');
+  const fade = useTabBarFade();
   const connection = useIntervalsConnection();
   const { handleConnect, handleDisconnect, connecting, disconnecting } =
     useIntervalsAuth();
@@ -75,124 +79,130 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}
-      contentContainerStyle={{
-        paddingTop: insets.top + theme.spacing.md,
-        paddingBottom: theme.spacing['2xl'],
-      }}
-    >
-      <Text variant="h2" marginLeft="base">
-        {t('title')}
-      </Text>
-
-      <SettingsSection title={t('account.title')}>
-        <SettingsRow
-          icon="mail-outline"
-          iconColor="accent"
-          label={t('account.email')}
-          value={user?.email ?? ''}
-        />
-        <SettingsRow
-          icon="key-outline"
-          iconColor="neutral"
-          label={t('account.signInMethod')}
-          value={
-            signInMethodLabelKey
-              ? t(`account.signInMethods.${signInMethodLabelKey}`)
-              : ''
-          }
-        />
-        {signInMethods.includes('email') ? (
+    <Box flex={1} backgroundColor="bgPrimary">
+      <ScrollView
+        {...header.scrollViewProps}
+        contentContainerStyle={{
+          paddingTop: header.scrollInsetTop,
+          paddingBottom: fade.scrollInsetBottom,
+        }}
+      >
+        <SettingsSection title={t('account.title')}>
           <SettingsRow
-            icon="lock-closed-outline"
-            iconColor="neutral"
-            label={t('account.changePassword')}
-            trailing="chevron"
-            onPress={() => router.push('/change-password')}
+            icon="mail-outline"
+            iconColor="accent"
+            label={t('account.email')}
+            value={user?.email ?? ''}
           />
-        ) : null}
-        <SettingsRow
-          icon="trash-outline"
-          iconColor="danger"
-          label={t('account.deleteAccount')}
-          danger
-          onPress={() => router.push('/delete-account')}
-        />
-      </SettingsSection>
-
-      <SettingsSection title={t('integrations.title')}>
-        <SettingsRow
-          icon="link-outline"
-          iconColor="success"
-          label={tIntervals('title')}
-          subtitle={
-            connection.isConnected
-              ? tIntervals('connectedAs', {
-                  name: connection.athleteName ?? '',
-                })
-              : undefined
-          }
-          trailing={
-            <TouchableOpacity
-              onPress={
-                connection.isConnected ? handleDisconnect : handleConnect
-              }
-              disabled={busy || connection.loading}
-              hitSlop={8}
-            >
-              {busy ? (
-                <ActivityIndicator color={theme.colors.textPrimary} />
-              ) : (
-                <Text
-                  variant="body-s-medium"
-                  color={connection.isConnected ? 'danger' : 'accent'}
-                >
-                  {connection.isConnected
-                    ? tIntervals('disconnectButton')
-                    : tIntervals('connectButton')}
-                </Text>
-              )}
-            </TouchableOpacity>
-          }
-        />
-      </SettingsSection>
-
-      <SettingsSection title={t('about.title')}>
-        <SettingsRow
-          icon="information-circle-outline"
-          iconColor="neutral"
-          label={t('about.version')}
-          subtitle={runningUpdate}
-          value={appVersion}
-        />
-        <SettingsRow
-          icon="document-text-outline"
-          iconColor="neutral"
-          label={t('about.privacyPolicy')}
-          trailing="external"
-          onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
-        />
-        <SettingsRow
-          icon="document-text-outline"
-          iconColor="neutral"
-          label={t('about.termsOfService')}
-          trailing="external"
-          onPress={() => WebBrowser.openBrowserAsync(TERMS_OF_SERVICE_URL)}
-        />
-      </SettingsSection>
-
-      <Box marginTop="xl">
-        <SettingsSection>
           <SettingsRow
-            icon="log-out-outline"
+            icon="key-outline"
+            iconColor="neutral"
+            label={t('account.signInMethod')}
+            value={
+              signInMethodLabelKey
+                ? t(`account.signInMethods.${signInMethodLabelKey}`)
+                : ''
+            }
+          />
+          {signInMethods.includes('email') ? (
+            <SettingsRow
+              icon="lock-closed-outline"
+              iconColor="neutral"
+              label={t('account.changePassword')}
+              trailing="chevron"
+              onPress={() => router.push('/change-password')}
+            />
+          ) : null}
+          <SettingsRow
+            icon="trash-outline"
             iconColor="danger"
-            label={t('logout.label')}
+            label={t('account.deleteAccount')}
             danger
-            onPress={handleLogOut}
+            onPress={() => router.push('/delete-account')}
           />
         </SettingsSection>
-      </Box>
-    </ScrollView>
+
+        <SettingsSection title={t('integrations.title')}>
+          <SettingsRow
+            icon="link-outline"
+            iconColor="success"
+            label={tIntervals('title')}
+            subtitle={
+              connection.isConnected
+                ? tIntervals('connectedAs', {
+                    name: connection.athleteName ?? '',
+                  })
+                : undefined
+            }
+            trailing={
+              <TouchableOpacity
+                onPress={
+                  connection.isConnected ? handleDisconnect : handleConnect
+                }
+                disabled={busy || connection.loading}
+                hitSlop={8}
+              >
+                {busy ? (
+                  <ActivityIndicator color={theme.colors.textPrimary} />
+                ) : (
+                  <Text
+                    variant="body-s-medium"
+                    color={connection.isConnected ? 'danger' : 'accent'}
+                  >
+                    {connection.isConnected
+                      ? tIntervals('disconnectButton')
+                      : tIntervals('connectButton')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection title={t('about.title')}>
+          <SettingsRow
+            icon="information-circle-outline"
+            iconColor="neutral"
+            label={t('about.version')}
+            subtitle={runningUpdate}
+            value={appVersion}
+          />
+          <SettingsRow
+            icon="document-text-outline"
+            iconColor="neutral"
+            label={t('about.privacyPolicy')}
+            trailing="external"
+            onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
+          />
+          <SettingsRow
+            icon="document-text-outline"
+            iconColor="neutral"
+            label={t('about.termsOfService')}
+            trailing="external"
+            onPress={() => WebBrowser.openBrowserAsync(TERMS_OF_SERVICE_URL)}
+          />
+        </SettingsSection>
+
+        <Box marginTop="xl">
+          <SettingsSection>
+            <SettingsRow
+              icon="log-out-outline"
+              iconColor="danger"
+              label={t('logout.label')}
+              danger
+              onPress={handleLogOut}
+            />
+          </SettingsSection>
+        </Box>
+      </ScrollView>
+
+      <TabBarFade />
+
+      <GlassHeader onLayout={header.onLayout}>
+        <Box paddingHorizontal="base" paddingTop="sm" paddingBottom="md">
+          <Text variant="h2">{t('title')}</Text>
+        </Box>
+      </GlassHeader>
+    </Box>
   );
 }

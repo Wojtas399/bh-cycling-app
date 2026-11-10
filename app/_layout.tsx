@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Appearance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -20,6 +21,10 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
+// The app is dark only, so system glass, sheets and alerts never turn light.
+// `userInterfaceStyle: 'dark'` in the app config does the same from launch,
+// once a store build carries it.
+Appearance.setColorScheme('dark');
 SplashScreen.preventAutoHideAsync();
 setupAppFocus();
 

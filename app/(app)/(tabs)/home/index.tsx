@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import CalendarItemTile from '@/components/CalendarItemTile';
+import GlassHeader from '@/components/GlassHeader';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
+import TabBarFade from '@/components/TabBarFade';
 import Text from '@/components/Text';
 import NextRaceCard from '@/components/home/NextRaceCard';
 import TodayCards from '@/components/home/TodayCards';
@@ -17,8 +18,10 @@ import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails'
 import { useNextRace } from '@/hooks/home/useNextRace';
 import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
+import { useTabBarFade } from '@/hooks/useTabBarFade';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
@@ -28,14 +31,17 @@ import { upcomingItemKey } from '@/lib/upcomingWorkouts';
  * i jutro". Gates on availability like the other Intervals-backed screens.
  * "Dziś i jutro" branches on the raw query (ADR 0005); the cards render the
  * state `useTodayCards` hands them (ADR 0010). The next-race card shows only
- * once a Race has loaded, with no placeholder or error state.
+ * once a Race has loaded, with no placeholder or error state. The title
+ * stays in a sticky Glass header that the content scrolls under.
  */
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'home.upcomingWorkouts',
   });
+  const { t: tTabs } = useTranslation(undefined, { keyPrefix: 'tabs' });
   const theme = useAppTheme();
-  const insets = useSafeAreaInsets();
+  const header = useGlassHeader('tab');
+  const fade = useTabBarFade();
   const { availability, query, refetch } = useUpcomingWorkouts();
   const { state: todayCards, refetch: refetchTodayCards } = useTodayCards();
   const { next: nextRace, refetch: refetchNextRace } = useNextRace();
@@ -115,16 +121,13 @@ export default function HomeScreen() {
   }
 
   return (
-    <Box
-      flex={1}
-      backgroundColor="bgPrimary"
-      style={{ paddingTop: insets.top }}
-    >
+    <Box flex={1} backgroundColor="bgPrimary">
       <ScrollView
+        {...header.scrollViewProps}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.xl,
-          paddingBottom: theme.spacing.xl,
+          paddingTop: header.scrollInsetTop + theme.spacing.xl,
+          paddingBottom: fade.scrollInsetBottom,
         }}
         refreshControl={
           availability === 'available' ? (
@@ -132,12 +135,21 @@ export default function HomeScreen() {
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor={theme.colors.textSecondary}
+              progressViewOffset={header.scrollInsetTop}
             />
           ) : undefined
         }
       >
         {body()}
       </ScrollView>
+
+      <TabBarFade />
+
+      <GlassHeader onLayout={header.onLayout}>
+        <Box paddingHorizontal="lg" paddingTop="sm" paddingBottom="md">
+          <Text variant="h2">{tTabs('home')}</Text>
+        </Box>
+      </GlassHeader>
 
       <NoteDetailSheet sheet={noteSheet} />
       <RaceDetailSheet sheet={raceSheet} />

@@ -5,6 +5,8 @@ import { ActivityIndicator, ScrollView } from 'react-native';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
+import type { GlassHeaderLayout } from '@/hooks/useGlassHeader';
+import { useTabBarFade } from '@/hooks/useTabBarFade';
 import type { CalendarData } from '@/lib/calendarWorkouts';
 
 export type CalendarBodyState =
@@ -24,21 +26,30 @@ export interface CalendarBodyProps {
    * own padding (the month grid sizes its rows to the space).
    */
   fill?: boolean;
+  /** The sticky header the body starts under. */
+  header: GlassHeaderLayout;
 }
 
-/** The Calendar's content area: a spinner, an error message, or the loaded view. */
+/**
+ * The Calendar's content area: a spinner, an error message, or the loaded
+ * view. It starts under the sticky header and ends clear of the tab bar's
+ * fade; a scrolling view scrolls under both.
+ */
 export default function CalendarBody({
   state,
   children,
   fill = false,
+  header,
 }: CalendarBodyProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
+  const fade = useTabBarFade();
+  const belowHeader = header.height + theme.spacing.md;
 
   switch (state.status) {
     case 'loading':
       return (
-        <Box marginTop="md" testID="calendar-loading">
+        <Box style={{ marginTop: belowHeader }} testID="calendar-loading">
           <ActivityIndicator color={theme.colors.textPrimary} />
         </Box>
       );
@@ -48,20 +59,31 @@ export default function CalendarBody({
           variant="body-l-regular"
           color="textSecondary"
           textAlign="center"
-          marginTop="md"
           paddingHorizontal="lg"
+          style={{ marginTop: belowHeader }}
         >
           {t('error')}
         </Text>
       );
     case 'ready':
-      if (fill) return <Box flex={1}>{children(state.data)}</Box>;
+      if (fill) {
+        return (
+          <Box
+            flex={1}
+            style={{ paddingTop: header.height, paddingBottom: fade.height }}
+          >
+            {children(state.data)}
+          </Box>
+        );
+      }
 
       return (
         <ScrollView
+          {...header.scrollViewProps}
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: theme.spacing.xl,
+            paddingTop: header.scrollInsetTop,
+            paddingBottom: fade.scrollInsetBottom,
           }}
         >
           {children(state.data)}

@@ -14,26 +14,28 @@ import FormTextField from '@/components/FormTextField';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 
 export default function DeleteAccountScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'deleteAccount' });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const header = useGlassHeader('pushed');
 
   const { form, formError, busy, requiresPassword, submit } =
     useDeleteAccount();
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <ScreenHeader title={t('title')} backDisabled={busy} />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView
+          {...header.scrollViewProps}
           contentContainerStyle={{
             padding: theme.spacing.lg,
+            paddingTop: header.scrollInsetTop + theme.spacing.lg,
             paddingBottom: insets.bottom + theme.spacing.lg,
           }}
           keyboardShouldPersistTaps="handled"
@@ -99,6 +101,12 @@ export default function DeleteAccountScreen() {
           </Box>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ScreenHeader
+        title={t('title')}
+        backDisabled={busy}
+        onLayout={header.onLayout}
+      />
     </Box>
   );
 }

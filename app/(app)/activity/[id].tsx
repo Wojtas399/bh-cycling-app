@@ -21,6 +21,7 @@ import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { usePairedRace } from '@/hooks/activity/usePairedRace';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import {
   type ActivityDetails,
@@ -49,6 +50,7 @@ export default function ActivityDetailsScreen() {
   const raceSheet = useRaceSheet();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const header = useGlassHeader('pushed');
   const [refreshing, setRefreshing] = useState(false);
 
   async function handleRefresh() {
@@ -100,11 +102,11 @@ export default function ActivityDetailsScreen() {
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <ScreenHeader title={t('title')} />
       <ScrollView
+        {...header.scrollViewProps}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.sm,
-          paddingTop: theme.spacing.base,
+          paddingTop: header.scrollInsetTop + theme.spacing.base,
           paddingBottom: insets.bottom + theme.spacing.xl,
         }}
         refreshControl={
@@ -113,12 +115,14 @@ export default function ActivityDetailsScreen() {
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor={theme.colors.textSecondary}
+              progressViewOffset={header.scrollInsetTop}
             />
           ) : undefined
         }
       >
         {body()}
       </ScrollView>
+      <ScreenHeader title={t('title')} onLayout={header.onLayout} />
       <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );

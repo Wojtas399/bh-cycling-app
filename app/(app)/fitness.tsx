@@ -20,6 +20,7 @@ import {
   useFitnessChart,
 } from '@/hooks/fitness/useFitnessChart';
 import { useFitnessLabels } from '@/hooks/fitness/useFitnessLabels';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 import {
   DEFAULT_FITNESS_RANGE,
   type FitnessDay,
@@ -42,6 +43,7 @@ export default function FitnessChartScreen() {
   const [range, setRange] = useState<FitnessRange>(DEFAULT_FITNESS_RANGE);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const header = useGlassHeader('pushed');
   const [refreshing, setRefreshing] = useState(false);
 
   async function handleRefresh() {
@@ -56,14 +58,12 @@ export default function FitnessChartScreen() {
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <ScreenHeader title={t('title')} />
-      {/* Stacked over the tabs, so the tabs' banner for a 401 is hidden. */}
-      <IntervalsReconnectBanner />
       <ScrollView
+        {...header.scrollViewProps}
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: theme.spacing.lg,
-          paddingTop: theme.spacing.sm,
+          paddingTop: header.scrollInsetTop + theme.spacing.sm,
           paddingBottom: insets.bottom + theme.spacing.xl,
         }}
         refreshControl={
@@ -72,6 +72,7 @@ export default function FitnessChartScreen() {
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor={theme.colors.textSecondary}
+              progressViewOffset={header.scrollInsetTop}
             />
           )
         }
@@ -89,6 +90,10 @@ export default function FitnessChartScreen() {
           </Box>
         )}
       </ScrollView>
+      <ScreenHeader title={t('title')} onLayout={header.onLayout}>
+        {/* Stacked over the tabs, so the tabs' banner for a 401 is hidden. */}
+        <IntervalsReconnectBanner />
+      </ScreenHeader>
     </Box>
   );
 }
