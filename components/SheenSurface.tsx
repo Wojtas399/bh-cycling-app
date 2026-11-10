@@ -2,9 +2,7 @@ import type { ComponentProps } from 'react';
 
 import Box from '@/components/Box';
 import { useAppTheme } from '@/constants/theme';
-import { useSurfaceContrast } from '@/hooks/useSurfaceContrast';
-import { liquidGlassAvailable } from '@/lib/liquidGlass';
-import { resolveSurfaceTreatment } from '@/lib/surfaceTreatment';
+import { useSurfaceTreatment } from '@/hooks/useSurfaceTreatment';
 
 type SheenSurfaceProps = Omit<
   ComponentProps<typeof Box>,
@@ -20,10 +18,7 @@ type SheenSurfaceProps = Omit<
  */
 export default function SheenSurface({ style, ...props }: SheenSurfaceProps) {
   const { colors } = useAppTheme();
-  const { paint, hairlineStrong } = resolveSurfaceTreatment(
-    { kind: 'sheen' },
-    { liquidGlassAvailable, ...useSurfaceContrast() },
-  );
+  const { paint, hairlineStrong } = useSurfaceTreatment({ kind: 'sheen' });
 
   return (
     <Box

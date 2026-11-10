@@ -9,6 +9,23 @@ const DEFAULT: SurfaceEnvironment = {
   increaseContrast: false,
 };
 
+const HAIRLINE = 'rgba(255, 255, 255, 0.08)';
+const HAIRLINE_STRONG = 'rgba(255, 255, 255, 0.30)';
+const BG_TERTIARY = '#1C1C1E';
+
+const FROST_PLAIN = {
+  paint: 'frost',
+  fill: 'rgba(255, 255, 255, 0.08)',
+  hairline: 'rgba(255, 255, 255, 0.10)',
+  topEdge: 'rgba(255, 255, 255, 0.30)',
+};
+const FROST_PROMINENT = {
+  paint: 'frost',
+  fill: 'rgba(236, 236, 240, 0.92)',
+  hairline: 'rgba(255, 255, 255, 0.5)',
+  topEdge: '#FFFFFF',
+};
+
 function env(overrides: Partial<SurfaceEnvironment>): SurfaceEnvironment {
   return { ...DEFAULT, ...overrides };
 }
@@ -123,45 +140,44 @@ describe('resolveSurfaceTreatment', () => {
         );
       }
 
-      it('is Frost', () => {
-        expect(resolve(false)).toEqual({
-          paint: 'frost',
-          prominent: false,
-          hairlineStrong: false,
-        });
-        expect(resolve(true)).toEqual({
-          paint: 'frost',
-          prominent: true,
-          hairlineStrong: false,
-        });
+      it('is plain Frost with a light top edge', () => {
+        expect(resolve(false)).toEqual(FROST_PLAIN);
       });
 
-      it('raises plain Frost to the strong fill and hairline under Increase Contrast', () => {
+      it('is near-white Frost when prominent', () => {
+        expect(resolve(true)).toEqual(FROST_PROMINENT);
+      });
+
+      it('raises plain Frost to a 14% fill and the strong hairline under Increase Contrast', () => {
         expect(resolve(false, { increaseContrast: true })).toEqual({
           paint: 'frost',
-          prominent: false,
-          hairlineStrong: true,
+          fill: 'rgba(255, 255, 255, 0.14)',
+          hairline: HAIRLINE_STRONG,
+          topEdge: 'rgba(255, 255, 255, 0.30)',
         });
       });
 
       // Its 50% white edge is already brighter than `hairlineStrong`.
       it('leaves prominent Frost alone under Increase Contrast', () => {
-        expect(resolve(true, { increaseContrast: true })).toEqual({
-          paint: 'frost',
-          prominent: true,
-          hairlineStrong: false,
-        });
+        expect(resolve(true, { increaseContrast: true })).toEqual(
+          FROST_PROMINENT,
+        );
       });
 
-      it.each([false, true])(
-        'turns plain Frost solid bgTertiary under Reduce Transparency (Increase Contrast %s)',
-        increaseContrast => {
+      it.each`
+        increaseContrast | hairline
+        ${false}         | ${HAIRLINE}
+        ${true}          | ${HAIRLINE_STRONG}
+      `(
+        'turns plain Frost solid bgTertiary under Reduce Transparency (Increase Contrast $increaseContrast)',
+        ({ increaseContrast, hairline }) => {
           expect(
             resolve(false, { reduceTransparency: true, increaseContrast }),
           ).toEqual({
             paint: 'opaque',
-            fill: 'bgTertiary',
-            hairlineStrong: increaseContrast,
+            fill: BG_TERTIARY,
+            hairline,
+            topEdge: hairline,
           });
         },
       );
@@ -175,8 +191,9 @@ describe('resolveSurfaceTreatment', () => {
             resolve(true, { reduceTransparency: true, increaseContrast }),
           ).toEqual({
             paint: 'opaque',
-            fill: 'interactiveDefault',
-            hairlineStrong: false,
+            fill: '#FFFFFF',
+            hairline: HAIRLINE,
+            topEdge: HAIRLINE,
           });
         },
       );

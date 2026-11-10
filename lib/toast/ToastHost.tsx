@@ -2,10 +2,9 @@ import { useEffect, useId } from 'react';
 import { StyleSheet, type TextStyle } from 'react-native';
 
 import theme from '@/constants/theme';
-import { liquidGlassAvailable } from '@/lib/liquidGlass';
+import { DarkGlassView, liquidGlassAvailable } from '@/lib/liquidGlass';
 import { registerSheetHost, unregisterSheetHost } from '@/lib/toast';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from 'expo-glass-effect';
 import { Toaster, type ToasterProps } from 'sonner-native';
 
 const { colors, spacing, borderRadii, textVariants } = theme;
@@ -72,11 +71,7 @@ export const toasterConfig = {
     ),
   },
   backgroundComponent: liquidGlassAvailable ? (
-    <GlassView
-      glassEffectStyle="regular"
-      colorScheme="dark"
-      style={StyleSheet.absoluteFill}
-    />
+    <DarkGlassView style={StyleSheet.absoluteFill} />
   ) : undefined,
 } satisfies Omit<ToasterProps, 'id'>;
 

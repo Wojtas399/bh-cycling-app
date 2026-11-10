@@ -9,11 +9,10 @@ import RouteLoadError from '@/components/route/RouteLoadError';
 import RouteSkeleton from '@/components/route/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
-import { liquidGlassAvailable } from '@/lib/liquidGlass';
+import { DarkGlassView, liquidGlassAvailable } from '@/lib/liquidGlass';
 import type { Route, RouteSummary } from '@/lib/route';
 import { formatRouteDistance } from '@/lib/routeChips';
 import { Ionicons } from '@expo/vector-icons';
-import { GlassView } from 'expo-glass-effect';
 import { type Href, useRouter } from 'expo-router';
 
 const BANNER_HEIGHT = 240;
@@ -130,15 +129,7 @@ function DistancePill({ children }: { children: ReactNode }) {
   const theme = useAppTheme();
 
   if (liquidGlassAvailable) {
-    return (
-      <GlassView
-        glassEffectStyle="regular"
-        colorScheme="dark"
-        style={PILL_STYLE}
-      >
-        {children}
-      </GlassView>
-    );
+    return <DarkGlassView style={PILL_STYLE}>{children}</DarkGlassView>;
   }
 
   return (

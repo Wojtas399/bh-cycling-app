@@ -1,3 +1,12 @@
+import {
+  FROST_PLAIN,
+  FROST_PLAIN_STRONG_FILL,
+  FROST_PROMINENT,
+} from '@/constants/surfaces';
+import theme from '@/constants/theme';
+
+const { colors } = theme;
+
 /** What the device can draw and the accessibility settings the athlete has on. */
 export interface SurfaceEnvironment {
   /** iOS 26 Liquid Glass: `isLiquidGlassAvailable()` and `isGlassEffectAPIAvailable()`. */
@@ -23,16 +32,12 @@ export type BackdropTreatment = {
 export type ControlTreatment =
   /** System glass, tinted near-white when prominent; the system adapts it. */
   | { paint: 'native'; prominent: boolean }
-  /** On plain Frost, `hairlineStrong` also raises the fill from 8% to 14%. */
-  | { paint: 'frost'; prominent: boolean; hairlineStrong: boolean }
-  /**
-   * Solid, for Reduce Transparency. A prominent control's near-black label
-   * can't be read on `bgTertiary`, so it turns solid `interactiveDefault`.
-   */
+  /** Frost, or solid under Reduce Transparency, in the colours to paint. */
   | {
-      paint: 'opaque';
-      fill: 'bgTertiary' | 'interactiveDefault';
-      hairlineStrong: boolean;
+      paint: 'frost' | 'opaque';
+      fill: string;
+      hairline: string;
+      topEdge: string;
     };
 
 type ControlSurface = {
@@ -41,25 +46,26 @@ type ControlSurface = {
   prominent: boolean;
 };
 
-type Surface = { kind: 'sheen' } | { kind: 'backdrop' } | ControlSurface;
+export type Surface = { kind: 'sheen' } | { kind: 'backdrop' } | ControlSurface;
+
+type Treatments = {
+  sheen: SheenTreatment;
+  backdrop: BackdropTreatment;
+  control: ControlTreatment;
+};
+
+/** What a surface of that kind paints. */
+export type SurfaceTreatment<S extends Surface> = Treatments[S['kind']];
 
 /**
  * Decides how a surface primitive paints. Native glass draws and adapts its
  * own edge, so Reduce Transparency and Increase Contrast only change what we
  * paint ourselves: the Sheen gradient and the tint and Frost fallbacks.
  */
-export function resolveSurfaceTreatment(
-  surface: { kind: 'sheen' },
+export function resolveSurfaceTreatment<S extends Surface>(
+  surface: S,
   environment: SurfaceEnvironment,
-): SheenTreatment;
-export function resolveSurfaceTreatment(
-  surface: { kind: 'backdrop' },
-  environment: SurfaceEnvironment,
-): BackdropTreatment;
-export function resolveSurfaceTreatment(
-  surface: ControlSurface,
-  environment: SurfaceEnvironment,
-): ControlTreatment;
+): SurfaceTreatment<S>;
 export function resolveSurfaceTreatment(
   surface: Surface,
   {
@@ -90,16 +96,27 @@ export function resolveSurfaceTreatment(
     return { paint: 'native', prominent };
   }
 
-  // A prominent control's edge is already brighter than `hairlineStrong`.
-  const hairlineStrong = increaseContrast && !prominent;
-
   if (reduceTransparency) {
+    // A prominent control's near-black label can't be read on `bgTertiary`,
+    // so it turns solid white, which stands out without a stronger edge.
+    const fill = prominent ? colors.interactiveDefault : colors.bgTertiary;
+    const hairline =
+      increaseContrast && !prominent ? colors.hairlineStrong : colors.hairline;
+
+    return { paint: 'opaque', fill, hairline, topEdge: hairline };
+  }
+
+  // A prominent control's edge is already brighter than `hairlineStrong`.
+  if (prominent) return { paint: 'frost', ...FROST_PROMINENT };
+
+  if (increaseContrast) {
     return {
-      paint: 'opaque',
-      fill: prominent ? 'interactiveDefault' : 'bgTertiary',
-      hairlineStrong,
+      paint: 'frost',
+      fill: FROST_PLAIN_STRONG_FILL,
+      hairline: colors.hairlineStrong,
+      topEdge: FROST_PLAIN.topEdge,
     };
   }
 
-  return { paint: 'frost', prominent, hairlineStrong };
+  return { paint: 'frost', ...FROST_PLAIN };
 }

@@ -1,10 +1,8 @@
 import { StyleSheet } from 'react-native';
 
 import Box from '@/components/Box';
-import { useSurfaceContrast } from '@/hooks/useSurfaceContrast';
-import { liquidGlassAvailable } from '@/lib/liquidGlass';
-import { resolveSurfaceTreatment } from '@/lib/surfaceTreatment';
-import { GlassView } from 'expo-glass-effect';
+import { useSurfaceTreatment } from '@/hooks/useSurfaceTreatment';
+import { DarkGlassView } from '@/lib/liquidGlass';
 
 /**
  * Glass behind floating chrome that content scrolls under, such as a sticky
@@ -13,19 +11,10 @@ import { GlassView } from 'expo-glass-effect';
  * the bottom edge, turned solid under Reduce Transparency.
  */
 export default function GlassBackdrop() {
-  const { paint, hairlineStrong } = resolveSurfaceTreatment(
-    { kind: 'backdrop' },
-    { liquidGlassAvailable, ...useSurfaceContrast() },
-  );
+  const { paint, hairlineStrong } = useSurfaceTreatment({ kind: 'backdrop' });
 
   if (paint === 'native') {
-    return (
-      <GlassView
-        glassEffectStyle="regular"
-        colorScheme="dark"
-        style={StyleSheet.absoluteFill}
-      />
-    );
+    return <DarkGlassView style={StyleSheet.absoluteFill} />;
   }
 
   return (

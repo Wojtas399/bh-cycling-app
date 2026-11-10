@@ -1,4 +1,6 @@
 import {
+  GlassView,
+  type GlassViewProps,
   isGlassEffectAPIAvailable,
   isLiquidGlassAvailable,
 } from 'expo-glass-effect';
@@ -9,3 +11,13 @@ import {
  */
 export const liquidGlassAvailable =
   isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+
+/**
+ * The app's native glass: regular Liquid Glass in the dark scheme. Draw it
+ * only where `liquidGlassAvailable`.
+ */
+export function DarkGlassView(
+  props: Omit<GlassViewProps, 'glassEffectStyle' | 'colorScheme'>,
+) {
+  return <GlassView glassEffectStyle="regular" colorScheme="dark" {...props} />;
+}

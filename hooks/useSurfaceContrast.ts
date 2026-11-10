@@ -80,8 +80,9 @@ function subscribe(listener: () => void) {
 /**
  * The accessibility settings that change how surfaces paint: Reduce
  * Transparency (followed live) and Increase Contrast or high text contrast
- * (read again when the app returns to the foreground). Only the surface
- * primitives call it; screens and controls never read these settings.
+ * (read again when the app returns to the foreground). Only
+ * `useSurfaceTreatment` calls it; screens and controls never read these
+ * settings.
  */
 export function useSurfaceContrast(): SurfaceContrast {
   return useSyncExternalStore(subscribe, () => snapshot);
