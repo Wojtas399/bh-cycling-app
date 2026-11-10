@@ -1,6 +1,7 @@
 import { Children, Fragment } from 'react';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 
 interface SettingsSectionProps {
@@ -36,12 +37,7 @@ export default function SettingsSection({
         </Text>
       ) : null}
 
-      <Box
-        marginHorizontal="base"
-        backgroundColor="bgSecondary"
-        borderRadius="lg"
-        overflow="hidden"
-      >
+      <SheenSurface marginHorizontal="base" overflow="hidden">
         {rows.map((row, index) => (
           <Fragment key={index}>
             {index > 0 ? (
@@ -55,7 +51,7 @@ export default function SettingsSection({
             {row}
           </Fragment>
         ))}
-      </Box>
+      </SheenSurface>
 
       {footer ? (
         <Text
