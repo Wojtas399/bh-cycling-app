@@ -12,6 +12,7 @@ import { useSignUp } from './useSignUp';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
 import FormTextField from '@/components/FormTextField';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,7 +35,7 @@ export default function SignUpScreen() {
   } = useSignUp();
 
   return (
-    <Box flex={1} backgroundColor="bgSecondary">
+    <Box flex={1} backgroundColor="bgPrimary">
       <TouchableOpacity
         style={{
           position: 'absolute',
@@ -66,137 +67,131 @@ export default function SignUpScreen() {
         >
           <Box
             flex={1}
-            backgroundColor="bgSecondary"
             alignItems="center"
             justifyContent="center"
             paddingHorizontal="lg"
           >
-            <Text variant="h2">{t('signUp.title')}</Text>
+            <SheenSurface width="100%" padding="lg" alignItems="center">
+              <Text variant="h2">{t('signUp.title')}</Text>
 
-            <Box marginTop="sm">
-              <Text
-                variant="body-s-regular"
-                color="textSecondary"
-                textAlign="center"
-              >
-                {t('signUp.subtitle')}
-              </Text>
-            </Box>
-
-            <Box width="100%" marginTop="xl">
-              <FormTextField
-                form={form}
-                name="email"
-                next="password"
-                label={t('signUp.email')}
-                placeholder="you@example.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="emailAddress"
-                autoComplete="email"
-              />
-
-              <Box marginTop="md">
-                <FormTextField
-                  form={form}
-                  name="password"
-                  next="confirmPassword"
-                  label={t('signUp.password')}
-                  password
-                  textContentType="newPassword"
-                  autoComplete="new-password"
-                />
-              </Box>
-
-              <Box marginTop="md">
-                <FormTextField
-                  form={form}
-                  name="confirmPassword"
-                  label={t('signUp.confirmPassword')}
-                  password
-                  textContentType="newPassword"
-                  autoComplete="new-password"
-                  returnKeyType="done"
-                  onSubmitEditing={submit}
-                />
-              </Box>
-            </Box>
-
-            {formError ? (
-              <Box width="100%" marginTop="xl">
+              <Box marginTop="sm">
                 <Text
                   variant="body-s-regular"
-                  color="danger"
+                  color="textSecondary"
                   textAlign="center"
                 >
-                  {formError}
+                  {t('signUp.subtitle')}
                 </Text>
               </Box>
-            ) : null}
 
-            <Box width="100%" marginTop="xl">
-              <Button
-                variant="primary"
-                placement="content"
-                onPress={submit}
-                disabled={busy}
-              >
-                {emailPending ? (
-                  <ActivityIndicator color={theme.colors.textInverse} />
-                ) : (
-                  <Text variant="body-l-semibold" color="textInverse">
-                    {t('signUp.signUpButton')}
+              <Box width="100%" marginTop="xl">
+                <FormTextField
+                  form={form}
+                  name="email"
+                  next="password"
+                  label={t('signUp.email')}
+                  placeholder="you@example.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="emailAddress"
+                  autoComplete="email"
+                />
+
+                <Box marginTop="md">
+                  <FormTextField
+                    form={form}
+                    name="password"
+                    next="confirmPassword"
+                    label={t('signUp.password')}
+                    password
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                  />
+                </Box>
+
+                <Box marginTop="md">
+                  <FormTextField
+                    form={form}
+                    name="confirmPassword"
+                    label={t('signUp.confirmPassword')}
+                    password
+                    textContentType="newPassword"
+                    autoComplete="new-password"
+                    returnKeyType="done"
+                    onSubmitEditing={submit}
+                  />
+                </Box>
+              </Box>
+
+              {formError ? (
+                <Box width="100%" marginTop="xl">
+                  <Text
+                    variant="body-s-regular"
+                    color="danger"
+                    textAlign="center"
+                  >
+                    {formError}
                   </Text>
-                )}
-              </Button>
-            </Box>
+                </Box>
+              ) : null}
 
-            <Box
-              width="100%"
-              flexDirection="row"
-              alignItems="center"
-              marginTop="xl"
-            >
-              <Box flex={1} height={1} backgroundColor="borderDefault" />
-              <Box marginHorizontal="md">
-                <Text variant="body-xs-regular" color="textSecondary">
-                  {t('signUp.or')}
-                </Text>
-              </Box>
-              <Box flex={1} height={1} backgroundColor="borderDefault" />
-            </Box>
-
-            <Box width="100%" marginTop="xl">
-              <Button
-                variant="secondary"
-                placement="content"
-                onPress={signUpWithGoogle}
-                disabled={busy}
-              >
-                {googlePending ? (
-                  <ActivityIndicator color={theme.colors.textPrimary} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="logo-google"
-                      size={20}
-                      color={theme.colors.textPrimary}
-                    />
-                    <Text variant="body-s-medium" color="textPrimary">
-                      {t('signUp.signUpWithGoogle')}
+              <Box width="100%" marginTop="xl">
+                <Button
+                  variant="primary"
+                  placement="content"
+                  onPress={submit}
+                  disabled={busy}
+                >
+                  {emailPending ? (
+                    <ActivityIndicator color={theme.colors.textInverse} />
+                  ) : (
+                    <Text variant="body-l-semibold" color="textInverse">
+                      {t('signUp.signUpButton')}
                     </Text>
-                  </>
-                )}
-              </Button>
-            </Box>
+                  )}
+                </Button>
+              </Box>
 
-            <Box
-              width="100%"
-              height={1}
-              backgroundColor="borderDefault"
-              marginTop="xl"
-            />
+              <Box
+                width="100%"
+                flexDirection="row"
+                alignItems="center"
+                marginTop="xl"
+              >
+                <Box flex={1} height={1} backgroundColor="borderDefault" />
+                <Box marginHorizontal="md">
+                  <Text variant="body-xs-regular" color="textSecondary">
+                    {t('signUp.or')}
+                  </Text>
+                </Box>
+                <Box flex={1} height={1} backgroundColor="borderDefault" />
+              </Box>
+
+              <Box width="100%" marginTop="xl">
+                <Button
+                  variant="secondary"
+                  placement="content"
+                  onPress={signUpWithGoogle}
+                  disabled={busy}
+                >
+                  {googlePending ? (
+                    <ActivityIndicator color={theme.colors.textPrimary} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="logo-google"
+                        size={20}
+                        color={theme.colors.textPrimary}
+                      />
+                      <Text variant="body-s-medium" color="textPrimary">
+                        {t('signUp.signUpWithGoogle')}
+                      </Text>
+                    </>
+                  )}
+                </Button>
+              </Box>
+            </SheenSurface>
 
             <Box marginTop="xl">
               <TouchableOpacity

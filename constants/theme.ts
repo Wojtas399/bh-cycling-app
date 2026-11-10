@@ -41,7 +41,6 @@ const theme = createTheme({
 
     // Semantic — backgrounds
     bgPrimary: palette.black,
-    bgSecondary: '#121212',
     bgTertiary: palette.gray900,
 
     // Semantic — text
