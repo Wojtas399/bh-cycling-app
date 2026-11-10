@@ -3,7 +3,6 @@ import { type ReactNode, useState } from 'react';
 import Box from '@/components/Box';
 import GlassHeader from '@/components/GlassHeader';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
-import TabBarFade from '@/components/TabBarFade';
 import CalendarBody, {
   type CalendarBodyState,
 } from '@/components/calendar/CalendarBody';
@@ -169,7 +168,7 @@ interface LoadedViewProps {
 /**
  * Everything the two views share: the header (toggle, "Dziś", refresh, range
  * navigation) sticky on Glass, the loading/error/ready body under it, the
- * tab bar's fade, the day sheet, and the Note and Race Detail Sheets.
+ * day sheet, and the Note and Race Detail Sheets.
  */
 function CalendarLayout({
   view,
@@ -207,8 +206,6 @@ function CalendarLayout({
           })
         }
       </CalendarBody>
-
-      <TabBarFade />
 
       <GlassHeader onLayout={header.onLayout}>
         <Box paddingTop="sm">

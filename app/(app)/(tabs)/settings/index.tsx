@@ -8,7 +8,6 @@ import {
 
 import Box from '@/components/Box';
 import GlassHeader from '@/components/GlassHeader';
-import TabBarFade from '@/components/TabBarFade';
 import Text from '@/components/Text';
 import SettingsRow from '@/components/settings/SettingsRow';
 import SettingsSection from '@/components/settings/SettingsSection';
@@ -17,7 +16,6 @@ import { useAppTheme } from '@/constants/theme';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import { useTabBarFade } from '@/hooks/useTabBarFade';
 import { formatRunningUpdate } from '@/lib/appUpdate';
 import { formatAppVersion } from '@/lib/appVersion';
 import { auth } from '@/lib/firebase';
@@ -49,7 +47,6 @@ export default function SettingsScreen() {
   const theme = useAppTheme();
   const router = useRouter();
   const header = useGlassHeader('tab');
-  const fade = useTabBarFade();
   const connection = useIntervalsConnection();
   const { handleConnect, handleDisconnect, connecting, disconnecting } =
     useIntervalsAuth();
@@ -84,7 +81,7 @@ export default function SettingsScreen() {
         {...header.scrollViewProps}
         contentContainerStyle={{
           paddingTop: header.scrollInsetTop,
-          paddingBottom: fade.scrollInsetBottom,
+          paddingBottom: theme.spacing['2xl'],
         }}
       >
         <SettingsSection title={t('account.title')}>
@@ -195,8 +192,6 @@ export default function SettingsScreen() {
           </SettingsSection>
         </Box>
       </ScrollView>
-
-      <TabBarFade />
 
       <GlassHeader onLayout={header.onLayout}>
         <Box paddingHorizontal="base" paddingTop="sm" paddingBottom="md">

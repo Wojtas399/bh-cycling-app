@@ -8,7 +8,6 @@ import GlassHeader from '@/components/GlassHeader';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import NoteCard from '@/components/NoteCard';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
-import TabBarFade from '@/components/TabBarFade';
 import Text from '@/components/Text';
 import NextRaceCard from '@/components/home/NextRaceCard';
 import TodayCards from '@/components/home/TodayCards';
@@ -21,7 +20,6 @@ import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useNoteSheet } from '@/hooks/useNoteSheet';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
-import { useTabBarFade } from '@/hooks/useTabBarFade';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
@@ -41,7 +39,6 @@ export default function HomeScreen() {
   const { t: tTabs } = useTranslation(undefined, { keyPrefix: 'tabs' });
   const theme = useAppTheme();
   const header = useGlassHeader('tab');
-  const fade = useTabBarFade();
   const { availability, query, refetch } = useUpcomingWorkouts();
   const { state: todayCards, refetch: refetchTodayCards } = useTodayCards();
   const { next: nextRace, refetch: refetchNextRace } = useNextRace();
@@ -127,7 +124,7 @@ export default function HomeScreen() {
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
           paddingTop: header.scrollInsetTop + theme.spacing.xl,
-          paddingBottom: fade.scrollInsetBottom,
+          paddingBottom: theme.spacing.xl,
         }}
         refreshControl={
           availability === 'available' ? (
@@ -142,8 +139,6 @@ export default function HomeScreen() {
       >
         {body()}
       </ScrollView>
-
-      <TabBarFade />
 
       <GlassHeader onLayout={header.onLayout}>
         <Box paddingHorizontal="lg" paddingTop="sm" paddingBottom="md">

@@ -6,7 +6,7 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import type { GlassHeaderLayout } from '@/hooks/useGlassHeader';
-import { useTabBarFade } from '@/hooks/useTabBarFade';
+import { useTabBarClearance } from '@/hooks/useTabBarClearance';
 import type { CalendarData } from '@/lib/calendarWorkouts';
 
 export type CalendarBodyState =
@@ -32,8 +32,8 @@ export interface CalendarBodyProps {
 
 /**
  * The Calendar's content area: a spinner, an error message, or the loaded
- * view. It starts under the sticky header and ends clear of the tab bar's
- * fade; a scrolling view scrolls under both.
+ * view. It starts under the sticky header and ends clear of the tab bar; a
+ * scrolling view scrolls under both.
  */
 export default function CalendarBody({
   state,
@@ -43,7 +43,7 @@ export default function CalendarBody({
 }: CalendarBodyProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
-  const fade = useTabBarFade();
+  const tabBarClearance = useTabBarClearance();
   const belowHeader = header.height + theme.spacing.md;
 
   switch (state.status) {
@@ -70,7 +70,10 @@ export default function CalendarBody({
         return (
           <Box
             flex={1}
-            style={{ paddingTop: header.height, paddingBottom: fade.height }}
+            style={{
+              paddingTop: header.height,
+              paddingBottom: tabBarClearance,
+            }}
           >
             {children(state.data)}
           </Box>
@@ -83,7 +86,7 @@ export default function CalendarBody({
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.lg,
             paddingTop: header.scrollInsetTop,
-            paddingBottom: fade.scrollInsetBottom,
+            paddingBottom: theme.spacing.xl,
           }}
         >
           {children(state.data)}
