@@ -26,12 +26,6 @@ const MAX_HEIGHT_RATIO = 0.7;
  */
 const IOS_HEADER_TOP_PADDING = theme.spacing.lg + theme.spacing.sm;
 
-/**
- * On iOS 26 the sheet shows the system's Liquid Glass material, kept dark by
- * the app-wide forced dark scheme. Elsewhere we paint it dark ourselves.
- */
-const PAINTED = !liquidGlassAvailable;
-
 export interface BottomSheetProps {
   /** Whether the sheet is open. */
   visible: boolean;
@@ -145,10 +139,14 @@ export default function BottomSheet({
       showDragIndicator
       // Our own content view carries the theme padding and the full width.
       contentPadding={0}
-      containerColor={PAINTED ? theme.colors.bgTertiary : undefined}
+      // On iOS 26 the sheet shows the system's Liquid Glass material, kept
+      // dark by the app-wide forced dark scheme. Elsewhere we paint it dark.
+      containerColor={
+        liquidGlassAvailable ? undefined : theme.colors.bgTertiary
+      }
       scrimColor={theme.colors.overlay}
       modifiers={
-        Platform.OS === 'ios' && PAINTED
+        Platform.OS === 'ios' && !liquidGlassAvailable
           ? [preferredColorScheme('dark')]
           : undefined
       }

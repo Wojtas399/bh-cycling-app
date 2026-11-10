@@ -27,27 +27,26 @@ export default function CalendarDayTile({
   children,
   ...box
 }: CalendarDayTileProps) {
-  if (!outsideMonth) {
-    return (
-      <Box borderRadius="sm" backgroundColor="bgTertiary" {...box}>
-        {children}
-      </Box>
-    );
-  }
-
-  // Only the fill fades: dimming the whole tile would fade the day number too.
   return (
-    <Box borderRadius="sm" {...box}>
-      <Box
-        position="absolute"
-        top={0}
-        right={0}
-        bottom={0}
-        left={0}
-        borderRadius="sm"
-        backgroundColor="bgTertiary"
-        opacity={OUTSIDE_MONTH_FILL_OPACITY}
-      />
+    <Box
+      borderRadius="sm"
+      backgroundColor={outsideMonth ? undefined : 'bgTertiary'}
+      {...box}
+    >
+      {/* Only the fill fades: dimming the whole tile would fade the day
+          number too. */}
+      {outsideMonth && (
+        <Box
+          position="absolute"
+          top={0}
+          right={0}
+          bottom={0}
+          left={0}
+          borderRadius="sm"
+          backgroundColor="bgTertiary"
+          opacity={OUTSIDE_MONTH_FILL_OPACITY}
+        />
+      )}
       {children}
     </Box>
   );
