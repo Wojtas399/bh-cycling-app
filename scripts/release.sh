@@ -25,8 +25,21 @@ use_target() {
   eas env:pull --environment "$environment" --non-interactive
 }
 
-# The ref decides the version. The edit stays in this checkout because EAS
-# uploads the working tree, so nothing is committed back.
+# The version in app.config.ts on main. Dev builds carry it, and an rc branch
+# must be cut at it, so staging gets the version Dev already had.
+config_version() {
+  sed -En "s/^  version: '($semver)',$/\\1/p" app.config.ts | grep . || die "Could not read the version from app.config.ts"
+}
+
+require_config_version() {
+  local config
+  config="$(config_version)"
+  [[ "$1" == "$config" ]] || die "$GITHUB_REF_NAME does not match version $config in app.config.ts"
+  version="$1"
+}
+
+# Hotfix and production refs decide the version. The edit stays in this
+# checkout because EAS uploads the working tree, so nothing is committed back.
 set_version() {
   version="$1"
   sed "s/^  version: '.*',$/  version: '$version',/" app.config.ts >app.config.ts.tmp
@@ -48,12 +61,39 @@ has_matching_build() {
   jq -e 'any(.[]; .status != "ERRORED" and .status != "CANCELED")' <<<"$builds" >/dev/null
 }
 
-# Android builds are not submitted until Google Play has a service account key,
-# which waits on the Play developer account verification.
+# Dev builds wait, so a failed EAS build turns the run red, and are never
+# submitted. Android builds are not submitted until Google Play has a service
+# account key, which waits on the Play developer account verification.
 build() {
-  local submit=""
-  [[ "$platform" == ios ]] && submit=--auto-submit
-  eas build --platform "$platform" --profile "$profile" --non-interactive --no-wait $submit
+  local wait="" submit=""
+  if [[ "$profile" != dev ]]; then
+    wait=--no-wait
+    [[ "$platform" == ios ]] && submit=--auto-submit
+  fi
+  eas build --platform "$platform" --profile "$profile" --non-interactive $wait $submit
+}
+
+# Dev builds leave a reserve of 3 builds a month per platform for staging and
+# production. Called inside `if`, so a failed or unparseable usage check must
+# stop the run here. Never fail open into a build.
+dev_build_fits_quota() {
+  local usage quota
+  usage="$(eas account:usage wojtas --json --non-interactive)" || die "Could not read EAS usage"
+  quota="$(jq -er --arg p "$platform" '
+    .builds[$p].plan as $q
+    | if ($q.used | type) == "number" and ($q.limit | type) == "number" then
+        "\($q.used) \($q.limit) \(.account.billingPeriod.end | sub("\\.[0-9]+Z$"; "Z") | fromdate | strftime("%d %b") | ltrimstr("0"))"
+      else error("no build quota for \($p)") end' <<<"$usage")" || die "Could not parse EAS usage"
+  read -r used limit resets <<<"$quota"
+  ((limit - used > 3))
+}
+
+skip_dev_build() {
+  local used="$1" limit="$2" resets="$3" name
+  [[ "$platform" == ios ]] && name=iOS || name=Android
+  local line="Dev $name build skipped: $used/$limit used, resets $resets"
+  echo "::warning::$line"
+  echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 }
 
 update() {
@@ -67,9 +107,19 @@ require_commit_on() {
 
 ref="$GITHUB_REF_TYPE:$GITHUB_REF_NAME"
 
-if [[ "$ref" =~ ^branch:rc/($semver)$ ]]; then
+if [[ "$ref" =~ ^branch:main$ ]]; then
+  use_target dev
+  version="$(config_version)"
+  if has_matching_build; then
+    update || die "Could not publish a dev update"
+  elif dev_build_fits_quota; then
+    build || die "Dev build failed"
+  else
+    skip_dev_build "$used" "$limit" "$resets"
+  fi
+elif [[ "$ref" =~ ^branch:rc/($semver)$ ]]; then
   use_target staging
-  set_version "${BASH_REMATCH[1]}"
+  require_config_version "${BASH_REMATCH[1]}"
   if has_matching_build; then
     update
   else

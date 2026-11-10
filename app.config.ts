@@ -13,6 +13,9 @@ const FIREBASE_FILES: Record<string, string | undefined> = {
     process.env.GOOGLE_SERVICE_INFO_STAGING_PLIST,
   'firebase/GoogleService-Info.production.plist':
     process.env.GOOGLE_SERVICE_INFO_PRODUCTION_PLIST,
+  'firebase/google-services.dev.json': process.env.GOOGLE_SERVICES_DEV_JSON,
+  'firebase/GoogleService-Info.dev.plist':
+    process.env.GOOGLE_SERVICE_INFO_DEV_PLIST,
 };
 
 for (const [dest, srcPath] of Object.entries(FIREBASE_FILES)) {
@@ -22,15 +25,40 @@ for (const [dest, srcPath] of Object.entries(FIREBASE_FILES)) {
   }
 }
 
-const APP_ENV = process.env.APP_ENV ?? 'staging';
-const IS_PRODUCTION = APP_ENV === 'production';
-const ICON_VARIANT = IS_PRODUCTION ? 'production' : 'staging';
+type AppEnv = 'production' | 'staging' | 'dev';
+
+const IDENTITY: Record<AppEnv, { name: string; bundleId: string }> = {
+  production: {
+    name: 'BH Cycling',
+    bundleId: 'com.wojtas.blackhorsecyclingapp',
+  },
+  staging: {
+    name: 'BH Cycling (Staging)',
+    bundleId: 'com.wojtas.blackhorsecyclingapp.staging',
+  },
+  dev: {
+    name: 'BH Cycling (Dev)',
+    bundleId: 'com.wojtas.blackhorsecyclingapp.dev',
+  },
+};
+
+const isAppEnv = (env: string): env is AppEnv =>
+  Object.keys(IDENTITY).includes(env);
+
+const resolveAppEnv = (env = 'staging'): AppEnv => {
+  if (!isAppEnv(env)) {
+    throw new Error(
+      `Unknown APP_ENV "${env}". Use production, staging or dev.`,
+    );
+  }
+
+  return env;
+};
+
+const APP_ENV = resolveAppEnv(process.env.APP_ENV);
+const identity = IDENTITY[APP_ENV];
 
 const EAS_PROJECT_ID = 'a5a05625-f7f4-4b0c-89b8-72de6a9dbdd8';
-
-const BUNDLE_ID = IS_PRODUCTION
-  ? 'com.wojtas.blackhorsecyclingapp'
-  : 'com.wojtas.blackhorsecyclingapp.staging';
 
 // The release build hangs on a Metaspace out-of-memory error with the
 // template's 512m. Prebuild rewrites gradle.properties, so it's set here.
@@ -50,22 +78,21 @@ const withGradleMemory: ConfigPlugin = config =>
 
 const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: IS_PRODUCTION ? 'BH Cycling' : 'BH Cycling (Staging)',
+  name: identity.name,
   slug: 'black-horse-cycling-app',
-  version: '0.0.1',
+  version: '0.0.2',
   orientation: 'portrait',
-  icon: `./assets/images/icon-${ICON_VARIANT}.png`,
+  // Here and below, icons and Firebase files are named after the env.
+  icon: `./assets/images/icon-${APP_ENV}.png`,
   scheme: 'blackhorsecyclingapp',
   userInterfaceStyle: 'automatic',
   runtimeVersion: { policy: 'fingerprint' },
   updates: { url: `https://u.expo.dev/${EAS_PROJECT_ID}` },
   ios: {
-    icon: `./assets/icons/AppIcon-${ICON_VARIANT}.icon`,
+    icon: `./assets/icons/AppIcon-${APP_ENV}.icon`,
     supportsTablet: true,
-    bundleIdentifier: BUNDLE_ID,
-    googleServicesFile: IS_PRODUCTION
-      ? './firebase/GoogleService-Info.production.plist'
-      : './firebase/GoogleService-Info.staging.plist',
+    bundleIdentifier: identity.bundleId,
+    googleServicesFile: `./firebase/GoogleService-Info.${APP_ENV}.plist`,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       // MapLibre ships a location manager, so App Store Connect requires
@@ -77,14 +104,12 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       backgroundColor: '#0A0A0A',
-      foregroundImage: `./assets/images/android-foreground-${ICON_VARIANT}.png`,
-      monochromeImage: `./assets/images/android-monochrome-${ICON_VARIANT}.png`,
+      foregroundImage: `./assets/images/android-foreground-${APP_ENV}.png`,
+      monochromeImage: `./assets/images/android-monochrome-${APP_ENV}.png`,
     },
     predictiveBackGestureEnabled: false,
-    package: BUNDLE_ID,
-    googleServicesFile: IS_PRODUCTION
-      ? './firebase/google-services.production.json'
-      : './firebase/google-services.staging.json',
+    package: identity.bundleId,
+    googleServicesFile: `./firebase/google-services.${APP_ENV}.json`,
   },
   web: {
     output: 'static',

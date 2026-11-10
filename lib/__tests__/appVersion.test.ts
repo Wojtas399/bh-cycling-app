@@ -5,11 +5,15 @@ describe('formatAppVersion', () => {
     expect(formatAppVersion('1.0.0', 'production')).toBe('1.0.0');
   });
 
-  it('appends (staging) on non-production builds', () => {
+  it('appends (staging) on staging builds', () => {
     expect(formatAppVersion('1.0.0', 'staging')).toBe('1.0.0 (staging)');
   });
 
-  it('treats an unknown environment as non-production', () => {
+  it('appends (dev) on Dev builds', () => {
+    expect(formatAppVersion('0.0.0', 'dev')).toBe('0.0.0 (dev)');
+  });
+
+  it('labels a missing environment as staging', () => {
     expect(formatAppVersion('2.1.0', undefined)).toBe('2.1.0 (staging)');
   });
 

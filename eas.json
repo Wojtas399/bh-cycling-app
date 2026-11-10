@@ -4,11 +4,23 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
+    "dev-client": {
       "developmentClient": true,
       "distribution": "internal",
       "env": {
         "APP_ENV": "staging"
+      }
+    },
+    "dev": {
+      "environment": "development",
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "APP_ENV": "dev"
+      },
+      "channel": "dev",
+      "android": {
+        "buildType": "apk"
       }
     },
     "staging": {

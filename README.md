@@ -1,6 +1,6 @@
 # BH Cycling
 
-Expo (SDK 54) app with [Expo Router](https://docs.expo.dev/router/introduction/), a [development client](https://docs.expo.dev/develop/development-builds/introduction/), and React Native Firebase. This is not a plain Expo Go project: native modules require a **dev build** on a simulator or device.
+Expo (SDK 54) app with [Expo Router](https://docs.expo.dev/router/introduction/), a [development client](https://docs.expo.dev/develop/development-builds/introduction/), and React Native Firebase. This is not a plain Expo Go project: native modules require a **Dev client** on a simulator or device.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ npm install
 
 ## Environment and Firebase
 
-`APP_ENV` selects staging vs production bundles and Firebase files. It defaults to **`staging`** if unset.
+`APP_ENV` (`staging`, `production` or `dev`) selects the bundle ID, name, icon and Firebase files. It defaults to **`staging`** if unset.
 
 To sync secrets from EAS into `.env.local` (requires `eas login` and access to the Expo project):
 
@@ -37,14 +37,14 @@ At build time, `app.config.ts` can copy Firebase config from paths in those env 
 npm start
 ```
 
-**2. Run a native dev build** (first run compiles native code; later runs are faster). Use a second terminal while Metro is running, or press `i` / `a` in the Expo CLI once a dev client is already installed.
+**2. Build and run the Dev client** (first run compiles native code; later runs are faster). Use a second terminal while Metro is running, or press `i` / `a` in the Expo CLI once a dev client is already installed.
 
 - iOS Simulator: `npm run ios`
 - Android emulator or device: `npm run android`
 
 After the dev client is installed on the simulator or emulator, you usually only need `npm start` and launch the app; it connects to Metro.
 
-Expo Go does **not** include this app’s native Firebase stack. Use the dev client from `expo run:ios` / `expo run:android` (or a prebuilt development build from EAS).
+Expo Go does **not** include this app’s native Firebase stack. Use the dev client from `expo run:ios` / `expo run:android` (or a Dev client build from EAS: `eas build --profile dev-client`).
 
 ## Other scripts
 
@@ -93,20 +93,83 @@ The app side needs the matching public client ID to build the authorization requ
 
 Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI doesn't run it. See `docs/e2e.md`.
 
-`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. The ref decides what ships.
+`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. It runs on every push to `main` too, so CI doesn't run separately there. The ref decides what ships.
 
-| Ref                                      | Result                                                                                                        |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging       |
-| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store |
-| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                        |
-| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                              |
+| Ref                                      | Result                                                                                                                                                      |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning when only 3 builds are left this month |
+| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging. Fails unless `app.config.ts` says `X.Y.Z`          |
+| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                               |
+| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                      |
+| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                            |
 
 Android builds are not submitted yet: Google Play needs a service account key first. Install them from their EAS build page. The production submit profile also needs its own `ascAppId` before the first `vX.Y.Z` tag.
 
 The release script pulls the Firebase files from EAS, so their variables must have `Sensitive` visibility. `Secret` values cannot be read outside EAS servers.
 
+`version` in `app.config.ts` on `main` is the next release. The Dev build carries it. Cut `rc/X.Y.Z` from `main` at that version, so staging gets the version Dev already had, then bump `main` to the next version. The bump changes the native fingerprint, so it starts a new Dev build.
+
 `hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
+
+## Dev build
+
+The **Dev build** is a standalone release-mode app that tracks `main`. It installs next to the staging app as "BH Cycling (Dev)" (`com.wojtas.blackhorsecyclingapp.dev`, a staging icon with a DEV ribbon), uses the staging backend, and shows the version from `app.config.ts` with `(dev)` in Settings, such as `0.0.2 (dev)`. Its EAS build profile, update channel and `APP_ENV` are all `dev`. It's installed through EAS internal distribution: an ad hoc build on iOS and an APK on Android.
+
+The **Dev client** is the Metro-loading `expo-dev-client` build, built with `eas build --profile dev-client`. It keeps the staging bundle ID.
+
+### One-time setup
+
+Run these once, from the repo root, with `eas login` and `npx firebase login` done.
+
+1. Create the Dev apps in the staging Firebase project and download their config files:
+
+   ```bash
+   npx firebase apps:create IOS "BH Cycling (Dev)" --bundle-id com.wojtas.blackhorsecyclingapp.dev --project bh-cycling-staging
+   npx firebase apps:create ANDROID "BH Cycling (Dev)" --package-name com.wojtas.blackhorsecyclingapp.dev --project bh-cycling-staging
+   npx firebase apps:sdkconfig IOS <ios-app-id> --project bh-cycling-staging --out firebase/GoogleService-Info.dev.plist
+   npx firebase apps:sdkconfig ANDROID <android-app-id> --project bh-cycling-staging --out firebase/google-services.dev.json
+   ```
+
+   `apps:create` prints each app ID.
+
+2. Store both files as `Sensitive` file variables in the EAS `development` environment, so the release script can pull them:
+
+   ```bash
+   eas env:create --environment development --name GOOGLE_SERVICE_INFO_DEV_PLIST --type file --visibility sensitive --value ./firebase/GoogleService-Info.dev.plist
+   eas env:create --environment development --name GOOGLE_SERVICES_DEV_JSON --type file --visibility sensitive --value ./firebase/google-services.dev.json
+   ```
+
+3. Register your iPhone for ad hoc builds with `eas device:create`, and install the profile it gives you.
+
+4. Run the first Dev build per platform interactively. If you've run a local Android build, run `rm -rf node_modules && npm ci` first: its `android/build` folders inside `node_modules` change the local fingerprint, and EAS fails the build with a runtime version mismatch. It creates the Apple App ID, the ad hoc provisioning profile and the Android keystore:
+
+   ```bash
+   eas build --profile dev --platform ios
+   eas build --profile dev --platform android
+   ```
+
+5. Add the Dev keystore's SHA-1 to the Firebase Dev Android app, or Google Sign-In fails on Android. Read the SHA-1 from `eas credentials --platform android` (pick the `dev` profile), then:
+
+   ```bash
+   npx firebase apps:android:sha:create <android-app-id> <sha1> --project bh-cycling-staging
+   npx firebase apps:sdkconfig ANDROID <android-app-id> --project bh-cycling-staging --out firebase/google-services.dev.json
+   ```
+
+   If the re-downloaded file differs from the one in EAS, update the variable and rebuild Android:
+
+   ```bash
+   eas env:update --variable-environment development --variable-name GOOGLE_SERVICES_DEV_JSON --value ./firebase/google-services.dev.json
+   eas build --profile dev --platform android
+   ```
+
+6. Install each build from its EAS build page.
+
+### New phone or lost install
+
+CI starts a Dev build only when native code changes, so rebuild by hand:
+
+- **New iPhone:** `eas device:create`, then `eas build --profile dev --platform ios`. To skip the build queue, re-sign the latest build with `eas build:resign --platform ios --source-profile dev --target-profile dev` instead.
+- **Lost install:** reinstall from the latest build's EAS page, or run `eas build --profile dev --platform <ios|android>`.
 
 ## Learn more
 
