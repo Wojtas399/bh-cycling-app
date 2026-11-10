@@ -44,7 +44,9 @@ export default function CalendarBody({
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
   const tabBarClearance = useTabBarClearance();
-  const belowHeader = header.height + theme.spacing.md;
+  /** The gap between the sticky header and the content under it. */
+  const gap = theme.spacing.base;
+  const belowHeader = header.height + gap;
 
   switch (state.status) {
     case 'loading':
@@ -71,7 +73,7 @@ export default function CalendarBody({
           <Box
             flex={1}
             style={{
-              paddingTop: header.height,
+              paddingTop: belowHeader,
               paddingBottom: tabBarClearance,
             }}
           >
@@ -85,7 +87,7 @@ export default function CalendarBody({
           {...header.scrollViewProps}
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: header.scrollInsetTop,
+            paddingTop: header.scrollInsetTop + gap,
             paddingBottom: theme.spacing.xl,
           }}
         >
