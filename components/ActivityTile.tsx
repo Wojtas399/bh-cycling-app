@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { type UnplannedActivity, activityMetrics } from '@/lib/calendarItems';
@@ -46,12 +47,7 @@ export default function ActivityTile({
   );
 
   const card = (
-    <Box
-      backgroundColor="bgSecondary"
-      borderRadius="lg"
-      padding="base"
-      testID="activity-tile"
-    >
+    <SheenSurface padding="base" testID="activity-tile">
       <Box
         flexDirection="row"
         justifyContent="space-between"
@@ -81,7 +77,7 @@ export default function ActivityTile({
           {metrics.join(' · ')}
         </Text>
       )}
-    </Box>
+    </SheenSurface>
   );
 
   if (!onPress || activity.isStravaActivity) return card;

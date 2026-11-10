@@ -25,6 +25,9 @@ import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 const STRIPE_WIDTH = 3;
 const CHIP_DOT_SIZE = 8;
+/** The chip's "control sheen": raised off the day tile, but not glass. */
+const CHIP_SHEEN = 'linear-gradient(160deg, #2C2C2E, #141414)';
+const CHIP_HAIRLINE = 'rgba(255, 255, 255, 0.14)';
 
 export interface CalendarWeekAgendaProps {
   /** Any date in the week to lay out. */
@@ -224,10 +227,14 @@ function NoteChip({ note, when, onPress }: NoteButtonProps) {
         flexDirection="row"
         alignItems="center"
         alignSelf="flex-start"
-        backgroundColor="bgSecondary"
         borderRadius="full"
+        borderWidth={1}
         paddingHorizontal="md"
         paddingVertical="xs"
+        style={{
+          experimental_backgroundImage: CHIP_SHEEN,
+          borderColor: CHIP_HAIRLINE,
+        }}
       >
         <Box
           width={CHIP_DOT_SIZE}

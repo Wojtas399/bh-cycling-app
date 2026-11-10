@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import GlassControl from '@/components/GlassControl';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import MessageWithBack from '@/components/MessageWithBack';
 import RouteMap from '@/components/RouteMap';
@@ -110,32 +111,33 @@ export default function RouteMapScreen({
       style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}
     >
       {/* First in the tree, so focus starts on it; drawn above the map. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('common.close')}
-        onPress={close}
-        hitSlop={8}
+      <View
         style={{
           position: 'absolute',
           zIndex: 1,
           top: insets.top + CLOSE_OFFSET,
           left: EDGE,
-          width: CLOSE_SIZE,
-          height: CLOSE_SIZE,
-          borderRadius: CLOSE_SIZE / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.colors.bgTertiary,
-          borderWidth: 1,
-          borderColor: theme.colors.borderStrong,
         }}
       >
-        <Ionicons
-          name="close"
-          size={CLOSE_ICON_SIZE}
-          color={theme.colors.textPrimary}
-        />
-      </Pressable>
+        <GlassControl
+          placement="chrome"
+          accessibilityLabel={t('common.close')}
+          onPress={close}
+          hitSlop={8}
+          style={{
+            width: CLOSE_SIZE,
+            height: CLOSE_SIZE,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons
+            name="close"
+            size={CLOSE_ICON_SIZE}
+            color={theme.colors.textPrimary}
+          />
+        </GlassControl>
+      </View>
 
       {body()}
     </View>
@@ -181,6 +183,7 @@ function FullScreenRoute({
   summary: RouteSummary;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'route.map' });
+  const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const distance = formatRouteDistance(summary);
   const chips = routeChips(summary);
@@ -225,20 +228,19 @@ function FullScreenRoute({
           }}
         >
           {chips.map(({ chip, value }) => (
-            <Box
+            <GlassControl
               key={chip}
-              flex={1}
-              backgroundColor="bgTertiary"
+              placement="chrome"
               borderRadius="lg"
-              padding="md"
               accessible
               accessibilityLabel={t('chip', { label: t(chip), value })}
+              style={{ flex: 1, padding: theme.spacing.md }}
             >
               <Text variant="body-xs-regular" color="textSecondary">
                 {t(chip)}
               </Text>
               <Text variant="body-l-semibold">{value}</Text>
-            </Box>
+            </GlassControl>
           ))}
         </View>
       )}

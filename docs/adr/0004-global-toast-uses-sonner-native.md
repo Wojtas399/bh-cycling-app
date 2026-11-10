@@ -59,3 +59,11 @@ These stay as they are:
 - Toasts don't show above system `Alert`s or permission prompts.
 - Host routing is business logic and is unit-tested. The rendered toast is not.
 - Toast is UI infrastructure, not domain language, so it stays out of `CONTEXT.md`.
+
+## Amendment: native glass on iOS 26
+
+The Glass and Sheen restyle (#330) turns floating chrome into glass, and toasts float above every screen.
+
+- On iOS 26 the pill is native Liquid Glass: a `GlassView` passed as sonner's `backgroundComponent`, with the toast's own background transparent and no ring, because the glass draws its own edge. The system adapts it to Reduce Transparency and Increase Contrast.
+- On Android and iOS below 26 the look above is unchanged: `bgTertiary` with a 1 px `borderStrong` ring.
+- Position, size, text, icons and behaviour are unchanged on every platform.

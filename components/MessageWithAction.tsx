@@ -30,12 +30,7 @@ export default function MessageWithAction({
       <Text variant="body-l-regular" color="textSecondary" textAlign="center">
         {message}
       </Text>
-      <Button
-        variant="secondary"
-        onPress={onAction}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-      >
+      <Button variant="secondary" placement="content" onPress={onAction}>
         <Text variant="body-l-semibold">{actionLabel}</Text>
       </Button>
     </Box>

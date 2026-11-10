@@ -15,25 +15,27 @@ import FormTextField from '@/components/FormTextField';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 
 export default function ChangePasswordScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'changePassword' });
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const header = useGlassHeader('pushed');
 
   const { form, formError, busy, submit, forgotPassword } = useChangePassword();
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <ScreenHeader title={t('title')} />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView
+          {...header.scrollViewProps}
           contentContainerStyle={{
             padding: theme.spacing.lg,
+            paddingTop: header.scrollInsetTop + theme.spacing.lg,
             paddingBottom: insets.bottom + theme.spacing.lg,
           }}
           keyboardShouldPersistTaps="handled"
@@ -76,10 +78,9 @@ export default function ChangePasswordScreen() {
           <Box marginTop="xl">
             <Button
               variant="primary"
-              opacity={busy ? 0.6 : 1}
+              placement="content"
               onPress={submit}
               disabled={busy}
-              activeOpacity={0.8}
             >
               {busy ? (
                 <ActivityIndicator color={theme.colors.textInverse} />
@@ -115,6 +116,8 @@ export default function ChangePasswordScreen() {
           </Box>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ScreenHeader title={t('title')} onLayout={header.onLayout} />
     </Box>
   );
 }

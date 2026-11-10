@@ -12,6 +12,7 @@ import { useForgotPassword } from './useForgotPassword';
 import Box from '@/components/Box';
 import Button from '@/components/Button';
 import FormTextField from '@/components/FormTextField';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,47 +51,51 @@ export default function ForgotPasswordScreen() {
           color={theme.colors.success}
         />
 
-        <Box marginTop="xl">
+        <SheenSurface
+          width="100%"
+          marginTop="xl"
+          padding="lg"
+          alignItems="center"
+        >
           <Text variant="h2" textAlign="center">
             {t('forgotPassword.success.title')}
           </Text>
-        </Box>
 
-        <Box marginTop="sm">
-          <Text
-            variant="body-s-regular"
-            color="textSecondary"
-            textAlign="center"
-          >
-            {t('forgotPassword.success.subtitle', { email: sentEmail ?? '' })}
-          </Text>
-        </Box>
-
-        {formError ? (
-          <Box width="100%" marginTop="xl">
-            <Text variant="body-s-regular" color="danger" textAlign="center">
-              {formError}
+          <Box marginTop="sm">
+            <Text
+              variant="body-s-regular"
+              color="textSecondary"
+              textAlign="center"
+            >
+              {t('forgotPassword.success.subtitle', { email: sentEmail ?? '' })}
             </Text>
           </Box>
-        ) : null}
 
-        <Box width="100%" marginTop="xl">
-          <Button
-            variant="secondary"
-            opacity={busy || cooldown > 0 ? 0.6 : 1}
-            onPress={resend}
-            disabled={busy || cooldown > 0}
-            activeOpacity={0.8}
-          >
-            {busy ? (
-              <ActivityIndicator color={theme.colors.textPrimary} />
-            ) : (
-              <Text variant="body-s-medium" color="textPrimary">
-                {renderResendLabel()}
+          {formError ? (
+            <Box width="100%" marginTop="xl">
+              <Text variant="body-s-regular" color="danger" textAlign="center">
+                {formError}
               </Text>
-            )}
-          </Button>
-        </Box>
+            </Box>
+          ) : null}
+
+          <Box width="100%" marginTop="xl">
+            <Button
+              variant="secondary"
+              placement="content"
+              onPress={resend}
+              disabled={busy || cooldown > 0}
+            >
+              {busy ? (
+                <ActivityIndicator color={theme.colors.textPrimary} />
+              ) : (
+                <Text variant="body-s-medium" color="textPrimary">
+                  {renderResendLabel()}
+                </Text>
+              )}
+            </Button>
+          </Box>
+        </SheenSurface>
 
         <Box marginTop="xl">
           <TouchableOpacity onPress={backToSignIn}>
@@ -110,59 +115,60 @@ export default function ForgotPasswordScreen() {
   function renderFormContent() {
     return (
       <>
-        <Text variant="h2" textAlign="center">
-          {t('forgotPassword.title')}
-        </Text>
-
-        <Box marginTop="sm">
-          <Text
-            variant="body-s-regular"
-            color="textSecondary"
-            textAlign="center"
-          >
-            {t('forgotPassword.subtitle')}
+        <SheenSurface width="100%" padding="lg" alignItems="center">
+          <Text variant="h2" textAlign="center">
+            {t('forgotPassword.title')}
           </Text>
-        </Box>
 
-        <Box width="100%" marginTop="xl">
-          <FormTextField
-            form={form}
-            name="email"
-            label={t('forgotPassword.email')}
-            placeholder="you@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="done"
-            onSubmitEditing={submit}
-          />
-        </Box>
-
-        {formError ? (
-          <Box width="100%" marginTop="xl">
-            <Text variant="body-s-regular" color="danger" textAlign="center">
-              {formError}
+          <Box marginTop="sm">
+            <Text
+              variant="body-s-regular"
+              color="textSecondary"
+              textAlign="center"
+            >
+              {t('forgotPassword.subtitle')}
             </Text>
           </Box>
-        ) : null}
 
-        <Box width="100%" marginTop="xl">
-          <Button
-            variant="primary"
-            opacity={busy ? 0.6 : 1}
-            onPress={submit}
-            disabled={busy}
-            activeOpacity={0.8}
-          >
-            {busy ? (
-              <ActivityIndicator color={theme.colors.textInverse} />
-            ) : (
-              <Text variant="body-l-semibold" color="textInverse">
-                {t('forgotPassword.sendButton')}
+          <Box width="100%" marginTop="xl">
+            <FormTextField
+              form={form}
+              name="email"
+              label={t('forgotPassword.email')}
+              placeholder="you@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={submit}
+            />
+          </Box>
+
+          {formError ? (
+            <Box width="100%" marginTop="xl">
+              <Text variant="body-s-regular" color="danger" textAlign="center">
+                {formError}
               </Text>
-            )}
-          </Button>
-        </Box>
+            </Box>
+          ) : null}
+
+          <Box width="100%" marginTop="xl">
+            <Button
+              variant="primary"
+              placement="content"
+              onPress={submit}
+              disabled={busy}
+            >
+              {busy ? (
+                <ActivityIndicator color={theme.colors.textInverse} />
+              ) : (
+                <Text variant="body-l-semibold" color="textInverse">
+                  {t('forgotPassword.sendButton')}
+                </Text>
+              )}
+            </Button>
+          </Box>
+        </SheenSurface>
 
         <Box marginTop="xl">
           <TouchableOpacity onPress={backToSignIn}>
@@ -180,7 +186,7 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <Box flex={1} backgroundColor="bgSecondary">
+    <Box flex={1} backgroundColor="bgPrimary">
       <TouchableOpacity
         style={{
           position: 'absolute',
@@ -212,7 +218,6 @@ export default function ForgotPasswordScreen() {
         >
           <Box
             flex={1}
-            backgroundColor="bgSecondary"
             alignItems="center"
             justifyContent="center"
             paddingHorizontal="lg"

@@ -141,9 +141,9 @@ function noteMarkedStyles(theme: AppTheme): MarkedStyles {
       paddingLeft: theme.spacing.md,
       marginBottom: theme.spacing.md,
     },
-    codespan: { ...body, backgroundColor: theme.colors.bgTertiary },
+    codespan: { ...body, backgroundColor: theme.colors.insetFill },
     code: {
-      backgroundColor: theme.colors.bgTertiary,
+      backgroundColor: theme.colors.insetFill,
       padding: theme.spacing.md,
       marginBottom: theme.spacing.md,
     },
@@ -174,7 +174,7 @@ export default function NoteMarkdown({ text }: NoteMarkdownProps) {
       colors: {
         text: theme.colors.textPrimary,
         link: theme.colors.accent,
-        code: theme.colors.bgTertiary,
+        code: theme.colors.insetFill,
         border: theme.colors.borderDefault,
       },
     },

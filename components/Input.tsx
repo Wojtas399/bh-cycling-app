@@ -4,6 +4,9 @@ import type { TextInputProps } from 'react-native';
 
 import { useAppTheme } from '@/constants/theme';
 
+/** Nearly see-through, so a field reads as a place to type, not a button. */
+const FILL = 'rgba(255, 255, 255, 0.03)';
+
 type InputProps = TextInputProps & {
   rightElement?: React.ReactNode;
 };
@@ -19,9 +22,9 @@ const Input = forwardRef<TextInput, InputProps>(
           alignItems: 'center',
           height: 48,
           borderWidth: 1,
-          borderRadius: theme.borderRadii.sm,
-          backgroundColor: theme.colors.bgTertiary,
-          borderColor: theme.colors.borderStrong,
+          borderRadius: theme.borderRadii.lg,
+          backgroundColor: FILL,
+          borderColor: theme.colors.hairline,
         }}
       >
         <TextInput

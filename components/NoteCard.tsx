@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
+import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
@@ -46,9 +47,7 @@ export default function NoteCard({
       accessibilityLabel={t('accessibilityLabel', { title, when })}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
     >
-      <Box
-        backgroundColor="bgSecondary"
-        borderRadius="lg"
+      <SheenSurface
         padding="base"
         flexDirection="row"
         justifyContent="space-between"
@@ -75,7 +74,7 @@ export default function NoteCard({
           color={theme.colors.textTertiary}
           style={{ marginLeft: theme.spacing.xs }}
         />
-      </Box>
+      </SheenSurface>
     </Pressable>
   );
 }

@@ -21,12 +21,12 @@ export default function FitnessChartSkeleton() {
       accessibilityState={{ busy: true }}
     >
       <Box gap="xs">
-        <SkeletonBar width={40} height={14} marginVertical={3} />
+        <SkeletonBar width={40} height={14} marginVertical={3} onPage />
         <Box flexDirection="row">
           {COLUMNS.map(key => (
             <Box key={key} flex={1}>
-              <SkeletonBar width={64} height={10} marginVertical={3} />
-              <SkeletonBar width={36} height={20} marginVertical={4} />
+              <SkeletonBar width={64} height={10} marginVertical={3} onPage />
+              <SkeletonBar width={36} height={20} marginVertical={4} onPage />
             </Box>
           ))}
         </Box>

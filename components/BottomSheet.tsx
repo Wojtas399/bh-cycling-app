@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Box from '@/components/Box';
 import Text from '@/components/Text';
 import theme, { useAppTheme } from '@/constants/theme';
+import { liquidGlassAvailable } from '@/lib/liquidGlass';
 import { SheetToastHost } from '@/lib/toast/ToastHost';
 import { BottomSheet as ExpoBottomSheet, RNHostView } from '@expo/ui';
 import { preferredColorScheme } from '@expo/ui/swift-ui/modifiers';
@@ -138,10 +139,16 @@ export default function BottomSheet({
       showDragIndicator
       // Our own content view carries the theme padding and the full width.
       contentPadding={0}
-      containerColor={theme.colors.bgTertiary}
+      // On iOS 26 the sheet shows the system's Liquid Glass material, kept
+      // dark by the app-wide forced dark scheme. Elsewhere we paint it dark.
+      containerColor={
+        liquidGlassAvailable ? undefined : theme.colors.bgTertiary
+      }
       scrimColor={theme.colors.overlay}
       modifiers={
-        Platform.OS === 'ios' ? [preferredColorScheme('dark')] : undefined
+        Platform.OS === 'ios' && !liquidGlassAvailable
+          ? [preferredColorScheme('dark')]
+          : undefined
       }
     >
       {fullHeight ? (
