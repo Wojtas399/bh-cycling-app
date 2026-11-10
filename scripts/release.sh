@@ -25,8 +25,21 @@ use_target() {
   eas env:pull --environment "$environment" --non-interactive
 }
 
-# The ref decides the version. The edit stays in this checkout because EAS
-# uploads the working tree, so nothing is committed back.
+# The version in app.config.ts on main. Dev builds carry it, and an rc branch
+# must be cut at it, so staging gets the version Dev already had.
+config_version() {
+  sed -En "s/^  version: '($semver)',$/\\1/p" app.config.ts | grep . || die "Could not read the version from app.config.ts"
+}
+
+require_config_version() {
+  local config
+  config="$(config_version)"
+  [[ "$1" == "$config" ]] || die "$GITHUB_REF_NAME does not match version $config in app.config.ts"
+  version="$1"
+}
+
+# Hotfix and production refs decide the version. The edit stays in this
+# checkout because EAS uploads the working tree, so nothing is committed back.
 set_version() {
   version="$1"
   sed "s/^  version: '.*',$/  version: '$version',/" app.config.ts >app.config.ts.tmp
@@ -96,7 +109,7 @@ ref="$GITHUB_REF_TYPE:$GITHUB_REF_NAME"
 
 if [[ "$ref" =~ ^branch:main$ ]]; then
   use_target dev
-  set_version 0.0.0
+  version="$(config_version)"
   if has_matching_build; then
     update || die "Could not publish a dev update"
   elif dev_build_fits_quota; then
@@ -106,7 +119,7 @@ if [[ "$ref" =~ ^branch:main$ ]]; then
   fi
 elif [[ "$ref" =~ ^branch:rc/($semver)$ ]]; then
   use_target staging
-  set_version "${BASH_REMATCH[1]}"
+  require_config_version "${BASH_REMATCH[1]}"
   if has_matching_build; then
     update
   else

@@ -98,7 +98,7 @@ Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platf
 | Ref                                      | Result                                                                                                                                                      |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning when only 3 builds are left this month |
-| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging                                                     |
+| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging. Fails unless `app.config.ts` says `X.Y.Z`          |
 | Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                               |
 | Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                      |
 | Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                            |
@@ -107,11 +107,13 @@ Android builds are not submitted yet: Google Play needs a service account key fi
 
 The release script pulls the Firebase files from EAS, so their variables must have `Sensitive` visibility. `Secret` values cannot be read outside EAS servers.
 
+`version` in `app.config.ts` on `main` is the next release. The Dev build carries it. Cut `rc/X.Y.Z` from `main` at that version, so staging gets the version Dev already had, then bump `main` to the next version. The bump changes the native fingerprint, so it starts a new Dev build.
+
 `hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
 
 ## Dev build
 
-The **Dev build** is a standalone release-mode app that tracks `main`. It installs next to the staging app as "BH Cycling (Dev)" (`com.wojtas.blackhorsecyclingapp.dev`, a staging icon with a DEV ribbon), uses the staging backend, and shows `0.0.0 (dev)` in Settings. Its EAS build profile, update channel and `APP_ENV` are all `dev`. It's installed through EAS internal distribution: an ad hoc build on iOS and an APK on Android.
+The **Dev build** is a standalone release-mode app that tracks `main`. It installs next to the staging app as "BH Cycling (Dev)" (`com.wojtas.blackhorsecyclingapp.dev`, a staging icon with a DEV ribbon), uses the staging backend, and shows the version from `app.config.ts` with `(dev)` in Settings, such as `0.0.2 (dev)`. Its EAS build profile, update channel and `APP_ENV` are all `dev`. It's installed through EAS internal distribution: an ad hoc build on iOS and an APK on Android.
 
 The **Dev client** is the Metro-loading `expo-dev-client` build, built with `eas build --profile dev-client`. It keeps the staging bundle ID.
 
@@ -139,7 +141,7 @@ Run these once, from the repo root, with `eas login` and `npx firebase login` do
 
 3. Register your iPhone for ad hoc builds with `eas device:create`, and install the profile it gives you.
 
-4. Run the first Dev build per platform interactively. It creates the Apple App ID, the ad hoc provisioning profile and the Android keystore:
+4. Run the first Dev build per platform interactively. If you've run a local Android build, run `rm -rf node_modules && npm ci` first: its `android/build` folders inside `node_modules` change the local fingerprint, and EAS fails the build with a runtime version mismatch. It creates the Apple App ID, the ad hoc provisioning profile and the Android keystore:
 
    ```bash
    eas build --profile dev --platform ios
