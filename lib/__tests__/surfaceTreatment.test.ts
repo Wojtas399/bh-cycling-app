@@ -80,31 +80,106 @@ describe('resolveSurfaceTreatment', () => {
   });
 
   describe('Glass control', () => {
-    it.each`
-      liquidGlassAvailable | placement    | reduceTransparency | increaseContrast | paint       | hairlineStrong
-      ${false}             | ${'chrome'}  | ${false}           | ${false}         | ${'frost'}  | ${false}
-      ${false}             | ${'chrome'}  | ${false}           | ${true}          | ${'frost'}  | ${true}
-      ${false}             | ${'chrome'}  | ${true}            | ${false}         | ${'opaque'} | ${false}
-      ${false}             | ${'chrome'}  | ${true}            | ${true}          | ${'opaque'} | ${true}
-      ${false}             | ${'content'} | ${false}           | ${false}         | ${'frost'}  | ${false}
-      ${false}             | ${'content'} | ${false}           | ${true}          | ${'frost'}  | ${true}
-      ${false}             | ${'content'} | ${true}            | ${false}         | ${'opaque'} | ${false}
-      ${false}             | ${'content'} | ${true}            | ${true}          | ${'opaque'} | ${true}
-      ${true}              | ${'chrome'}  | ${false}           | ${false}         | ${'native'} | ${false}
-      ${true}              | ${'chrome'}  | ${false}           | ${true}          | ${'native'} | ${false}
-      ${true}              | ${'chrome'}  | ${true}            | ${false}         | ${'native'} | ${false}
-      ${true}              | ${'chrome'}  | ${true}            | ${true}          | ${'native'} | ${false}
-      ${true}              | ${'content'} | ${false}           | ${false}         | ${'frost'}  | ${false}
-      ${true}              | ${'content'} | ${false}           | ${true}          | ${'frost'}  | ${true}
-      ${true}              | ${'content'} | ${true}            | ${false}         | ${'opaque'} | ${false}
-      ${true}              | ${'content'} | ${true}            | ${true}          | ${'opaque'} | ${true}
-    `(
-      'in $placement is $paint (strong hairline: $hairlineStrong) with Liquid Glass $liquidGlassAvailable, Reduce Transparency $reduceTransparency, Increase Contrast $increaseContrast',
-      ({ placement, paint, hairlineStrong, ...environment }) => {
+    const SETTINGS = [
+      { reduceTransparency: false, increaseContrast: false },
+      { reduceTransparency: false, increaseContrast: true },
+      { reduceTransparency: true, increaseContrast: false },
+      { reduceTransparency: true, increaseContrast: true },
+    ];
+
+    it.each(SETTINGS)(
+      'is native glass in the chrome with Liquid Glass, whatever the settings (%o)',
+      settings => {
+        const environment = env({ liquidGlassAvailable: true, ...settings });
+
         expect(
-          resolveSurfaceTreatment({ kind: 'control', placement }, environment),
-        ).toEqual({ paint, hairlineStrong });
+          resolveSurfaceTreatment(
+            { kind: 'control', placement: 'chrome', prominent: false },
+            environment,
+          ),
+        ).toEqual({ paint: 'native', prominent: false });
+        expect(
+          resolveSurfaceTreatment(
+            { kind: 'control', placement: 'chrome', prominent: true },
+            environment,
+          ),
+        ).toEqual({ paint: 'native', prominent: true });
       },
     );
+
+    describe.each`
+      where                                   | liquidGlassAvailable | placement
+      ${'in the chrome without Liquid Glass'} | ${false}             | ${'chrome'}
+      ${'in content without Liquid Glass'}    | ${false}             | ${'content'}
+      ${'in content even with Liquid Glass'}  | ${true}              | ${'content'}
+    `('$where', ({ liquidGlassAvailable, placement }) => {
+      function resolve(
+        prominent: boolean,
+        settings: Partial<SurfaceEnvironment> = {},
+      ) {
+        return resolveSurfaceTreatment(
+          { kind: 'control', placement, prominent },
+          env({ liquidGlassAvailable, ...settings }),
+        );
+      }
+
+      it('is Frost', () => {
+        expect(resolve(false)).toEqual({
+          paint: 'frost',
+          prominent: false,
+          hairlineStrong: false,
+        });
+        expect(resolve(true)).toEqual({
+          paint: 'frost',
+          prominent: true,
+          hairlineStrong: false,
+        });
+      });
+
+      it('raises plain Frost to the strong fill and hairline under Increase Contrast', () => {
+        expect(resolve(false, { increaseContrast: true })).toEqual({
+          paint: 'frost',
+          prominent: false,
+          hairlineStrong: true,
+        });
+      });
+
+      // Its 50% white edge is already brighter than `hairlineStrong`.
+      it('leaves prominent Frost alone under Increase Contrast', () => {
+        expect(resolve(true, { increaseContrast: true })).toEqual({
+          paint: 'frost',
+          prominent: true,
+          hairlineStrong: false,
+        });
+      });
+
+      it.each([false, true])(
+        'turns plain Frost solid bgTertiary under Reduce Transparency (Increase Contrast %s)',
+        increaseContrast => {
+          expect(
+            resolve(false, { reduceTransparency: true, increaseContrast }),
+          ).toEqual({
+            paint: 'opaque',
+            fill: 'bgTertiary',
+            hairlineStrong: increaseContrast,
+          });
+        },
+      );
+
+      // Its label is near-black `textInverse`, which can't be read on
+      // `bgTertiary`, so it turns solid white instead.
+      it.each([false, true])(
+        'turns prominent Frost solid white under Reduce Transparency (Increase Contrast %s)',
+        increaseContrast => {
+          expect(
+            resolve(true, { reduceTransparency: true, increaseContrast }),
+          ).toEqual({
+            paint: 'opaque',
+            fill: 'interactiveDefault',
+            hairlineStrong: false,
+          });
+        },
+      );
+    });
   });
 });

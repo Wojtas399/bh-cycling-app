@@ -76,10 +76,9 @@ export default function ChangePasswordScreen() {
           <Box marginTop="xl">
             <Button
               variant="primary"
-              opacity={busy ? 0.6 : 1}
+              placement="chrome"
               onPress={submit}
               disabled={busy}
-              activeOpacity={0.8}
             >
               {busy ? (
                 <ActivityIndicator color={theme.colors.textInverse} />

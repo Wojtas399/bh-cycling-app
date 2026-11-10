@@ -243,25 +243,6 @@ const theme = createTheme({
     },
   },
 
-  buttonVariants: {
-    defaults: {
-      height: 56,
-      borderRadius: 'full',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      width: '100%' as const,
-    },
-    primary: {
-      backgroundColor: 'interactiveDefault',
-    },
-    secondary: {
-      borderWidth: 1.5,
-      borderColor: 'interactiveDefault',
-      flexDirection: 'row' as const,
-      gap: 'sm',
-    },
-  },
-
   breakpoints: {},
 });
 
