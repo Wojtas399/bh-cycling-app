@@ -13,7 +13,10 @@ interface ButtonProps {
    * uses `textInverse`. `secondary` is clear glass with a light label.
    */
   variant: 'primary' | 'secondary';
-  /** `content` inside a card or a list item, `chrome` anywhere else. */
+  /**
+   * `content` when the button scrolls with content; `chrome` when it stays
+   * put in the chrome layer.
+   */
   placement: SurfacePlacement;
   onPress: () => void;
   /** Fades the button and ignores presses, e.g. while its action runs. */

@@ -77,7 +77,7 @@ export default function DeleteAccountScreen() {
           <Box marginTop="xl">
             <Button
               variant="secondary"
-              placement="chrome"
+              placement="content"
               onPress={submit}
               disabled={busy}
             >

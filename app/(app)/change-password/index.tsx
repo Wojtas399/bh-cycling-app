@@ -78,7 +78,7 @@ export default function ChangePasswordScreen() {
           <Box marginTop="xl">
             <Button
               variant="primary"
-              placement="chrome"
+              placement="content"
               onPress={submit}
               disabled={busy}
             >
