@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { mapForgotPasswordError } from './forgotPasswordErrors';
@@ -8,6 +8,7 @@ import {
 } from './forgotPasswordSchema';
 import type { FormBinding } from '@/hooks/formBinding';
 import { useAppForm } from '@/hooks/useAppForm';
+import { useCooldown } from '@/hooks/useCooldown';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { useMutation } from '@tanstack/react-query';
@@ -26,23 +27,8 @@ export function useForgotPassword() {
   // The parsed email of the last successful send. Resend reuses it, not the
   // field, and its presence means the success state is showing.
   const [sentEmail, setSentEmail] = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function startCooldown() {
-    setCooldown(COOLDOWN_SECONDS);
-    intervalRef.current = setInterval(() => {
-      setCooldown(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current!);
-
-          return 0;
-        }
-
-        return prev - 1;
-      });
-    }, 1000);
-  }
+  const { remaining: cooldown, start: startCooldown } =
+    useCooldown(COOLDOWN_SECONDS);
 
   // Send and resend hit the same endpoint, so they share one mutation.
   const sendReset = useMutation({
@@ -54,12 +40,6 @@ export function useForgotPassword() {
       startCooldown();
     },
   });
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
 
   const busy = sendReset.isPending;
 
