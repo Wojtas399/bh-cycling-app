@@ -1,9 +1,18 @@
 import { useProfileCard } from '../useProfileCard';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import { type IntervalsActivity, getActivity } from '@/lib/intervalsApi';
+import {
+  type IntervalsActivity,
+  getActivity,
+  getAthleteSettings,
+} from '@/lib/intervalsApi';
+import { intervalsKeys } from '@/lib/intervalsQueries';
+import { resolveRideSettings } from '@/lib/rideSettings';
 import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
 import type { WorkoutBlock } from '@/lib/workoutProfile';
-import { renderHookWithClient } from '@/test-utils/queryClient';
+import {
+  createTestQueryClient,
+  renderHookWithClient,
+} from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -13,6 +22,7 @@ jest.mock('@/hooks/useIntervalsConnection', () => ({
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getActivity: jest.fn(),
+  getAthleteSettings: jest.fn(),
 }));
 
 jest.mock('@/lib/handleIntervalsAuthError', () => ({
@@ -20,6 +30,10 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 }));
 
 const mockGetActivity = getActivity as jest.Mock;
+const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+
+/** The athlete's current Ride FTP. */
+const CURRENT_FTP = 250;
 
 const ACTIVITY_ID = 'i196064284';
 
@@ -48,20 +62,42 @@ const RIDE: IntervalsActivity = {
   ],
 };
 
+/**
+ * Renders the card with the athlete's settings already cached, as Workout
+ * Details' own query leaves them.
+ */
 function renderCard(recordedActivityId: string | null) {
-  return renderHookWithClient(() =>
-    useProfileCard({
-      blocks: PLANNED_BLOCKS,
-      profileSummary: PLAN_SUMMARY,
-      recordedActivityId,
-    }),
+  const client = createTestQueryClient();
+
+  client.setQueryData(
+    intervalsKeys.athleteSettings('athlete-1'),
+    resolveRideSettings({ ftp: CURRENT_FTP }),
+  );
+
+  return renderHookWithClient(
+    () =>
+      useProfileCard({
+        blocks: PLANNED_BLOCKS,
+        profileSummary: PLAN_SUMMARY,
+        recordedActivityId,
+      }),
+    { client },
   );
 }
 
+/** The plan alone, in watts at the current FTP. */
 const PLAN_ALONE = {
   durationSeconds: 1200,
   recorded: null,
-  planned: { blocks: PLANNED_BLOCKS, summary: PLAN_SUMMARY },
+  planned: {
+    summary: PLAN_SUMMARY,
+    ftp: CURRENT_FTP,
+    segments: [
+      expect.objectContaining({ start: 0, end: 600, maxWatts: 150 }),
+      expect.objectContaining({ start: 600, end: 1200, maxWatts: 250 }),
+    ],
+    power: { unit: 'watts', peak: 250, average: 200 },
+  },
 };
 
 beforeEach(() => {
@@ -79,16 +115,16 @@ describe('useProfileCard', () => {
   it('fetches nothing and shows the plan alone without a paired Activity', async () => {
     const { result } = await renderCard(null);
 
-    expect(result.current).toEqual(PLAN_ALONE);
+    expect(result.current).toMatchObject(PLAN_ALONE);
     expect(mockGetActivity).not.toHaveBeenCalled();
   });
 
-  it("shows the plan while the Activity loads, then the ride's strip above it", async () => {
+  it("shows the plan while the Activity loads, then the ride's strip below it", async () => {
     mockGetActivity.mockResolvedValue(RIDE);
 
     const { result } = await renderCard(ACTIVITY_ID);
 
-    expect(result.current).toEqual(PLAN_ALONE);
+    expect(result.current).toMatchObject(PLAN_ALONE);
 
     await waitFor(() => expect(result.current?.recorded).not.toBeNull());
     expect(mockGetActivity).toHaveBeenCalledWith(
@@ -98,10 +134,10 @@ describe('useProfileCard', () => {
       expect.anything(),
     );
     expect(result.current?.durationSeconds).toBe(1200);
-    expect(result.current?.recorded?.blocks).toEqual([
-      { widthFraction: 0.25, minPct: 60, maxPct: 60, zone: 2 },
-      { widthFraction: 0.25, minPct: 100, maxPct: 100, zone: 4 },
-      { widthFraction: 0.5, minPct: 0, maxPct: 0, zone: 1 },
+    // The ride kept no FTP of its own, so it's drawn at the current one.
+    expect(result.current?.recorded?.segments).toEqual([
+      expect.objectContaining({ start: 0, end: 300, maxWatts: 150, zone: 2 }),
+      expect.objectContaining({ start: 300, end: 600, maxWatts: 250, zone: 4 }),
     ]);
   });
 
@@ -111,6 +147,40 @@ describe('useProfileCard', () => {
     const { result } = await renderCard(ACTIVITY_ID);
 
     await waitFor(() => expect(mockGetActivity).toHaveBeenCalled());
-    expect(result.current).toEqual(PLAN_ALONE);
+    expect(result.current).toMatchObject(PLAN_ALONE);
+  });
+
+  it("holds the card until the athlete's settings first load, so it never redraws from %FTP to watts", async () => {
+    mockGetAthleteSettings.mockResolvedValue({ ftp: CURRENT_FTP });
+
+    const { result } = await renderHookWithClient(() =>
+      useProfileCard({
+        blocks: PLANNED_BLOCKS,
+        profileSummary: PLAN_SUMMARY,
+        recordedActivityId: null,
+      }),
+    );
+
+    expect(result.current).toBeNull();
+    await waitFor(() => expect(result.current).toMatchObject(PLAN_ALONE));
+  });
+
+  it("draws the card in %FTP on Coggan's zones when the athlete's settings fail", async () => {
+    mockGetAthleteSettings.mockRejectedValue(new Error('offline'));
+
+    const { result } = await renderHookWithClient(() =>
+      useProfileCard({
+        blocks: PLANNED_BLOCKS,
+        profileSummary: PLAN_SUMMARY,
+        recordedActivityId: null,
+      }),
+    );
+
+    await waitFor(() => expect(result.current).not.toBeNull());
+    expect(result.current?.scale).toEqual({
+      unit: 'ftpPct',
+      ceiling: 105,
+      gridlines: [55, 75, 90],
+    });
   });
 });

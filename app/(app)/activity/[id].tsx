@@ -21,6 +21,7 @@ import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { usePairedRace } from '@/hooks/activity/usePairedRace';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
+import { useDetailedProfile } from '@/hooks/useDetailedProfile';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import {
@@ -28,6 +29,7 @@ import {
   pairedEventIdOf,
   routeOf,
 } from '@/lib/activityDetails';
+import { NO_WORKOUT_PROFILE } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -145,6 +147,7 @@ function ActivityDetailsContent({
   onRacePress: (race: Race) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
+  const profile = useDetailedProfile(NO_WORKOUT_PROFILE, details);
 
   return (
     <Box gap="md">
@@ -167,12 +170,9 @@ function ActivityDetailsContent({
         startLocal={details.startLocal}
       />
 
-      {details.profileSummary && (
+      {profile && (
         <WorkoutDetailsCard>
-          <ActivityDetailsProfile
-            blocks={details.blocks}
-            summary={details.profileSummary}
-          />
+          <ActivityDetailsProfile profile={profile} />
         </WorkoutDetailsCard>
       )}
 

@@ -1,34 +1,22 @@
-import { useTranslation } from 'react-i18next';
-
-import ProfileWithTimeAxis from '@/components/workout/ProfileWithTimeAxis';
-import type { ActivityProfileSummary } from '@/lib/activityDetails';
-import { formatDuration } from '@/lib/formatDuration';
-import type { WorkoutBlock } from '@/lib/workoutProfile';
+import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
+import type { DetailedProfile } from '@/lib/detailedProfile';
 
 export interface ActivityDetailsProfileProps {
-  blocks: WorkoutBlock[];
-  summary: ActivityProfileSummary;
+  /** A card with the recorded strip alone. */
+  profile: DetailedProfile;
 }
 
 /**
- * The Activity Profile over its elapsed time, stops included, read by a
- * screen reader as one summary.
+ * The Activity Profile over its elapsed time, stops included: the same card
+ * as Workout Details', with the ride alone. Read by a screen reader as one
+ * summary.
  */
 export default function ActivityDetailsProfile({
-  blocks,
-  summary,
+  profile,
 }: ActivityDetailsProfileProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
-
   return (
-    <ProfileWithTimeAxis
-      strips={[{ blocks, caption: t('title') }]}
-      durationSeconds={summary.durationSeconds}
-      accessibilityLabel={t('profileLabel', {
-        duration: formatDuration(summary.durationSeconds),
-        segments: t('segments', { count: summary.segmentCount }),
-        peak: summary.peakFtpPct,
-      })}
+    <WorkoutDetailsProfile
+      profile={profile}
       testID="activity-details-profile"
     />
   );

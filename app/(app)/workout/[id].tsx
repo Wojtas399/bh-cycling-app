@@ -141,7 +141,7 @@ function WorkoutDetailsContent({
 
       {profile && (
         <WorkoutDetailsCard>
-          <WorkoutDetailsProfile card={profile} />
+          <WorkoutDetailsProfile profile={profile} />
         </WorkoutDetailsCard>
       )}
 

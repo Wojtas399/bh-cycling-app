@@ -11,6 +11,12 @@ export interface ProfileStrip<Summary> {
   blocks: WorkoutBlock[];
   /** The strip's own numbers, for the screen reader. */
   summary: Summary;
+  /**
+   * The FTP the strip's watts come from, in W: the current Ride FTP for the
+   * plan, and the one intervals.icu used for the ride. `null` when there is
+   * none, and the strip can only be read in %FTP.
+   */
+  ftp: number | null;
 }
 
 /**
@@ -26,26 +32,46 @@ export interface ProfileCard {
 }
 
 /**
+ * No Workout Profile, for a card with the recorded strip alone: an
+ * Activity's on Activity Details.
+ */
+export const NO_WORKOUT_PROFILE: Pick<
+  WorkoutDetails,
+  'blocks' | 'profileSummary'
+> = { blocks: [], profileSummary: null };
+
+/**
  * The profile card of a Workout, given its paired Activity's details:
  * `undefined` while they load, when they failed or when there's no Activity
  * to fetch. Without a drawable Activity Profile the plan shows alone, as on a
  * planned Workout; without a Workout Profile (a non-cycling Workout), or
  * with one of no known duration, the Activity's shows alone. `null` when
- * neither has one.
+ * neither has one. The plan's watts come from `currentFtp`, the athlete's Ride
+ * FTP today; the ride's from the FTP intervals.icu used for it, or
+ * `currentFtp` when it kept none.
  */
 export function buildProfileCard(
   workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary'>,
   activity: ActivityDetails | undefined,
+  currentFtp: number | null,
 ): ProfileCard | null {
   const recorded =
     activity && !activity.isStravaActivity && activity.profileSummary
-      ? { blocks: activity.blocks, summary: activity.profileSummary }
+      ? {
+          blocks: activity.blocks,
+          summary: activity.profileSummary,
+          ftp: activity.icuFtp ?? currentFtp,
+        }
       : null;
   // A plan with no known duration can't be placed in time beside the ride.
   const planned =
     workout.profileSummary &&
     !(recorded && workout.profileSummary.durationSeconds <= 0)
-      ? { blocks: workout.blocks, summary: workout.profileSummary }
+      ? {
+          blocks: workout.blocks,
+          summary: workout.profileSummary,
+          ftp: currentFtp,
+        }
       : null;
 
   if (!planned && !recorded) return null;

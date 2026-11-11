@@ -395,7 +395,15 @@ const pl = {
     missedBanner:
       'Ten trening nie został wykonany — brak sparowanej aktywności.',
     profileLabel:
-      'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
+      'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP. {{power}}',
+    /**
+     * A profile strip's power, the last sentence of its label: in watts, or
+     * in %FTP when the strip has no FTP.
+     */
+    profilePower: {
+      watts: 'Moc szczytowa {{peak}} W, średnia {{average}} W',
+      ftpPct: 'Moc szczytowa {{peak}}% FTP, średnia {{average}}% FTP',
+    },
     /** The plan above the recorded Activity Profile, in one card. */
     comparedProfilesLabel: 'Plan i wykonanie. {{planned}}. {{recorded}}',
     /** Captions over the two strips of a completed Workout's profile card. */
@@ -503,7 +511,7 @@ const pl = {
     /** The card of the Activity's summary metrics. */
     summary: 'Podsumowanie',
     profileLabel:
-      'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP',
+      'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP. {{power}}',
     segments_one: '{{count}} odcinek',
     segments_few: '{{count}} odcinki',
     segments_many: '{{count}} odcinków',
