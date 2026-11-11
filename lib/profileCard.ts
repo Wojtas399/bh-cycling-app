@@ -2,6 +2,7 @@ import type {
   ActivityDetails,
   ActivityProfileSummary,
 } from './activityDetails';
+import { NO_ZONE_TIMES, type ZoneTimes } from './timeInZone';
 import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
@@ -17,6 +18,12 @@ export interface ProfileStrip<Summary> {
    * none, and the strip can only be read in %FTP.
    */
   ftp: number | null;
+  /**
+   * The time in each zone the card lists for the strip when it's known
+   * outside the strip: the plan's from its steps, the ride's from
+   * intervals.icu. `null` to count it from what the strip draws.
+   */
+  zoneTimes: ZoneTimes | null;
 }
 
 /**
@@ -37,8 +44,8 @@ export interface ProfileCard {
  */
 export const NO_WORKOUT_PROFILE: Pick<
   WorkoutDetails,
-  'blocks' | 'profileSummary'
-> = { blocks: [], profileSummary: null };
+  'blocks' | 'profileSummary' | 'zoneTimes'
+> = { blocks: [], profileSummary: null, zoneTimes: NO_ZONE_TIMES };
 
 /**
  * The profile card of a Workout, given its paired Activity's details:
@@ -51,7 +58,7 @@ export const NO_WORKOUT_PROFILE: Pick<
  * `currentFtp` when it kept none.
  */
 export function buildProfileCard(
-  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary'>,
+  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
   activity: ActivityDetails | undefined,
   currentFtp: number | null,
 ): ProfileCard | null {
@@ -61,6 +68,7 @@ export function buildProfileCard(
           blocks: activity.blocks,
           summary: activity.profileSummary,
           ftp: activity.icuFtp ?? currentFtp,
+          zoneTimes: activity.zoneTimes,
         }
       : null;
   // A plan with no known duration can't be placed in time beside the ride.
@@ -71,6 +79,7 @@ export function buildProfileCard(
           blocks: workout.blocks,
           summary: workout.profileSummary,
           ftp: currentFtp,
+          zoneTimes: workout.zoneTimes,
         }
       : null;
 

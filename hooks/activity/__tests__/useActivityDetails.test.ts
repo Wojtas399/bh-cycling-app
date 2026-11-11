@@ -477,6 +477,37 @@ describe('useActivityDetails', () => {
     });
   });
 
+  describe('time in zone', () => {
+    it("is intervals.icu's time in Z1–Z7, so the card agrees with it", async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_zone_times: [
+            { id: 'Z1', secs: 610 },
+            { id: 'Z2', secs: 3125 },
+            { id: 'Z4', secs: 940 },
+            { id: 'SS', secs: 1200 },
+          ],
+        }),
+      );
+
+      expect(details.zoneTimes).toEqual({
+        1: 610,
+        2: 3125,
+        3: 0,
+        4: 940,
+        5: 0,
+        6: 0,
+        7: 0,
+      });
+    });
+
+    it('is null without it, so the card counts the Activity Profile', async () => {
+      const details = await shownDetailsOf(activity());
+
+      expect(details.zoneTimes).toBeNull();
+    });
+  });
+
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
       // The body intervals.icu returns for a Strava Activity, as verified.
@@ -596,6 +627,7 @@ describe('useActivityDetails', () => {
           trainer: false,
           paired_event_id: 4242,
           icu_ftp: 268,
+          icu_zone_times: [{ id: 'Z1', secs: 900 }],
           icu_intervals: [
             { start_time: 0, end_time: 900, intensity: 62, zone: 2 },
             { start_time: 900, end_time: 6180, intensity: 104, zone: 4 },

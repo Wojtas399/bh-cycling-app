@@ -7,6 +7,7 @@ import {
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
 import { resolveRideSettings } from '@/lib/rideSettings';
+import type { ZoneTimes } from '@/lib/timeInZone';
 import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
 import type { WorkoutBlock } from '@/lib/workoutProfile';
 import {
@@ -48,6 +49,17 @@ const PLAN_SUMMARY: WorkoutProfileSummary = {
   peakFtpPct: 100,
 };
 
+/** The plan's time in zone, as its steps ask for it. */
+const PLAN_ZONE_TIMES: ZoneTimes = {
+  1: 0,
+  2: 600,
+  3: 0,
+  4: 600,
+  5: 0,
+  6: 0,
+  7: 0,
+};
+
 /** A ride whose intervals draw a 600 s Activity Profile. */
 const RIDE: IntervalsActivity = {
   id: ACTIVITY_ID,
@@ -79,6 +91,7 @@ function renderCard(recordedActivityId: string | null) {
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
+        zoneTimes: PLAN_ZONE_TIMES,
         recordedActivityId,
       }),
     { client },
@@ -141,6 +154,39 @@ describe('useProfileCard', () => {
     ]);
   });
 
+  it("lists the plan's time in zone above the ride's from intervals.icu", async () => {
+    mockGetActivity.mockResolvedValue({
+      ...RIDE,
+      icu_zone_times: [
+        { id: 'Z1', secs: 30 },
+        { id: 'Z2', secs: 290 },
+        { id: 'Z4', secs: 280 },
+        { id: 'SS', secs: 120 },
+      ],
+    });
+
+    const { result } = await renderCard(ACTIVITY_ID);
+
+    await waitFor(() => expect(result.current?.recorded).not.toBeNull());
+    expect(result.current?.timeInZone).toEqual([
+      {
+        zone: 1,
+        planned: { seconds: 0, share: 0 },
+        recorded: { seconds: 30, share: 0.05 },
+      },
+      {
+        zone: 2,
+        planned: { seconds: 600, share: 1 },
+        recorded: { seconds: 290, share: expect.closeTo(0.483, 3) },
+      },
+      {
+        zone: 4,
+        planned: { seconds: 600, share: 1 },
+        recorded: { seconds: 280, share: expect.closeTo(0.467, 3) },
+      },
+    ]);
+  });
+
   it('keeps the plan alone when the Activity fails to load', async () => {
     mockGetActivity.mockRejectedValue(new Error('offline'));
 
@@ -157,6 +203,7 @@ describe('useProfileCard', () => {
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
+        zoneTimes: PLAN_ZONE_TIMES,
         recordedActivityId: null,
       }),
     );
@@ -172,6 +219,7 @@ describe('useProfileCard', () => {
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
+        zoneTimes: PLAN_ZONE_TIMES,
         recordedActivityId: null,
       }),
     );

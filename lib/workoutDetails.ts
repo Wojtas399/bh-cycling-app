@@ -9,6 +9,7 @@ import type { ZoneConfig } from './powerZones';
 import { type RouteSummary, summariseRoute } from './route';
 import { isStravaActivity, stravaActivityUrl } from './stravaActivity';
 import { stripNoteHtml } from './stripNoteHtml';
+import { type ZoneTimes, planZoneTimes } from './timeInZone';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -107,6 +108,11 @@ export interface WorkoutDetails {
   blocks: WorkoutBlock[];
   /** `null` exactly when `blocks` is empty. */
   profileSummary: WorkoutProfileSummary | null;
+  /**
+   * The time the plan asks for in each zone (see `planZoneTimes`): none for
+   * a non-cycling Workout.
+   */
+  zoneTimes: ZoneTimes;
   /** The Kroki tree: the doc's steps in order, repeats nested. */
   steps: WorkoutDetailsStep[];
   /**
@@ -203,6 +209,7 @@ export function buildWorkoutDetails(
     date,
     blocks,
     profileSummary: summariseProfile(event, blocks),
+    zoneTimes: planZoneTimes(steps, zoneConfig),
     steps: buildWorkoutSteps(steps, zoneConfig),
     comparison: measured ? compareWithPlan(event, measured) : null,
     activityMetrics: measured ? summariseActivity(measured) : null,

@@ -1,5 +1,6 @@
 import type { ActivityDetails } from '../activityDetails';
 import { buildProfileCard } from '../profileCard';
+import type { ZoneTimes } from '../timeInZone';
 import type { WorkoutProfileSummary } from '../workoutDetails';
 import type { WorkoutBlock } from '../workoutProfile';
 
@@ -15,17 +16,41 @@ const RECORDED_BLOCKS: WorkoutBlock[] = [
 
 const GAP = { minPct: 0, maxPct: 0, zone: 1 };
 
+const PLANNED_ZONE_TIMES: ZoneTimes = {
+  1: 0,
+  2: 1800,
+  3: 0,
+  4: 1800,
+  5: 0,
+  6: 0,
+  7: 0,
+};
+
+const RECORDED_ZONE_TIMES: ZoneTimes = {
+  1: 120,
+  2: 780,
+  3: 240,
+  4: 2460,
+  5: 0,
+  6: 0,
+  7: 0,
+};
+
+const NO_ZONE_TIMES: ZoneTimes = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+
 function plan(durationSeconds: number): {
   blocks: WorkoutBlock[];
   profileSummary: WorkoutProfileSummary;
+  zoneTimes: ZoneTimes;
 } {
   return {
     blocks: PLANNED_BLOCKS,
     profileSummary: { durationSeconds, stepCount: 2, peakFtpPct: 110 },
+    zoneTimes: PLANNED_ZONE_TIMES,
   };
 }
 
-const NO_PLAN = { blocks: [], profileSummary: null };
+const NO_PLAN = { blocks: [], profileSummary: null, zoneTimes: NO_ZONE_TIMES };
 
 /** The athlete's current Ride FTP. */
 const CURRENT_FTP = 280;
@@ -42,6 +67,7 @@ function ride(
     blocks: RECORDED_BLOCKS,
     profileSummary: { durationSeconds, segmentCount: 2, peakFtpPct: 98 },
     icuFtp,
+    zoneTimes: RECORDED_ZONE_TIMES,
     metrics: [],
     route: null,
     pairedEventId: null,
@@ -62,13 +88,26 @@ describe('buildProfileCard', () => {
         blocks: RECORDED_BLOCKS,
         summary: { durationSeconds: 3600, segmentCount: 2, peakFtpPct: 98 },
         ftp: 265,
+        zoneTimes: RECORDED_ZONE_TIMES,
       },
       planned: {
         blocks: PLANNED_BLOCKS,
         summary: { durationSeconds: 3600, stepCount: 2, peakFtpPct: 110 },
         ftp: CURRENT_FTP,
+        zoneTimes: PLANNED_ZONE_TIMES,
       },
     });
+  });
+
+  it("leaves the ride's time in zone to its strip when intervals.icu kept none", () => {
+    const card = buildProfileCard(
+      plan(3600),
+      { ...ride(3600), zoneTimes: null },
+      CURRENT_FTP,
+    );
+
+    expect(card?.recorded?.zoneTimes).toBeNull();
+    expect(card?.planned?.zoneTimes).toEqual(PLANNED_ZONE_TIMES);
   });
 
   it('ends the planned strip early when the ride ran longer', () => {
@@ -114,6 +153,7 @@ describe('buildProfileCard', () => {
         blocks: PLANNED_BLOCKS,
         summary: { durationSeconds: 3600, stepCount: 2, peakFtpPct: 110 },
         ftp: CURRENT_FTP,
+        zoneTimes: PLANNED_ZONE_TIMES,
       },
     });
   });
@@ -125,6 +165,7 @@ describe('buildProfileCard', () => {
         blocks: RECORDED_BLOCKS,
         summary: { durationSeconds: 2000, segmentCount: 2, peakFtpPct: 98 },
         ftp: 265,
+        zoneTimes: RECORDED_ZONE_TIMES,
       },
       planned: null,
     });
@@ -144,6 +185,7 @@ describe('buildProfileCard', () => {
         blocks: RECORDED_BLOCKS,
         summary: { durationSeconds: 2000, segmentCount: 2, peakFtpPct: 98 },
         ftp: 265,
+        zoneTimes: RECORDED_ZONE_TIMES,
       },
       planned: null,
     });

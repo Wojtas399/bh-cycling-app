@@ -2,6 +2,12 @@ import type { ActivityProfileSummary } from './activityDetails';
 import type { Zone } from './powerZones';
 import type { ProfileCard, ProfileStrip } from './profileCard';
 import type { RideSettings } from './rideSettings';
+import {
+  type TimeInZoneRow,
+  type ZoneTimes,
+  timeInZoneRows,
+  zoneTimesOfSegments,
+} from './timeInZone';
 import type { WorkoutProfileSummary } from './workoutDetails';
 import type { WorkoutBlock } from './workoutProfile';
 
@@ -57,6 +63,11 @@ export interface DetailedStrip<Summary> {
   /** Time-ordered. */
   segments: StripSegment[];
   power: StripPower;
+  /**
+   * The strip's time in each zone: its `ProfileStrip`'s when that's known,
+   * otherwise what its segments draw.
+   */
+  zoneTimes: ZoneTimes;
 }
 
 /** The y-scale every strip of a card shares. */
@@ -81,6 +92,8 @@ export interface DetailedProfile {
   scale: ProfileScale;
   planned: DetailedStrip<WorkoutProfileSummary> | null;
   recorded: DetailedStrip<ActivityProfileSummary> | null;
+  /** The rows under the card, of the strips it has. */
+  timeInZone: TimeInZoneRow[];
 }
 
 /** How far above the peak a zone edge may sit and still top the scale. */
@@ -138,6 +151,10 @@ export function buildDetailedProfile(
     ),
     planned,
     recorded,
+    timeInZone: timeInZoneRows(
+      planned?.zoneTimes ?? null,
+      recorded?.zoneTimes ?? null,
+    ),
   };
 }
 
@@ -185,13 +202,19 @@ function sharedScale(
 }
 
 function detailedStrip<Summary>(
-  { blocks, summary, ftp }: ProfileStrip<Summary>,
+  { blocks, summary, ftp, zoneTimes }: ProfileStrip<Summary>,
   durationSeconds: number,
   unit: ScaleUnit,
 ): DetailedStrip<Summary> {
   const segments = toSegments(blocks, durationSeconds, ftp, unit);
 
-  return { summary, ftp, segments, power: stripPower(segments, ftp) };
+  return {
+    summary,
+    ftp,
+    segments,
+    power: stripPower(segments, ftp),
+    zoneTimes: zoneTimes ?? zoneTimesOfSegments(segments),
+  };
 }
 
 function stripPower(segments: StripSegment[], ftp: number | null): StripPower {

@@ -95,6 +95,13 @@ export interface IntervalsActivityInterval {
   type?: string;
 }
 
+/** One entry of an Activity's `icu_zone_times`. */
+export interface IntervalsZoneTime {
+  /** `Z1`…`Z7`, or another bucket such as `SS`. */
+  id: string;
+  secs: number;
+}
+
 export interface IntervalsActivity {
   id: string;
   /**
@@ -120,6 +127,11 @@ export interface IntervalsActivity {
   icu_weighted_avg_watts?: number;
   /** The FTP intervals.icu used for this Activity, W. */
   icu_ftp?: number | null;
+  /**
+   * Time in each power zone as intervals.icu counted it, at the zones that
+   * applied to the ride. Besides `Z1`…`Z7` it may hold `SS` (Sweet Spot).
+   */
+  icu_zone_times?: IntervalsZoneTime[] | null;
   /** Variability index, a ratio (NP / average power). */
   icu_variability_index?: number;
   /** bpm. */

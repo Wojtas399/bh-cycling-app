@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
+import Box from '@/components/Box';
 import ProfileWithTimeAxis from '@/components/workout/ProfileWithTimeAxis';
+import TimeInZoneRows from '@/components/workout/TimeInZoneRows';
 import type { ActivityProfileSummary } from '@/lib/activityDetails';
 import type { DetailedProfile, StripPower } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
@@ -13,11 +15,12 @@ export interface WorkoutDetailsProfileProps {
 
 /**
  * The large profile card: the planned Workout Profile above the recorded
- * Activity Profile when there's both, either alone otherwise. Read by a screen
- * reader as one summary covering whatever it shows, each strip with its power.
+ * Activity Profile when there's both, either alone otherwise, with their time
+ * in zone below. Read by a screen reader as one summary covering whatever it
+ * shows, each strip with its power, then the time-in-zone rows as text.
  */
 export default function WorkoutDetailsProfile({
-  profile: { durationSeconds, scale, recorded, planned },
+  profile: { durationSeconds, scale, recorded, planned, timeInZone },
   testID = 'workout-details-profile',
 }: WorkoutDetailsProfileProps) {
   const { t } = useTranslation();
@@ -49,37 +52,40 @@ export default function WorkoutDetailsProfile({
   const plannedText = planned && plannedLabel(planned.summary, planned.power);
 
   return (
-    <ProfileWithTimeAxis
-      strips={[
-        ...(planned
-          ? [
-              {
-                segments: planned.segments,
-                caption: t('workoutDetails.strip.planned'),
-              },
-            ]
-          : []),
-        ...(recorded
-          ? [
-              {
-                segments: recorded.segments,
-                caption: t('workoutDetails.strip.recorded'),
-              },
-            ]
-          : []),
-      ]}
-      scale={scale}
-      durationSeconds={durationSeconds}
-      accessibilityLabel={
-        plannedText && recordedText
-          ? t('workoutDetails.comparedProfilesLabel', {
-              planned: plannedText,
-              recorded: recordedText,
-            })
-          : // A card always has at least one strip.
-            (plannedText ?? recordedText ?? '')
-      }
-      testID={testID}
-    />
+    <Box gap="base">
+      <ProfileWithTimeAxis
+        strips={[
+          ...(planned
+            ? [
+                {
+                  segments: planned.segments,
+                  caption: t('workoutDetails.strip.planned'),
+                },
+              ]
+            : []),
+          ...(recorded
+            ? [
+                {
+                  segments: recorded.segments,
+                  caption: t('workoutDetails.strip.recorded'),
+                },
+              ]
+            : []),
+        ]}
+        scale={scale}
+        durationSeconds={durationSeconds}
+        accessibilityLabel={
+          plannedText && recordedText
+            ? t('workoutDetails.comparedProfilesLabel', {
+                planned: plannedText,
+                recorded: recordedText,
+              })
+            : // A card always has at least one strip.
+              (plannedText ?? recordedText ?? '')
+        }
+        testID={testID}
+      />
+      <TimeInZoneRows rows={timeInZone} testID={testID} />
+    </Box>
   );
 }

@@ -6,6 +6,7 @@ import {
 } from '../detailedProfile';
 import { resolveZoneConfig } from '../powerZones';
 import type { ProfileCard, ProfileStrip } from '../profileCard';
+import type { ZoneTimes } from '../timeInZone';
 import type { WorkoutProfileSummary } from '../workoutDetails';
 import type { WorkoutBlock } from '../workoutProfile';
 
@@ -49,17 +50,20 @@ const GAP = { minPct: 0, maxPct: 0, zone: 1 } as const;
 function planned(
   blocks: WorkoutBlock[],
   ftp: number | null,
+  zoneTimes: ZoneTimes | null = null,
 ): ProfileStrip<WorkoutProfileSummary> {
   return {
     blocks,
     summary: { durationSeconds: 3600, stepCount: blocks.length, peakFtpPct: 0 },
     ftp,
+    zoneTimes,
   };
 }
 
 function recorded(
   blocks: WorkoutBlock[],
   ftp: number | null,
+  zoneTimes: ZoneTimes | null = null,
 ): ProfileStrip<ActivityProfileSummary> {
   return {
     blocks,
@@ -69,6 +73,7 @@ function recorded(
       peakFtpPct: 0,
     },
     ftp,
+    zoneTimes,
   };
 }
 
@@ -354,6 +359,70 @@ describe('buildDetailedProfile', () => {
       });
       expect(profile.scale.ceiling).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('buildDetailedProfile time in zone', () => {
+  const BLOCKS: WorkoutBlock[] = [
+    { widthFraction: 0.25, minPct: 60, maxPct: 60, zone: 2 },
+    { widthFraction: 0.25, ...GAP },
+    { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 },
+  ];
+
+  it("lists the plan's time from its steps above the ride's from intervals.icu", () => {
+    const profile = buildDetailedProfile(
+      card({
+        planned: planned(BLOCKS, 250, {
+          1: 0,
+          2: 1200,
+          3: 0,
+          4: 2400,
+          5: 0,
+          6: 0,
+          7: 0,
+        }),
+        recorded: recorded(BLOCKS, 250, {
+          1: 300,
+          2: 1500,
+          3: 0,
+          4: 1800,
+          5: 0,
+          6: 0,
+          7: 0,
+        }),
+      }),
+      { zoneConfig: COGGAN, ftp: 250 },
+    );
+
+    expect(profile.timeInZone).toEqual([
+      {
+        zone: 1,
+        planned: { seconds: 0, share: 0 },
+        recorded: { seconds: 300, share: 0.125 },
+      },
+      {
+        zone: 2,
+        planned: { seconds: 1200, share: 0.5 },
+        recorded: { seconds: 1500, share: 0.625 },
+      },
+      {
+        zone: 4,
+        planned: { seconds: 2400, share: 1 },
+        recorded: { seconds: 1800, share: 0.75 },
+      },
+    ]);
+  });
+
+  it("counts the ride's time from what its strip draws when intervals.icu kept none, leaving out stops", () => {
+    const profile = buildDetailedProfile(
+      card({ recorded: recorded(BLOCKS, 250) }),
+      { zoneConfig: COGGAN, ftp: 250 },
+    );
+
+    expect(profile.timeInZone).toEqual([
+      { zone: 2, planned: null, recorded: { seconds: 900, share: 0.5 } },
+      { zone: 4, planned: null, recorded: { seconds: 1800, share: 1 } },
+    ]);
   });
 });
 

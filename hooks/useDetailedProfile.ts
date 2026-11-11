@@ -23,7 +23,7 @@ const FALLBACK_RIDE_SETTINGS = resolveRideSettings(null);
  * %FTP.
  */
 export function useDetailedProfile(
-  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary'>,
+  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
   activity: ActivityDetails | undefined,
 ): DetailedProfile | null {
   const { credentials } = useIntervalsAvailability();

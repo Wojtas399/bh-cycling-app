@@ -11,14 +11,15 @@ import type { LocalDateTimeString } from './localDateTime';
 import { type Zone, isZone } from './powerZones';
 import { resolveFtp } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
+import { type ZoneTimes, zoneTimesFromIcu } from './timeInZone';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 /**
  * The Activity fields Activity Details keeps from the ~71 KB body: the hero,
  * Opis, the summary metrics, the Route gate (see `activityHasRoute`), the
- * paired event the Race header reads and the FTP the profile card's watts
- * come from. A Route summary's `distance` and `elapsed_time` are metrics
- * already.
+ * paired event the Race header reads, and the FTP the profile card's watts
+ * come from and the time in zone it lists. A Route summary's `distance` and
+ * `elapsed_time` are metrics already.
  */
 const STORED_ACTIVITY_FIELDS = [
   'id',
@@ -31,6 +32,7 @@ const STORED_ACTIVITY_FIELDS = [
   'trainer',
   'paired_event_id',
   'icu_ftp',
+  'icu_zone_times',
 ] as const;
 
 /** What the Activity Profile needs of each detected interval. */
@@ -105,6 +107,11 @@ export type ActivityDetails =
        */
       icuFtp: number | null;
       /**
+       * intervals.icu's time in each zone (see `zoneTimesFromIcu`). `null`
+       * when it has none, and the card counts the Activity Profile instead.
+       */
+      zoneTimes: ZoneTimes | null;
+      /**
        * Podsumowanie: the summary metrics the Activity has, in display order,
        * the same for every sport.
        */
@@ -165,6 +172,7 @@ export function buildActivityDetails(
     startLocal: activity.start_date_local,
     ...activityProfileOf(activity),
     icuFtp: resolveFtp(activity.icu_ftp),
+    zoneTimes: zoneTimesFromIcu(activity.icu_zone_times),
     metrics: summariseActivity(activity),
     ...descriptionOf(activity),
     route: summariseRoute(activity),

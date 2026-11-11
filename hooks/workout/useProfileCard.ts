@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 export function useProfileCard(
   workout: Pick<
     WorkoutDetails,
-    'blocks' | 'profileSummary' | 'recordedActivityId'
+    'blocks' | 'profileSummary' | 'zoneTimes' | 'recordedActivityId'
   >,
 ) {
   const { credentials } = useIntervalsAvailability();

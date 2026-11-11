@@ -27,6 +27,7 @@ function shown({
     blocks: [],
     profileSummary: null,
     icuFtp: null,
+    zoneTimes: null,
     metrics: [],
     route,
     pairedEventId,

@@ -411,6 +411,15 @@ const pl = {
       planned: 'Plan',
       recorded: 'Wykonanie',
     },
+    /** The time-in-zone rows under the profile card. */
+    timeInZone: {
+      /** A row as a screen reader reads it, on a card with one strip. */
+      row: 'Strefa {{zone}}: {{time}}',
+      /** A row with the plan's time and the ride's. */
+      comparedRow: 'Strefa {{zone}}: plan {{planned}}, wykonanie {{recorded}}',
+      /** Says which bar and time is which when a row has both, as "40m / 38m". */
+      legend: 'Plan (blady pasek) / wykonanie',
+    },
     steps_one: '{{count}} krok',
     steps_few: '{{count}} kroki',
     steps_many: '{{count}} kroków',
