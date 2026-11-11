@@ -1,5 +1,5 @@
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
-import type { ProfileCardSource } from '@/hooks/useDetailedProfile';
+import type { ProfileCardSource } from '@/lib/profileCard';
 
 export interface ActivityDetailsProfileProps {
   /** A card with the recorded strip alone. */

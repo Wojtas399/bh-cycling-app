@@ -20,17 +20,19 @@ import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
+import { useActivityStream } from '@/hooks/activity/useActivityStream';
 import { usePairedRace } from '@/hooks/activity/usePairedRace';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
-import { useDetailedProfile } from '@/hooks/useDetailedProfile';
+import { useAthleteSettings } from '@/hooks/useAthleteSettings';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import {
   type ActivityDetails,
   pairedEventIdOf,
+  profileStreamIdOf,
   routeOf,
 } from '@/lib/activityDetails';
-import { NO_WORKOUT_PROFILE } from '@/lib/profileCard';
+import { NO_WORKOUT_PROFILE, profileCardSource } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -148,7 +150,15 @@ function ActivityDetailsContent({
   onRacePress: (race: Race) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
-  const profile = useDetailedProfile(NO_WORKOUT_PROFILE, activityId, details);
+  const settings = useAthleteSettings();
+  // Skipped when there's no Activity Profile to draw.
+  const stream = useActivityStream(profileStreamIdOf(activityId, details));
+  const profile = profileCardSource(
+    NO_WORKOUT_PROFILE,
+    details,
+    settings.data,
+    stream.data,
+  );
 
   return (
     <Box gap="md">
@@ -171,13 +181,16 @@ function ActivityDetailsContent({
         startLocal={details.startLocal}
       />
 
-      {/* Held until the ride can be drawn as it'll stay: from its stream or
-          its intervals. */}
-      {!profile.isSettled && <ProfileCardSkeleton />}
-      {profile.isSettled && profile.source && (
-        <WorkoutDetailsCard>
-          <ActivityDetailsProfile source={profile.source} />
-        </WorkoutDetailsCard>
+      {/* Held until the ride can be drawn as it'll stay: in watts or %FTP,
+          from its stream or its intervals. */}
+      {settings.isLoading || stream.isLoading ? (
+        <ProfileCardSkeleton />
+      ) : (
+        profile && (
+          <WorkoutDetailsCard>
+            <ActivityDetailsProfile source={profile} />
+          </WorkoutDetailsCard>
+        )
       )}
 
       {details.metrics.length > 0 && (

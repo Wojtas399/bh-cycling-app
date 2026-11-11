@@ -1,6 +1,7 @@
 import {
   type ActivityDetails,
   pairedEventIdOf,
+  profileStreamIdOf,
   routeOf,
 } from '../activityDetails';
 import type { RouteSummary } from '../route';
@@ -18,7 +19,7 @@ function shown({
 }: {
   route?: RouteSummary | null;
   pairedEventId?: number | null;
-} = {}): ActivityDetails {
+} = {}): Extract<ActivityDetails, { isStravaActivity: false }> {
   return {
     isStravaActivity: false,
     title: null,
@@ -67,5 +68,31 @@ describe('pairedEventIdOf', () => {
 
   it('is null while the details are still loading', () => {
     expect(pairedEventIdOf(undefined)).toBeNull();
+  });
+});
+
+describe('profileStreamIdOf', () => {
+  const ACTIVITY_ID = 'i196064284';
+  const drawn: ActivityDetails = {
+    ...shown(),
+    blocks: [{ widthFraction: 1, minPct: 80, maxPct: 80, zone: 3 }],
+    profileSummary: {
+      startSeconds: 0,
+      durationSeconds: 600,
+      segmentCount: 1,
+      peakFtpPct: 80,
+    },
+  };
+
+  it('is the Activity when it has an Activity Profile to draw', () => {
+    expect(profileStreamIdOf(ACTIVITY_ID, drawn)).toBe(ACTIVITY_ID);
+  });
+
+  it.each<[string, ActivityDetails | undefined]>([
+    ['no Activity Profile', shown()],
+    ['a Strava Activity', { isStravaActivity: true }],
+    ['details still loading', undefined],
+  ])('is null for %s', (_, details) => {
+    expect(profileStreamIdOf(ACTIVITY_ID, details)).toBeNull();
   });
 });

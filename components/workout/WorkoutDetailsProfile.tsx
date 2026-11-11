@@ -8,7 +8,6 @@ import ProfileWithTimeAxis, {
 } from '@/components/workout/ProfileWithTimeAxis';
 import ScrubReadout from '@/components/workout/ScrubReadout';
 import TimeInZoneRows from '@/components/workout/TimeInZoneRows';
-import type { ProfileCardSource } from '@/hooks/useDetailedProfile';
 import type { ActivityProfileSummary } from '@/lib/activityDetails';
 import {
   type DetailedProfile,
@@ -16,6 +15,7 @@ import {
   buildDetailedProfile,
 } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
+import type { ProfileCardSource } from '@/lib/profileCard';
 import { profileReadout } from '@/lib/profileReadout';
 import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
 

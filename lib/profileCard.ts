@@ -3,6 +3,7 @@ import type {
   ActivityProfileSummary,
 } from './activityDetails';
 import type { PowerStream } from './powerStream';
+import { type RideSettings, resolveRideSettings } from './rideSettings';
 import { NO_ZONE_TIMES, type ZoneTimes } from './timeInZone';
 import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
@@ -53,6 +54,16 @@ export interface ProfileCard {
   durationSeconds: number;
   recorded: RecordedStrip | null;
   planned: ProfileStrip<WorkoutProfileSummary> | null;
+}
+
+/**
+ * What the large profile card is drawn from, before it's laid out: its strips
+ * and the Ride settings to draw them by. `buildDetailedProfile` draws it for
+ * the plot's width.
+ */
+export interface ProfileCardSource {
+  card: ProfileCard;
+  settings: RideSettings;
 }
 
 /**
@@ -153,4 +164,23 @@ function onTimeScale<Strip extends ProfileStrip<{ durationSeconds: number }>>(
       { widthFraction: 1 - share, ...GAP_BAND },
     ],
   };
+}
+
+/**
+ * The card of `workout` above `activity` (see `buildProfileCard`), drawn by
+ * the athlete's Ride `settings`: on Coggan's zones in %FTP when there are
+ * none, as when they failed. The ride is drawn from its power `stream` when
+ * there's one, and from its detected intervals when there's none or it
+ * failed (`undefined`). `null` when neither side has a profile.
+ */
+export function profileCardSource(
+  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
+  activity: ActivityDetails | undefined,
+  settings: RideSettings | undefined,
+  stream: PowerStream | null | undefined,
+): ProfileCardSource | null {
+  const drawnBy = settings ?? resolveRideSettings(null);
+  const card = buildProfileCard(workout, activity, drawnBy.ftp, stream ?? null);
+
+  return card && { card, settings: drawnBy };
 }

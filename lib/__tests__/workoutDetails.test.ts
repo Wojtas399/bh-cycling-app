@@ -64,7 +64,7 @@ function details(
       event: workout,
       completed: activity != null,
       activity,
-      zoneConfig: ZONE_CONFIG,
+      rideSettings: { zoneConfig: ZONE_CONFIG, ftp: null },
     },
     TODAY,
   );

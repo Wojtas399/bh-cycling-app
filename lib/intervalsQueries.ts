@@ -46,7 +46,7 @@ import {
 import { type Note, noteWindow, toNotes } from './notes';
 import { pairWorkout } from './pairing';
 import { type PowerStream, toPowerStream } from './powerStream';
-import { type ZoneConfig, resolveZoneConfig } from './powerZones';
+import type { ZoneConfig } from './powerZones';
 import {
   NEXT_RACE_WINDOW_DAYS,
   type Race,
@@ -408,7 +408,7 @@ export function workoutDetailsQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }): Promise<StoredWorkoutDetails> => {
           const { accessToken, athleteId } = credentials;
-          const zoneConfigPromise = fetchZoneConfig(client, credentials);
+          const rideSettingsPromise = fetchRideSettings(client, credentials);
           const eventRead = await getCalendarEvent(
             accessToken,
             athleteId,
@@ -417,7 +417,7 @@ export function workoutDetailsQueryOptions(
           );
           const day = eventRead.start_date_local.slice(0, 10);
           const date = fromLocalDateString(day);
-          const [dayWorkouts, activities, zoneConfig] = await Promise.all([
+          const [dayWorkouts, activities, rideSettings] = await Promise.all([
             getCalendarEvents(
               accessToken,
               athleteId,
@@ -438,12 +438,12 @@ export function workoutDetailsQueryOptions(
               },
               { signal },
             ),
-            zoneConfigPromise,
+            rideSettingsPromise,
           ]);
           const event =
             dayWorkouts.find(({ id }) => id === eventId) ?? eventRead;
 
-          return { event, ...pairWorkout(event, activities), zoneConfig };
+          return { event, ...pairWorkout(event, activities), rideSettings };
         }
       : skipToken,
     select,
@@ -644,8 +644,20 @@ function fetchZoneConfig(
   client: QueryClient,
   credentials: IntervalsCredentials,
 ): Promise<ZoneConfig> {
-  return client.fetchQuery(athleteSettingsQueryOptions(credentials)).then(
+  return fetchRideSettings(client, credentials).then(
     ({ zoneConfig }) => zoneConfig,
-    () => resolveZoneConfig(null),
   );
+}
+
+/**
+ * The athlete's Ride settings, or Coggan's zones and no FTP when they fail
+ * (see `fetchZoneConfig`).
+ */
+function fetchRideSettings(
+  client: QueryClient,
+  credentials: IntervalsCredentials,
+): Promise<RideSettings> {
+  return client
+    .fetchQuery(athleteSettingsQueryOptions(credentials))
+    .catch(() => resolveRideSettings(null));
 }

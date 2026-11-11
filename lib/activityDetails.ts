@@ -201,6 +201,20 @@ export function routeOf(
 }
 
 /**
+ * The Activity whose power stream the profile card reads, by its `activityId`:
+ * `null` while its details load, and when there's no Activity Profile to draw
+ * (a Strava Activity included), so only a drawn ride's stream is fetched.
+ */
+export function profileStreamIdOf(
+  activityId: string | null,
+  details: ActivityDetails | undefined,
+): string | null {
+  if (details === undefined || details.isStravaActivity) return null;
+
+  return details.profileSummary === null ? null : activityId;
+}
+
+/**
  * The event loaded details are paired to, for the Race header: `null` while
  * they load, when the Activity isn't paired, and for a Strava Activity.
  */

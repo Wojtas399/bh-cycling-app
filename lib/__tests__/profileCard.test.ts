@@ -1,6 +1,7 @@
 import type { ActivityDetails } from '../activityDetails';
 import type { PowerStream } from '../powerStream';
-import { buildProfileCard } from '../profileCard';
+import { buildProfileCard, profileCardSource } from '../profileCard';
+import { resolveRideSettings } from '../rideSettings';
 import type { ZoneTimes } from '../timeInZone';
 import type { WorkoutProfileSummary } from '../workoutDetails';
 import type { WorkoutBlock } from '../workoutProfile';
@@ -293,5 +294,43 @@ describe('buildProfileCard', () => {
         buildProfileCard(plan(3600), activity, CURRENT_FTP, STREAM)?.recorded,
       ).toBeNull();
     });
+  });
+});
+
+describe('profileCardSource', () => {
+  const SETTINGS = resolveRideSettings({ ftp: CURRENT_FTP });
+
+  it("draws the card by the athlete's Ride settings, the ride from its stream", () => {
+    const source = profileCardSource(plan(3600), ride(3600), SETTINGS, STREAM);
+
+    expect(source?.settings).toBe(SETTINGS);
+    expect(source?.card.planned?.ftp).toBe(CURRENT_FTP);
+    expect(source?.card.recorded?.stream).toBe(STREAM);
+  });
+
+  it.each([
+    ['has none', null],
+    ['failed', undefined],
+  ])(
+    'draws the ride from its detected intervals when its stream %s',
+    (_, stream) => {
+      expect(
+        profileCardSource(plan(3600), ride(3600), SETTINGS, stream)?.card
+          .recorded,
+      ).toMatchObject({ blocks: RECORDED_BLOCKS, stream: null });
+    },
+  );
+
+  it("draws the card on Coggan's zones with no FTP when there are no settings", () => {
+    const source = profileCardSource(plan(3600), undefined, undefined, null);
+
+    expect(source?.settings).toEqual(resolveRideSettings(null));
+    expect(source?.card.planned?.ftp).toBeNull();
+  });
+
+  it('is null when neither side has a profile', () => {
+    expect(
+      profileCardSource(NO_PLAN, rideWithoutProfile, SETTINGS, null),
+    ).toBeNull();
   });
 });

@@ -8,15 +8,11 @@ import {
   getActivityStreams,
   getAthleteSettings,
 } from '@/lib/intervalsApi';
-import { intervalsKeys } from '@/lib/intervalsQueries';
 import { resolveRideSettings } from '@/lib/rideSettings';
 import type { ZoneTimes } from '@/lib/timeInZone';
 import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
 import type { WorkoutBlock } from '@/lib/workoutProfile';
-import {
-  createTestQueryClient,
-  renderHookWithClient,
-} from '@/test-utils/queryClient';
+import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -79,27 +75,16 @@ const RIDE: IntervalsActivity = {
   ],
 };
 
-/**
- * Renders the card with the athlete's settings already cached, as Workout
- * Details' own query leaves them.
- */
+/** Renders the card of a Workout read with the athlete's Ride settings. */
 function renderCard(recordedActivityId: string | null) {
-  const client = createTestQueryClient();
-
-  client.setQueryData(
-    intervalsKeys.athleteSettings('athlete-1'),
-    resolveRideSettings({ ftp: CURRENT_FTP }),
-  );
-
-  return renderHookWithClient(
-    () =>
-      useProfileCard({
-        blocks: PLANNED_BLOCKS,
-        profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES,
-        recordedActivityId,
-      }),
-    { client },
+  return renderHookWithClient(() =>
+    useProfileCard({
+      blocks: PLANNED_BLOCKS,
+      profileSummary: PLAN_SUMMARY,
+      zoneTimes: PLAN_ZONE_TIMES,
+      rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
+      recordedActivityId,
+    }),
   );
 }
 
@@ -243,35 +228,34 @@ describe('useProfileCard', () => {
     expect(result.current).toMatchObject(PLAN_ALONE);
   });
 
-  it("holds the card until the athlete's settings first load, so it never redraws from %FTP to watts", async () => {
-    mockGetAthleteSettings.mockResolvedValue({ ftp: CURRENT_FTP });
+  it("shows the plan at once, in watts, by the Workout's own Ride settings while the athlete's settings aren't cached", async () => {
+    mockGetAthleteSettings.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(() =>
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
         zoneTimes: PLAN_ZONE_TIMES,
+        rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
         recordedActivityId: null,
       }),
     );
 
-    expect(result.current).toBeNull();
-    await waitFor(() => expect(result.current).toMatchObject(PLAN_ALONE));
+    expect(result.current).toMatchObject(PLAN_ALONE);
+    expect(mockGetAthleteSettings).not.toHaveBeenCalled();
   });
 
-  it("draws the card on Coggan's zones with no FTP when the athlete's settings fail", async () => {
-    mockGetAthleteSettings.mockRejectedValue(new Error('offline'));
-
+  it("draws the card on Coggan's zones with no FTP when the Workout was read without the athlete's settings", async () => {
     const { result } = await renderHookWithClient(() =>
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
         zoneTimes: PLAN_ZONE_TIMES,
+        rideSettings: resolveRideSettings(null),
         recordedActivityId: null,
       }),
     );
 
-    await waitFor(() => expect(result.current).not.toBeNull());
     expect(result.current?.settings).toEqual(resolveRideSettings(null));
     expect(result.current?.card.planned?.ftp).toBeNull();
   });
