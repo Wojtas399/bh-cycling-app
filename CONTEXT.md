@@ -32,6 +32,14 @@ _Avoid_: Unpaired workout details, activity mode
 The recorded shape of an Activity's effort, drawn from intervals.icu's power stream, or from its detected intervals when there is no stream, and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.
 _Avoid_: Workout Profile, which is the planned shape
 
+**Time in Zone**:
+How long a session spends in each power zone, Z1 to Z7, listed under the large profile card. The plan's time comes from the Workout's steps. The ride's time comes from intervals.icu's zone times, so the two apps agree, or from the Activity Profile when intervals.icu has none.
+_Avoid_: Zone distribution, zone breakdown
+
+**Scrub Readout**:
+The panel that drag-to-inspect opens on the large profile card. It shows the time under the pointer, and the zone, %FTP and watts of each strip at that moment. It stays after the finger lifts until the athlete hides it.
+_Avoid_: Tooltip, crosshair
+
 **Route**:
 The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
 _Avoid_: Workout route, track, GPS trace
