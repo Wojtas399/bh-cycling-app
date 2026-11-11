@@ -411,6 +411,11 @@ const pl = {
       planned: 'Plan',
       recorded: 'Wykonanie',
     },
+    /** The scrub readout under the profile card. */
+    readout: {
+      /** Hides the scrub pointer and the readout. */
+      hide: 'Ukryj',
+    },
     /** The time-in-zone rows under the profile card. */
     timeInZone: {
       /** A row as a screen reader reads it, on a card with one strip. */

@@ -1,5 +1,11 @@
 import { View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
@@ -11,6 +17,7 @@ import {
   axisLabels,
 } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
+import { pointerSeconds } from '@/lib/profileReadout';
 
 /** The plot's height when a strip has the card to itself. */
 const SINGLE_STRIP_HEIGHT = 140;
@@ -44,6 +51,8 @@ const CAP_OPACITY = 0.4;
 /** Where the time-axis labels sit, as shares of the profile's duration. */
 const AXIS_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
 
+const POINTER_WIDTH = 1;
+
 /**
  * The width each strip's plot gets in a stack `width` wide: what the y-axis
  * labels leave.
@@ -71,14 +80,20 @@ export interface ProfileWithTimeAxisProps {
   width: number;
   /** What a screen reader reads for the whole profile. */
   accessibilityLabel: string;
+  /** Whether the scrub pointer shows: from the first scrub until it's hidden. */
+  pointerShown: boolean;
+  /** The pointer moved to `seconds` on the time scale. */
+  onScrub: (seconds: number) => void;
   testID?: string;
 }
 
 /**
  * One or more large profiles on one y-scale, with the zone edges as dashed
  * gridlines, and a shared time axis beneath them, each captioned when there's
- * more than one. Static, and read by a screen reader as one image with
- * `accessibilityLabel`; the plots are hidden.
+ * more than one. A sideways drag moves one pointer through every strip and
+ * reports its time to `onScrub`; the pointer stays where the finger lifts. A
+ * vertical swipe is left to the screen's scroll. Read by a screen reader as
+ * one image with `accessibilityLabel`; the plots and the scrub are hidden.
  */
 export default function ProfileWithTimeAxis({
   strips,
@@ -86,9 +101,51 @@ export default function ProfileWithTimeAxis({
   durationSeconds,
   width,
   accessibilityLabel,
+  pointerShown,
+  onScrub,
   testID,
 }: ProfileWithTimeAxisProps) {
+  const { colors } = useAppTheme();
   const height = strips.length > 1 ? STACKED_STRIP_HEIGHT : SINGLE_STRIP_HEIGHT;
+  const plotWidth = plotWidthOf(width);
+
+  // The pointer moves on the UI thread, and its whole-px column crosses to JS
+  // only when it changes. -1 until the drag's first move.
+  const pointerX = useSharedValue(GUTTER);
+  const column = useSharedValue(-1);
+
+  function scrubToColumn(px: number) {
+    onScrub(pointerSeconds(px, plotWidth, durationSeconds));
+  }
+
+  function moveTo(x: number) {
+    'worklet';
+    const px = Math.round(Math.min(Math.max(x - GUTTER, 0), plotWidth));
+
+    pointerX.set(GUTTER + px);
+
+    if (px !== column.get()) {
+      column.set(px);
+      scheduleOnRN(scrubToColumn, px);
+    }
+  }
+
+  const pan = Gesture.Pan()
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-12, 12])
+    .onStart(event => {
+      // The pointer may have been hidden since the last drag, so report it
+      // even at the same column.
+      column.set(-1);
+      moveTo(event.x);
+    })
+    .onUpdate(event => {
+      moveTo(event.x);
+    });
+
+  const pointerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: pointerX.get() - POINTER_WIDTH / 2 }],
+  }));
 
   return (
     <Box
@@ -98,29 +155,32 @@ export default function ProfileWithTimeAxis({
       testID={testID}
     >
       <View importantForAccessibility="no-hide-descendants">
-        <Box gap="md">
-          {strips.map(({ segments, caption }) => (
-            <Box key={caption} gap="xs">
-              {/* A lone profile needs no caption: the card says what it is. */}
-              {strips.length > 1 && (
-                <Text
-                  variant="body-xs-medium"
-                  color="textSecondary"
-                  style={{ marginLeft: GUTTER }}
-                >
-                  {caption}
-                </Text>
-              )}
-              <StripPlot
-                segments={segments}
-                scale={scale}
-                durationSeconds={durationSeconds}
-                width={width}
-                height={height}
-              />
-            </Box>
-          ))}
-        </Box>
+        <GestureDetector gesture={pan}>
+          <View>
+            <Strips
+              strips={strips}
+              scale={scale}
+              durationSeconds={durationSeconds}
+              width={width}
+              height={height}
+            />
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                {
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: 0,
+                  width: POINTER_WIDTH,
+                  backgroundColor: colors.textPrimary,
+                  opacity: pointerShown ? 1 : 0,
+                },
+                pointerStyle,
+              ]}
+            />
+          </View>
+        </GestureDetector>
         <Box
           flexDirection="row"
           justifyContent="space-between"
@@ -133,6 +193,47 @@ export default function ProfileWithTimeAxis({
           ))}
         </Box>
       </View>
+    </Box>
+  );
+}
+
+/** The plots stacked, each captioned when there's more than one. */
+function Strips({
+  strips,
+  scale,
+  durationSeconds,
+  width,
+  height,
+}: {
+  strips: ProfileStripView[];
+  scale: ProfileScale;
+  durationSeconds: number;
+  width: number;
+  height: number;
+}) {
+  return (
+    <Box gap="md">
+      {strips.map(({ segments, caption }) => (
+        <Box key={caption} gap="xs">
+          {/* A lone profile needs no caption: the card says what it is. */}
+          {strips.length > 1 && (
+            <Text
+              variant="body-xs-medium"
+              color="textSecondary"
+              style={{ marginLeft: GUTTER }}
+            >
+              {caption}
+            </Text>
+          )}
+          <StripPlot
+            segments={segments}
+            scale={scale}
+            durationSeconds={durationSeconds}
+            width={width}
+            height={height}
+          />
+        </Box>
+      ))}
     </Box>
   );
 }
