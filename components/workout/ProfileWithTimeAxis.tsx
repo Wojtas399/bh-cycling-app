@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { View } from 'react-native';
 import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
 
@@ -45,6 +44,14 @@ const CAP_OPACITY = 0.4;
 /** Where the time-axis labels sit, as shares of the profile's duration. */
 const AXIS_FRACTIONS = [0, 0.25, 0.5, 0.75, 1];
 
+/**
+ * The width each strip's plot gets in a stack `width` wide: what the y-axis
+ * labels leave.
+ */
+export function plotWidthOf(width: number): number {
+  return Math.max(0, width - GUTTER);
+}
+
 /** One profile of the stack. */
 export interface ProfileStripView {
   /** On the stack's time scale, `durationSeconds`. */
@@ -60,6 +67,8 @@ export interface ProfileWithTimeAxisProps {
   scale: ProfileScale;
   /** The time the profiles span, in s. */
   durationSeconds: number;
+  /** The stack's laid-out width, in px. */
+  width: number;
   /** What a screen reader reads for the whole profile. */
   accessibilityLabel: string;
   testID?: string;
@@ -75,10 +84,10 @@ export default function ProfileWithTimeAxis({
   strips,
   scale,
   durationSeconds,
+  width,
   accessibilityLabel,
   testID,
 }: ProfileWithTimeAxisProps) {
-  const [width, setWidth] = useState(0);
   const height = strips.length > 1 ? STACKED_STRIP_HEIGHT : SINGLE_STRIP_HEIGHT;
 
   return (
@@ -88,10 +97,7 @@ export default function ProfileWithTimeAxis({
       accessibilityLabel={accessibilityLabel}
       testID={testID}
     >
-      <View
-        importantForAccessibility="no-hide-descendants"
-        onLayout={({ nativeEvent: { layout } }) => setWidth(layout.width)}
-      >
+      <View importantForAccessibility="no-hide-descendants">
         <Box gap="md">
           {strips.map(({ segments, caption }) => (
             <Box key={caption} gap="xs">
@@ -105,15 +111,13 @@ export default function ProfileWithTimeAxis({
                   {caption}
                 </Text>
               )}
-              {width > 0 && (
-                <StripPlot
-                  segments={segments}
-                  scale={scale}
-                  durationSeconds={durationSeconds}
-                  width={width}
-                  height={height}
-                />
-              )}
+              <StripPlot
+                segments={segments}
+                scale={scale}
+                durationSeconds={durationSeconds}
+                width={width}
+                height={height}
+              />
             </Box>
           ))}
         </Box>
@@ -152,7 +156,7 @@ function StripPlot({
   height: number;
 }) {
   const { colors } = useAppTheme();
-  const plotWidth = width - GUTTER;
+  const plotWidth = plotWidthOf(width);
   const xOf = (seconds: number) =>
     GUTTER + (seconds / durationSeconds) * plotWidth;
   const yOf = (value: number) =>

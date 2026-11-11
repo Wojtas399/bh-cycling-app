@@ -1,28 +1,63 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View } from 'react-native';
 
 import Box from '@/components/Box';
-import ProfileWithTimeAxis from '@/components/workout/ProfileWithTimeAxis';
+import ProfileWithTimeAxis, {
+  plotWidthOf,
+} from '@/components/workout/ProfileWithTimeAxis';
 import TimeInZoneRows from '@/components/workout/TimeInZoneRows';
+import type { ProfileCardSource } from '@/hooks/useDetailedProfile';
 import type { ActivityProfileSummary } from '@/lib/activityDetails';
-import type { DetailedProfile, StripPower } from '@/lib/detailedProfile';
+import {
+  type DetailedProfile,
+  type StripPower,
+  buildDetailedProfile,
+} from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
 import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
 
 export interface WorkoutDetailsProfileProps {
-  profile: DetailedProfile;
+  source: ProfileCardSource;
   testID?: string;
 }
 
 /**
  * The large profile card: the planned Workout Profile above the recorded
  * Activity Profile when there's both, either alone otherwise, with their time
- * in zone below. Read by a screen reader as one summary covering whatever it
- * shows, each strip with its power, then the time-in-zone rows as text.
+ * in zone below. Drawn once it's laid out, since a ride's power stream is
+ * drawn for the plot's width. Read by a screen reader as one summary covering
+ * whatever it shows, each strip with its power, then the time-in-zone rows as
+ * text.
  */
 export default function WorkoutDetailsProfile({
-  profile: { durationSeconds, scale, recorded, planned, timeInZone },
+  source: { card, settings },
   testID = 'workout-details-profile',
 }: WorkoutDetailsProfileProps) {
+  const [width, setWidth] = useState(0);
+
+  return (
+    <View onLayout={({ nativeEvent: { layout } }) => setWidth(layout.width)}>
+      {width > 0 && (
+        <LaidOutProfile
+          profile={buildDetailedProfile(card, settings, plotWidthOf(width))}
+          width={width}
+          testID={testID}
+        />
+      )}
+    </View>
+  );
+}
+
+function LaidOutProfile({
+  profile: { durationSeconds, scale, recorded, planned, timeInZone },
+  width,
+  testID,
+}: {
+  profile: DetailedProfile;
+  width: number;
+  testID: string;
+}) {
   const { t } = useTranslation();
 
   function powerLabel({ unit, peak, average }: StripPower) {
@@ -74,6 +109,7 @@ export default function WorkoutDetailsProfile({
         ]}
         scale={scale}
         durationSeconds={durationSeconds}
+        width={width}
         accessibilityLabel={
           plannedText && recordedText
             ? t('workoutDetails.comparedProfilesLabel', {

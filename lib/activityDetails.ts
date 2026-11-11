@@ -69,8 +69,16 @@ export type StoredActivityDetails =
   | { isStravaActivity: false; activity: StoredActivity }
   | { isStravaActivity: true };
 
-/** Numbers behind the Activity Profile's accessibility summary. */
+/**
+ * The Activity Profile's span, and the numbers behind its accessibility
+ * summary.
+ */
 export interface ActivityProfileSummary {
+  /**
+   * Where the Profile starts, in s from the Activity's start: its first
+   * interval's start. The power stream is placed from here.
+   */
+  startSeconds: number;
   /** The elapsed span the Profile covers, stops included, in s. */
   durationSeconds: number;
   /** Intervals drawn in the Profile. */
@@ -255,6 +263,7 @@ function activityProfileOf({
   return {
     blocks,
     profileSummary: {
+      startSeconds: spanStart,
       durationSeconds,
       segmentCount: segments.length,
       peakFtpPct: Math.round(

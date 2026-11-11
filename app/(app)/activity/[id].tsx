@@ -14,6 +14,7 @@ import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import RaceHeader from '@/components/race/RaceHeader';
 import RouteBanner from '@/components/route/RouteBanner';
 import ActivityMetricGrid from '@/components/workout/ActivityMetricGrid';
+import ProfileCardSkeleton from '@/components/workout/ProfileCardSkeleton';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
@@ -147,7 +148,7 @@ function ActivityDetailsContent({
   onRacePress: (race: Race) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
-  const profile = useDetailedProfile(NO_WORKOUT_PROFILE, details);
+  const profile = useDetailedProfile(NO_WORKOUT_PROFILE, activityId, details);
 
   return (
     <Box gap="md">
@@ -170,9 +171,12 @@ function ActivityDetailsContent({
         startLocal={details.startLocal}
       />
 
-      {profile && (
+      {/* Held until the ride can be drawn as it'll stay: from its stream or
+          its intervals. */}
+      {!profile.isSettled && <ProfileCardSkeleton />}
+      {profile.isSettled && profile.source && (
         <WorkoutDetailsCard>
-          <ActivityDetailsProfile profile={profile} />
+          <ActivityDetailsProfile source={profile.source} />
         </WorkoutDetailsCard>
       )}
 

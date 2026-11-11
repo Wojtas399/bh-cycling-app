@@ -7,9 +7,9 @@ import { useQuery } from '@tanstack/react-query';
 
 /**
  * A loaded Workout's profile card (see `useDetailedProfile`). The paired
- * Activity's intervals come from Activity Details' own query, so the two
- * screens share its cache; until it loads, and if it fails, the card shows the
- * plan alone.
+ * Activity's intervals and power stream come from Activity Details' own
+ * queries, so the two screens share their cache; until both have settled, and
+ * if the Activity fails, the card shows the plan alone.
  */
 export function useProfileCard(
   workout: Pick<
@@ -27,5 +27,6 @@ export function useProfileCard(
     ),
   );
 
-  return useDetailedProfile(workout, activity);
+  return useDetailedProfile(workout, workout.recordedActivityId, activity)
+    .source;
 }

@@ -1,4 +1,5 @@
 import type { ActivityDetails } from '../activityDetails';
+import type { PowerStream } from '../powerStream';
 import { buildProfileCard } from '../profileCard';
 import type { ZoneTimes } from '../timeInZone';
 import type { WorkoutProfileSummary } from '../workoutDetails';
@@ -52,6 +53,12 @@ function plan(durationSeconds: number): {
 
 const NO_PLAN = { blocks: [], profileSummary: null, zoneTimes: NO_ZONE_TIMES };
 
+/** The ride's power stream: a minute at 200 W. */
+const STREAM: PowerStream = {
+  time: Array.from({ length: 60 }, (_, i) => i),
+  watts: Array.from({ length: 60 }, () => 200),
+};
+
 /** The athlete's current Ride FTP. */
 const CURRENT_FTP = 280;
 
@@ -65,7 +72,12 @@ function ride(
     type: 'Ride',
     startLocal: '2026-10-14T18:00:00',
     blocks: RECORDED_BLOCKS,
-    profileSummary: { durationSeconds, segmentCount: 2, peakFtpPct: 98 },
+    profileSummary: {
+      startSeconds: 0,
+      durationSeconds,
+      segmentCount: 2,
+      peakFtpPct: 98,
+    },
     icuFtp,
     zoneTimes: RECORDED_ZONE_TIMES,
     metrics: [],
@@ -86,9 +98,15 @@ describe('buildProfileCard', () => {
       durationSeconds: 3600,
       recorded: {
         blocks: RECORDED_BLOCKS,
-        summary: { durationSeconds: 3600, segmentCount: 2, peakFtpPct: 98 },
+        summary: {
+          startSeconds: 0,
+          durationSeconds: 3600,
+          segmentCount: 2,
+          peakFtpPct: 98,
+        },
         ftp: 265,
         zoneTimes: RECORDED_ZONE_TIMES,
+        stream: null,
       },
       planned: {
         blocks: PLANNED_BLOCKS,
@@ -163,9 +181,15 @@ describe('buildProfileCard', () => {
       durationSeconds: 2000,
       recorded: {
         blocks: RECORDED_BLOCKS,
-        summary: { durationSeconds: 2000, segmentCount: 2, peakFtpPct: 98 },
+        summary: {
+          startSeconds: 0,
+          durationSeconds: 2000,
+          segmentCount: 2,
+          peakFtpPct: 98,
+        },
         ftp: 265,
         zoneTimes: RECORDED_ZONE_TIMES,
+        stream: null,
       },
       planned: null,
     });
@@ -183,9 +207,15 @@ describe('buildProfileCard', () => {
       durationSeconds: 2000,
       recorded: {
         blocks: RECORDED_BLOCKS,
-        summary: { durationSeconds: 2000, segmentCount: 2, peakFtpPct: 98 },
+        summary: {
+          startSeconds: 0,
+          durationSeconds: 2000,
+          segmentCount: 2,
+          peakFtpPct: 98,
+        },
         ftp: 265,
         zoneTimes: RECORDED_ZONE_TIMES,
+        stream: null,
       },
       planned: null,
     });
@@ -215,5 +245,53 @@ describe('buildProfileCard', () => {
     expect(
       buildProfileCard(plan(0), undefined, CURRENT_FTP)?.planned?.blocks,
     ).toEqual(PLANNED_BLOCKS);
+  });
+
+  describe('with a power stream', () => {
+    it('draws the ride from its stream, keeping its blocks and span', () => {
+      const card = buildProfileCard(
+        plan(3000),
+        ride(4000),
+        CURRENT_FTP,
+        STREAM,
+      );
+
+      expect(card?.recorded).toEqual({
+        blocks: RECORDED_BLOCKS,
+        summary: {
+          startSeconds: 0,
+          durationSeconds: 4000,
+          segmentCount: 2,
+          peakFtpPct: 98,
+        },
+        ftp: 265,
+        zoneTimes: RECORDED_ZONE_TIMES,
+        stream: STREAM,
+      });
+    });
+
+    it('draws the ride from its stream at the current FTP when intervals.icu kept none', () => {
+      const card = buildProfileCard(plan(3600), ride(3600, null), 280, STREAM);
+
+      expect(card?.recorded).toMatchObject({ ftp: 280, stream: STREAM });
+    });
+
+    it('falls back to the blocks when no FTP can read the stream in %FTP or zones', () => {
+      const card = buildProfileCard(plan(3600), ride(3600, null), null, STREAM);
+
+      expect(card?.recorded).toMatchObject({
+        blocks: RECORDED_BLOCKS,
+        stream: null,
+      });
+    });
+
+    it.each<[string, ActivityDetails]>([
+      ['a Strava Activity', { isStravaActivity: true }],
+      ['no detected intervals with power', rideWithoutProfile],
+    ])('draws no ride for %s, stream or not', (_, activity) => {
+      expect(
+        buildProfileCard(plan(3600), activity, CURRENT_FTP, STREAM)?.recorded,
+      ).toBeNull();
+    });
   });
 });

@@ -4,6 +4,7 @@ import {
   getActivities,
   getActivity,
   getActivityMap,
+  getActivityStreams,
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
@@ -169,6 +170,11 @@ describe('intervalsApi', () => {
       (signal: AbortSignal) => getActivityMap('token-1', 'i42', { signal }),
     ],
     [
+      'getActivityStreams',
+      (signal: AbortSignal) =>
+        getActivityStreams('token-1', 'i42', { types: ['watts'] }, { signal }),
+    ],
+    [
       'getWellness',
       (signal: AbortSignal) =>
         getWellness('token-1', 'athlete-1', '2026-11-02', { signal }),
@@ -306,6 +312,40 @@ describe('intervalsApi', () => {
         name: 'IntervalsApiError',
         status: 404,
       });
+    });
+  });
+
+  describe('getActivityStreams', () => {
+    it("reads the Activity's streams of the given types, comma-joined, with the bearer token", async () => {
+      const streams = [
+        { type: 'time', name: null, data: [0, 1] },
+        { type: 'watts', name: null, data: [180, 210] },
+      ];
+
+      mockFetchOnce({ ok: true, status: 200, json: async () => streams });
+
+      const result = await getActivityStreams('token-1', 'i42', {
+        types: ['time', 'watts'],
+      });
+
+      expect(result).toEqual(streams);
+
+      const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+      const { origin, pathname, searchParams } = new URL(url);
+
+      expect(`${origin}${pathname}`).toBe(
+        'https://intervals.icu/api/v1/activity/i42/streams.json',
+      );
+      expect(Object.fromEntries(searchParams)).toEqual({ types: 'time,watts' });
+      expect(init).toEqual({ headers: { Authorization: 'Bearer token-1' } });
+    });
+
+    it('throws IntervalsApiError carrying the status of a 404', async () => {
+      mockFetchOnce({ ok: false, status: 404 });
+
+      await expect(
+        getActivityStreams('token-1', 'i42', { types: ['watts'] }),
+      ).rejects.toMatchObject({ name: 'IntervalsApiError', status: 404 });
     });
   });
 
