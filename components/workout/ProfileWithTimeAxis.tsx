@@ -14,6 +14,7 @@ import { useAppTheme } from '@/constants/theme';
 import { type ProfileScale, axisLabels } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
+import type { PlotStrip } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 import type { StripSegment } from '@/lib/stripSegment';
 
@@ -59,17 +60,9 @@ export function plotWidthOf(width: number): number {
   return Math.max(0, width - GUTTER);
 }
 
-/** One profile of the stack. */
-export interface ProfileStripView {
-  /** On the stack's time scale, `durationSeconds`. */
-  segments: StripSegment[];
-  /** What the strip shows, written above it when it shares the stack. */
-  caption: string;
-}
-
 export interface ProfileWithTimeAxisProps {
   /** Profiles stacked top to bottom on one time scale. */
-  strips: ProfileStripView[];
+  strips: PlotStrip[];
   /** The y-scale every strip shares. */
   scale: ProfileScale;
   /** The time the profiles span, in s. */
@@ -203,7 +196,7 @@ function Strips({
   width,
   height,
 }: {
-  strips: ProfileStripView[];
+  strips: PlotStrip[];
   scale: ProfileScale;
   durationSeconds: number;
   width: number;

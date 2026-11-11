@@ -7,6 +7,7 @@ import type { TFunction } from 'i18next';
 
 /** One strip of the plot: its segments, and what it shows. */
 export interface PlotStrip {
+  /** On the card's time scale. */
   segments: StripSegment[];
   /** Written above the strip when it shares the plot. */
   caption: string;
