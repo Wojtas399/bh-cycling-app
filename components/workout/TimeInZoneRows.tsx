@@ -41,8 +41,6 @@ function formatZoneTime(seconds: number): string {
 
 export interface TimeInZoneRowsProps {
   rows: TimeInZoneRow[];
-  /** The card's: the rows are `{testID}-time-in-zone-z{zone}`. */
-  testID: string;
 }
 
 /**
@@ -50,7 +48,7 @@ export interface TimeInZoneRowsProps {
  * faint above the ride's solid one, measured against the longest, with the
  * times. Each row is read by a screen reader as plain text.
  */
-export default function TimeInZoneRows({ rows, testID }: TimeInZoneRowsProps) {
+export default function TimeInZoneRows({ rows }: TimeInZoneRowsProps) {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.timeInZone',
   });
@@ -72,7 +70,7 @@ export default function TimeInZoneRows({ rows, testID }: TimeInZoneRowsProps) {
   }
 
   return (
-    <Box gap="xs" testID={`${testID}-time-in-zone`}>
+    <Box gap="xs">
       {rows.map(({ zone, planned, recorded }) => {
         const color = colors[ZONE_COLORS[zone]];
         // The plan's bar above the ride's. A row has at least one.
@@ -86,7 +84,6 @@ export default function TimeInZoneRows({ rows, testID }: TimeInZoneRowsProps) {
             key={zone}
             accessible
             accessibilityLabel={label(zone, bars)}
-            testID={`${testID}-time-in-zone-z${zone}`}
             flexDirection="row"
             alignItems="center"
             gap="sm"

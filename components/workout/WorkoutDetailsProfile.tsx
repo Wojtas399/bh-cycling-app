@@ -135,7 +135,7 @@ function LaidOutProfile({
           testID={testID}
         />
       )}
-      <TimeInZoneRows rows={timeInZone} testID={testID} />
+      <TimeInZoneRows rows={timeInZone} />
     </Box>
   );
 }
