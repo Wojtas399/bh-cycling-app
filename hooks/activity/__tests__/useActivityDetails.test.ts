@@ -200,9 +200,26 @@ describe('useActivityDetails', () => {
       );
 
       expect(details.profileSummary).toEqual({
+        startSeconds: 0,
         durationSeconds: 9300,
         segmentCount: 3,
         peakFtpPct: 179,
+      });
+    });
+
+    it('starts where its first interval does, which places the power stream under it', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 300, end_time: 1500, intensity: 80, zone: 3 },
+            { start_time: 1500, end_time: 2700, intensity: 90, zone: 3 },
+          ],
+        }),
+      );
+
+      expect(details.profileSummary).toMatchObject({
+        startSeconds: 300,
+        durationSeconds: 2400,
       });
     });
 
@@ -236,6 +253,7 @@ describe('useActivityDetails', () => {
         { widthFraction: 1, minPct: 72, maxPct: 72, zone: 2 },
       ]);
       expect(details.profileSummary).toEqual({
+        startSeconds: 0,
         durationSeconds: 5400,
         segmentCount: 1,
         peakFtpPct: 72,
@@ -257,6 +275,7 @@ describe('useActivityDetails', () => {
         { widthFraction: 0.5, minPct: 0, maxPct: 0, zone: 1 },
       ]);
       expect(details.profileSummary).toEqual({
+        startSeconds: 0,
         durationSeconds: 3600,
         segmentCount: 1,
         peakFtpPct: 88,
@@ -280,6 +299,7 @@ describe('useActivityDetails', () => {
         { widthFraction: 0.5, minPct: 105, maxPct: 105, zone: 5 },
       ]);
       expect(details.profileSummary).toEqual({
+        startSeconds: 0,
         durationSeconds: 2400,
         segmentCount: 2,
         peakFtpPct: 105,
@@ -459,6 +479,55 @@ describe('useActivityDetails', () => {
     });
   });
 
+  describe('FTP', () => {
+    it("is the FTP intervals.icu used for the ride, which the recorded strip's watts come from", async () => {
+      const details = await shownDetailsOf(activity({ icu_ftp: 268 }));
+
+      expect(details.icuFtp).toBe(268);
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['null', null as unknown as undefined],
+      ['zero', 0],
+    ])('is null when it is %s', async (_, icu_ftp) => {
+      const details = await shownDetailsOf(activity({ icu_ftp }));
+
+      expect(details.icuFtp).toBeNull();
+    });
+  });
+
+  describe('time in zone', () => {
+    it("is intervals.icu's time in Z1–Z7, so the card agrees with it", async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_zone_times: [
+            { id: 'Z1', secs: 610 },
+            { id: 'Z2', secs: 3125 },
+            { id: 'Z4', secs: 940 },
+            { id: 'SS', secs: 1200 },
+          ],
+        }),
+      );
+
+      expect(details.zoneTimes).toEqual({
+        1: 610,
+        2: 3125,
+        3: 0,
+        4: 940,
+        5: 0,
+        6: 0,
+        7: 0,
+      });
+    });
+
+    it('is null without it, so the card counts the Activity Profile', async () => {
+      const details = await shownDetailsOf(activity());
+
+      expect(details.zoneTimes).toBeNull();
+    });
+  });
+
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
       // The body intervals.icu returns for a Strava Activity, as verified.
@@ -577,6 +646,8 @@ describe('useActivityDetails', () => {
           stream_types: ['time', 'watts', 'latlng'],
           trainer: false,
           paired_event_id: 4242,
+          icu_ftp: 268,
+          icu_zone_times: [{ id: 'Z1', secs: 900 }],
           icu_intervals: [
             { start_time: 0, end_time: 900, intensity: 62, zone: 2 },
             { start_time: 900, end_time: 6180, intensity: 104, zone: 4 },

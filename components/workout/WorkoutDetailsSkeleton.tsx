@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import Box from '@/components/Box';
 import SkeletonBar from '@/components/SkeletonBar';
+import ProfileCardSkeleton from '@/components/workout/ProfileCardSkeleton';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 
 /**
@@ -31,9 +32,7 @@ export default function WorkoutDetailsSkeleton({
         <SkeletonBar width={160} height={14} onPage />
       </Box>
 
-      <WorkoutDetailsCard>
-        <SkeletonBar width="100%" height={120} />
-      </WorkoutDetailsCard>
+      <ProfileCardSkeleton />
 
       <WorkoutDetailsCard>
         <Box gap="sm">

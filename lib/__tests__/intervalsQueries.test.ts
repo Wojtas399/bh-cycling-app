@@ -2,14 +2,17 @@ import { buildActivityDetails } from '../activityDetails';
 import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
+  IntervalsApiError,
   type IntervalsCalendarEvent,
   type IntervalsWorkoutDoc,
   getActivities,
+  getActivityStreams,
   getAthleteSettings,
   getCalendarEvents,
 } from '../intervalsApi';
 import {
   activityDetailsQueryOptions,
+  activityStreamQueryOptions,
   athleteSettingsQueryOptions,
   fitnessQueryOptions,
   intervalsKeys,
@@ -31,6 +34,7 @@ jest.mock('../intervalsApi', () => ({
   ...jest.requireActual('../intervalsApi'),
   getCalendarEvents: jest.fn(),
   getActivities: jest.fn(),
+  getActivityStreams: jest.fn(),
   getAthleteSettings: jest.fn(),
 }));
 
@@ -40,6 +44,7 @@ const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockGetActivityStreams = getActivityStreams as jest.Mock;
 
 const ATHLETE_ZONES = [60, 80, 95, 110, 130, 160, 220];
 
@@ -101,6 +106,12 @@ describe('intervalsKeys', () => {
       'intervals',
       'athlete-1',
       'activity',
+      'i42',
+    ]);
+    expect(intervalsKeys.stream('athlete-1', 'i42')).toEqual([
+      'intervals',
+      'athlete-1',
+      'stream',
       'i42',
     ]);
   });
@@ -201,24 +212,125 @@ describe('routeQueryOptions', () => {
   });
 });
 
+describe('activityStreamQueryOptions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function fetchStream() {
+    return createQueryClient().fetchQuery(
+      activityStreamQueryOptions(CREDENTIALS, 'i42'),
+    );
+  }
+
+  it("keys the stream by the Activity id under the athlete's prefix", () => {
+    expect(activityStreamQueryOptions(CREDENTIALS, 'i42').queryKey).toEqual([
+      'intervals',
+      'athlete-1',
+      'stream',
+      'i42',
+    ]);
+  });
+
+  it('is skipped without an Activity id', () => {
+    expect(activityStreamQueryOptions(CREDENTIALS, null).queryFn).toBe(
+      skipToken,
+    );
+  });
+
+  it('is skipped without credentials', () => {
+    expect(activityStreamQueryOptions(null, 'i42').queryFn).toBe(skipToken);
+  });
+
+  it('keeps a loaded stream fresh forever, as a recorded ride never changes', () => {
+    expect(activityStreamQueryOptions(CREDENTIALS, 'i42').staleTime).toBe(
+      Infinity,
+    );
+  });
+
+  it("stores the ride's time and watts streams", async () => {
+    mockGetActivityStreams.mockResolvedValue([
+      { type: 'time', data: [0, 1, 2] },
+      { type: 'watts', data: [180, null, 210] },
+    ]);
+
+    await expect(fetchStream()).resolves.toEqual({
+      time: [0, 1, 2],
+      watts: [180, null, 210],
+    });
+    expect(mockGetActivityStreams).toHaveBeenCalledWith(
+      'token-1',
+      'i42',
+      { types: ['time', 'watts'] },
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it('resolves to null, no stream, when intervals.icu has none (404)', async () => {
+    mockGetActivityStreams.mockRejectedValue(new IntervalsApiError(404));
+
+    await expect(fetchStream()).resolves.toBeNull();
+  });
+
+  it.each([
+    ['an empty response', []],
+    ['no watts', [{ type: 'time', data: [0, 1] }]],
+  ])('resolves to null, no stream, for %s', async (_, streams) => {
+    mockGetActivityStreams.mockResolvedValue(streams);
+
+    await expect(fetchStream()).resolves.toBeNull();
+  });
+
+  it('fails on any other error', async () => {
+    mockGetActivityStreams.mockRejectedValue(new IntervalsApiError(500));
+
+    await expect(fetchStream()).rejects.toMatchObject({ status: 500 });
+  });
+});
+
 describe('athleteSettingsQueryOptions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('stores the zone config resolved from the athlete settings', async () => {
-    mockGetAthleteSettings.mockResolvedValue({ powerZones: ATHLETE_ZONES });
+  it('stores the zone config and current FTP resolved from the athlete settings', async () => {
+    mockGetAthleteSettings.mockResolvedValue({
+      powerZones: ATHLETE_ZONES,
+      ftp: 265,
+    });
 
     const client = createQueryClient();
-    const zones = await client.fetchQuery(
+    const settings = await client.fetchQuery(
       athleteSettingsQueryOptions(CREDENTIALS),
     );
 
     // This athlete's Z2 is 60–80% FTP, not the Coggan 55–75%.
-    expect(zones[1]).toEqual({ zone: 2, minPct: 60, maxPct: 80 });
+    expect(settings.zoneConfig[1]).toEqual({ zone: 2, minPct: 60, maxPct: 80 });
+    expect(settings.ftp).toBe(265);
     expect(mockGetAthleteSettings).toHaveBeenCalledWith('token-1', {
       signal: expect.any(AbortSignal),
     });
+  });
+
+  it.each([
+    ['no FTP', undefined],
+    ['an FTP of zero', 0],
+  ])('stores no current FTP when the athlete has %s', async (_, ftp) => {
+    mockGetAthleteSettings.mockResolvedValue({
+      powerZones: ATHLETE_ZONES,
+      ftp,
+    });
+
+    const client = createQueryClient();
+    const settings = await client.fetchQuery(
+      athleteSettingsQueryOptions(CREDENTIALS),
+    );
+
+    expect(settings.ftp).toBeNull();
+  });
+
+  it('is skipped without credentials', () => {
+    expect(athleteSettingsQueryOptions(null).queryFn).toBe(skipToken);
   });
 });
 
@@ -357,7 +469,10 @@ describe('upcomingQueryOptions', () => {
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(2);
     expect(
       client.getQueryData(intervalsKeys.athleteSettings('athlete-1')),
-    ).toEqual(resolveZoneConfig({ powerZones: ATHLETE_ZONES }));
+    ).toEqual({
+      zoneConfig: resolveZoneConfig({ powerZones: ATHLETE_ZONES }),
+      ftp: null,
+    });
   });
 });
 

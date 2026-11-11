@@ -9,13 +9,16 @@ import type {
 } from './intervalsApi';
 import type { LocalDateTimeString } from './localDateTime';
 import { type Zone, isZone } from './powerZones';
+import { resolveFtp } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
+import { type ZoneTimes, zoneTimesFromIcu } from './timeInZone';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 /**
  * The Activity fields Activity Details keeps from the ~71 KB body: the hero,
- * Opis, the summary metrics, the Route gate (see `activityHasRoute`) and the
- * paired event the Race header reads. A Route summary's `distance` and
+ * Opis, the summary metrics, the Route gate (see `activityHasRoute`), the
+ * paired event the Race header reads, and the FTP the profile card's watts
+ * come from and the time in zone it lists. A Route summary's `distance` and
  * `elapsed_time` are metrics already.
  */
 const STORED_ACTIVITY_FIELDS = [
@@ -28,6 +31,8 @@ const STORED_ACTIVITY_FIELDS = [
   'stream_types',
   'trainer',
   'paired_event_id',
+  'icu_ftp',
+  'icu_zone_times',
 ] as const;
 
 /** What the Activity Profile needs of each detected interval. */
@@ -64,8 +69,16 @@ export type StoredActivityDetails =
   | { isStravaActivity: false; activity: StoredActivity }
   | { isStravaActivity: true };
 
-/** Numbers behind the Activity Profile's accessibility summary. */
+/**
+ * The Activity Profile's span, and the numbers behind its accessibility
+ * summary.
+ */
 export interface ActivityProfileSummary {
+  /**
+   * Where the Profile starts, in s from the Activity's start: its first
+   * interval's start. The power stream is placed from here.
+   */
+  startSeconds: number;
   /** The elapsed span the Profile covers, stops included, in s. */
   durationSeconds: number;
   /** Intervals drawn in the Profile. */
@@ -96,6 +109,16 @@ export type ActivityDetails =
       blocks: WorkoutBlock[];
       /** `null` exactly when `blocks` is empty. */
       profileSummary: ActivityProfileSummary | null;
+      /**
+       * The FTP intervals.icu used for the ride, in W, which its intervals'
+       * %FTP and zones are relative to. `null` when it has none usable.
+       */
+      icuFtp: number | null;
+      /**
+       * intervals.icu's time in each zone (see `zoneTimesFromIcu`). `null`
+       * when it has none, and the card counts the Activity Profile instead.
+       */
+      zoneTimes: ZoneTimes | null;
       /**
        * Podsumowanie: the summary metrics the Activity has, in display order,
        * the same for every sport.
@@ -156,6 +179,8 @@ export function buildActivityDetails(
     type: activity.type,
     startLocal: activity.start_date_local,
     ...activityProfileOf(activity),
+    icuFtp: resolveFtp(activity.icu_ftp),
+    zoneTimes: zoneTimesFromIcu(activity.icu_zone_times),
     metrics: summariseActivity(activity),
     ...descriptionOf(activity),
     route: summariseRoute(activity),
@@ -173,6 +198,20 @@ export function routeOf(
   if (details === undefined) return undefined;
 
   return details.isStravaActivity ? null : details.route;
+}
+
+/**
+ * The Activity whose power stream the profile card reads, by its `activityId`:
+ * `null` while its details load, and when there's no Activity Profile to draw
+ * (a Strava Activity included), so only a drawn ride's stream is fetched.
+ */
+export function profileStreamIdOf(
+  activityId: string | null,
+  details: ActivityDetails | undefined,
+): string | null {
+  if (details === undefined || details.isStravaActivity) return null;
+
+  return details.profileSummary === null ? null : activityId;
 }
 
 /**
@@ -238,6 +277,7 @@ function activityProfileOf({
   return {
     blocks,
     profileSummary: {
+      startSeconds: spanStart,
       durationSeconds,
       segmentCount: segments.length,
       peakFtpPct: Math.round(

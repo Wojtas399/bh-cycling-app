@@ -395,13 +395,35 @@ const pl = {
     missedBanner:
       'Ten trening nie został wykonany — brak sparowanej aktywności.',
     profileLabel:
-      'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP',
+      'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP. {{power}}',
+    /**
+     * A profile strip's power, the last sentence of its label: in watts, or
+     * in %FTP when the strip has no FTP.
+     */
+    profilePower: {
+      watts: 'Moc szczytowa {{peak}} W, średnia {{average}} W',
+      ftpPct: 'Moc szczytowa {{peak}}% FTP, średnia {{average}}% FTP',
+    },
     /** The plan above the recorded Activity Profile, in one card. */
     comparedProfilesLabel: 'Plan i wykonanie. {{planned}}. {{recorded}}',
     /** Captions over the two strips of a completed Workout's profile card. */
     strip: {
       planned: 'Plan',
       recorded: 'Wykonanie',
+    },
+    /** The scrub readout under the profile card. */
+    readout: {
+      /** Hides the scrub pointer and the readout. */
+      hide: 'Ukryj',
+    },
+    /** The time-in-zone rows under the profile card. */
+    timeInZone: {
+      /** A row as a screen reader reads it, on a card with one strip. */
+      row: 'Strefa {{zone}}: {{time}}',
+      /** A row with the plan's time and the ride's. */
+      comparedRow: 'Strefa {{zone}}: plan {{planned}}, wykonanie {{recorded}}',
+      /** Says which bar and time is which when a row has both, as "40m / 38m". */
+      legend: 'Plan (blady pasek) / wykonanie',
     },
     steps_one: '{{count}} krok',
     steps_few: '{{count}} kroki',
@@ -503,7 +525,7 @@ const pl = {
     /** The card of the Activity's summary metrics. */
     summary: 'Podsumowanie',
     profileLabel:
-      'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP',
+      'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP. {{power}}',
     segments_one: '{{count}} odcinek',
     segments_few: '{{count}} odcinki',
     segments_many: '{{count}} odcinków',
