@@ -26,6 +26,7 @@ function shown({
     startLocal: '2026-10-23T16:42:00',
     blocks: [],
     profileSummary: null,
+    icuFtp: null,
     metrics: [],
     route,
     pairedEventId,

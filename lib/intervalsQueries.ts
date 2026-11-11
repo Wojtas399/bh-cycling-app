@@ -52,6 +52,7 @@ import {
   toRace,
   toRaces,
 } from './races';
+import { type RideSettings, resolveRideSettings } from './rideSettings';
 import { type Route, toRoute } from './route';
 import { getUpcomingItems } from './upcomingWorkouts';
 import { type WellnessRow, toWellnessRows } from './wellness';
@@ -84,7 +85,7 @@ export const intervalsKeys = {
   /** Everything for one athlete, the prefix the refresh control invalidates. */
   athlete: (athleteId: string | undefined) =>
     [...intervalsKeys.all, athleteId] as const,
-  athleteSettings: (athleteId: string) =>
+  athleteSettings: (athleteId: string | undefined) =>
     [...intervalsKeys.athlete(athleteId), 'athleteSettings'] as const,
   /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
@@ -148,17 +149,21 @@ const WORKOUTS_FRESHNESS = {
 } as const;
 
 /**
- * The athlete's power zones, resolved from their Intervals.icu settings. They
- * rarely change, so only a refresh fetches them again.
+ * The athlete's power zones and current Ride FTP, resolved from their
+ * Intervals.icu settings (see `resolveRideSettings`). They rarely change, so
+ * only a refresh fetches them again. Skipped while there are no credentials.
  */
-export function athleteSettingsQueryOptions({
-  accessToken,
-  athleteId,
-}: IntervalsCredentials) {
+export function athleteSettingsQueryOptions(
+  credentials: IntervalsCredentials | null,
+) {
   return queryOptions({
-    queryKey: intervalsKeys.athleteSettings(athleteId),
-    queryFn: async ({ signal }) =>
-      resolveZoneConfig(await getAthleteSettings(accessToken, { signal })),
+    queryKey: intervalsKeys.athleteSettings(credentials?.athleteId),
+    queryFn: credentials
+      ? async ({ signal }): Promise<RideSettings> =>
+          resolveRideSettings(
+            await getAthleteSettings(credentials.accessToken, { signal }),
+          )
+      : skipToken,
     staleTime: Infinity,
   });
 }
@@ -593,7 +598,8 @@ function fetchZoneConfig(
   client: QueryClient,
   credentials: IntervalsCredentials,
 ): Promise<ZoneConfig> {
-  return client
-    .fetchQuery(athleteSettingsQueryOptions(credentials))
-    .catch(() => resolveZoneConfig(null));
+  return client.fetchQuery(athleteSettingsQueryOptions(credentials)).then(
+    ({ zoneConfig }) => zoneConfig,
+    () => resolveZoneConfig(null),
+  );
 }

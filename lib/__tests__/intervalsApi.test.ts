@@ -95,13 +95,14 @@ describe('intervalsApi', () => {
     });
   });
 
-  it("getAthleteSettings reads the token owner athlete's Ride power zones on 200", async () => {
+  it("getAthleteSettings reads the token owner athlete's Ride power zones and FTP on 200", async () => {
     const athlete = {
       sportSettings: [
-        { types: ['Run', 'TrailRun'], power_zones: [70, 85, 100] },
+        { types: ['Run', 'TrailRun'], power_zones: [70, 85, 100], ftp: 320 },
         {
           types: ['Ride', 'VirtualRide', 'GravelRide'],
           power_zones: [55, 75, 90, 105, 120, 150, 999],
+          ftp: 265,
         },
       ],
     };
@@ -110,7 +111,10 @@ describe('intervalsApi', () => {
 
     const result = await getAthleteSettings('token-1');
 
-    expect(result).toEqual({ powerZones: [55, 75, 90, 105, 120, 150, 999] });
+    expect(result).toEqual({
+      powerZones: [55, 75, 90, 105, 120, 150, 999],
+      ftp: 265,
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       'https://intervals.icu/api/v1/athlete/0',
       { headers: { Authorization: 'Bearer token-1' } },
@@ -124,12 +128,13 @@ describe('intervalsApi', () => {
       { sportSettings: [{ types: ['Run'], power_zones: [70, 85] }] },
     ],
   ])(
-    'getAthleteSettings returns no power zones when the athlete has %s',
+    'getAthleteSettings returns no power zones or FTP when the athlete has %s',
     async (_, athlete) => {
       mockFetchOnce({ ok: true, status: 200, json: async () => athlete });
 
       expect(await getAthleteSettings('token-1')).toEqual({
         powerZones: undefined,
+        ftp: undefined,
       });
     },
   );

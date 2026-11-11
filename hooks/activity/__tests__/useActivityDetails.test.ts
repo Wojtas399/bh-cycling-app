@@ -459,6 +459,24 @@ describe('useActivityDetails', () => {
     });
   });
 
+  describe('FTP', () => {
+    it("is the FTP intervals.icu used for the ride, which the recorded strip's watts come from", async () => {
+      const details = await shownDetailsOf(activity({ icu_ftp: 268 }));
+
+      expect(details.icuFtp).toBe(268);
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['null', null as unknown as undefined],
+      ['zero', 0],
+    ])('is null when it is %s', async (_, icu_ftp) => {
+      const details = await shownDetailsOf(activity({ icu_ftp }));
+
+      expect(details.icuFtp).toBeNull();
+    });
+  });
+
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
       // The body intervals.icu returns for a Strava Activity, as verified.
@@ -577,6 +595,7 @@ describe('useActivityDetails', () => {
           stream_types: ['time', 'watts', 'latlng'],
           trainer: false,
           paired_event_id: 4242,
+          icu_ftp: 268,
           icu_intervals: [
             { start_time: 0, end_time: 900, intensity: 62, zone: 2 },
             { start_time: 900, end_time: 6180, intensity: 104, zone: 4 },

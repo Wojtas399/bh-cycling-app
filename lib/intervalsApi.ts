@@ -118,6 +118,8 @@ export interface IntervalsActivity {
   icu_average_watts?: number;
   /** Normalized power, W. */
   icu_weighted_avg_watts?: number;
+  /** The FTP intervals.icu used for this Activity, W. */
+  icu_ftp?: number | null;
   /** Variability index, a ratio (NP / average power). */
   icu_variability_index?: number;
   /** bpm. */
@@ -324,21 +326,35 @@ export function getActivities(
  */
 interface IntervalsAthlete {
   sportSettings?:
-    | { types?: string[] | null; power_zones?: number[] | null }[]
+    | {
+        types?: string[] | null;
+        power_zones?: number[] | null;
+        ftp?: number | null;
+      }[]
     | null;
 }
 
-/** The sport whose settings hold the zones Workout Profiles are coloured by. */
+/** What the app reads of the athlete's Ride settings. */
+export interface AthleteRideSettings extends AthleteZoneSettings {
+  /** The current Ride FTP, W. */
+  ftp?: number | null;
+}
+
+/**
+ * The sport whose settings hold the zones Workout Profiles are coloured by,
+ * and the FTP the profile card's watts come from.
+ */
 const CYCLING_SPORT_TYPE = 'Ride';
 
 /**
- * Reads the power zones of the athlete the token belongs to, from their Ride
- * settings. The endpoint returns a far larger athlete record the app ignores.
+ * Reads the power zones and FTP of the athlete the token belongs to, from
+ * their Ride settings. The endpoint returns a far larger athlete record the
+ * app ignores.
  */
 export async function getAthleteSettings(
   token: string,
   options?: IntervalsRequestOptions,
-): Promise<AthleteZoneSettings> {
+): Promise<AthleteRideSettings> {
   const athlete = await request<IntervalsAthlete>(
     INTERVALS_CURRENT_ATHLETE_PATH,
     token,
@@ -349,7 +365,7 @@ export async function getAthleteSettings(
     sport.types?.includes(CYCLING_SPORT_TYPE),
   );
 
-  return { powerZones: ride?.power_zones };
+  return { powerZones: ride?.power_zones, ftp: ride?.ftp };
 }
 
 export function getCalendarEvents(
