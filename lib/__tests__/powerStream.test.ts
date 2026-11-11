@@ -118,6 +118,20 @@ describe('bucketPowerStream', () => {
     ]);
   });
 
+  it("draws nothing past the card's end when the strip runs longer than the card", () => {
+    expect(
+      bucketPowerStream(steady(0, 400, 200), {
+        start: 0,
+        durationSeconds: 400,
+        cardDurationSeconds: 200,
+        bucketCount: 2,
+      }),
+    ).toEqual([
+      { start: 0, end: 100, watts: 200 },
+      { start: 100, end: 200, watts: 200 },
+    ]);
+  });
+
   it('draws nothing for a stream with no ticks in the strip', () => {
     expect(
       bucketPowerStream(steady(0, 60, 200), {

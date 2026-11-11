@@ -66,7 +66,7 @@ const SMOOTHING_SECONDS = 30;
 /**
  * The stream drawn on the card: smoothed with a 30 s rolling mean (see
  * `smoothedWatts`), then averaged into `bucketCount` equal buckets across the
- * card's time scale, in time order.
+ * card's time scale, in time order. Ticks past the card's end aren't drawn.
  */
 export function bucketPowerStream(
   stream: PowerStream,
@@ -75,11 +75,13 @@ export function bucketPowerStream(
   const smoothed = smoothedWatts(stream);
   const sums = new Array<number>(bucketCount).fill(0);
   const counts = new Array<number>(bucketCount).fill(0);
+  // The buckets cover the card only, so a tick past its end has none.
+  const end = Math.min(durationSeconds, cardDurationSeconds);
 
   stream.time.forEach((tickTime, i) => {
     const t = tickTime - start;
 
-    if (t < 0 || t >= durationSeconds) return;
+    if (t < 0 || t >= end) return;
 
     const index = Math.floor((t / cardDurationSeconds) * bucketCount);
 
