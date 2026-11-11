@@ -9,6 +9,7 @@ const FEATURE_WIDTH = 1024;
 const FEATURE_HEIGHT = 500;
 const NEAR_BLACK = '#0A0A0A';
 const YELLOW = '#FFD60A';
+const CYAN = '#64D2FF';
 const NEAR_BLACK_SRGB = 'srgb:0.03922,0.03922,0.03922,1.00000';
 const ANDROID_SAFE_ZONE_SCALE = 72 / 108;
 const PNG_COLOR_TYPE_RGB = 2;
@@ -20,7 +21,9 @@ const GAP_STRIP = { y: 0.665, height: 0.23 };
 const RIBBON_STRIP = { y: 0.69, height: 0.18 };
 const GAP_MASK_ID = 'g';
 const LABEL_MASK_ID = 't';
-const VARIANTS = ['production', 'staging'];
+const VARIANTS = ['production', 'staging', 'dev'];
+// The Dev build is internal distribution only, so it has no Play listing.
+const STORE_VARIANTS = ['production', 'staging'];
 
 const stripOuterSvg = svg =>
   svg.replace(/^[\s\S]*?<svg[^>]*>|<\/svg>\s*$/g, '');
@@ -30,9 +33,17 @@ const master = fs.readFileSync(
   'utf8',
 );
 const mark = stripOuterSvg(master);
-const label = stripOuterSvg(
-  fs.readFileSync(path.join(ROOT, 'assets/icon-source/stg-label.svg'), 'utf8'),
-).replace(/<defs\/>/g, '');
+const readLabel = file =>
+  stripOuterSvg(
+    fs.readFileSync(path.join(ROOT, `assets/icon-source/${file}`), 'utf8'),
+  ).replace(/<defs\/>/g, '');
+
+// Non-production variants carry a corner ribbon. Dev differs from staging by
+// colour as well as by label, so the two read apart at home-screen size.
+const RIBBONS = {
+  staging: { label: readLabel('stg-label.svg'), fill: YELLOW },
+  dev: { label: readLabel('dev-label.svg'), fill: CYAN },
+};
 
 const canvas = contents =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}">${contents}</svg>`;
@@ -61,27 +72,36 @@ const withCutOut = (id, contents, cutOut) =>
 
 const markClearOfRibbon = withCutOut(GAP_MASK_ID, mark, gap('#000'));
 
+const ribbonedTile = ({ label, fill }) =>
+  mark +
+  gap(NEAR_BLACK) +
+  ribbon(fill) +
+  label.replace(/fill="#000"/g, `fill="${NEAR_BLACK}"`);
+
+// Themed icons drop colour, so a ribboned variant has to differ by shape. The
+// ribbon mask sits outside the safe-zone scale: inside it, the mask region
+// would crop the ribbon at the safe zone instead of letting it bleed.
+const ribbonedSilhouette = ({ label }) =>
+  inAndroidSafeZone(markClearOfRibbon) +
+  withCutOut(
+    LABEL_MASK_ID,
+    inAndroidSafeZone(ribbon('#FFF')),
+    inAndroidSafeZone(label),
+  );
+
+const mapRibbons = f =>
+  Object.fromEntries(
+    Object.entries(RIBBONS).map(([variant, spec]) => [variant, f(spec)]),
+  );
+
 const TILE = {
   production: mark,
-  staging:
-    mark +
-    gap(NEAR_BLACK) +
-    ribbon(YELLOW) +
-    label.replace(/fill="#000"/g, `fill="${NEAR_BLACK}"`),
+  ...mapRibbons(ribbonedTile),
 };
 
-// Themed icons drop colour, so staging has to differ by shape alone. The ribbon
-// mask sits outside the safe-zone scale: inside it, the mask region would crop
-// the ribbon at the safe zone instead of letting it bleed.
 const ANDROID_SILHOUETTE = {
   production: inAndroidSafeZone(mark),
-  staging:
-    inAndroidSafeZone(markClearOfRibbon) +
-    withCutOut(
-      LABEL_MASK_ID,
-      inAndroidSafeZone(ribbon('#FFF')),
-      inAndroidSafeZone(label),
-    ),
+  ...mapRibbons(ribbonedSilhouette),
 };
 
 const opaqueTile = variant => canvas(onNearBlack(TILE[variant]));
@@ -106,13 +126,13 @@ const PNG_OUTPUTS = [
       width: 1024,
       opaque: false,
     },
-    {
-      path: `assets/store/play-icon-${variant}.png`,
-      svg: opaqueTile(variant),
-      width: 512,
-      opaque: true,
-    },
   ]),
+  ...STORE_VARIANTS.map(variant => ({
+    path: `assets/store/play-icon-${variant}.png`,
+    svg: opaqueTile(variant),
+    width: 512,
+    opaque: true,
+  })),
   {
     path: 'assets/images/splash-icon.png',
     svg: master,
@@ -139,18 +159,20 @@ const PNG_OUTPUTS = [
   },
 ];
 
+const ribbonedIconContents = ({ label, fill }) => ({
+  assets: {
+    'mark.svg': canvas(markClearOfRibbon),
+    'ribbon.svg': canvas(withCutOut(LABEL_MASK_ID, ribbon(fill), label)),
+  },
+  layers: ['ribbon', 'mark'],
+});
+
 const ICON_CONTENTS = {
   production: {
     assets: { 'mark.svg': master },
     layers: ['mark'],
   },
-  staging: {
-    assets: {
-      'mark.svg': canvas(markClearOfRibbon),
-      'ribbon.svg': canvas(withCutOut(LABEL_MASK_ID, ribbon(YELLOW), label)),
-    },
-    layers: ['ribbon', 'mark'],
-  },
+  ...mapRibbons(ribbonedIconContents),
 };
 
 const ICON_DOCUMENTS = VARIANTS.map(variant => ({

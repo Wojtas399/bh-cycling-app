@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import GlassHeader from '@/components/GlassHeader';
 import NoteDetailSheet from '@/components/NoteDetailSheet';
 import CalendarBody, {
   type CalendarBodyState,
@@ -11,13 +11,15 @@ import CalendarHeader from '@/components/calendar/CalendarHeader';
 import CalendarMonthGrid from '@/components/calendar/CalendarMonthGrid';
 import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
-import { useAppTheme } from '@/constants/theme';
+import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
 import { useCalendarNoteSheet } from '@/hooks/calendar/useCalendarNoteSheet';
+import { useCalendarRaceSheet } from '@/hooks/calendar/useCalendarRaceSheet';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useToday } from '@/hooks/useToday';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
@@ -28,6 +30,7 @@ import type {
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import { type CalendarView, otherViewStartDate } from '@/lib/calendarView';
 import type { Note } from '@/lib/notes';
+import type { Race } from '@/lib/races';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 interface CalendarPlace {
@@ -115,6 +118,7 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
         onDayPress,
         onWorkoutPress,
         onActivityPress,
+        onRacePress,
         onNotePress,
       }) => (
         <CalendarWeekAgenda
@@ -124,6 +128,7 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
           onDayPress={onDayPress}
           onWorkoutPress={onWorkoutPress}
           onActivityPress={onActivityPress}
+          onRacePress={onRacePress}
           onNotePress={onNotePress}
         />
       )}
@@ -154,14 +159,16 @@ interface LoadedViewProps {
   onWorkoutPress: (workout: CalendarWorkout) => void;
   /** Opens the Activity's details. */
   onActivityPress: (activity: UnplannedActivity) => void;
+  /** Opens the Race Detail Sheet straight from the view (no day sheet). */
+  onRacePress: (race: Race) => void;
   /** Opens the Note Detail Sheet straight from the view (no day sheet). */
   onNotePress: (note: Note) => void;
 }
 
 /**
  * Everything the two views share: the header (toggle, "Dziś", refresh, range
- * navigation), the loading/error/ready body, the day sheet and the Note
- * Detail Sheet.
+ * navigation) sticky on Glass, the loading/error/ready body under it, the
+ * day sheet, and the Note and Race Detail Sheets.
  */
 function CalendarLayout({
   view,
@@ -173,10 +180,10 @@ function CalendarLayout({
   onNext,
   children,
 }: CalendarLayoutProps) {
-  const theme = useAppTheme();
-  const insets = useSafeAreaInsets();
+  const header = useGlassHeader('tab');
   const sheet = useDaySheet(query.data);
   const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.closeThen);
+  const raceSheet = useCalendarRaceSheet(sheet.closeThen);
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
 
@@ -185,24 +192,8 @@ function CalendarLayout({
   }
 
   return (
-    <Box
-      flex={1}
-      backgroundColor="bgPrimary"
-      style={{ paddingTop: insets.top + theme.spacing.xl }}
-    >
-      <CalendarHeader
-        view={view}
-        onViewChange={onViewChange}
-        title={title}
-        onPrevious={onPrevious}
-        onNext={onNext}
-        showTodayPill={!showsToday}
-        onToday={goToToday}
-        onRefresh={refresh}
-        refreshStatus={calendarRefreshStatus(query, refreshing)}
-      />
-
-      <CalendarBody state={bodyState(query)} fill={fill}>
+    <Box flex={1} backgroundColor="bgPrimary">
+      <CalendarBody state={bodyState(query)} fill={fill} header={header}>
         {({ itemsByDate, notes }) =>
           children({
             itemsByDate,
@@ -210,10 +201,27 @@ function CalendarLayout({
             onDayPress: sheet.open,
             onWorkoutPress: workout => openWorkout(workout.id),
             onActivityPress: activity => openActivity(activity.id),
+            onRacePress: raceSheet.open,
             onNotePress: note => noteSheet.open(note.id),
           })
         }
       </CalendarBody>
+
+      <GlassHeader onLayout={header.onLayout}>
+        <Box paddingTop="sm">
+          <CalendarHeader
+            view={view}
+            onViewChange={onViewChange}
+            title={title}
+            onPrevious={onPrevious}
+            onNext={onNext}
+            showTodayPill={!showsToday}
+            onToday={goToToday}
+            onRefresh={refresh}
+            refreshStatus={calendarRefreshStatus(query, refreshing)}
+          />
+        </Box>
+      </GlassHeader>
 
       <CalendarDaySheet
         visible={sheet.visible}
@@ -229,10 +237,12 @@ function CalendarLayout({
         onActivityPress={activity =>
           sheet.closeThen(() => openActivity(activity.id))
         }
+        onRacePress={raceSheet.openFromDaySheet}
         onNotePress={note => noteSheet.openFromDaySheet(note.id)}
       />
 
       <NoteDetailSheet sheet={noteSheet} />
+      <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );
 }

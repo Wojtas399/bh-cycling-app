@@ -14,6 +14,7 @@ import {
 } from '@/lib/calendarItems';
 import { daySheetNoteDates } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
+import type { Race } from '@/lib/races';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarDaySheetProps {
@@ -36,13 +37,15 @@ export interface CalendarDaySheetProps {
   onWorkoutPress: (workout: CalendarWorkout) => void;
   /** Opens an Activity's details; the caller dismisses the sheet. */
   onActivityPress: (activity: UnplannedActivity) => void;
+  /** Opens a Race; the caller swaps this sheet for the Race's. */
+  onRacePress: (race: Race) => void;
   /** Opens a Note; the caller swaps this sheet for the Note's. */
   onNotePress: (note: Note) => void;
 }
 
 /**
- * Bottom sheet with one day's items — Workouts and Unplanned Activities in
- * one list — then a "Notatki" section of Note cards, scrollable when there
+ * Bottom sheet with one day's items — its Races first, then its Workouts and
+ * Unplanned Activities in one list — then a "Notatki" section of Note cards, scrollable when there
  * are several, or an empty-state message on a day with neither. Shows only
  * what it's given — the caller reads the day straight from data already on
  * screen.
@@ -57,6 +60,7 @@ export default function CalendarDaySheet({
   onDismissed,
   onWorkoutPress,
   onActivityPress,
+  onRacePress,
   onNotePress,
 }: CalendarDaySheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
@@ -84,6 +88,7 @@ export default function CalendarDaySheet({
               item={item}
               onWorkoutPress={onWorkoutPress}
               onActivityPress={onActivityPress}
+              onRacePress={onRacePress}
             />
           ))}
 

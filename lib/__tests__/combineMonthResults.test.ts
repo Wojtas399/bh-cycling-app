@@ -110,6 +110,51 @@ describe('combineMonthResults', () => {
     });
   });
 
+  it("carries each month's Races into a week spanning both, first on their day", () => {
+    const juneRace: CalendarItem = {
+      kind: 'race',
+      race: {
+        id: 5,
+        name: 'Kryterium',
+        priority: 'C',
+        date: '2026-06-30',
+        sport: 'Ride',
+      },
+    };
+    const julyRace: CalendarItem = {
+      kind: 'race',
+      race: {
+        id: 6,
+        name: 'Maraton',
+        priority: 'A',
+        date: '2026-07-03',
+        sport: 'Ride',
+      },
+    };
+    const july3 = workout(2, '2026-07-03');
+
+    const result = combineMonthResults(
+      new Date(2026, 5, 29),
+      new Date(2026, 6, 5),
+    )([
+      month({
+        data: {
+          itemsByDate: { ...JUNE_DAYS, '2026-06-30': [juneRace] },
+          notes: [],
+        },
+      }),
+      month({
+        data: {
+          itemsByDate: { '2026-07-03': [julyRace, july3] },
+          notes: [],
+        },
+      }),
+    ]);
+
+    expect(result.data?.itemsByDate['2026-06-30']).toEqual([juneRace]);
+    expect(result.data?.itemsByDate['2026-07-03']).toEqual([julyRace, july3]);
+  });
+
   it('lists a Note held by both months of a week once, in id order', () => {
     const camp = note(4, '2026-06-28', '2026-07-03');
     const julyNote = note(2, '2026-07-02', '2026-07-03');

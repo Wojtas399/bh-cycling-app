@@ -1,16 +1,24 @@
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
 
 import Box from '@/components/Box';
+import GlassControl from '@/components/GlassControl';
 import Text from '@/components/Text';
 import CalendarViewToggle from '@/components/calendar/CalendarViewToggle';
 import { useAppTheme } from '@/constants/theme';
 import type { CalendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import type { CalendarView } from '@/lib/calendarView';
+import { liquidGlassAvailable } from '@/lib/liquidGlass';
 import { Ionicons } from '@expo/vector-icons';
+import { GlassContainer } from 'expo-glass-effect';
 
 const REFRESH_SLOT_SIZE = 24;
 const REFRESH_ICON_SIZE = 22;
+const NAV_BUTTON_SIZE = 36;
+const NAV_ICON_SIZE = 20;
+
+/** Groups the header's native glass controls; a plain view elsewhere. */
+const GlassGroup = liquidGlassAvailable ? GlassContainer : View;
 
 export interface CalendarHeaderProps {
   view: CalendarView;
@@ -33,7 +41,8 @@ export interface CalendarHeaderProps {
 
 /**
  * The Calendar's two header rows: view toggle, "Dziś" pill + refresh, then
- * range navigation.
+ * range navigation. The toggle, the pill and the nav buttons are chrome glass
+ * in one glass group.
  */
 export default function CalendarHeader({
   view,
@@ -50,7 +59,7 @@ export default function CalendarHeader({
   const theme = useAppTheme();
 
   return (
-    <>
+    <GlassGroup>
       <Box
         flexDirection="row"
         alignItems="center"
@@ -61,21 +70,18 @@ export default function CalendarHeader({
 
         <Box flexDirection="row" alignItems="center" gap="md">
           {showTodayPill && (
-            <TouchableOpacity
+            <GlassControl
+              placement="chrome"
               onPress={onToday}
               hitSlop={{ top: 8, bottom: 8 }}
-              accessibilityRole="button"
               accessibilityLabel={t('today')}
+              style={{
+                paddingHorizontal: theme.spacing.base,
+                paddingVertical: theme.spacing.sm,
+              }}
             >
-              <Box
-                paddingHorizontal="base"
-                paddingVertical="sm"
-                borderRadius="full"
-                backgroundColor="bgTertiary"
-              >
-                <Text variant="body-s-medium">{t('today')}</Text>
-              </Box>
-            </TouchableOpacity>
+              <Text variant="body-s-medium">{t('today')}</Text>
+            </GlassControl>
           )}
 
           <Box
@@ -124,7 +130,7 @@ export default function CalendarHeader({
         <Text variant="h3">{title}</Text>
         <NavButton icon="chevron-forward" label={t('next')} onPress={onNext} />
       </Box>
-    </>
+    </GlassGroup>
   );
 }
 
@@ -138,13 +144,23 @@ function NavButton({ icon, label, onPress }: NavButtonProps) {
   const theme = useAppTheme();
 
   return (
-    <TouchableOpacity
+    <GlassControl
+      placement="chrome"
       onPress={onPress}
-      hitSlop={8}
-      accessibilityRole="button"
+      hitSlop={4}
       accessibilityLabel={label}
+      style={{
+        width: NAV_BUTTON_SIZE,
+        height: NAV_BUTTON_SIZE,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
-      <Ionicons name={icon} size={24} color={theme.colors.textPrimary} />
-    </TouchableOpacity>
+      <Ionicons
+        name={icon}
+        size={NAV_ICON_SIZE}
+        color={theme.colors.textPrimary}
+      />
+    </GlassControl>
   );
 }

@@ -41,3 +41,12 @@ Leaving the Calendar day sheet for another screen or sheet has to wait until it 
 - The primitive gains an optional `onDismissed` callback, which fires once the sheet has left the screen, however it closed.
 - The universal sheet has no such event, so `onDismissed` fires when the sheet's content unmounts. iOS unmounts it on the native dismiss, Android after `hide()` resolves.
 - That Android unmount is not a documented guarantee, so an `@expo/ui` upgrade must re-check that tapping a day sheet tile still navigates.
+
+## Amendment: system material on iOS 26
+
+The Glass and Sheen restyle (#330) treats bottom sheets as floating chrome. On iOS 26 the system draws a sheet in Liquid Glass, and a painted background hides it.
+
+- On iOS 26 the primitive sets no background and no per-sheet dark scheme, so the day, note and race sheets show the system glass material. They stay dark through the app-wide forced dark: `Appearance.setColorScheme('dark')` at startup, and `userInterfaceStyle: 'dark'` once a store build carries it. This replaces the first consequence's painted background and forced dark scheme on iOS 26.
+- The system adapts its glass to Reduce Transparency and Increase Contrast, so the sheet doesn't read those settings.
+- On Android and iOS below 26 the sheet is unchanged: the painted `bgTertiary` background, the Android scrim, and the forced dark scheme on iOS.
+- Content on the sheet keeps its own surface. Item tiles stay Sheen on top of the glass.

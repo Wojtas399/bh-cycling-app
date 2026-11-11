@@ -18,6 +18,7 @@ const palette = {
   greenDim: '#1A6B2E',
   red: '#FF3B30',
   redDim: '#7A1A14',
+  raceRed: '#FF453A',
   blue: '#0A84FF',
   orange: '#FF9F0A',
   yellow: '#FFD60A',
@@ -40,7 +41,6 @@ const theme = createTheme({
 
     // Semantic — backgrounds
     bgPrimary: palette.black,
-    bgSecondary: '#121212',
     bgTertiary: palette.gray900,
 
     // Semantic — text
@@ -55,6 +55,15 @@ const theme = createTheme({
 
     // Semantic — overlays
     overlay: 'rgba(0, 0, 0, 0.6)',
+
+    // Semantic — surfaces. Sheen ends on the page colour so cards melt into it.
+    sheenFrom: '#1E1E20',
+    sheenTo: palette.black,
+    hairline: 'rgba(255, 255, 255, 0.08)',
+    hairlineStrong: 'rgba(255, 255, 255, 0.30)',
+    glassTint: 'rgba(18, 18, 20, 0.85)',
+    // Placeholders and code inside a Sheen card: fainter than any control.
+    insetFill: 'rgba(255, 255, 255, 0.04)',
 
     // Semantic — interactive
     interactiveDefault: palette.white,
@@ -73,6 +82,9 @@ const theme = createTheme({
     workoutPlanned: palette.zone1,
     workoutDone: palette.green,
     workoutMissed: palette.red,
+
+    // Races: one fixed red, never the Race's own Intervals.icu colour
+    race: palette.raceRed,
 
     // Fitness chart series, in intervals.icu's colours
     chartFitness: palette.blue,
@@ -227,25 +239,6 @@ const theme = createTheme({
       fontSize: 16,
       lineHeight: 24,
       color: 'textPrimary',
-    },
-  },
-
-  buttonVariants: {
-    defaults: {
-      height: 56,
-      borderRadius: 'full',
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      width: '100%' as const,
-    },
-    primary: {
-      backgroundColor: 'interactiveDefault',
-    },
-    secondary: {
-      borderWidth: 1.5,
-      borderColor: 'interactiveDefault',
-      flexDirection: 'row' as const,
-      gap: 'sm',
     },
   },
 

@@ -1,27 +1,13 @@
 import { useTranslation } from 'react-i18next';
 
 import Box from '@/components/Box';
+import SkeletonBar from '@/components/SkeletonBar';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
-
-function Bar({
-  width,
-  height = 14,
-}: {
-  width: number | `${number}%`;
-  height?: number;
-}) {
-  return (
-    <Box
-      backgroundColor="bgTertiary"
-      borderRadius="sm"
-      style={{ width, height }}
-    />
-  );
-}
 
 /**
  * Placeholder of the Workout Details layout while the Workout loads. Activity
- * Details shares the layout and passes its own `label`.
+ * Details shares the layout and passes its own `label`. The header bars sit on
+ * the page; the cards are Sheen, with their bars on `insetFill`.
  */
 export default function WorkoutDetailsSkeleton({
   label,
@@ -40,20 +26,20 @@ export default function WorkoutDetailsSkeleton({
       testID="workout-details-skeleton"
     >
       <Box gap="sm" paddingHorizontal="md">
-        <Bar width={96} height={24} />
-        <Bar width="70%" height={28} />
-        <Bar width={160} />
+        <SkeletonBar width={96} height={24} onPage />
+        <SkeletonBar width="70%" height={28} onPage />
+        <SkeletonBar width={160} height={14} onPage />
       </Box>
 
       <WorkoutDetailsCard>
-        <Bar width="100%" height={120} />
+        <SkeletonBar width="100%" height={120} />
       </WorkoutDetailsCard>
 
       <WorkoutDetailsCard>
         <Box gap="sm">
-          <Bar width="40%" />
-          <Bar width="60%" />
-          <Bar width="50%" />
+          <SkeletonBar width="40%" height={14} />
+          <SkeletonBar width="60%" height={14} />
+          <SkeletonBar width="50%" height={14} />
         </Box>
       </WorkoutDetailsCard>
     </Box>

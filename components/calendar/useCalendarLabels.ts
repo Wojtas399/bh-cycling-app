@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { CalendarDay } from '@/lib/calendarGrid';
+import { formatMonthTitle } from '@/lib/formatMonthTitle';
 
 export interface CalendarLabels {
   /** Short weekday names, Monday first: "Pn" … "Nd". */
@@ -33,8 +34,7 @@ export function useCalendarLabels(): CalendarLabels {
     return {
       weekdaysShort,
       monthNamesGenitive,
-      month: anchor =>
-        `${monthNames[anchor.getMonth()]} ${anchor.getFullYear()}`,
+      month: anchor => formatMonthTitle(anchor, monthNames),
       week: days => {
         const first = days[0];
         const last = days[days.length - 1];

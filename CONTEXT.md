@@ -25,7 +25,7 @@ An Activity intervals.icu received from Strava but can't share through its API, 
 _Avoid_: Stub, hidden activity
 
 **Activity Details**:
-The screen for one Unplanned Activity, a recorded session with no plan behind it. It's a sibling of Workout Details, not one of its modes.
+The screen for one Activity with no Workout behind it: an Unplanned Activity, or an Activity paired to a Race, which opens with that Race named on top. It's a sibling of Workout Details, not one of its modes.
 _Avoid_: Unpaired workout details, activity mode
 
 **Activity Profile**:
@@ -39,6 +39,14 @@ _Avoid_: Workout route, track, GPS trace
 **Workout Status**:
 The tri-state of a planned workout: `completed` (the Workout is paired to an Activity), `planned` (in the future, not paired yet), or `missed` (in the past, not paired). Derived from today's date at read time, never stored, so it moves from `planned` to `missed` as days pass without a refetch. Drives the green/gray/red status dots on Home and Calendar.
 _Avoid_: Completion state, sync status
+
+**Race**:
+A competition on the athlete's Intervals.icu calendar, of any sport, with a Race Priority. It is not a Workout: it's the event the training builds toward. A Race paired to an Activity is completed and carries the same done marker as a completed Workout. An unpaired Race has no status: it's never planned or missed, because a Race paired to a Strava Activity can't be detected. Read-only in BH Cycling.
+_Avoid_: Event, competition, race workout
+
+**Race Priority**:
+How much a Race matters to the athlete's season: `A` (a goal race), `B` (important) or `C` (a lower-key race, often ridden as training). Set by the athlete on Intervals.icu.
+_Avoid_: Race type, race category, race level
 
 **Note**:
 A free-text entry on the athlete's Intervals.icu calendar, for a single day or a range of days. It is not a Workout: it has no structure and no Workout Status. Read-only in BH Cycling.
@@ -55,14 +63,6 @@ _Avoid_: Recovery, Readiness
 **Wellness Entry**:
 One athlete's Wellness record for one day. It may be missing or only partly filled, depending on what reached Intervals.icu that day.
 _Avoid_: Wellness log, daily check-in
-
-**Note**:
-A free-text entry on the athlete's Intervals.icu calendar, for a single day or a range of days. It is not a Workout: it has no structure and no Workout Status. Read-only in BH Cycling.
-_Avoid_: Comment, Workout description
-
-**Note Markdown**:
-A Note's text rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
-_Avoid_: Note HTML, Rich Text
 
 **Fitness**:
 The athlete's long-term training load: a rolling average of recent daily load, weighted over weeks, as calculated by Intervals.icu. BH Cycling shows it and never calculates it.

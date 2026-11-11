@@ -20,6 +20,7 @@ import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import WorkoutStravaCard from '@/components/workout/WorkoutStravaCard';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
+import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useProfileCard } from '@/hooks/workout/useProfileCard';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
@@ -39,6 +40,7 @@ export default function WorkoutDetailsScreen() {
   const route = useActivityRoute(query.data?.route?.activityId ?? null);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const header = useGlassHeader('pushed');
   const [refreshing, setRefreshing] = useState(false);
 
   async function handleRefresh() {
@@ -75,11 +77,11 @@ export default function WorkoutDetailsScreen() {
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <ScreenHeader title={t('title')} />
       <ScrollView
+        {...header.scrollViewProps}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.sm,
-          paddingTop: theme.spacing.base,
+          paddingTop: header.scrollInsetTop + theme.spacing.base,
           paddingBottom: insets.bottom + theme.spacing.xl,
         }}
         refreshControl={
@@ -88,12 +90,14 @@ export default function WorkoutDetailsScreen() {
               refreshing={refreshing}
               onRefresh={handleRefresh}
               tintColor={theme.colors.textSecondary}
+              progressViewOffset={header.scrollInsetTop}
             />
           ) : undefined
         }
       >
         {body()}
       </ScrollView>
+      <ScreenHeader title={t('title')} onLayout={header.onLayout} />
     </Box>
   );
 }

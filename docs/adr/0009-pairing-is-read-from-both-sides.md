@@ -17,3 +17,4 @@ The athlete pairs a Workout to a Strava Activity on Intervals.icu, but the app s
 
 - A pairing more than 7 days apart that crosses a month edge now shows the Workout as completed on its planned day in that month. The Activity's month may still list the Activity as Unplanned, so a week spanning both months can show both items. ADR-0007 already accepted this double item.
 - A Workout completed by a Strava Activity has no metrics to show. What it shows is decided separately.
+- **Races pair from the Activity side only.** A Race event never carries `paired_activity_id` (verified in #280), so the either-side rule matches a Race only through the Activity's `paired_event_id`. A Race paired to a Strava Activity can't be seen and shows as an unpaired Race next to a separate Strava Activity. "The event alone makes it completed" doesn't apply to Races. A Race is completed only when an Activity names it, and an unpaired Race has no status, never missed.

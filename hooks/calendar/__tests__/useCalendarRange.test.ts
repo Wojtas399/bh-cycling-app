@@ -241,6 +241,49 @@ describe('useCalendarRange', () => {
     ]);
   });
 
+  it("surfaces the month's Races from its existing events call, with no new request", async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) =>
+        params.category === 'NOTE'
+          ? []
+          : [
+              event({ id: 1, start_date_local: `${today}T06:00:00` }),
+              event({
+                id: 7,
+                category: 'RACE_B',
+                name: 'Maraton Kraków',
+                type: 'MountainBikeRide',
+                start_date_local: `${today}T10:30:00`,
+              }),
+            ],
+    );
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(result.current.query.data?.itemsByDate[today]).toMatchObject([
+      {
+        kind: 'race',
+        race: {
+          id: 7,
+          name: 'Maraton Kraków',
+          priority: 'B',
+          date: today,
+          startTime: '10:30',
+          sport: 'MountainBikeRide',
+        },
+      },
+      { kind: 'workout', workout: { id: 1, status: 'planned' } },
+    ]);
+    expect(
+      mockGetCalendarEvents.mock.calls.map(([, , params]) => params.category),
+    ).toEqual(expect.arrayContaining([undefined, 'NOTE']));
+    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
+  });
+
   it("fetches each month's Notes from 31 days before it to its last day", async () => {
     mockConnected();
 

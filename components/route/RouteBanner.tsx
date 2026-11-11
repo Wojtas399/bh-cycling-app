@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
@@ -8,6 +9,7 @@ import RouteLoadError from '@/components/route/RouteLoadError';
 import RouteSkeleton from '@/components/route/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
+import { DarkGlassView, liquidGlassAvailable } from '@/lib/liquidGlass';
 import type { Route, RouteSummary } from '@/lib/route';
 import { formatRouteDistance } from '@/lib/routeChips';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +19,18 @@ const BANNER_HEIGHT = 240;
 
 /** Keeps the Route clear of the banner's edges and of the pill below it. */
 const CAMERA_PADDING = { top: 28, right: 28, bottom: 48, left: 28 };
+
+const PILL_STYLE = {
+  position: 'absolute',
+  right: 12,
+  bottom: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 999,
+} as const;
 
 interface RouteBannerProps {
   /** Where a tap goes: the host screen's own full-screen Route map. */
@@ -41,7 +55,7 @@ export default function RouteBanner({ mapHref, summary }: RouteBannerProps) {
 
   if (query.isError) {
     return (
-      <Box backgroundColor="bgSecondary" justifyContent="center" style={bleed}>
+      <Box backgroundColor="bgTertiary" justifyContent="center" style={bleed}>
         <RouteLoadError onRetry={() => void refetch()} />
       </Box>
     );
@@ -92,21 +106,7 @@ function Banner({
         style={{ flex: 1 }}
       >
         <RouteMap route={route} padding={CAMERA_PADDING} interactive={false} />
-        {/* The pill: dark, so it reads over any part of the map. */}
-        <View
-          style={{
-            position: 'absolute',
-            right: 12,
-            bottom: 12,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: 999,
-            backgroundColor: theme.colors.overlay,
-          }}
-        >
+        <DistancePill>
           <Ionicons
             name="map-outline"
             size={14}
@@ -115,8 +115,26 @@ function Banner({
           <Text variant="body-xs-medium">
             {distance ? t('pill', { distance }) : t('showMap')}
           </Text>
-        </View>
+        </DistancePill>
       </View>
     </Pressable>
+  );
+}
+
+/**
+ * Native glass on iOS 26. Elsewhere a dark overlay, because Frost can't be
+ * read over the map's lighter tiles.
+ */
+function DistancePill({ children }: { children: ReactNode }) {
+  const theme = useAppTheme();
+
+  if (liquidGlassAvailable) {
+    return <DarkGlassView style={PILL_STYLE}>{children}</DarkGlassView>;
+  }
+
+  return (
+    <View style={[PILL_STYLE, { backgroundColor: theme.colors.overlay }]}>
+      {children}
+    </View>
   );
 }

@@ -1,4 +1,4 @@
-import { fromLocalDateString } from './localDate';
+import { type LocalDateString, fromLocalDateString } from './localDate';
 import { type Note, isMultiDay, noteLastDay } from './notes';
 
 export interface NoteDateLabels {
@@ -14,18 +14,36 @@ export interface NoteDateLabels {
  * what changes ("20–24 paź", "30 paź – 2 lis", "30 gru 2026 – 2 sty 2027").
  */
 export function formatNoteDates(note: Note, labels: NoteDateLabels): string {
-  const first = fromLocalDateString(note.start);
-  const dayMonth = (date: Date) =>
-    `${date.getDate()} ${labels.monthsShort[date.getMonth()]}`;
+  if (!isMultiDay(note)) return formatShortDate(note.start, labels);
 
-  if (!isMultiDay(note)) {
-    // getDay() counts from Sunday; the labels start on Monday.
-    const weekday = labels.weekdaysShort[(first.getDay() + 6) % 7];
+  return formatDayRange(
+    note,
+    date => `${date.getDate()} ${labels.monthsShort[date.getMonth()]}`,
+    '–',
+  );
+}
 
-    return `${weekday}, ${dayMonth(first)}`;
-  }
+/** A date as the short weekday, the day and the short month: "czw., 22 paź". */
+export function formatShortDate(
+  date: LocalDateString,
+  labels: NoteDateLabels,
+): string {
+  const day = fromLocalDateString(date);
+  // getDay() counts from Sunday; the labels start on Monday.
+  const weekday = labels.weekdaysShort[(day.getDay() + 6) % 7];
 
-  return formatDayRange(note, dayMonth, '–');
+  return `${weekday}, ${day.getDate()} ${labels.monthsShort[day.getMonth()]}`;
+}
+
+/**
+ * A date as the short weekday, the day, the short month and the year:
+ * "czw., 22 paź 2026".
+ */
+export function formatLongDate(
+  date: LocalDateString,
+  labels: NoteDateLabels,
+): string {
+  return `${formatShortDate(date, labels)} ${fromLocalDateString(date).getFullYear()}`;
 }
 
 /**

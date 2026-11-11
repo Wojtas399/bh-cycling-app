@@ -26,12 +26,12 @@ export function upcomingItemKey(item: UpcomingItem): string {
 }
 
 /**
- * Home's items for `today` and the day after, in order: each Workout with its
- * Workout Status, on its Activity's day when paired, and today's Unplanned
- * Activities among them; then that day's Notes, in `id` order, as `notes`
- * must already be (`toNotes` gives them so). Tomorrow holds
- * only Workouts and Notes. A Note shows once: under today if it covers today,
- * else under tomorrow if it starts then.
+ * Home's items for `today` and the day after, in order: the day's Races, in
+ * Race order; each Workout with its Workout Status, on its Activity's day
+ * when paired, and today's Unplanned Activities among them; then that day's
+ * Notes, in `id` order, as `notes` must already be (`toNotes` gives them so).
+ * Tomorrow holds no Unplanned Activities. A Note shows once: under today if
+ * it covers today, else under tomorrow if it starts then.
  */
 export function getUpcomingItems(
   events: IntervalsCalendarEvent[],
@@ -56,7 +56,7 @@ export function getUpcomingItems(
 
     if (date === today) todays.push({ ...withStatus, dayLabel: 'today' });
 
-    if (date === tomorrow && item.kind === 'workout') {
+    if (date === tomorrow && item.kind !== 'activity') {
       tomorrows.push({ ...withStatus, dayLabel: 'tomorrow' });
     }
   }
