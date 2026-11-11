@@ -264,6 +264,7 @@ describe('buildDetailedProfile', () => {
       expect(profile.recorded?.power).toEqual({
         unit: 'watts',
         peak: 300,
+        peakFtpPct: 120,
         average: 250,
       });
     });
@@ -412,6 +413,7 @@ describe('buildDetailedProfile', () => {
       expect(profile.planned?.power).toEqual({
         unit: 'watts',
         peak: 275,
+        peakFtpPct: 110,
         average: 206,
       });
     });
@@ -436,6 +438,7 @@ describe('buildDetailedProfile', () => {
       expect(profile.recorded?.power).toEqual({
         unit: 'ftpPct',
         peak: 98,
+        peakFtpPct: 98,
         average: 77,
       });
     });
@@ -460,11 +463,13 @@ describe('buildDetailedProfile', () => {
       expect(profile.planned?.power).toEqual({
         unit: 'ftpPct',
         peak: 60,
+        peakFtpPct: 60,
         average: 60,
       });
       expect(profile.recorded?.power).toEqual({
         unit: 'watts',
         peak: 228,
+        peakFtpPct: 95,
         average: 228,
       });
     });
@@ -484,6 +489,7 @@ describe('buildDetailedProfile', () => {
       expect(profile.recorded?.power).toEqual({
         unit: 'watts',
         peak: 0,
+        peakFtpPct: 0,
         average: 0,
       });
       expect(profile.scale.ceiling).toBeGreaterThan(0);

@@ -93,7 +93,7 @@ function strip(segments: StripSegment[]): DetailedStrip<null> {
     summary: null,
     ftp: 250,
     segments,
-    power: { unit: 'watts', peak: 0, average: 0 },
+    power: { unit: 'watts', peak: 0, peakFtpPct: 0, average: 0 },
     zoneTimes: NO_ZONE_TIMES,
   };
 }

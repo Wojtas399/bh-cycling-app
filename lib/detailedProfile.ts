@@ -29,6 +29,11 @@ export interface StripPower {
   /** The highest power the strip draws, rounded. */
   peak: number;
   /**
+   * `peak` in %FTP, rounded: from what the strip draws, so a ride drawn from
+   * its stream reads its stream's peak, not its intervals'.
+   */
+  peakFtpPct: number;
+  /**
    * The strip's average over the time it draws, rounded. A range counts at
    * its middle.
    */
@@ -272,6 +277,7 @@ function stripPower(segments: StripSegment[], ftp: number | null): StripPower {
   return {
     unit,
     peak: Math.round(inUnit(peakPct, unit, ftp)),
+    peakFtpPct: Math.round(peakPct),
     average: Math.round(inUnit(averagePct, unit, ftp)),
   };
 }
