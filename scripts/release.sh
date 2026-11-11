@@ -62,13 +62,12 @@ has_matching_build() {
 }
 
 # Dev builds wait, so a failed EAS build turns the run red, and are never
-# submitted. Android builds are not submitted until Google Play has a service
-# account key, which waits on the Play developer account verification.
+# submitted.
 build() {
   local wait="" submit=""
   if [[ "$profile" != dev ]]; then
     wait=--no-wait
-    [[ "$platform" == ios ]] && submit=--auto-submit
+    submit=--auto-submit
   fi
   eas build --platform "$platform" --profile "$profile" --non-interactive $wait $submit
 }
