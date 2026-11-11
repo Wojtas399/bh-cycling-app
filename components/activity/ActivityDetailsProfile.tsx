@@ -1,9 +1,9 @@
 import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
-import type { DetailedProfile } from '@/lib/detailedProfile';
+import type { ProfileCardSource } from '@/hooks/useDetailedProfile';
 
 export interface ActivityDetailsProfileProps {
   /** A card with the recorded strip alone. */
-  profile: DetailedProfile;
+  source: ProfileCardSource;
 }
 
 /**
@@ -12,12 +12,9 @@ export interface ActivityDetailsProfileProps {
  * summary.
  */
 export default function ActivityDetailsProfile({
-  profile,
+  source,
 }: ActivityDetailsProfileProps) {
   return (
-    <WorkoutDetailsProfile
-      profile={profile}
-      testID="activity-details-profile"
-    />
+    <WorkoutDetailsProfile source={source} testID="activity-details-profile" />
   );
 }

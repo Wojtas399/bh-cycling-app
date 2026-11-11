@@ -2,7 +2,9 @@ import { useProfileCard } from '../useProfileCard';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   type IntervalsActivity,
+  IntervalsApiError,
   getActivity,
+  getActivityStreams,
   getAthleteSettings,
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
@@ -22,6 +24,7 @@ jest.mock('@/hooks/useIntervalsConnection', () => ({
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getActivity: jest.fn(),
+  getActivityStreams: jest.fn(),
   getAthleteSettings: jest.fn(),
 }));
 
@@ -31,6 +34,7 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 
 const mockGetActivity = getActivity as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockGetActivityStreams = getActivityStreams as jest.Mock;
 
 /** The athlete's current Ride FTP. */
 const CURRENT_FTP = 250;
@@ -85,19 +89,24 @@ function renderCard(recordedActivityId: string | null) {
   );
 }
 
-/** The plan alone, in watts at the current FTP. */
+/** The ride's power stream, as intervals.icu returns it: 10 minutes at 200 W. */
+const STREAMS = [
+  { type: 'time', data: Array.from({ length: 600 }, (_, i) => i) },
+  { type: 'watts', data: Array.from({ length: 600 }, () => 200) },
+];
+
+/** The plan alone, at the current FTP. */
 const PLAN_ALONE = {
-  durationSeconds: 1200,
-  recorded: null,
-  planned: {
-    summary: PLAN_SUMMARY,
-    ftp: CURRENT_FTP,
-    segments: [
-      expect.objectContaining({ start: 0, end: 600, maxWatts: 150 }),
-      expect.objectContaining({ start: 600, end: 1200, maxWatts: 250 }),
-    ],
-    power: { unit: 'watts', peak: 250, average: 200 },
+  card: {
+    durationSeconds: 1200,
+    recorded: null,
+    planned: {
+      blocks: PLANNED_BLOCKS,
+      summary: PLAN_SUMMARY,
+      ftp: CURRENT_FTP,
+    },
   },
+  settings: { ftp: CURRENT_FTP },
 };
 
 beforeEach(() => {
@@ -119,26 +128,60 @@ describe('useProfileCard', () => {
     expect(mockGetActivity).not.toHaveBeenCalled();
   });
 
-  it("shows the plan while the Activity loads, then the ride's strip below it", async () => {
+  it("shows the plan while the Activity and its stream load, then the ride's strip below it, drawn from the stream", async () => {
     mockGetActivity.mockResolvedValue(RIDE);
+    mockGetActivityStreams.mockResolvedValue(STREAMS);
 
     const { result } = await renderCard(ACTIVITY_ID);
 
     expect(result.current).toMatchObject(PLAN_ALONE);
 
-    await waitFor(() => expect(result.current?.recorded).not.toBeNull());
+    await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
     expect(mockGetActivity).toHaveBeenCalledWith(
       'token-1',
       ACTIVITY_ID,
       { intervals: true },
       expect.anything(),
     );
-    expect(result.current?.durationSeconds).toBe(1200);
+    expect(mockGetActivityStreams).toHaveBeenCalledWith(
+      'token-1',
+      ACTIVITY_ID,
+      { types: ['time', 'watts'] },
+      expect.anything(),
+    );
+    expect(result.current?.card.durationSeconds).toBe(1200);
     // The ride kept no FTP of its own, so it's drawn at the current one.
-    expect(result.current?.recorded?.segments).toEqual([
-      expect.objectContaining({ start: 0, end: 300, maxWatts: 150, zone: 2 }),
-      expect.objectContaining({ start: 300, end: 600, maxWatts: 250, zone: 4 }),
-    ]);
+    expect(result.current?.card.recorded).toMatchObject({
+      ftp: CURRENT_FTP,
+      stream: { time: STREAMS[0].data, watts: STREAMS[1].data },
+    });
+  });
+
+  it('keeps the plan alone until the stream settles, never showing the ride from its intervals first', async () => {
+    mockGetActivity.mockResolvedValue(RIDE);
+    mockGetActivityStreams.mockReturnValue(new Promise(() => {}));
+
+    const { result } = await renderCard(ACTIVITY_ID);
+
+    await waitFor(() => expect(mockGetActivityStreams).toHaveBeenCalled());
+    expect(result.current).toMatchObject(PLAN_ALONE);
+  });
+
+  it('draws the ride from its detected intervals when it has no stream', async () => {
+    mockGetActivity.mockResolvedValue(RIDE);
+    mockGetActivityStreams.mockRejectedValue(new IntervalsApiError(404));
+
+    const { result } = await renderCard(ACTIVITY_ID);
+
+    await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
+    expect(result.current?.card.recorded).toMatchObject({
+      blocks: [
+        expect.objectContaining({ minPct: 60, zone: 2 }),
+        expect.objectContaining({ minPct: 100, zone: 4 }),
+        expect.objectContaining({ maxPct: 0 }),
+      ],
+      stream: null,
+    });
   });
 
   it('keeps the plan alone when the Activity fails to load', async () => {
@@ -165,7 +208,7 @@ describe('useProfileCard', () => {
     await waitFor(() => expect(result.current).toMatchObject(PLAN_ALONE));
   });
 
-  it("draws the card in %FTP on Coggan's zones when the athlete's settings fail", async () => {
+  it("draws the card on Coggan's zones with no FTP when the athlete's settings fail", async () => {
     mockGetAthleteSettings.mockRejectedValue(new Error('offline'));
 
     const { result } = await renderHookWithClient(() =>
@@ -177,10 +220,7 @@ describe('useProfileCard', () => {
     );
 
     await waitFor(() => expect(result.current).not.toBeNull());
-    expect(result.current?.scale).toEqual({
-      unit: 'ftpPct',
-      ceiling: 105,
-      gridlines: [55, 75, 90],
-    });
+    expect(result.current?.settings).toEqual(resolveRideSettings(null));
+    expect(result.current?.card.planned?.ftp).toBeNull();
   });
 });

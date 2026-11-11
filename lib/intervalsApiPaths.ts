@@ -31,6 +31,11 @@ export function intervalsActivityMapPath(activityId: string): string {
   return `${intervalsActivityPath(activityId)}/map`;
 }
 
+/** An Activity's recorded streams, as JSON. */
+export function intervalsActivityStreamsPath(activityId: string): string {
+  return `${intervalsActivityPath(activityId)}/streams.json`;
+}
+
 /** The athlete's Wellness Entries, read by date range. */
 export function intervalsWellnessRangePath(athleteId: string): string {
   return `/athlete/${athleteId}/wellness`;

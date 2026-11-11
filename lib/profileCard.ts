@@ -2,6 +2,7 @@ import type {
   ActivityDetails,
   ActivityProfileSummary,
 } from './activityDetails';
+import type { PowerStream } from './powerStream';
 import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
@@ -20,6 +21,19 @@ export interface ProfileStrip<Summary> {
 }
 
 /**
+ * The recorded strip: the Activity Profile's blocks, and the power stream it's
+ * drawn from when there is one.
+ */
+export interface RecordedStrip extends ProfileStrip<ActivityProfileSummary> {
+  /**
+   * The ride's power stream, raw, placed on the card from the Profile's
+   * `summary.startSeconds`. `null` when there's none, or no FTP to read it by:
+   * the strip then draws its `blocks`, the detected intervals.
+   */
+  stream: PowerStream | null;
+}
+
+/**
  * Workout Details' profile card: the planned Workout Profile above the
  * recorded Activity Profile, on one shared time scale. A strip shorter than the
  * card ends early, so the two line up in time.
@@ -27,7 +41,7 @@ export interface ProfileStrip<Summary> {
 export interface ProfileCard {
   /** The shared time scale: the longer of the two strips, in s. */
   durationSeconds: number;
-  recorded: ProfileStrip<ActivityProfileSummary> | null;
+  recorded: RecordedStrip | null;
   planned: ProfileStrip<WorkoutProfileSummary> | null;
 }
 
@@ -48,20 +62,24 @@ export const NO_WORKOUT_PROFILE: Pick<
  * with one of no known duration, the Activity's shows alone. `null` when
  * neither has one. The plan's watts come from `currentFtp`, the athlete's Ride
  * FTP today; the ride's from the FTP intervals.icu used for it, or
- * `currentFtp` when it kept none.
+ * `currentFtp` when it kept none. The ride is drawn from its power `stream`
+ * when there's one and an FTP to read it by, and from its detected intervals
+ * otherwise.
  */
 export function buildProfileCard(
   workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary'>,
   activity: ActivityDetails | undefined,
   currentFtp: number | null,
+  stream: PowerStream | null = null,
 ): ProfileCard | null {
   const recorded =
     activity && !activity.isStravaActivity && activity.profileSummary
-      ? {
-          blocks: activity.blocks,
-          summary: activity.profileSummary,
-          ftp: activity.icuFtp ?? currentFtp,
-        }
+      ? recordedStrip(
+          activity.blocks,
+          activity.profileSummary,
+          activity.icuFtp ?? currentFtp,
+          stream,
+        )
       : null;
   // A plan with no known duration can't be placed in time beside the ride.
   const planned =
@@ -88,15 +106,25 @@ export function buildProfileCard(
   };
 }
 
+function recordedStrip(
+  blocks: WorkoutBlock[],
+  summary: ActivityProfileSummary,
+  ftp: number | null,
+  stream: PowerStream | null,
+): RecordedStrip {
+  // Without an FTP the stream's watts have no %FTP or zone to be drawn in.
+  return { blocks, summary, ftp, stream: ftp === null ? null : stream };
+}
+
 /**
  * A strip's blocks rescaled from its own span to the card's, with an empty
  * gap for the time it doesn't cover. Left as is when it already spans the
  * card, or when no span is known to scale by.
  */
-function onTimeScale<Summary extends { durationSeconds: number }>(
-  strip: ProfileStrip<Summary>,
+function onTimeScale<Strip extends ProfileStrip<{ durationSeconds: number }>>(
+  strip: Strip,
   durationSeconds: number,
-): ProfileStrip<Summary> {
+): Strip {
   const own = strip.summary.durationSeconds;
 
   if (own <= 0 || own >= durationSeconds) return strip;
