@@ -1,8 +1,8 @@
-import type { StripSegment } from './detailedProfile';
 import type { IntervalsZoneTime } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { resolvePowerTarget } from './powerTarget';
 import { type Zone, type ZoneConfig, isZone } from './powerZones';
+import type { StripSegment } from './stripSegment';
 import { type WorkoutStep, unrollRepeats } from './workoutProfile';
 
 /** Seconds spent in each zone, Z1–Z7. */

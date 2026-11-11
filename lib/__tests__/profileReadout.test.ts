@@ -2,10 +2,10 @@ import type {
   DetailedProfile,
   DetailedStrip,
   ScaleUnit,
-  StripSegment,
 } from '../detailedProfile';
 import type { Zone } from '../powerZones';
 import { pointerSeconds, profileReadout, segmentAt } from '../profileReadout';
+import type { StripSegment } from '../stripSegment';
 import { NO_ZONE_TIMES } from '../timeInZone';
 
 /** A flat segment at `pct` %FTP of a 250 W FTP, on the watts scale. */

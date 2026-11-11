@@ -1,4 +1,5 @@
 import type { IntervalsActivityStream } from './intervalsApi';
+import { isFiniteNumber } from './isFiniteNumber';
 
 /**
  * An Activity's power stream as intervals.icu records it: one tick per
@@ -35,10 +36,6 @@ export function toPowerStream(
   }
 
   return stream.watts.some(isFiniteNumber) ? stream : null;
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
 }
 
 /** Where a power stream sits on the profile card, and how finely it's drawn. */

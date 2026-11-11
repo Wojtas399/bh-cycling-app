@@ -1,9 +1,8 @@
-import type {
-  DetailedProfile,
-  ScaleUnit,
-  StripSegment,
-} from './detailedProfile';
+import type { DetailedProfile, ScaleUnit } from './detailedProfile';
+import { formatPower } from './formatPower';
 import type { Zone } from './powerZones';
+import type { StripSide } from './profileCard';
+import type { StripSegment } from './stripSegment';
 
 /**
  * The segment a strip draws at `seconds` on the card's time scale: a stream
@@ -68,7 +67,7 @@ export interface ProfileReadout {
    * The card's strips, the plan first. A reading is `null` where the strip
    * draws nothing: a stop, or past its end.
    */
-  strips: { side: 'planned' | 'recorded'; reading: StripReading | null }[];
+  strips: { side: StripSide; reading: StripReading | null }[];
 }
 
 /** What the card reads at `seconds` on its time scale. */
@@ -103,19 +102,12 @@ function power(
   { minPct, maxPct, minWatts, maxWatts }: StripSegment,
   unit: ScaleUnit,
 ): string {
-  const pct = `${range(minPct, maxPct)}%`;
+  const pct = formatPower('ftpPct', minPct, maxPct);
 
   // On the watts scale every strip has an FTP, so its segments have watts.
   return unit === 'watts' && minWatts !== null && maxWatts !== null
-    ? `${pct} · ${range(minWatts, maxWatts)} W`
+    ? `${pct} · ${formatPower('watts', minWatts, maxWatts)}`
     : pct;
-}
-
-/** `low–high` rounded, or one value when both round to it. */
-function range(low: number, high: number): string {
-  const [from, to] = [Math.round(low), Math.round(high)];
-
-  return from === to ? `${from}` : `${from}–${to}`;
 }
 
 function clock(seconds: number): string {

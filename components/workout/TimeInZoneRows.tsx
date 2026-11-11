@@ -6,11 +6,12 @@ import { ZONE_COLORS } from '@/components/WorkoutProfile';
 import { useAppTheme } from '@/constants/theme';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatStepDuration } from '@/lib/formatStepDuration';
+import type { StripSide } from '@/lib/profileCard';
 import type { TimeInZoneRow, ZoneTimeBar } from '@/lib/timeInZone';
 
 /** A row's bar with the side it's of. */
 interface SideBar {
-  side: 'planned' | 'recorded';
+  side: StripSide;
   bar: ZoneTimeBar;
 }
 

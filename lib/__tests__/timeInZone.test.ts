@@ -1,5 +1,5 @@
-import type { StripSegment } from '../detailedProfile';
 import { type Zone, resolveZoneConfig } from '../powerZones';
+import type { StripSegment } from '../stripSegment';
 import {
   type ZoneTimes,
   planZoneTimes,

@@ -7,6 +7,9 @@ import { NO_ZONE_TIMES, type ZoneTimes } from './timeInZone';
 import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
+/** Which strip of the card: the plan, or the ride. */
+export type StripSide = 'planned' | 'recorded';
+
 /** One strip of the profile card, its blocks on the card's time scale. */
 export interface ProfileStrip<Summary> {
   /** Widths are shares of the card's `durationSeconds`, not the strip's. */

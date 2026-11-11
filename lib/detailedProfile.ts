@@ -1,8 +1,13 @@
 import type { ActivityProfileSummary } from './activityDetails';
 import { bucketPowerStream } from './powerStream';
-import { type Zone, type ZoneConfig, zoneForFtpPercent } from './powerZones';
+import { type ZoneConfig, zoneForFtpPercent } from './powerZones';
 import type { ProfileCard, ProfileStrip, RecordedStrip } from './profileCard';
-import type { RideSettings } from './rideSettings';
+import {
+  type RideSettings,
+  ftpPctToWatts,
+  wattsToFtpPct,
+} from './rideSettings';
+import type { StripSegment } from './stripSegment';
 import {
   type TimeInZoneRow,
   type ZoneTimes,
@@ -14,31 +19,6 @@ import type { WorkoutBlock } from './workoutProfile';
 
 /** The unit of the card's y-scale. */
 export type ScaleUnit = 'watts' | 'ftpPct';
-
-/**
- * A stretch of a strip drawn at one power, or one range of power, in time
- * order. Time a strip doesn't draw, such as a stop or what's left after it
- * ends, has no segment.
- */
-export interface StripSegment {
-  /** Where it starts on the card's time scale, in s. */
-  start: number;
-  /** Where it ends on the card's time scale, in s. */
-  end: number;
-  /** Lowest power, in %FTP of the strip's FTP. */
-  minPct: number;
-  /** Highest power, in %FTP. Equals `minPct` when flat. */
-  maxPct: number;
-  /** `minPct` in W, `null` when the strip has no FTP. */
-  minWatts: number | null;
-  /** `maxPct` in W, `null` when the strip has no FTP. */
-  maxWatts: number | null;
-  /** `minPct` on the card's scale, in its unit: where the solid bar ends. */
-  low: number;
-  /** `maxPct` on the card's scale, in its unit: the top of the bar. */
-  high: number;
-  zone: Zone;
-}
 
 /**
  * A strip's power in a sentence for the screen reader: in watts, or in %FTP
@@ -204,13 +184,11 @@ function sharedScale(
   unit: ScaleUnit,
   { zoneConfig, ftp }: RideSettings,
 ): ProfileScale {
-  const edges = zoneConfig
-    .slice(0, -1)
-    .map(({ maxPct }) =>
-      unit === 'watts' && ftp !== null
-        ? Math.round((maxPct * ftp) / 100)
-        : maxPct,
-    );
+  const edges = zoneConfig.slice(0, -1).map(({ maxPct }) => {
+    const edge = inUnit(maxPct, unit, ftp);
+
+    return unit === 'watts' ? Math.round(edge) : edge;
+  });
   const peak = Math.max(
     0,
     ...strips.flatMap(({ segments }) => segments.map(({ high }) => high)),
@@ -258,7 +236,8 @@ function recordedSegments(
   });
 
   return buckets.map(({ start, end, watts }) => {
-    const pct = (watts / ftp) * 100;
+    const pct = wattsToFtpPct(watts, ftp);
+    // The stream is in W already, so a watts scale takes them as they are.
     const onScale = unit === 'watts' ? watts : pct;
 
     return {
@@ -276,8 +255,8 @@ function recordedSegments(
 }
 
 function stripPower(segments: StripSegment[], ftp: number | null): StripPower {
-  // %FTP read in the strip's watts, when it has an FTP to read them by.
-  const inUnit = (pct: number) => (ftp === null ? pct : (pct * ftp) / 100);
+  // In the strip's watts when it has an FTP to read them by.
+  const unit: ScaleUnit = ftp === null ? 'ftpPct' : 'watts';
   let seconds = 0;
   let pctSeconds = 0;
 
@@ -291,9 +270,9 @@ function stripPower(segments: StripSegment[], ftp: number | null): StripPower {
   const averagePct = seconds > 0 ? pctSeconds / seconds : 0;
 
   return {
-    unit: ftp === null ? 'ftpPct' : 'watts',
-    peak: Math.round(inUnit(peakPct)),
-    average: Math.round(inUnit(averagePct)),
+    unit,
+    peak: Math.round(inUnit(peakPct, unit, ftp)),
+    average: Math.round(inUnit(averagePct, unit, ftp)),
   };
 }
 
@@ -307,10 +286,8 @@ function toSegments(
   ftp: number | null,
   unit: ScaleUnit,
 ): StripSegment[] {
-  const watts = (pct: number) => (ftp === null ? null : (pct * ftp) / 100);
-  // On the watts scale every strip has an FTP.
-  const onScale = (pct: number) =>
-    unit === 'watts' && ftp !== null ? (pct * ftp) / 100 : pct;
+  const watts = (pct: number) =>
+    ftp === null ? null : ftpPctToWatts(pct, ftp);
   let end = 0;
 
   return blocks.flatMap(({ widthFraction, minPct, maxPct, zone }) => {
@@ -328,12 +305,20 @@ function toSegments(
         maxPct,
         minWatts: watts(minPct),
         maxWatts: watts(maxPct),
-        low: onScale(minPct),
-        high: onScale(maxPct),
+        low: inUnit(minPct, unit, ftp),
+        high: inUnit(maxPct, unit, ftp),
         zone,
       },
     ];
   });
+}
+
+/**
+ * `pct` %FTP in `unit`: in W of `ftp` on a watts scale, where every strip has
+ * an FTP, and as it is on a %FTP scale.
+ */
+function inUnit(pct: number, unit: ScaleUnit, ftp: number | null): number {
+  return unit === 'watts' && ftp !== null ? ftpPctToWatts(pct, ftp) : pct;
 }
 
 /**

@@ -11,13 +11,11 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { ZONE_COLORS } from '@/components/WorkoutProfile';
 import { useAppTheme } from '@/constants/theme';
-import {
-  type ProfileScale,
-  type StripSegment,
-  axisLabels,
-} from '@/lib/detailedProfile';
+import { type ProfileScale, axisLabels } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
+import { formatPower } from '@/lib/formatPower';
 import { pointerSeconds } from '@/lib/profileReadout';
+import type { StripSegment } from '@/lib/stripSegment';
 
 /** The plot's height when a strip has the card to itself. */
 const SINGLE_STRIP_HEIGHT = 140;
@@ -262,8 +260,7 @@ function StripPlot({
     GUTTER + (seconds / durationSeconds) * plotWidth;
   const yOf = (value: number) =>
     LABEL_PAD + (1 - value / scale.ceiling) * height;
-  const label = (value: number) =>
-    scale.unit === 'watts' ? `${Math.round(value)} W` : `${Math.round(value)}%`;
+  const label = (value: number) => formatPower(scale.unit, value);
 
   return (
     <Svg width={width} height={height + 2 * LABEL_PAD}>
