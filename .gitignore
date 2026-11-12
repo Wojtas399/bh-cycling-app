@@ -51,5 +51,7 @@ app-example
 # Claude Code
 .claude/settings.local.json
 
-# e2e output: traces, results, replay cache and run logs (traces hold the test email)
-/.e2e/
+# e2e output: traces, results and run logs (traces hold the test email). The
+# replay cache is committed for CI; `npm run e2e:check-cache` keeps secrets out.
+/.e2e/*
+!/.e2e/cache/
