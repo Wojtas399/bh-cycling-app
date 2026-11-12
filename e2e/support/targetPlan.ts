@@ -41,19 +41,20 @@ const PLATFORMS = [
 export function planTargets(
   env: Readonly<Record<string, string | undefined>>,
 ): TargetPlan[] {
-  return PLATFORMS.map(p => {
-    const buildId = env[p.buildIdVar];
+  return PLATFORMS.map(platformConfig => {
+    const buildId = env[platformConfig.buildIdVar];
 
     return buildId
       ? {
-          platform: p.platform,
-          expoSimulators: { buildId, device: p.cloudDevice },
+          platform: platformConfig.platform,
+          expoSimulators: { buildId, device: platformConfig.cloudDevice },
           // Drawing touches onto a hosted recording can outlast the cleanup timeout.
           videoTouches: false,
         }
       : {
-          platform: p.platform,
-          device: env[p.localDeviceVar] ?? p.localDevice,
+          platform: platformConfig.platform,
+          device:
+            env[platformConfig.localDeviceVar] ?? platformConfig.localDevice,
         };
   });
 }
