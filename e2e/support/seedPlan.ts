@@ -21,8 +21,8 @@ export interface SeedRace extends SeedEventBase {
 }
 
 /**
- * A ride the seed uploads as an Unplanned Activity, so Activity Details has a
- * power stream to draw.
+ * A ride the seed uploads as an Unplanned Activity, so Activity Details has an
+ * Activity Profile to draw.
  */
 export interface SeedRide {
   external_id: string;

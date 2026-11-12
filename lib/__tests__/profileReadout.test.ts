@@ -112,7 +112,6 @@ function card(
 
 const PLAN_SUMMARY = { durationSeconds: 3600, stepCount: 3, peakFtpPct: 93 };
 const RIDE_SUMMARY = {
-  startSeconds: 0,
   durationSeconds: 3600,
   segmentCount: 3,
   peakFtpPct: 100,

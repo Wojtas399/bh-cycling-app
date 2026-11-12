@@ -4,7 +4,6 @@ import {
   intervalsActivitiesPath,
   intervalsActivityMapPath,
   intervalsActivityPath,
-  intervalsActivityStreamsPath,
   intervalsCalendarEventPath,
   intervalsCalendarEventsPath,
   intervalsWellnessPath,
@@ -77,11 +76,6 @@ export interface IntervalsProjectedRangeParams extends IntervalsDateRangeParams 
 export interface IntervalsActivityParams {
   /** Include the detected intervals (`icu_intervals`). */
   intervals?: boolean;
-}
-
-export interface IntervalsActivityStreamsParams {
-  /** Only these streams, e.g. `['time', 'watts']`. */
-  types: readonly string[];
 }
 
 /**
@@ -200,21 +194,6 @@ export interface IntervalsWorkoutDoc {
   steps?: WorkoutStep[];
 }
 
-/**
- * One of an Activity's recorded streams, as `getActivityStreams` returns it:
- * one value per recorded tick. The response carries more fields, which the
- * app doesn't use.
- */
-export interface IntervalsActivityStream {
-  /** Which stream it is, e.g. `time` or `watts`. */
-  type: string;
-  /**
-   * The values, one per tick: s from the Activity's start for `time`, W for
-   * `watts`. `null` where a tick has no value.
-   */
-  data?: (number | null)[] | null;
-}
-
 export interface IntervalsCalendarEvent {
   id: number;
   /** An `EventCategory`, or one of the others the app ignores. */
@@ -298,8 +277,7 @@ export interface IntervalsRequestOptions {
 type IntervalsQueryParams =
   | IntervalsCalendarEventsParams
   | IntervalsProjectedRangeParams
-  | IntervalsActivityParams
-  | IntervalsActivityStreamsParams;
+  | IntervalsActivityParams;
 
 async function request<T>(
   path: string,
@@ -467,26 +445,6 @@ export function getActivityMap(
     intervalsActivityMapPath(activityId),
     token,
     undefined,
-    options,
-  );
-}
-
-/**
- * Reads an Activity's recorded streams of `types`. `watts` is intervals.icu's
- * cleaned power (`fixed_watts`). There's no resampling: one value per
- * recorded tick, about 63 KB for a 2 h ride's `time` and `watts`. An unknown
- * Activity surfaces as an `IntervalsApiError` with status 404.
- */
-export function getActivityStreams(
-  token: string,
-  activityId: string,
-  params: IntervalsActivityStreamsParams,
-  options?: IntervalsRequestOptions,
-): Promise<IntervalsActivityStream[]> {
-  return request<IntervalsActivityStream[]>(
-    intervalsActivityStreamsPath(activityId),
-    token,
-    params,
     options,
   );
 }

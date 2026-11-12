@@ -5,9 +5,8 @@ import type { StripSide } from './profileCard';
 import type { StripSegment } from './stripSegment';
 
 /**
- * The segment a strip draws at `seconds` on the card's time scale: a stream
- * bucket, or the block the time falls in when the strip falls back to
- * detected intervals. A segment covers its start to its end; where two meet,
+ * The segment a strip draws at `seconds` on the card's time scale: the block
+ * the time falls in. A segment covers its start to its end; where two meet,
  * the later one. `null` where the strip draws nothing: a stop, or past its
  * end.
  */
