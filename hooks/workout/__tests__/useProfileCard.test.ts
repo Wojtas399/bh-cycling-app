@@ -118,11 +118,20 @@ describe('useProfileCard', () => {
   });
 
   it("shows the plan while the Activity loads, then the ride's strip below it, drawn from its detected intervals", async () => {
-    mockGetActivity.mockResolvedValue(RIDE);
+    let resolveActivity: (activity: IntervalsActivity) => void = () => {};
+
+    mockGetActivity.mockReturnValue(
+      new Promise<IntervalsActivity>(resolve => {
+        resolveActivity = resolve;
+      }),
+    );
 
     const { result } = await renderCard(ACTIVITY_ID);
 
+    await waitFor(() => expect(mockGetActivity).toHaveBeenCalled());
     expect(result.current).toMatchObject(PLAN_ALONE);
+
+    resolveActivity(RIDE);
 
     await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
     expect(mockGetActivity).toHaveBeenCalledWith(
