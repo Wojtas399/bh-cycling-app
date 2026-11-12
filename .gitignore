@@ -53,7 +53,3 @@ app-example
 
 # e2e output: traces, results, replay cache and run logs (traces hold the test email)
 /.e2e/
-
-# IDE state, local to each machine
-.idea/
-.vscode/
