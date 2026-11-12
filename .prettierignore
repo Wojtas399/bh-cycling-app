@@ -1,4 +1,2 @@
-.github/workflows/
-
 # The replay cache is committed as the e2e framework writes it.
 .e2e/
