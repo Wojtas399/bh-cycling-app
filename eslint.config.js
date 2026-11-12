@@ -28,7 +28,7 @@ module.exports = defineConfig([
   expoConfig,
   eslintPluginPrettierRecommended,
   {
-    ignores: ['dist/*'],
+    ignores: ['dist/*', 'expo-env.d.ts', '.claude/**', 'functions/**'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -137,6 +137,17 @@ module.exports = defineConfig([
   },
   {
     // e2e code isn't React: a fixture's `use` callback isn't a hook.
+    files: ['**/__tests__/**'],
+    rules: {
+      // A test fails loudly on a missing value, which is the check `!` skips.
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+  {
+    files: ['scripts/**/*.js'],
+    languageOptions: { globals: { __dirname: 'readonly' } },
+  },
+  {
     files: ['e2e/**'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',

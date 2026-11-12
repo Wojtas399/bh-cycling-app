@@ -54,13 +54,11 @@ Add a label for each way the PR ships. A PR that changes both the app and a Clou
 | `ships: backend` | Changes `functions/` or `firestore.rules`                           |
 | `ships: none`    | Reaches no user (CI, docs, tests, tooling)                          |
 
-Native config, native dependencies, and app icons change the fingerprint. When unsure, compare the hash on the PR branch with the hash on `main`, with dependencies installed on each. A different hash means `ships: store`, which replaces `ships: ota`.
+Native config, native dependencies, and app icons change the fingerprint. The Fingerprint workflow compares the PR with its base and fails when `ships: store` doesn't match the result. Check before labelling with:
 
 ```sh
-npx @expo/fingerprint . | jq -r .hash
+npm run fingerprint -- origin/main
 ```
-
-Check again after pushing more commits.
 
 ## Area
 

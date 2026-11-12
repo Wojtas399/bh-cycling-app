@@ -169,8 +169,8 @@ export function simplifyRoutePoints(
   // An explicit stack, so a long ride can't overflow the call stack.
   const stack: [number, number][] = [[0, points.length - 1]];
 
-  while (stack.length > 0) {
-    const [first, last] = stack.pop()!;
+  for (let range = stack.pop(); range; range = stack.pop()) {
+    const [first, last] = range;
     let farthest = -1;
     let farthestDistance = toleranceMeters;
 
