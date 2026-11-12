@@ -3,11 +3,12 @@
  * test athlete's email or password or the Intervals.icu key, so a recording
  * can't leak one into git. `npm run e2e:ios` and `npm run e2e:android` run it
  * before the seed. `findCacheLeaks` decides what leaks; this file only reads
- * the files and the env. It prints file names, never a value. Run it on its
- * own with `npm run e2e:check-cache`.
+ * the files and the env. It prints file names, never a value. It stops when any
+ * of the three variables is unset, naming them, so it never passes without
+ * checking. Run it on its own with `npm run e2e:check-cache`.
  */
 import { findCacheLeaks } from './support/cacheLeaks.ts';
-import { loadLocalEnv } from './support/env.ts';
+import { loadLocalEnv, requireEnv } from './support/env.ts';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +22,11 @@ const SECRET_NAMES = [
 
 loadLocalEnv();
 
+const secrets = requireEnv(
+  SECRET_NAMES,
+  'the cache leak check looks for their values in .e2e/cache',
+);
+
 const files = existsSync(CACHE_DIR)
   ? readdirSync(CACHE_DIR, { recursive: true, withFileTypes: true })
       .filter(entry => entry.isFile())
@@ -33,10 +39,7 @@ const files = existsSync(CACHE_DIR)
         };
       })
   : [];
-const leaks = findCacheLeaks(
-  files,
-  SECRET_NAMES.map(name => process.env[name]),
-);
+const leaks = findCacheLeaks(files, Object.values(secrets));
 
 if (leaks.length > 0) {
   console.error(

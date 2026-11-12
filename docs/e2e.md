@@ -62,7 +62,7 @@ The build script doesn't load `.env.local`. If you rename a device, also export 
 
 With a build id set, that target runs on Expo Simulators instead of the local device: an `iPhone 17 Pro` or a `pixel_9` that installs the build. `E2E_*_DEVICE` doesn't apply there. Leave both build ids out of `.env.local`, so `npm run e2e:ios|android` stays local.
 
-When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. A plain `npx e2e run` without the test user's email or password stops before any test with `CONFIG_LOAD_FAILED`.
+When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. The cache leak check stops the same way when the email, password or key is missing. A plain `npx e2e run` without the test user's email or password stops before any test with `CONFIG_LOAD_FAILED`.
 
 e2e reads `E2E_TELEMETRY_DISABLED` when the CLI starts, before it loads the config, so the config can't turn telemetry off. `npm run e2e:ios` and `npm run e2e:android` set it. Before you run `npx e2e` directly, run `npx e2e telemetry disable` once, which saves the choice on your Mac.
 
