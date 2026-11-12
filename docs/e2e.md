@@ -82,7 +82,7 @@ npm run e2e:ios
 npm run e2e:android
 ```
 
-Both scripts run the seed (`npm run e2e:seed`) and then the suite. A plain `npx e2e run` skips the seed, so run `npm run e2e:seed` first when you run one file, or the tests whose title matches a pattern:
+Both scripts run the cache leak check (`npm run e2e:check-cache`), the seed (`npm run e2e:seed`) and then the suite. A plain `npx e2e run` skips the seed, so run `npm run e2e:seed` first when you run one file, or the tests whose title matches a pattern:
 
 ```sh
 npm run e2e:seed
@@ -96,7 +96,9 @@ The seed brings the test athlete to a known state. It deletes every event and ev
 
 Every test starts signed out. The fixture clears the app's state, and on iOS the keychain, where the Firebase session lives. Then it opens the app on the sign-in screen.
 
-The output goes to `.e2e/`, which is gitignored: the run's `report.json`, a `trace.md` page for each failed test in its folder under `.e2e/results/`, and the replay cache. Traces contain the test email, so mask it before you paste one anywhere.
+The output goes to `.e2e/`, which is gitignored except for the replay cache: the run's `report.json` and a `trace.md` page for each failed test in its folder under `.e2e/results/`. Traces contain the test email, so mask it before you paste one anywhere.
+
+The replay cache, `.e2e/cache/`, is committed so CI can replay recorded agent steps. The cache leak check fails, naming only the files, when a cache file holds the test email, password or Intervals.icu key. Delete those files and record the step again without typing the value as plain text.
 
 ## Write a test
 
