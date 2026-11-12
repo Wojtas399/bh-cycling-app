@@ -55,8 +55,12 @@ Other names work too. Set `E2E_IOS_DEVICE` or `E2E_ANDROID_DEVICE` to use them.
 | `E2E_INTERVALS_ATHLETE_ID` | The test athlete's Intervals.icu id      | The seed                           | None, required  |
 | `E2E_IOS_DEVICE`           | The simulator's name                     | The `ios` target and its build     | `BH e2e iPhone` |
 | `E2E_ANDROID_DEVICE`       | The AVD's name                           | The `android` target and its build | `BH_e2e_Pixel`  |
+| `E2E_IOS_BUILD_ID`         | An `e2e`-profile EAS build's id          | The `ios` target                   | None, local     |
+| `E2E_ANDROID_BUILD_ID`     | An `e2e`-profile EAS build's id          | The `android` target               | None, local     |
 
 The build script doesn't load `.env.local`. If you rename a device, also export its variable in your shell before you build.
+
+With a build id set, that target runs on Expo Simulators instead of the local device: an `iPhone 17 Pro` or a `pixel_9` that installs the build. `E2E_*_DEVICE` doesn't apply there. Leave both build ids out of `.env.local`, so `npm run e2e:ios|android` stays local.
 
 When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. A plain `npx e2e run` without the test user's email or password stops before any test with `CONFIG_LOAD_FAILED`.
 
@@ -114,7 +118,7 @@ The output goes to `.e2e/`, which is gitignored: the run's `report.json`, a `tra
 
 - **`ENGINE_FAILURE: device … is owned by session …`:** another agent-device session holds the device, most often T3's Device panel. Close the Device panel, or the other session, and run again.
 - **iOS secure text fields** ([tester-army/e2e#1631](https://github.com/tester-army/e2e/issues/1631)): `fill` can't type into the password field, and `pressSequentially` fails with "No focused text input" unless the field was tapped first. The sign-in helper taps, then types the password from env with `pressSequentially`. Keep that order until #1631 is fixed, then switch to `fill` with the password credential. Until then the helper passes the password as a plain string, so it must never go into an agent step.
-- **iOS keyboard covers the sign-in button.** With the keyboard up, `/^Zaloguj się$/` matches only the screen title, and tapping it just closes the keyboard. The sign-in helper submits with the keyboard's Done key instead, then taps "Nie teraz" if iOS offers to save the password.
+- **iOS keyboard covers the sign-in button.** With the keyboard up, `/^Zaloguj się$/` matches only the screen title, and tapping it just closes the keyboard. The sign-in helper submits with the keyboard's Done key instead, then taps "Nie teraz" (or "Not Now" on Expo Simulators' English iOS) if iOS offers to save the password.
 - **iOS reports a full-screen "Toolbar" over the Calendar header.** A locator tap on "Następny" or "Dziś" fails with "covered by the toolbar", though nothing covers it on screen. The Calendar test taps the middle of the button's bounding box with `screen.tapAt`.
 - **Screenshots aren't redacted.** Never type the real password into a field that isn't secure, even to debug. A failure screenshot would show it.
 - **"Nieprawidłowy e-mail lub hasło." at sign-in:** staging rejected `E2E_USER_EMAIL` or `E2E_USER_PASSWORD`. Fix them in `.env.local` before you run again, because Firebase blocks an account for a while after many failed sign-ins.
