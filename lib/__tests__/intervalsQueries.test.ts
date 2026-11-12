@@ -32,7 +32,6 @@ jest.mock('../intervalsApi', () => ({
   ...jest.requireActual('../intervalsApi'),
   getCalendarEvents: jest.fn(),
   getActivities: jest.fn(),
-  getActivityStreams: jest.fn(),
   getAthleteSettings: jest.fn(),
 }));
 
