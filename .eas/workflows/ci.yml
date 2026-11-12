@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+  workflow_call: {}
+
+defaults:
+  tools:
+    node: '24'
+
+jobs:
+  lint:
+    name: Lint
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: ESLint
+        run: npm run lint
+      - name: Prettier
+        run: npx prettier --check .
+
+  typecheck:
+    name: Type Check
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+  test:
+    name: Test
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: Jest
+        run: npm test -- --ci
