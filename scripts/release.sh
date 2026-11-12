@@ -99,10 +99,14 @@ update() {
     --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
 }
 
-# The checkout is a single commit, so the branch and its history are fetched
-# before the ancestry check.
+# EAS checks out a single commit, so the branch and its history are fetched
+# before the ancestry check. --unshallow fails on a full clone.
 require_commit_on() {
-  git fetch --unshallow origin "+refs/heads/$1:refs/remotes/origin/$1" || die "Could not fetch $1"
+  local unshallow=""
+  if [[ "$(git rev-parse --is-shallow-repository)" == true ]]; then
+    unshallow=--unshallow
+  fi
+  git fetch $unshallow origin "+refs/heads/$1:refs/remotes/origin/$1" || die "Could not fetch $1"
   git merge-base --is-ancestor HEAD "origin/$1" || die "$REF_NAME is not on $1"
 }
 
