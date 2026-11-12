@@ -156,7 +156,7 @@ function resolveBand(
  * its children, `reps` times in order, recursively. The repeat itself is not
  * kept, since its duration is only the total of the reps it stands for.
  */
-function unrollRepeats(steps: WorkoutStep[]): WorkoutStep[] {
+export function unrollRepeats(steps: WorkoutStep[]): WorkoutStep[] {
   return steps.flatMap(step => {
     if (!isFiniteNumber(step.reps) || !step.steps) return [step];
 

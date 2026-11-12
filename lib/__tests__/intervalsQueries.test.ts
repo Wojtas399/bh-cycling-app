@@ -2,6 +2,7 @@ import { buildActivityDetails } from '../activityDetails';
 import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
+  IntervalsApiError,
   type IntervalsCalendarEvent,
   type IntervalsWorkoutDoc,
   getActivities,
@@ -206,19 +207,44 @@ describe('athleteSettingsQueryOptions', () => {
     jest.clearAllMocks();
   });
 
-  it('stores the zone config resolved from the athlete settings', async () => {
-    mockGetAthleteSettings.mockResolvedValue({ powerZones: ATHLETE_ZONES });
+  it('stores the zone config and current FTP resolved from the athlete settings', async () => {
+    mockGetAthleteSettings.mockResolvedValue({
+      powerZones: ATHLETE_ZONES,
+      ftp: 265,
+    });
 
     const client = createQueryClient();
-    const zones = await client.fetchQuery(
+    const settings = await client.fetchQuery(
       athleteSettingsQueryOptions(CREDENTIALS),
     );
 
     // This athlete's Z2 is 60–80% FTP, not the Coggan 55–75%.
-    expect(zones[1]).toEqual({ zone: 2, minPct: 60, maxPct: 80 });
+    expect(settings.zoneConfig[1]).toEqual({ zone: 2, minPct: 60, maxPct: 80 });
+    expect(settings.ftp).toBe(265);
     expect(mockGetAthleteSettings).toHaveBeenCalledWith('token-1', {
       signal: expect.any(AbortSignal),
     });
+  });
+
+  it.each([
+    ['no FTP', undefined],
+    ['an FTP of zero', 0],
+  ])('stores no current FTP when the athlete has %s', async (_, ftp) => {
+    mockGetAthleteSettings.mockResolvedValue({
+      powerZones: ATHLETE_ZONES,
+      ftp,
+    });
+
+    const client = createQueryClient();
+    const settings = await client.fetchQuery(
+      athleteSettingsQueryOptions(CREDENTIALS),
+    );
+
+    expect(settings.ftp).toBeNull();
+  });
+
+  it('is skipped without credentials', () => {
+    expect(athleteSettingsQueryOptions(null).queryFn).toBe(skipToken);
   });
 });
 
@@ -357,7 +383,10 @@ describe('upcomingQueryOptions', () => {
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(2);
     expect(
       client.getQueryData(intervalsKeys.athleteSettings('athlete-1')),
-    ).toEqual(resolveZoneConfig({ powerZones: ATHLETE_ZONES }));
+    ).toEqual({
+      zoneConfig: resolveZoneConfig({ powerZones: ATHLETE_ZONES }),
+      ftp: null,
+    });
   });
 });
 

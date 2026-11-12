@@ -5,10 +5,11 @@ import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
 import type { WorkoutPairing } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
-import type { ZoneConfig } from './powerZones';
+import type { RideSettings } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
 import { isStravaActivity, stravaActivityUrl } from './stravaActivity';
 import { stripNoteHtml } from './stripNoteHtml';
+import { type ZoneTimes, planZoneTimes } from './timeInZone';
 import {
   type WorkoutBlock,
   buildWorkoutProfile,
@@ -50,12 +51,12 @@ export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
 
 /**
  * What the Workout Details query stores: the event, how it is paired and the
- * zones to colour it by. Status-free, because the Workout Status depends on
- * today; `buildWorkoutDetails` derives it when read.
+ * athlete's Ride settings to colour and draw it by. Status-free, because the
+ * Workout Status depends on today; `buildWorkoutDetails` derives it when read.
  */
 export interface StoredWorkoutDetails extends WorkoutPairing {
   event: IntervalsCalendarEvent;
-  zoneConfig: ZoneConfig;
+  rideSettings: RideSettings;
 }
 
 /**
@@ -107,6 +108,18 @@ export interface WorkoutDetails {
   blocks: WorkoutBlock[];
   /** `null` exactly when `blocks` is empty. */
   profileSummary: WorkoutProfileSummary | null;
+  /**
+   * The time the plan asks for in each zone (see `planZoneTimes`): none for
+   * a non-cycling Workout.
+   */
+  zoneTimes: ZoneTimes;
+  /**
+   * The athlete's Ride settings the Workout was read with: its zones colour
+   * it, and its profile card is drawn by them, so the card never waits on
+   * the settings or redraws when they load. Coggan's zones and no FTP when
+   * they failed.
+   */
+  rideSettings: RideSettings;
   /** The Kroki tree: the doc's steps in order, repeats nested. */
   steps: WorkoutDetailsStep[];
   /**
@@ -179,9 +192,10 @@ export interface WorkoutComparison {
 
 /** Builds the view model of a stored Workout as of `today`. */
 export function buildWorkoutDetails(
-  { event, completed, activity, zoneConfig }: StoredWorkoutDetails,
+  { event, completed, activity, rideSettings }: StoredWorkoutDetails,
   today: LocalDateString,
 ): WorkoutDetails {
+  const { zoneConfig } = rideSettings;
   const date = event.start_date_local.slice(0, 10);
   const steps = rideSteps(event);
   const blocks = buildWorkoutProfile(steps, zoneConfig);
@@ -203,6 +217,8 @@ export function buildWorkoutDetails(
     date,
     blocks,
     profileSummary: summariseProfile(event, blocks),
+    zoneTimes: planZoneTimes(steps, zoneConfig),
+    rideSettings,
     steps: buildWorkoutSteps(steps, zoneConfig),
     comparison: measured ? compareWithPlan(event, measured) : null,
     activityMetrics: measured ? summariseActivity(measured) : null,

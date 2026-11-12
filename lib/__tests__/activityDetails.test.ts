@@ -18,7 +18,7 @@ function shown({
 }: {
   route?: RouteSummary | null;
   pairedEventId?: number | null;
-} = {}): ActivityDetails {
+} = {}): Extract<ActivityDetails, { isStravaActivity: false }> {
   return {
     isStravaActivity: false,
     title: null,
@@ -26,6 +26,8 @@ function shown({
     startLocal: '2026-10-23T16:42:00',
     blocks: [],
     profileSummary: null,
+    icuFtp: null,
+    zoneTimes: null,
     metrics: [],
     route,
     pairedEventId,

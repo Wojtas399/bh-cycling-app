@@ -7,12 +7,12 @@ import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import RouteBanner from '@/components/route/RouteBanner';
+import DetailedProfileCard from '@/components/workout/DetailedProfileCard';
 import WorkoutActivityCard from '@/components/workout/WorkoutActivityCard';
 import WorkoutComparisonCard from '@/components/workout/WorkoutComparisonCard';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
-import WorkoutDetailsProfile from '@/components/workout/WorkoutDetailsProfile';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
@@ -141,7 +141,10 @@ function WorkoutDetailsContent({
 
       {profile && (
         <WorkoutDetailsCard>
-          <WorkoutDetailsProfile card={profile} />
+          <DetailedProfileCard
+            source={profile}
+            testID="workout-details-profile"
+          />
         </WorkoutDetailsCard>
       )}
 

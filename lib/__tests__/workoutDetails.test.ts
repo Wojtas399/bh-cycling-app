@@ -64,7 +64,7 @@ function details(
       event: workout,
       completed: activity != null,
       activity,
-      zoneConfig: ZONE_CONFIG,
+      rideSettings: { zoneConfig: ZONE_CONFIG, ftp: null },
     },
     TODAY,
   );
@@ -139,12 +139,48 @@ describe('buildWorkoutDetails', () => {
       ]);
     });
 
+    it("time in zone comes from a ride's steps, at the athlete's zones", () => {
+      const planned = details(
+        event({
+          type: 'Ride',
+          workout_doc: {
+            duration: 3600,
+            steps: [
+              { duration: 600, power: { units: '%ftp', value: 58 } },
+              { duration: 2400, power: { units: 'power_zone', value: 2 } },
+              { duration: 600, power: { units: '%ftp', value: 90 } },
+            ],
+          },
+        }),
+      );
+
+      // 58% is Z1 under this athlete's 60% ceiling, not Coggan's Z2.
+      expect(planned.zoneTimes).toEqual({
+        1: 600,
+        2: 2400,
+        3: 600,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0,
+      });
+    });
+
     it('are left out for a non-cycling Workout in planned mode', () => {
       const planned = details(strength);
 
       expect(planned.blocks).toEqual([]);
       expect(planned.profileSummary).toBeNull();
       expect(planned.steps).toEqual([]);
+      expect(planned.zoneTimes).toEqual({
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0,
+      });
       expect(planned.planMetrics).toEqual({ durationSeconds: 3600 });
     });
 

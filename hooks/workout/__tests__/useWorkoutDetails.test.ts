@@ -12,6 +12,7 @@ import {
 } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import { resolveRideSettings } from '@/lib/rideSettings';
 import type { WorkoutStep } from '@/lib/workoutProfile';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
@@ -495,6 +496,10 @@ describe('useWorkoutDetails', () => {
       expect(result.current.query.data?.blocks).toEqual([
         { widthFraction: 1, minPct: 80, maxPct: 80, zone: 3 },
       ]);
+      // So its profile card is drawn in %FTP, and never waits on them.
+      expect(result.current.query.data?.rideSettings).toEqual(
+        resolveRideSettings(null),
+      );
     });
   });
 
@@ -525,6 +530,25 @@ describe('useWorkoutDetails', () => {
         stepCount: 5,
         peakFtpPct: 120,
       });
+    });
+
+    it("carries the athlete's Ride settings it's coloured by, current FTP included, for its profile card", async () => {
+      mockConnected();
+      mockGetAthleteSettings.mockResolvedValue({
+        ftp: 265,
+        powerZones: [60, 80, 90, 105, 120, 150, 999],
+      });
+      mockGetCalendarEvent.mockResolvedValue(event());
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      expect(result.current.query.data?.rideSettings).toEqual(
+        resolveRideSettings({
+          ftp: 265,
+          powerZones: [60, 80, 90, 105, 120, 150, 999],
+        }),
+      );
     });
 
     it('has no profile summary when there is no profile to draw', async () => {

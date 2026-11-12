@@ -7,13 +7,14 @@ import Box from '@/components/Box';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import ActivityDetailsHero from '@/components/activity/ActivityDetailsHero';
-import ActivityDetailsProfile from '@/components/activity/ActivityDetailsProfile';
 import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
 import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import RaceHeader from '@/components/race/RaceHeader';
 import RouteBanner from '@/components/route/RouteBanner';
 import ActivityMetricGrid from '@/components/workout/ActivityMetricGrid';
+import DetailedProfileCard from '@/components/workout/DetailedProfileCard';
+import ProfileCardSkeleton from '@/components/workout/ProfileCardSkeleton';
 import WorkoutDescriptionCard from '@/components/workout/WorkoutDescriptionCard';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
@@ -21,6 +22,7 @@ import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { usePairedRace } from '@/hooks/activity/usePairedRace';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
+import { useAthleteSettings } from '@/hooks/useAthleteSettings';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import {
@@ -28,6 +30,7 @@ import {
   pairedEventIdOf,
   routeOf,
 } from '@/lib/activityDetails';
+import { NO_WORKOUT_PROFILE, profileCardSource } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -145,6 +148,8 @@ function ActivityDetailsContent({
   onRacePress: (race: Race) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
+  const settings = useAthleteSettings();
+  const profile = profileCardSource(NO_WORKOUT_PROFILE, details, settings.data);
 
   return (
     <Box gap="md">
@@ -167,13 +172,18 @@ function ActivityDetailsContent({
         startLocal={details.startLocal}
       />
 
-      {details.profileSummary && (
-        <WorkoutDetailsCard>
-          <ActivityDetailsProfile
-            blocks={details.blocks}
-            summary={details.profileSummary}
-          />
-        </WorkoutDetailsCard>
+      {/* Held until the ride can be drawn as it'll stay: in watts or %FTP. */}
+      {settings.isLoading ? (
+        <ProfileCardSkeleton />
+      ) : (
+        profile && (
+          <WorkoutDetailsCard>
+            <DetailedProfileCard
+              source={profile}
+              testID="activity-details-profile"
+            />
+          </WorkoutDetailsCard>
+        )
       )}
 
       {details.metrics.length > 0 && (

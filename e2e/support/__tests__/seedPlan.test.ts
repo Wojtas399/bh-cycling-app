@@ -1,4 +1,4 @@
-import { planSeed } from '../seedPlan';
+import { planSeed, rideTcx } from '../seedPlan';
 
 describe('planSeed', () => {
   it('plans E2E Sweet Spot today and E2E Endurance on the 15th of next month', () => {
@@ -150,5 +150,82 @@ describe('planSeed', () => {
         expect(isSeedOwned(workout)).toBe(true);
       }
     });
+  });
+});
+
+/** Each trackpoint's time and power, in file order. */
+function trackpoints(tcx: string): { time: string; watts: number }[] {
+  return [...tcx.matchAll(/<Trackpoint>([\s\S]*?)<\/Trackpoint>/g)].map(
+    ([, body]) => ({
+      time: /<Time>(.*?)<\/Time>/.exec(body)?.[1] ?? '',
+      watts: Number(/<ns3:Watts>(.*?)<\/ns3:Watts>/.exec(body)?.[1]),
+    }),
+  );
+}
+
+describe('rideTcx', () => {
+  const start = new Date(Date.UTC(2026, 10, 8, 11, 0, 0));
+
+  it('writes a ride with a power sample every second, effort after effort', () => {
+    const points = trackpoints(
+      rideTcx(start, [
+        { seconds: 2, watts: 120 },
+        { seconds: 3, watts: 250 },
+      ]),
+    );
+
+    expect(points).toEqual([
+      { time: '2026-11-08T11:00:00.000Z', watts: 120 },
+      { time: '2026-11-08T11:00:01.000Z', watts: 120 },
+      { time: '2026-11-08T11:00:02.000Z', watts: 250 },
+      { time: '2026-11-08T11:00:03.000Z', watts: 250 },
+      { time: '2026-11-08T11:00:04.000Z', watts: 250 },
+    ]);
+  });
+
+  it('is a TCX bike ride starting at `start`, so Intervals.icu reads it as a Ride', () => {
+    const tcx = rideTcx(start, [{ seconds: 60, watts: 200 }]);
+
+    expect(tcx).toMatch(/^<\?xml version="1.0" encoding="UTF-8"\?>/);
+    expect(tcx).toContain(
+      'xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"',
+    );
+    expect(tcx).toContain('<Activity Sport="Biking">');
+    expect(tcx).toContain('<Id>2026-11-08T11:00:00.000Z</Id>');
+    expect(tcx).toContain('<Lap StartTime="2026-11-08T11:00:00.000Z">');
+    expect(tcx).toContain('<TotalTimeSeconds>60</TotalTimeSeconds>');
+  });
+});
+
+describe('planSeed ride', () => {
+  const today = new Date(2026, 10, 8, 14, 30);
+  const { ride, deleteWindow, isSeedOwned } = planSeed(today);
+
+  it('plans E2E Ride today, owned by the seed', () => {
+    expect(ride).toMatchObject({
+      external_id: 'e2e-ride',
+      name: 'E2E Ride',
+      date: '2026-11-08',
+      day: new Date(2026, 10, 8),
+    });
+    expect(isSeedOwned(ride)).toBe(true);
+    expect(ride.date >= deleteWindow.oldest).toBe(true);
+    expect(ride.date <= deleteWindow.newest).toBe(true);
+  });
+
+  it('starts the ride at local noon, so it stays on today in any nearby time zone', () => {
+    expect(trackpoints(ride.tcx)[0].time).toBe(
+      new Date(2026, 10, 8, 12, 0, 0).toISOString(),
+    );
+  });
+
+  it('rides a short ride through several zones, with power throughout', () => {
+    const points = trackpoints(ride.tcx);
+    const watts = new Set(points.map(point => point.watts));
+
+    expect(points.length).toBeGreaterThanOrEqual(10 * 60);
+    expect(points.length).toBeLessThanOrEqual(30 * 60);
+    expect(watts.size).toBeGreaterThanOrEqual(3);
+    expect(points.every(point => point.watts > 0)).toBe(true);
   });
 });
