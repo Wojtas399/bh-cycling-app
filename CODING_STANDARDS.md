@@ -20,7 +20,7 @@ For reviewers:
 - A change to visible text, a placeholder or a `testID` that an e2e test matches breaks the suite unless the same PR updates the test. Report it.
 - A new `testID` on an element that visible text already names uniquely breaks this rule.
 - In an e2e test, an `agent.assert`, an `agent.act` where a locator would do, a secret in an agent step, or a fixture typed as `any` breaks this rule.
-- A new user-facing flow with no e2e test is a judgement call. Suggest one, but don't block on it. The suite runs by hand, not in CI.
+- A new user-facing flow with no e2e test is a judgement call. Suggest one, but don't block on it. The suite gates no PR. CI runs it only for PRs from `rc/*` to `main`, and on demand.
 
 ## ADRs are binding
 
