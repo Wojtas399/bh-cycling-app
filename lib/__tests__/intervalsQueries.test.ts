@@ -2,7 +2,6 @@ import { buildActivityDetails } from '../activityDetails';
 import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
-  IntervalsApiError,
   type IntervalsCalendarEvent,
   type IntervalsWorkoutDoc,
   getActivities,
