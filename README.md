@@ -93,7 +93,7 @@ The app side needs the matching public client ID to build the authorization requ
 
 Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI doesn't run it. See `docs/e2e.md`.
 
-`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. It runs on every push to `main` too, so CI doesn't run separately there. The ref decides what ships.
+CI and releases run on EAS Workflows, and nothing runs on GitHub Actions. Pull requests run `.eas/workflows/ci.yml`, with the `Lint`, `Type Check` and `Test` jobs. `.eas/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android in the `Release iOS` and `Release Android` jobs, so CI on `main` runs inside the release. The ref decides what ships.
 
 | Ref                                      | Result                                                                                                                                                      |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,6 +110,26 @@ The release script pulls the Firebase files from EAS, so their variables must ha
 `version` in `app.config.ts` on `main` is the next release. The Dev build carries it. Cut `rc/X.Y.Z` from `main` at that version, so staging gets the version Dev already had, then bump `main` to the next version. The bump changes the native fingerprint, so it starts a new Dev build.
 
 `hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
+
+Runs and logs are on expo.dev, under the project's Workflows. The release jobs work like this:
+
+- The workflow passes the ref to `release.sh` as `REF_TYPE` and `REF_NAME`.
+- `eas` runs as the robot user, with its token in the secret EAS variable `EXPO_TOKEN`.
+- Tags run in the `production` environment and branches in `development`, the same environment `release.sh` pulls. So `EXPO_TOKEN` must be assigned to both.
+- The checkout is a single commit. For tags, `release.sh` fetches the `rc/` or `hotfix/` branch with its history before checking that the tag is on it.
+- A running release is never canceled. A newer push to the same ref waits for it, and replaces an older push that is still waiting.
+- Builds start with `--no-wait`, so a failed store build still leaves the run green. Check new builds on expo.dev.
+
+### Cut-over from GitHub Actions
+
+These steps are for the owner after the cut-over PR merges (Spec #361). Delete this section once they're done.
+
+1. Delete the GitHub repo secrets nothing uses anymore: `gh secret delete EXPO_TOKEN` and `gh secret delete CLAUDE_CODE_OAUTH_TOKEN`.
+2. The merge itself is a push to `main`, so it runs the first EAS release: CI, then a Dev OTA update or Dev build. Check it on expo.dev.
+3. Before the first `vX.Y.Z` tag, assign `EXPO_TOKEN` to the `production` environment too.
+4. The next `rc/*` push runs the EAS release. Check that it produces staging builds or an OTA update, as before, and link the run in #367.
+
+To roll back, revert the cut-over PR.
 
 ## Dev build
 

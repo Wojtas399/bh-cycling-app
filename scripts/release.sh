@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Routes the GitHub ref that triggered the release workflow to a build or an
-# OTA update for one platform. See "Releasing" in README.md.
+# Routes the ref that triggered .eas/workflows/release.yml, passed in as
+# REF_TYPE and REF_NAME, to a build or an OTA update for one platform. See
+# "Releasing" in README.md.
 set -euo pipefail
 
 platform="$1"
 semver='[0-9]+\.[0-9]+\.[0-9]+'
 
 die() {
-  echo "::error::$1" >&2
+  echo "Error: $1" >&2
   exit 1
 }
 
@@ -34,7 +35,7 @@ config_version() {
 require_config_version() {
   local config
   config="$(config_version)"
-  [[ "$1" == "$config" ]] || die "$GITHUB_REF_NAME does not match version $config in app.config.ts"
+  [[ "$1" == "$config" ]] || die "$REF_NAME does not match version $config in app.config.ts"
   version="$1"
 }
 
@@ -90,21 +91,22 @@ dev_build_fits_quota() {
 skip_dev_build() {
   local used="$1" limit="$2" resets="$3" name
   [[ "$platform" == ios ]] && name=iOS || name=Android
-  local line="Dev $name build skipped: $used/$limit used, resets $resets"
-  echo "::warning::$line"
-  echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
+  echo "Warning: Dev $name build skipped: $used/$limit used, resets $resets"
 }
 
 update() {
   eas update --channel "$channel" --platform "$platform" --environment "$environment" \
-    --message "$GITHUB_REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
+    --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
 }
 
+# The checkout is a single commit, so the branch and its history are fetched
+# before the ancestry check.
 require_commit_on() {
-  git merge-base --is-ancestor HEAD "origin/$1" || die "$GITHUB_REF_NAME is not on $1"
+  git fetch --unshallow origin "+refs/heads/$1:refs/remotes/origin/$1" || die "Could not fetch $1"
+  git merge-base --is-ancestor HEAD "origin/$1" || die "$REF_NAME is not on $1"
 }
 
-ref="$GITHUB_REF_TYPE:$GITHUB_REF_NAME"
+ref="$REF_TYPE:$REF_NAME"
 
 if [[ "$ref" =~ ^branch:main$ ]]; then
   use_target dev
