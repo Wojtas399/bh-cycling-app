@@ -20,6 +20,7 @@ defaults:
 # build halfway.
 concurrency:
   group: release-${{ github.ref_name }}
+  cancel_in_progress: false
 
 jobs:
   ci:
