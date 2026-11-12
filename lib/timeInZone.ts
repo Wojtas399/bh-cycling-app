@@ -36,8 +36,7 @@ function noZoneTimes(): Record<Zone, number> {
 export const NO_ZONE_TIMES: ZoneTimes = noZoneTimes();
 
 /**
- * The time a strip draws in each zone: its stream buckets or interval blocks
- * added up by zone. Time it doesn't draw, such as a stop, counts nowhere.
+ * The time a strip draws in each zone: its blocks added up by zone. Time it doesn't draw, such as a stop, counts nowhere.
  */
 export function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
   const times = noZoneTimes();

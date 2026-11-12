@@ -200,26 +200,9 @@ describe('useActivityDetails', () => {
       );
 
       expect(details.profileSummary).toEqual({
-        startSeconds: 0,
         durationSeconds: 9300,
         segmentCount: 3,
         peakFtpPct: 179,
-      });
-    });
-
-    it('starts where its first interval does, which places the power stream under it', async () => {
-      const details = await shownDetailsOf(
-        activity({
-          icu_intervals: [
-            { start_time: 300, end_time: 1500, intensity: 80, zone: 3 },
-            { start_time: 1500, end_time: 2700, intensity: 90, zone: 3 },
-          ],
-        }),
-      );
-
-      expect(details.profileSummary).toMatchObject({
-        startSeconds: 300,
-        durationSeconds: 2400,
       });
     });
 
@@ -253,7 +236,6 @@ describe('useActivityDetails', () => {
         { widthFraction: 1, minPct: 72, maxPct: 72, zone: 2 },
       ]);
       expect(details.profileSummary).toEqual({
-        startSeconds: 0,
         durationSeconds: 5400,
         segmentCount: 1,
         peakFtpPct: 72,
@@ -275,7 +257,6 @@ describe('useActivityDetails', () => {
         { widthFraction: 0.5, minPct: 0, maxPct: 0, zone: 1 },
       ]);
       expect(details.profileSummary).toEqual({
-        startSeconds: 0,
         durationSeconds: 3600,
         segmentCount: 1,
         peakFtpPct: 88,
@@ -299,7 +280,6 @@ describe('useActivityDetails', () => {
         { widthFraction: 0.5, minPct: 105, maxPct: 105, zone: 5 },
       ]);
       expect(details.profileSummary).toEqual({
-        startSeconds: 0,
         durationSeconds: 2400,
         segmentCount: 2,
         peakFtpPct: 105,

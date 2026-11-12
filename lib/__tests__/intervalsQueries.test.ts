@@ -6,13 +6,11 @@ import {
   type IntervalsCalendarEvent,
   type IntervalsWorkoutDoc,
   getActivities,
-  getActivityStreams,
   getAthleteSettings,
   getCalendarEvents,
 } from '../intervalsApi';
 import {
   activityDetailsQueryOptions,
-  activityStreamQueryOptions,
   athleteSettingsQueryOptions,
   fitnessQueryOptions,
   intervalsKeys,
@@ -44,7 +42,6 @@ const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
-const mockGetActivityStreams = getActivityStreams as jest.Mock;
 
 const ATHLETE_ZONES = [60, 80, 95, 110, 130, 160, 220];
 
@@ -106,12 +103,6 @@ describe('intervalsKeys', () => {
       'intervals',
       'athlete-1',
       'activity',
-      'i42',
-    ]);
-    expect(intervalsKeys.stream('athlete-1', 'i42')).toEqual([
-      'intervals',
-      'athlete-1',
-      'stream',
       'i42',
     ]);
   });
@@ -209,82 +200,6 @@ describe('routeQueryOptions', () => {
 
   it('keeps a loaded Route fresh forever', () => {
     expect(routeQueryOptions(CREDENTIALS, 'i42').staleTime).toBe(Infinity);
-  });
-});
-
-describe('activityStreamQueryOptions', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  function fetchStream() {
-    return createQueryClient().fetchQuery(
-      activityStreamQueryOptions(CREDENTIALS, 'i42'),
-    );
-  }
-
-  it("keys the stream by the Activity id under the athlete's prefix", () => {
-    expect(activityStreamQueryOptions(CREDENTIALS, 'i42').queryKey).toEqual([
-      'intervals',
-      'athlete-1',
-      'stream',
-      'i42',
-    ]);
-  });
-
-  it('is skipped without an Activity id', () => {
-    expect(activityStreamQueryOptions(CREDENTIALS, null).queryFn).toBe(
-      skipToken,
-    );
-  });
-
-  it('is skipped without credentials', () => {
-    expect(activityStreamQueryOptions(null, 'i42').queryFn).toBe(skipToken);
-  });
-
-  it('keeps a loaded stream fresh forever, as a recorded ride never changes', () => {
-    expect(activityStreamQueryOptions(CREDENTIALS, 'i42').staleTime).toBe(
-      Infinity,
-    );
-  });
-
-  it("stores the ride's time and watts streams", async () => {
-    mockGetActivityStreams.mockResolvedValue([
-      { type: 'time', data: [0, 1, 2] },
-      { type: 'watts', data: [180, null, 210] },
-    ]);
-
-    await expect(fetchStream()).resolves.toEqual({
-      time: [0, 1, 2],
-      watts: [180, null, 210],
-    });
-    expect(mockGetActivityStreams).toHaveBeenCalledWith(
-      'token-1',
-      'i42',
-      { types: ['time', 'watts'] },
-      { signal: expect.any(AbortSignal) },
-    );
-  });
-
-  it('resolves to null, no stream, when intervals.icu has none (404)', async () => {
-    mockGetActivityStreams.mockRejectedValue(new IntervalsApiError(404));
-
-    await expect(fetchStream()).resolves.toBeNull();
-  });
-
-  it.each([
-    ['an empty response', []],
-    ['no watts', [{ type: 'time', data: [0, 1] }]],
-  ])('resolves to null, no stream, for %s', async (_, streams) => {
-    mockGetActivityStreams.mockResolvedValue(streams);
-
-    await expect(fetchStream()).resolves.toBeNull();
-  });
-
-  it('fails on any other error', async () => {
-    mockGetActivityStreams.mockRejectedValue(new IntervalsApiError(500));
-
-    await expect(fetchStream()).rejects.toMatchObject({ status: 500 });
   });
 });
 

@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import Box from '@/components/Box';
-import ProfileWithTimeAxis, {
-  plotWidthOf,
-} from '@/components/workout/ProfileWithTimeAxis';
+import ProfileWithTimeAxis from '@/components/workout/ProfileWithTimeAxis';
 import ScrubReadout from '@/components/workout/ScrubReadout';
 import TimeInZoneRows from '@/components/workout/TimeInZoneRows';
 import {
@@ -26,9 +24,9 @@ export interface DetailedProfileCardProps {
  * The large profile card of Workout Details and Activity Details: the
  * planned Workout Profile above the recorded Activity Profile when there's
  * both, either alone otherwise, with the scrub readout and their time in zone
- * below. Drawn once it's laid out, since a ride's power stream is drawn for
- * the plot's width. Read by a screen reader as one summary covering whatever
- * it shows, each strip with its power, then the time-in-zone rows as text.
+ * below. Drawn once it's laid out, for the plot's width. Read by a screen
+ * reader as one summary covering whatever it shows, each strip with its
+ * power, then the time-in-zone rows as text.
  * The scrub isn't offered to a screen reader.
  */
 export default function DetailedProfileCard({
@@ -41,7 +39,7 @@ export default function DetailedProfileCard({
     <View onLayout={({ nativeEvent: { layout } }) => setWidth(layout.width)}>
       {width > 0 && (
         <LaidOutProfile
-          profile={buildDetailedProfile(card, settings, plotWidthOf(width))}
+          profile={buildDetailedProfile(card, settings)}
           width={width}
           testID={testID}
         />

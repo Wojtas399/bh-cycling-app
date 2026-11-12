@@ -1,7 +1,7 @@
 import type { ActivityDetails } from '../activityDetails';
 import { buildDetailedProfile } from '../detailedProfile';
-import type { PowerStream } from '../powerStream';
-import { NO_WORKOUT_PROFILE, buildProfileCard } from '../profileCard';
+import type { NO_WORKOUT_PROFILE } from '../profileCard';
+import { buildProfileCard } from '../profileCard';
 import { profilePlot } from '../profilePlot';
 import { resolveRideSettings } from '../rideSettings';
 import { NO_ZONE_TIMES } from '../timeInZone';
@@ -32,7 +32,6 @@ const RIDE: ActivityDetails = {
     { widthFraction: 0.75, minPct: 98, maxPct: 98, zone: 4 },
   ],
   profileSummary: {
-    startSeconds: 0,
     durationSeconds: 600,
     segmentCount: 2,
     peakFtpPct: 98,
@@ -44,29 +43,18 @@ const RIDE: ActivityDetails = {
   pairedEventId: null,
 };
 
-/** The ride's power stream: 10 minutes at 200 W, 80% FTP. */
-const STREAM: PowerStream = {
-  time: Array.from({ length: 600 }, (_, i) => i),
-  watts: Array.from({ length: 600 }, () => 200),
-};
-
 const PLAN_LABEL =
   'Profil treningu: 20m, 2 kroki, maks. 100% FTP. Moc szczytowa 250 W, średnia 200 W';
 
 function plotOf(
   workout: typeof PLAN | typeof NO_WORKOUT_PROFILE,
   activity: ActivityDetails | undefined,
-  stream: PowerStream | null = null,
 ) {
-  const card = buildProfileCard(workout, activity, FTP, stream);
+  const card = buildProfileCard(workout, activity, FTP);
 
   if (!card) throw new Error('No card to plot.');
 
-  const profile = buildDetailedProfile(
-    card,
-    resolveRideSettings({ ftp: FTP }),
-    300,
-  );
+  const profile = buildDetailedProfile(card, resolveRideSettings({ ftp: FTP }));
 
   return { profile, plot: profilePlot(profile, t) };
 }
@@ -90,14 +78,6 @@ describe('profilePlot', () => {
     ]);
     expect(plot.accessibilityLabel).toBe(
       `Plan i wykonanie. ${PLAN_LABEL}. Profil aktywności: 10m, 2 odcinki, maks. 98% FTP. Moc szczytowa 245 W, średnia 218 W`,
-    );
-  });
-
-  it('reads the peak of a ride drawn from its stream from the stream, not its intervals', () => {
-    const { plot } = plotOf(NO_WORKOUT_PROFILE, RIDE, STREAM);
-
-    expect(plot.accessibilityLabel).toBe(
-      'Profil aktywności: 10m, 2 odcinki, maks. 80% FTP. Moc szczytowa 200 W, średnia 200 W',
     );
   });
 });

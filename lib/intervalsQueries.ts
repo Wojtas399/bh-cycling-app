@@ -29,7 +29,6 @@ import {
   getActivities,
   getActivity,
   getActivityMap,
-  getActivityStreams,
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
@@ -45,7 +44,6 @@ import {
 } from './localDate';
 import { type Note, noteWindow, toNotes } from './notes';
 import { pairWorkout } from './pairing';
-import { type PowerStream, toPowerStream } from './powerStream';
 import type { ZoneConfig } from './powerZones';
 import {
   NEXT_RACE_WINDOW_DAYS,
@@ -127,12 +125,6 @@ export const intervalsKeys = {
    */
   route: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.athlete(athleteId), 'route', activityId] as const,
-  /**
-   * One Activity's power stream, by its intervals.icu id. The id is `null`
-   * only in the key of a query skipped for want of one.
-   */
-  stream: (athleteId: string | undefined, activityId: string | null) =>
-    [...intervalsKeys.athlete(athleteId), 'stream', activityId] as const,
 };
 
 /**
@@ -540,44 +532,6 @@ export function routeQueryOptions(
                 await getActivityMap(credentials.accessToken, activityId, {
                   signal,
                 }),
-              );
-            } catch (error) {
-              if (isNotFoundError(error)) return null;
-
-              throw error;
-            }
-          }
-        : skipToken,
-    staleTime: Infinity,
-  });
-}
-
-/**
- * One Activity's power stream, raw, for the profile card's Recorded strip:
- * downsampling depends on the card's width, so it happens when the card is
- * drawn. A 404, or a stream with no power (see `toPowerStream`), resolves to
- * `null` ("no stream"), not an error. A recorded stream never changes, so a
- * loaded one stays fresh forever and is never refetched on foreground.
- * Retries, `gcTime` and 401 routing are the global defaults. Skipped without
- * credentials or an Activity id.
- */
-export function activityStreamQueryOptions(
-  credentials: IntervalsCredentials | null,
-  activityId: string | null,
-) {
-  return queryOptions({
-    queryKey: intervalsKeys.stream(credentials?.athleteId, activityId),
-    queryFn:
-      credentials && activityId !== null
-        ? async ({ signal }): Promise<PowerStream | null> => {
-            try {
-              return toPowerStream(
-                await getActivityStreams(
-                  credentials.accessToken,
-                  activityId,
-                  { types: ['time', 'watts'] },
-                  { signal },
-                ),
               );
             } catch (error) {
               if (isNotFoundError(error)) return null;

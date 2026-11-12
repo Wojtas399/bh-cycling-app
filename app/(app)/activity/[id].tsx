@@ -20,7 +20,6 @@ import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
-import { useActivityStream } from '@/hooks/activity/useActivityStream';
 import { usePairedRace } from '@/hooks/activity/usePairedRace';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
 import { useAthleteSettings } from '@/hooks/useAthleteSettings';
@@ -29,7 +28,6 @@ import { useRaceSheet } from '@/hooks/useRaceSheet';
 import {
   type ActivityDetails,
   pairedEventIdOf,
-  profileStreamIdOf,
   routeOf,
 } from '@/lib/activityDetails';
 import { NO_WORKOUT_PROFILE, profileCardSource } from '@/lib/profileCard';
@@ -151,14 +149,7 @@ function ActivityDetailsContent({
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const settings = useAthleteSettings();
-  // Skipped when there's no Activity Profile to draw.
-  const stream = useActivityStream(profileStreamIdOf(activityId, details));
-  const profile = profileCardSource(
-    NO_WORKOUT_PROFILE,
-    details,
-    settings.data,
-    stream.data,
-  );
+  const profile = profileCardSource(NO_WORKOUT_PROFILE, details, settings.data);
 
   return (
     <Box gap="md">
@@ -181,9 +172,8 @@ function ActivityDetailsContent({
         startLocal={details.startLocal}
       />
 
-      {/* Held until the ride can be drawn as it'll stay: in watts or %FTP,
-          from its stream or its intervals. */}
-      {settings.isLoading || stream.isLoading ? (
+      {/* Held until the ride can be drawn as it'll stay: in watts or %FTP. */}
+      {settings.isLoading ? (
         <ProfileCardSkeleton />
       ) : (
         profile && (

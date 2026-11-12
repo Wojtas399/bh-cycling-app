@@ -1,12 +1,6 @@
 import type { ActivityProfileSummary } from './activityDetails';
-import { bucketPowerStream } from './powerStream';
-import { type ZoneConfig, zoneForFtpPercent } from './powerZones';
-import type { ProfileCard, ProfileStrip, RecordedStrip } from './profileCard';
-import {
-  type RideSettings,
-  ftpPctToWatts,
-  wattsToFtpPct,
-} from './rideSettings';
+import type { ProfileCard, ProfileStrip } from './profileCard';
+import { type RideSettings, ftpPctToWatts } from './rideSettings';
 import type { StripSegment } from './stripSegment';
 import {
   type TimeInZoneRow,
@@ -28,10 +22,7 @@ export interface StripPower {
   unit: ScaleUnit;
   /** The highest power the strip draws, rounded. */
   peak: number;
-  /**
-   * `peak` in %FTP, rounded: from what the strip draws, so a ride drawn from
-   * its stream reads its stream's peak, not its intervals'.
-   */
+  /** `peak` in %FTP, rounded. */
   peakFtpPct: number;
   /**
    * The strip's average over the time it draws, rounded. A range counts at
@@ -91,9 +82,6 @@ const HEADROOM = 1.05;
 /** What a ceiling with no zone edge rounds up to, in the scale's unit. */
 const CEILING_STEP = 10;
 
-/** How wide a bucket of the power stream is drawn, in px. */
-const STREAM_BUCKET_WIDTH = 2;
-
 /**
  * The top of the card's y-scale for its highest `peak`: the first of the
  * ascending zone `edges` above the peak, so the zone above the effort shows as
@@ -118,14 +106,11 @@ export function niceCeiling(peak: number, edges: number[]): number {
 
 /**
  * The detailed card of `card`, drawn against the athlete's current Ride
- * `settings` on plots `plotWidth` px wide. A ride with a power stream is drawn
- * from it in buckets about 2 px wide, so the stream is drawn again for each
- * width.
+ * `settings`.
  */
 export function buildDetailedProfile(
   card: ProfileCard,
   settings: RideSettings,
-  plotWidth: number,
 ): DetailedProfile {
   const { durationSeconds } = card;
   const unit = scaleUnit(card, settings.ftp);
@@ -139,11 +124,12 @@ export function buildDetailedProfile(
     card.recorded &&
     detailedStrip(
       card.recorded,
-      recordedSegments(card.recorded, durationSeconds, {
-        plotWidth,
+      toSegments(
+        card.recorded.blocks,
+        durationSeconds,
+        card.recorded.ftp,
         unit,
-        zoneConfig: settings.zoneConfig,
-      }),
+      ),
     );
 
   return {
@@ -214,49 +200,6 @@ function detailedStrip<Summary>(
     power: stripPower(segments, ftp),
     zoneTimes: zoneTimes ?? zoneTimesOfSegments(segments),
   };
-}
-
-/**
- * The ride's segments: its power stream's buckets when it has one, placed from
- * the Activity Profile's start, and its detected intervals otherwise.
- */
-function recordedSegments(
-  { blocks, summary, ftp, stream }: RecordedStrip,
-  durationSeconds: number,
-  {
-    plotWidth,
-    unit,
-    zoneConfig,
-  }: { plotWidth: number; unit: ScaleUnit; zoneConfig: ZoneConfig },
-): StripSegment[] {
-  if (stream === null || ftp === null) {
-    return toSegments(blocks, durationSeconds, ftp, unit);
-  }
-
-  const buckets = bucketPowerStream(stream, {
-    start: summary.startSeconds,
-    durationSeconds: summary.durationSeconds,
-    cardDurationSeconds: durationSeconds,
-    bucketCount: Math.max(1, Math.floor(plotWidth / STREAM_BUCKET_WIDTH)),
-  });
-
-  return buckets.map(({ start, end, watts }) => {
-    const pct = wattsToFtpPct(watts, ftp);
-    // The stream is in W already, so a watts scale takes them as they are.
-    const onScale = unit === 'watts' ? watts : pct;
-
-    return {
-      start,
-      end,
-      minPct: pct,
-      maxPct: pct,
-      minWatts: watts,
-      maxWatts: watts,
-      low: onScale,
-      high: onScale,
-      zone: zoneForFtpPercent(pct, zoneConfig),
-    };
-  });
 }
 
 function stripPower(segments: StripSegment[], ftp: number | null): StripPower {

@@ -35,8 +35,3 @@ export function resolveRideSettings(
 export function ftpPctToWatts(pct: number, ftp: number): number {
   return (pct * ftp) / 100;
 }
-
-/** `watts` W as %FTP of `ftp`. */
-export function wattsToFtpPct(watts: number, ftp: number): number {
-  return (watts / ftp) * 100;
-}
