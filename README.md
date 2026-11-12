@@ -91,7 +91,7 @@ The app side needs the matching public client ID to build the authorization requ
 
 ## Releasing
 
-Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI doesn't run it. See `docs/e2e.md`.
+Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI also runs it on Expo Simulators, in `.eas/workflows/e2e.yml`, on every push to a PR from `rc/*` to `main` and on demand. That run is informational and gates no merge or build. See `docs/e2e.md`.
 
 CI and releases run on EAS Workflows, and nothing runs on GitHub Actions. Pull requests run `.eas/workflows/ci.yml`, with the `Lint`, `Type Check` and `Test` jobs. `.eas/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android in the `Release iOS` and `Release Android` jobs, so CI on `main` runs inside the release. The ref decides what ships.
 
