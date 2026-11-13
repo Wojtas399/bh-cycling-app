@@ -52,8 +52,9 @@ export function pointerSeconds(
 export interface StripReading {
   zone: Zone;
   /**
-   * Its power, rounded: `88–93% · 220–233 W`, or `100% · 250 W` when flat. W
-   * is left out on a %FTP card.
+   * Its power, rounded: `88–93% · 220–233 W`, or `100% · 250 W` when flat or
+   * on a ramp, read along the slope at the pointer. W is left out on a %FTP
+   * card.
    */
   power: string;
 }
@@ -81,7 +82,12 @@ export function profileReadout(
   const read = (segments: StripSegment[]) => {
     const segment = segmentAt(segments, seconds);
 
-    return segment && { zone: segment.zone, power: power(segment, scale.unit) };
+    return (
+      segment && {
+        zone: segment.zone,
+        power: power(span(segment, seconds), scale.unit),
+      }
+    );
   };
 
   return {
@@ -97,8 +103,34 @@ export function profileReadout(
   };
 }
 
+/** A segment's power, from its lowest to its highest, in %FTP and W. */
+type PowerSpan = Pick<
+  StripSegment,
+  'minPct' | 'maxPct' | 'minWatts' | 'maxWatts'
+>;
+
+/**
+ * What a segment reads at `seconds`: its span, or on a ramp the one power
+ * read linearly along the slope at that moment.
+ */
+function span(segment: StripSegment, seconds: number): PowerSpan {
+  const { ramp, start, end } = segment;
+
+  if (!ramp) return segment;
+
+  const share = end > start ? (seconds - start) / (end - start) : 0;
+  const along = (from: number, to: number) => from + (to - from) * share;
+  const pct = along(ramp.startPct, ramp.endPct);
+  const watts =
+    ramp.startWatts !== null && ramp.endWatts !== null
+      ? along(ramp.startWatts, ramp.endWatts)
+      : null;
+
+  return { minPct: pct, maxPct: pct, minWatts: watts, maxWatts: watts };
+}
+
 function power(
-  { minPct, maxPct, minWatts, maxWatts }: StripSegment,
+  { minPct, maxPct, minWatts, maxWatts }: PowerSpan,
   unit: ScaleUnit,
 ): string {
   const pct = formatPower('ftpPct', minPct, maxPct);

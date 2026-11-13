@@ -40,6 +40,10 @@ _Avoid_: Zone distribution, zone breakdown
 The panel that drag-to-inspect opens on the large profile card. It shows the time under the pointer, and the zone, %FTP and watts of each strip at that moment. It stays after the finger lifts until the athlete hides it.
 _Avoid_: Tooltip, crosshair
 
+**Ramp**:
+A step whose power climbs or falls steadily from a start power to an end power. A Workout Profile draws it as a slope from start to end in the order it's ridden, the Scrub Readout reads its power along that slope, and it's coloured by the zone at its midpoint.
+_Avoid_: Range, which holds one band of power throughout
+
 **Route**:
 The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
 _Avoid_: Workout route, track, GPS trace

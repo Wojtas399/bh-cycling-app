@@ -4,7 +4,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
-import Svg, { G, Line, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { G, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import Box from '@/components/Box';
@@ -14,6 +14,7 @@ import { useAppTheme } from '@/constants/theme';
 import { type ProfileScale, axisLabels } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
+import { rampPolygonPoints } from '@/lib/profileBars';
 import type { PlotStrip } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 import type { StripSegment } from '@/lib/stripSegment';
@@ -232,7 +233,7 @@ function Strips({
 /**
  * One strip's plot, `height` tall between its labels: the y labels in the
  * gutter, the dashed gridlines across it, and a bar per segment, solid to its
- * low end and faint to its high end.
+ * low end and faint to its high end, or a solid slope for a ramp.
  */
 function StripPlot({
   segments,
@@ -288,13 +289,27 @@ function StripPlot({
           {label(value)}
         </SvgText>
       ))}
-      {segments.map(({ start, end, low, high, zone }) => {
+      {segments.map(({ start, end, low, high, zone, ramp }) => {
         const fullWidth = xOf(end) - xOf(start);
         // A bar too narrow to spare the hairline is drawn whole.
         const inset = fullWidth > 4 * BAR_INSET ? BAR_INSET : 0;
         const x = xOf(start) + inset;
         const barWidth = fullWidth - 2 * inset;
         const color = colors[ZONE_COLORS[zone]];
+
+        // A ramp is a solid slope from its start power to its end power, in
+        // the order it's ridden, with no faint cap.
+        if (ramp) {
+          const points = rampPolygonPoints({
+            x,
+            width: barWidth,
+            bottom: yOf(0),
+            startY: yOf(ramp.startOnScale),
+            endY: yOf(ramp.endOnScale),
+          });
+
+          return <Polygon key={start} points={points} fill={color} />;
+        }
 
         return (
           <G key={start}>

@@ -1,7 +1,16 @@
+import { useState } from 'react';
+import Svg, { G, Path, Polygon, Rect } from 'react-native-svg';
+
 import Box from '@/components/Box';
-import type { AppTheme } from '@/constants/theme';
+import { type AppTheme, useAppTheme } from '@/constants/theme';
 import type { Zone } from '@/lib/powerZones';
-import { type WorkoutBlock, profileCeilingPct } from '@/lib/workoutProfile';
+import {
+  type ProfileBar,
+  profileBars,
+  rampPolygonPoints,
+  roundedTopPath,
+} from '@/lib/profileBars';
+import type { WorkoutBlock } from '@/lib/workoutProfile';
 
 /** Default height of the plot area. Tall enough to read a shape, short enough for a tile. */
 const DEFAULT_PROFILE_HEIGHT = 48;
@@ -38,71 +47,98 @@ export interface WorkoutProfileProps {
  * Draws a Workout Profile: one bar per block, in time order, its width its
  * share of the session and its height the power it asks for. A block with a
  * range is drawn solid up to `minPct` and capped to `maxPct`, so the bar states
- * the floor of the effort and hints at its ceiling.
+ * the floor of the effort and hints at its ceiling. A ramp is a solid slope
+ * from the power it starts at to the power it ends at, in ridden order.
  *
  * Purely presentational — it knows the block model and the theme, and nothing
- * about intervals.icu, FTP watts, or how the blocks were parsed.
+ * about intervals.icu, FTP watts, or how the blocks were parsed. It fills the
+ * width it's given, and draws once that width is laid out.
  */
 export default function WorkoutProfile({
   blocks,
   height = DEFAULT_PROFILE_HEIGHT,
 }: WorkoutProfileProps) {
-  const ceilingPct = profileCeilingPct(blocks);
+  const { colors, borderRadii } = useAppTheme();
+  const [width, setWidth] = useState(0);
+
+  const bars = profileBars(blocks, { width, height, gap: BLOCK_GAP });
 
   // Nothing to scale against, and nothing to draw: an empty profile, or one
-  // whose every block sits on the floor. Also keeps the divisor below safe.
-  if (ceilingPct <= 0) return null;
+  // whose every block sits on the floor.
+  if (bars.length === 0) return null;
 
   return (
     <Box
-      flexDirection="row"
-      alignItems="stretch"
       height={height}
-      style={{ gap: BLOCK_GAP }}
+      onLayout={event => setWidth(event.nativeEvent.layout.width)}
       testID="workout-profile"
     >
-      {blocks.map((block, index) => {
-        const color = ZONE_COLORS[block.zone];
-
-        return (
-          <Box
+      {width > 0 && (
+        <Svg width={width} height={height}>
+          {bars.map((bar, index) => (
             // Blocks have no identity of their own: they are positions in a
-            // time-ordered list that is replaced wholesale, never reordered or
-            // spliced, so the index is the stable identity here.
+            // time-ordered list that is replaced wholesale, never reordered
+            // or spliced, so the index is the stable identity here.
             // eslint-disable-next-line react/no-array-index-key
-            key={index}
-            justifyContent="flex-end"
-            flexGrow={block.widthFraction}
-            flexBasis={0}
-            testID={`workout-profile-block-${index}`}
-          >
-            <Box
-              borderTopLeftRadius="sm"
-              borderTopRightRadius="sm"
-              overflow="hidden"
-              style={{ height: `${(block.maxPct / ceilingPct) * 100}%` }}
-              testID={`workout-profile-bar-${index}`}
-            >
-              {/* The bar is split between the range above `minPct` and the
-                  solid fill below it, in proportion to the power each stands
-                  for — the same idiom the widths above are drawn with. */}
-              <Box
-                backgroundColor={color}
-                opacity={CAP_OPACITY}
-                flexGrow={block.maxPct - block.minPct}
-                flexBasis={0}
-                testID={`workout-profile-cap-${index}`}
+            <G key={index}>
+              <BarShape
+                bar={bar}
+                bottom={height}
+                color={colors[ZONE_COLORS[bar.zone]]}
+                radius={borderRadii.sm}
               />
-              <Box
-                backgroundColor={color}
-                flexGrow={block.minPct}
-                flexBasis={0}
-                testID={`workout-profile-solid-${index}`}
-              />
-            </Box>
-          </Box>
-        );
-      })}
+            </G>
+          ))}
+        </Svg>
+      )}
     </Box>
+  );
+}
+
+/** One bar of the profile, drawn by its shape. */
+function BarShape({
+  bar,
+  bottom,
+  color,
+  radius,
+}: {
+  bar: ProfileBar;
+  bottom: number;
+  color: string;
+  radius: number;
+}) {
+  // A slope has no flat top to round, so a ramp is drawn square.
+  if (bar.shape === 'ramp' && bar.ramp) {
+    const points = rampPolygonPoints({
+      x: bar.x,
+      width: bar.width,
+      bottom,
+      startY: bar.ramp.startY,
+      endY: bar.ramp.endY,
+    });
+
+    return <Polygon points={points} fill={color} />;
+  }
+
+  const top = (y: number) =>
+    roundedTopPath({ x: bar.x, y, width: bar.width, bottom, radius });
+
+  if (bar.shape === 'flat') {
+    return <Path d={top(bar.floorY)} fill={color} />;
+  }
+
+  // The rounded cap runs to the floor beneath the solid fill, which covers its
+  // lower part, so only the range above shows faintly.
+  return (
+    <>
+      <Path d={top(bar.capY)} fill={color} opacity={CAP_OPACITY} />
+      <Rect
+        x={bar.x}
+        y={bar.floorY}
+        width={bar.width}
+        height={bottom - bar.floorY}
+        fill={color}
+      />
+    </>
   );
 }

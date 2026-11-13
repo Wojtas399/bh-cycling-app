@@ -57,7 +57,6 @@ describe('WorkoutTile', () => {
     });
 
     expect(screen.getByTestId('workout-profile')).toBeTruthy();
-    expect(screen.getAllByTestId(/^workout-profile-bar-/)).toHaveLength(2);
   });
 
   it('degrades to the title and duration when there are no blocks', async () => {

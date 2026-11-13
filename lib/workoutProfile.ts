@@ -60,6 +60,18 @@ export interface WorkoutBlock {
   maxPct: number;
   /** Zone the block is coloured by. */
   zone: Zone;
+  /**
+   * Set when the step is a ramp: the power it runs from and to, in the order
+   * it's ridden. Drawn as a slope rather than a range. Absent on a range or a
+   * flat step, and on a ramp whose ends are equal.
+   */
+  ramp?: RampEnds;
+}
+
+/** A ramp's power where it starts and where it ends, in %FTP. */
+export interface RampEnds {
+  startPct: number;
+  endPct: number;
 }
 
 /**
@@ -69,7 +81,7 @@ export interface WorkoutBlock {
 export const GAP_BAND = { minPct: 0, maxPct: 0, zone: 1 } as const;
 
 /** The %FTP span and zone a step is drawn at, before it is given a width. */
-type StepBand = Pick<WorkoutBlock, 'minPct' | 'maxPct' | 'zone'>;
+type StepBand = Pick<WorkoutBlock, 'minPct' | 'maxPct' | 'zone' | 'ramp'>;
 
 /**
  * Narrowest a block may be drawn, as a share of the profile width — roughly
@@ -132,23 +144,25 @@ function toWidthFractions(durations: number[]): number[] {
 
 /**
  * Resolves a step's Power Target to the band it is drawn at, its lowest and
- * highest %FTP, floored at zero so nothing is drawn below the axis.
+ * highest %FTP, floored at zero so nothing is drawn below the axis. A ramp
+ * also keeps its ends in ridden order, unless they're equal and it's flat.
  */
-function resolveBand(
-  target: StepTarget | undefined,
-  config: ZoneConfig,
-): StepBand | null {
-  const power = resolvePowerTarget(target, config);
+function resolveBand(step: WorkoutStep, config: ZoneConfig): StepBand | null {
+  const power = resolvePowerTarget(step.power, config);
 
   if (!power) return null;
 
-  const { start, end } = power.ftpPct;
-
-  return {
-    minPct: Math.max(0, Math.min(start, end)),
-    maxPct: Math.max(0, Math.max(start, end)),
+  const startPct = Math.max(0, power.ftpPct.start);
+  const endPct = Math.max(0, power.ftpPct.end);
+  const band: StepBand = {
+    minPct: Math.min(startPct, endPct),
+    maxPct: Math.max(startPct, endPct),
     zone: power.zone,
   };
+
+  return step.ramp && startPct !== endPct
+    ? { ...band, ramp: { startPct, endPct } }
+    : band;
 }
 
 /**
@@ -185,7 +199,7 @@ export function buildWorkoutProfile(
   const drawable = steps
     .map(step => ({
       duration: step.duration,
-      band: resolveBand(step.power, config),
+      band: resolveBand(step, config),
     }))
     .filter(
       (step): step is { duration: number; band: StepBand } =>

@@ -1,4 +1,5 @@
 import type { Zone } from './powerZones';
+import type { RampEnds } from './workoutProfile';
 
 /**
  * A stretch of a strip drawn at one power, or one range of power, in time
@@ -23,4 +24,23 @@ export interface StripSegment {
   /** `maxPct` on the card's scale, in its unit: the top of the bar. */
   high: number;
   zone: Zone;
+  /**
+   * Set when the stretch is a ramp: where its power starts and ends, in the
+   * order it's ridden. Drawn as a slope rather than a range.
+   */
+  ramp?: SegmentRamp;
+}
+
+/**
+ * A ramp's power at its start and end, in ridden order. Its lower end is the
+ * segment's `minPct`, its higher end `maxPct`. `startPct` and `endPct` are in
+ * %FTP of the strip's FTP.
+ */
+export interface SegmentRamp extends RampEnds {
+  /** In W, `null` when the strip has no FTP. */
+  startWatts: number | null;
+  endWatts: number | null;
+  /** On the card's scale, in its unit, like `low` and `high`. */
+  startOnScale: number;
+  endOnScale: number;
 }
