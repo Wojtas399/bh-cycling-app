@@ -23,9 +23,10 @@ export async function signIn(screen: Screen): Promise<void> {
   // only the screen title, and tapping that just closes the keyboard.
   await passwordField.press('Enter');
 
-  // iOS may offer to save the password in a system sheet over the app.
+  // iOS may offer to save the password in a system sheet over the app, in
+  // Polish on the local simulator and English on Expo Simulators.
   const home = screen.getByText(/Dziś i jutro/);
-  const notNow = screen.getByText(/^Nie teraz$/);
+  const notNow = screen.getByText(/^(Nie teraz|Not Now)$/);
 
   await expect(home.or(notNow)).toBeVisible(LOAD_TIMEOUT);
 

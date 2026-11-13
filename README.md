@@ -100,17 +100,17 @@ The app side needs the matching public client ID to build the authorization requ
 
 ## Releasing
 
-Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI doesn't run it. See `docs/e2e.md`.
+Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI also runs it on Expo Simulators, in `.eas/workflows/e2e.yml`, on every push to a PR from `rc/*` to `main` and on demand. That run is informational and gates no merge or build. See `docs/e2e.md`.
 
-`.github/workflows/release.yml` runs the checks, then `scripts/release.sh` for iOS and Android. It runs on every push to `main` too, so CI doesn't run separately there. The ref decides what ships.
+CI and releases run on GitHub Actions, on the repo's free minutes. Only the e2e suite runs on EAS Workflows. Pull requests run `.github/workflows/ci.yml`, with the `Lint`, `Type Check` and `Test` jobs. `.github/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android, so CI on `main` runs inside the release. The ref decides what ships.
 
-| Ref                                      | Result                                                                                                                                                      |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning when only 3 builds are left this month |
-| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging. Fails unless `app.config.ts` says `X.Y.Z`          |
-| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                               |
-| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                      |
-| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                            |
+| Ref                                      | Result                                                                                                                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning once 80% of the month's EAS build credit is used |
+| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging. Fails unless `app.config.ts` says `X.Y.Z`                    |
+| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                                         |
+| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                                |
+| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                                      |
 
 New staging builds go to TestFlight and to the Google Play internal testing track. Android submits use the Google Play service account key in EAS credentials, which is assigned to the staging package only. Before the first `vX.Y.Z` tag, assign it to the production package (`eas credentials -p android`, `production` profile) and give the production submit profile its own `ascAppId`.
 
@@ -119,6 +119,24 @@ The release script pulls the Firebase files from EAS, so their variables must ha
 `version` in `app.config.ts` on `main` is the next release. The Dev build carries it. Cut `rc/X.Y.Z` from `main` at that version, so staging gets the version Dev already had, then bump `main` to the next version. The bump changes the native fingerprint, so it starts a new Dev build.
 
 `hotfix/vX.Y.Z` branches start from the `vX.Y.Z` tag. Merge `rc/` and `hotfix/` branches back to `main` by PR after tagging. Only one rollout can be active, so accept or revert a hotfix before tagging the next one.
+
+Runs and logs are in the repo's Actions tab, and the builds and updates they start are on expo.dev. The release jobs work like this:
+
+- The workflow passes the ref to `release.sh` as `REF_TYPE` and `REF_NAME`.
+- `eas` runs with the token in the GitHub secret `EXPO_TOKEN`.
+- `release.sh` pulls the `production` EAS environment for tags and `development` for branches.
+- For tags, `release.sh` fetches the `rc/` or `hotfix/` branch before checking that the tag is on it. It unshallows a shallow checkout first.
+- A running release is never canceled. A newer push to the same ref waits for it on that platform, and replaces an older push that is still waiting.
+- Builds start with `--no-wait`, so a failed store build still leaves the run green. Check new builds on expo.dev.
+
+### After Spec #361 merges
+
+These steps are for the owner after the Spec #361 PR merges. Delete this section once they're done.
+
+1. Delete the GitHub secret nothing uses anymore: `gh secret delete CLAUDE_CODE_OAUTH_TOKEN`. Keep the `EXPO_TOKEN` GitHub secret, because the release workflow uses it.
+2. Releases no longer read `EXPO_TOKEN` from EAS, so it needn't be assigned to the `production` environment. The e2e workflow still needs it in `development`.
+3. The merge itself is a push to `main`, so it runs a release on GitHub Actions: CI, then a Dev OTA update or Dev build. Check the run in the Actions tab and the result on expo.dev.
+4. The next `rc/*` push runs the staging release on GitHub Actions. Check that it produces staging builds or an OTA update, as before.
 
 ## Dev build
 

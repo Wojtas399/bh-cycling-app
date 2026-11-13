@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
-# Routes the GitHub ref that triggered the release workflow to a build or an
-# OTA update for one platform. See "Releasing" in README.md.
+# Routes the ref that triggered .github/workflows/release.yml, passed in as
+# REF_TYPE and REF_NAME, to a build or an OTA update for one platform. See
+# "Releasing" in README.md.
 set -euo pipefail
 
 platform="$1"
 semver='[0-9]+\.[0-9]+\.[0-9]+'
 
+# GitHub Actions turns ::error:: and ::warning:: lines into annotations.
+if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+  error_prefix='::error::'
+  warning_prefix='::warning::'
+else
+  error_prefix='Error: '
+  warning_prefix='Warning: '
+fi
+
 die() {
-  echo "::error::$1" >&2
+  echo "$error_prefix$1" >&2
   exit 1
 }
 
@@ -34,7 +44,7 @@ config_version() {
 require_config_version() {
   local config
   config="$(config_version)"
-  [[ "$1" == "$config" ]] || die "$GITHUB_REF_NAME does not match version $config in app.config.ts"
+  [[ "$1" == "$config" ]] || die "$REF_NAME does not match version $config in app.config.ts"
   version="$1"
 }
 
@@ -72,39 +82,48 @@ build() {
   eas build --platform "$platform" --profile "$profile" --non-interactive $wait $submit
 }
 
-# Dev builds leave a reserve of 3 builds a month per platform for staging and
-# production. Called inside `if`, so a failed or unparseable usage check must
-# stop the run here. Never fail open into a build.
+# Dev builds stop at 80% of the monthly EAS build credit, which both platforms
+# share, so the rest is left for staging and production. EAS reports the
+# credit in cents. Called inside `if`, so a failed or unparseable usage check
+# must stop the run here. Never fail open into a build.
 dev_build_fits_quota() {
-  local usage quota
+  local usage quota fits
   usage="$(eas account:usage wojtas --json --non-interactive)" || die "Could not read EAS usage"
-  quota="$(jq -er --arg p "$platform" '
-    .builds[$p].plan as $q
+  quota="$(jq -er '
+    def usd: "$\(. / 100 | floor).\(. % 100 + 100 | tostring | .[1:])";
+    .builds.plan as $q
     | if ($q.used | type) == "number" and ($q.limit | type) == "number" then
-        "\($q.used) \($q.limit) \(.account.billingPeriod.end | sub("\\.[0-9]+Z$"; "Z") | fromdate | strftime("%d %b") | ltrimstr("0"))"
-      else error("no build quota for \($p)") end' <<<"$usage")" || die "Could not parse EAS usage"
-  read -r used limit resets <<<"$quota"
-  ((limit - used > 3))
+        "\($q.used * 100 < $q.limit * 80) \($q.used | usd) \($q.limit | usd) \(.account.billingPeriod.end | sub("\\.[0-9]+Z$"; "Z") | fromdate | strftime("%d %b") | ltrimstr("0"))"
+      else error("no build credit") end' <<<"$usage")" || die "Could not parse EAS usage"
+  read -r fits used limit resets <<<"$quota"
+  [[ "$fits" == true ]]
 }
 
 skip_dev_build() {
   local used="$1" limit="$2" resets="$3" name
   [[ "$platform" == ios ]] && name=iOS || name=Android
-  local line="Dev $name build skipped: $used/$limit used, resets $resets"
-  echo "::warning::$line"
+  local line="Dev $name build skipped: $used/$limit build credit used, resets $resets"
+  echo "$warning_prefix$line"
   echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 }
 
 update() {
   eas update --channel "$channel" --platform "$platform" --environment "$environment" \
-    --message "$GITHUB_REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
+    --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
 }
 
+# A shallow checkout lacks the branch and its history, so they're fetched
+# before the ancestry check. --unshallow fails on a full clone.
 require_commit_on() {
-  git merge-base --is-ancestor HEAD "origin/$1" || die "$GITHUB_REF_NAME is not on $1"
+  local unshallow=""
+  if [[ "$(git rev-parse --is-shallow-repository)" == true ]]; then
+    unshallow=--unshallow
+  fi
+  git fetch $unshallow origin "+refs/heads/$1:refs/remotes/origin/$1" || die "Could not fetch $1"
+  git merge-base --is-ancestor HEAD "origin/$1" || die "$REF_NAME is not on $1"
 }
 
-ref="$GITHUB_REF_TYPE:$GITHUB_REF_NAME"
+ref="$REF_TYPE:$REF_NAME"
 
 if [[ "$ref" =~ ^branch:main$ ]]; then
   use_target dev

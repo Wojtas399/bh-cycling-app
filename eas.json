@@ -43,6 +43,19 @@
         "APP_ENV": "production"
       },
       "channel": "production"
+    },
+    "e2e": {
+      "withoutCredentials": true,
+      "environment": "development",
+      "env": {
+        "APP_ENV": "staging"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
