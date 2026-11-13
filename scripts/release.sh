@@ -73,25 +73,27 @@ build() {
   eas build --platform "$platform" --profile "$profile" --non-interactive $wait $submit
 }
 
-# Dev builds leave a reserve of 3 builds a month per platform for staging and
-# production. Called inside `if`, so a failed or unparseable usage check must
-# stop the run here. Never fail open into a build.
+# Dev builds stop at 80% of the monthly EAS build credit, which both platforms
+# share, so the rest is left for staging and production. EAS reports the
+# credit in cents. Called inside `if`, so a failed or unparseable usage check
+# must stop the run here. Never fail open into a build.
 dev_build_fits_quota() {
-  local usage quota
+  local usage quota fits
   usage="$(eas account:usage wojtas --json --non-interactive)" || die "Could not read EAS usage"
-  quota="$(jq -er --arg p "$platform" '
-    .builds[$p].plan as $q
+  quota="$(jq -er '
+    def usd: "$\(. / 100 | floor).\(. % 100 + 100 | tostring | .[1:])";
+    .builds.plan as $q
     | if ($q.used | type) == "number" and ($q.limit | type) == "number" then
-        "\($q.used) \($q.limit) \(.account.billingPeriod.end | sub("\\.[0-9]+Z$"; "Z") | fromdate | strftime("%d %b") | ltrimstr("0"))"
-      else error("no build quota for \($p)") end' <<<"$usage")" || die "Could not parse EAS usage"
-  read -r used limit resets <<<"$quota"
-  ((limit - used > 3))
+        "\($q.used * 100 < $q.limit * 80) \($q.used | usd) \($q.limit | usd) \(.account.billingPeriod.end | sub("\\.[0-9]+Z$"; "Z") | fromdate | strftime("%d %b") | ltrimstr("0"))"
+      else error("no build credit") end' <<<"$usage")" || die "Could not parse EAS usage"
+  read -r fits used limit resets <<<"$quota"
+  [[ "$fits" == true ]]
 }
 
 skip_dev_build() {
   local used="$1" limit="$2" resets="$3" name
   [[ "$platform" == ios ]] && name=iOS || name=Android
-  echo "Warning: Dev $name build skipped: $used/$limit used, resets $resets"
+  echo "Warning: Dev $name build skipped: $used/$limit build credit used, resets $resets"
 }
 
 update() {

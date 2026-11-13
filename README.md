@@ -95,13 +95,13 @@ Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platf
 
 CI and releases run on EAS Workflows, and nothing runs on GitHub Actions. Pull requests run `.eas/workflows/ci.yml`, with the `Lint`, `Type Check` and `Test` jobs. `.eas/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android in the `Release iOS` and `Release Android` jobs, so CI on `main` runs inside the release. The ref decides what ships.
 
-| Ref                                      | Result                                                                                                                                                      |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning when only 3 builds are left this month |
-| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging. Fails unless `app.config.ts` says `X.Y.Z`          |
-| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                               |
-| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                      |
-| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                            |
+| Ref                                      | Result                                                                                                                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Push to `main`                           | OTA update to the Dev build if one matches its native fingerprint, otherwise a new Dev build. Skipped with a warning once 80% of the month's EAS build credit is used |
+| Push to `rc/X.Y.Z`                       | Staging build of `X.Y.Z` if no build matches its native fingerprint, otherwise an OTA update to staging. Fails unless `app.config.ts` says `X.Y.Z`                    |
+| Tag `vX.Y.Z` on `rc/X.Y.Z`               | Production build, submitted to App Store Connect and as a Google Play draft. Release it by hand in each store                                                         |
+| Push to `hotfix/vX.Y.Z`                  | OTA update to the matching staging build. Fails if native code changed                                                                                                |
+| Tag `vX.Y.Z-hotfix-N` on `hotfix/vX.Y.Z` | Production OTA update published at 0%. Raise it to 100% on expo.dev to accept it                                                                                      |
 
 New staging builds go to TestFlight and to the Google Play internal testing track. Android submits use the Google Play service account key in EAS credentials, which is assigned to the staging package only. Before the first `vX.Y.Z` tag, assign it to the production package (`eas credentials -p android`, `production` profile) and give the production submit profile its own `ascAppId`.
 
