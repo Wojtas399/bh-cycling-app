@@ -175,7 +175,6 @@ Each test job uploads its `.e2e/` folder, even when tests fail, as the artifact 
 ## Known issues
 
 - **`ENGINE_FAILURE: device … is owned by session …`:** another agent-device session holds the device, most often T3's Device panel. Close the Device panel, or the other session, and run again.
-- **iOS secure text fields** ([tester-army/e2e#1631](https://github.com/tester-army/e2e/issues/1631)): `fill` can't type into the password field, and `pressSequentially` fails with "No focused text input" unless the field was tapped first. The sign-in helper taps, then types the password from env with `pressSequentially`. Keep that order until #1631 is fixed, then switch to `fill` with the password credential. Until then the helper passes the password as a plain string, so it must never go into an agent step.
 - **iOS keyboard covers the sign-in button.** With the keyboard up, `/^Zaloguj się$/` matches only the screen title, and tapping it just closes the keyboard. The sign-in helper submits with the keyboard's Done key instead, then taps "Nie teraz" (or "Not Now" on Expo Simulators' English iOS) if iOS offers to save the password.
 - **iOS reports a full-screen "Toolbar" over the Calendar header.** A locator tap on "Następny" or "Dziś" fails with "covered by the toolbar", though nothing covers it on screen. The Calendar test taps the middle of the button's bounding box with `screen.tapAt`.
 - **Screenshots aren't redacted.** Never type the real password into a field that isn't secure, even to debug. A failure screenshot would show it.
