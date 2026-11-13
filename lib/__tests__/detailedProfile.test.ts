@@ -1,11 +1,11 @@
+import type { ActivityProfileSummary } from '../activityDetails';
 import {
   axisLabels,
   buildDetailedProfile,
   niceCeiling,
 } from '../detailedProfile';
-import type { PowerStream } from '../powerStream';
 import { resolveZoneConfig } from '../powerZones';
-import type { ProfileCard, ProfileStrip, RecordedStrip } from '../profileCard';
+import type { ProfileCard, ProfileStrip } from '../profileCard';
 import type { ZoneTimes } from '../timeInZone';
 import type { WorkoutProfileSummary } from '../workoutDetails';
 import type { WorkoutBlock } from '../workoutProfile';
@@ -63,25 +63,19 @@ function planned(
 function recorded(
   blocks: WorkoutBlock[],
   ftp: number | null,
-  stream: PowerStream | null = null,
   zoneTimes: ZoneTimes | null = null,
-): RecordedStrip {
+): ProfileStrip<ActivityProfileSummary> {
   return {
     blocks,
     summary: {
-      startSeconds: 0,
       durationSeconds: 3600,
       segmentCount: blocks.length,
       peakFtpPct: 0,
     },
     ftp,
     zoneTimes,
-    stream,
   };
 }
-
-/** A plot 300 px wide: 150 buckets of a stream, 2 px each. */
-const PLOT_WIDTH = 300;
 
 function card(overrides: Partial<ProfileCard>): ProfileCard {
   return { durationSeconds: 3600, planned: null, recorded: null, ...overrides };
@@ -100,7 +94,6 @@ describe('buildDetailedProfile', () => {
         ),
       }),
       { zoneConfig: COGGAN, ftp: 250 },
-      PLOT_WIDTH,
     );
 
     expect(profile.planned?.segments).toEqual([
@@ -143,7 +136,6 @@ describe('buildDetailedProfile', () => {
         ),
       }),
       { zoneConfig: COGGAN, ftp: null },
-      PLOT_WIDTH,
     );
 
     expect(profile.recorded?.segments).toEqual([
@@ -172,119 +164,6 @@ describe('buildDetailedProfile', () => {
     ]);
   });
 
-  describe('from a power stream', () => {
-    /** One tick a second from `from`, `count` of them, all at `watts`. */
-    function steady(from: number, count: number, watts: number): PowerStream {
-      return {
-        time: Array.from({ length: count }, (_, i) => from + i),
-        watts: Array.from({ length: count }, () => watts),
-      };
-    }
-
-    /** An hour: 30 min at 200 W, then 30 min at 300 W. */
-    const STEP_UP: PowerStream = {
-      time: [...steady(0, 1800, 200).time, ...steady(1800, 1800, 300).time],
-      watts: [...steady(0, 1800, 200).watts, ...steady(1800, 1800, 300).watts],
-    };
-
-    /** Blocks the stream draws in place of: one 60% interval. */
-    const BLOCKS: WorkoutBlock[] = [
-      { widthFraction: 1, minPct: 60, maxPct: 60, zone: 2 },
-    ];
-
-    it('draws the ride from its stream, in buckets 2 px wide across the plot, in watts and %FTP of its FTP', () => {
-      const profile = buildDetailedProfile(
-        card({ recorded: recorded(BLOCKS, 250, steady(0, 3600, 200)) }),
-        { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
-      );
-      const segments = profile.recorded?.segments ?? [];
-
-      // 3600 s over 150 buckets: 24 s each.
-      expect(segments).toHaveLength(150);
-      expect(segments[0]).toEqual({
-        start: 0,
-        end: 24,
-        minPct: 80,
-        maxPct: 80,
-        minWatts: 200,
-        maxWatts: 200,
-        low: 200,
-        high: 200,
-        zone: 3,
-      });
-      expect(segments[149]).toMatchObject({ start: 3576, end: 3600 });
-    });
-
-    it("puts each bucket in the athlete's zone for its %FTP", () => {
-      // 80% FTP tops this athlete's Z2, where Coggan's Z3 starts at 75%.
-      const zoneConfig = resolveZoneConfig({
-        powerZones: [60, 80, 95, 110, 130, 160, 220],
-      });
-      const profile = buildDetailedProfile(
-        card({ recorded: recorded(BLOCKS, 250, steady(0, 3600, 200)) }),
-        { zoneConfig, ftp: 250 },
-        PLOT_WIDTH,
-      );
-
-      expect(profile.recorded?.segments[0].zone).toBe(2);
-    });
-
-    it("ends the ride early on a longer card, with the plan's time scale", () => {
-      // The plan lasts 2 h; the ride's hour fills the first 75 of 150 buckets.
-      const profile = buildDetailedProfile(
-        card({
-          durationSeconds: 7200,
-          recorded: recorded(BLOCKS, 250, steady(0, 3600, 200)),
-        }),
-        { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
-      );
-
-      expect(profile.recorded?.segments).toHaveLength(75);
-      expect(profile.recorded?.segments.at(-1)).toMatchObject({
-        start: 3552,
-        end: 3600,
-      });
-    });
-
-    it("tops the shared scale and reads its power from the stream's peak and average", () => {
-      const profile = buildDetailedProfile(
-        card({ recorded: recorded(BLOCKS, 250, STEP_UP) }),
-        { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
-      );
-
-      // A 300 W peak sits on the Z5 edge at 250 W, so the Z6 edge tops it.
-      expect(profile.scale).toEqual({
-        unit: 'watts',
-        ceiling: 375,
-        gridlines: [138, 188, 225, 263, 300],
-      });
-      expect(profile.recorded?.power).toEqual({
-        unit: 'watts',
-        peak: 300,
-        peakFtpPct: 120,
-        average: 250,
-      });
-    });
-
-    it('sits on a %FTP scale when there is no current FTP for the zone edges', () => {
-      const profile = buildDetailedProfile(
-        card({ recorded: recorded(BLOCKS, 250, steady(0, 3600, 200)) }),
-        { zoneConfig: COGGAN, ftp: null },
-        PLOT_WIDTH,
-      );
-
-      expect(profile.scale.unit).toBe('ftpPct');
-      expect(profile.recorded?.segments[0]).toMatchObject({
-        maxWatts: 200,
-        low: 80,
-        high: 80,
-      });
-    });
-  });
-
   describe('scale', () => {
     const PLAN_TO_110 = [
       { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
@@ -296,7 +175,6 @@ describe('buildDetailedProfile', () => {
       const profile = buildDetailedProfile(
         card({ planned: planned(PLAN_TO_110, 250) }),
         { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
       );
 
       expect(profile.scale).toEqual({
@@ -320,7 +198,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
       );
 
       expect(profile.scale).toEqual({
@@ -340,7 +217,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: null },
-        PLOT_WIDTH,
       );
 
       expect(profile.scale).toEqual({
@@ -366,7 +242,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: null },
-        PLOT_WIDTH,
       );
 
       expect(profile.scale).toEqual({
@@ -386,7 +261,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: null },
-        PLOT_WIDTH,
       );
 
       expect(profile.scale.unit).toBe('ftpPct');
@@ -407,7 +281,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
       );
 
       expect(profile.planned?.power).toEqual({
@@ -432,7 +305,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: null },
-        PLOT_WIDTH,
       );
 
       expect(profile.recorded?.power).toEqual({
@@ -456,7 +328,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: null },
-        PLOT_WIDTH,
       );
 
       expect(profile.scale.unit).toBe('ftpPct');
@@ -483,7 +354,6 @@ describe('buildDetailedProfile', () => {
           ),
         }),
         { zoneConfig: COGGAN, ftp: 250 },
-        PLOT_WIDTH,
       );
 
       expect(profile.recorded?.power).toEqual({
@@ -516,7 +386,7 @@ describe('buildDetailedProfile time in zone', () => {
           6: 0,
           7: 0,
         }),
-        recorded: recorded(BLOCKS, 250, null, {
+        recorded: recorded(BLOCKS, 250, {
           1: 300,
           2: 1500,
           3: 0,
@@ -527,7 +397,6 @@ describe('buildDetailedProfile time in zone', () => {
         }),
       }),
       { zoneConfig: COGGAN, ftp: 250 },
-      PLOT_WIDTH,
     );
 
     expect(profile.timeInZone).toEqual([
@@ -553,7 +422,6 @@ describe('buildDetailedProfile time in zone', () => {
     const profile = buildDetailedProfile(
       card({ recorded: recorded(BLOCKS, 250) }),
       { zoneConfig: COGGAN, ftp: 250 },
-      PLOT_WIDTH,
     );
 
     expect(profile.timeInZone).toEqual([
@@ -561,42 +429,6 @@ describe('buildDetailedProfile time in zone', () => {
       { zone: 4, planned: null, recorded: { seconds: 1800, share: 1 } },
     ]);
   });
-
-  it.each([300, 731])(
-    "counts the ride's time from its stream's buckets when intervals.icu kept none, the whole ride at a %i px plot",
-    plotWidth => {
-      // 30 min at 200 W (80%, Z3), then 30 min at 280 W (112%, Z5), in place
-      // of blocks with time in Z2.
-      const stream: PowerStream = {
-        time: Array.from({ length: 3600 }, (_, i) => i),
-        watts: Array.from({ length: 3600 }, (_, i) => (i < 1800 ? 200 : 280)),
-      };
-      const profile = buildDetailedProfile(
-        card({ recorded: recorded(BLOCKS, 250, stream) }),
-        { zoneConfig: COGGAN, ftp: 250 },
-        plotWidth,
-      );
-      const seconds = new Map(
-        profile.timeInZone.map(({ zone, recorded }) => [
-          zone,
-          recorded?.seconds ?? 0,
-        ]),
-      );
-      const total = [...seconds.values()].reduce((sum, s) => sum + s, 0);
-      const bucketSeconds = 3600 / Math.floor(plotWidth / 2);
-
-      expect(seconds.has(2)).toBe(false);
-      // Rounded per zone, so within a second or two of the whole hour.
-      expect(Math.abs(total - 3600)).toBeLessThanOrEqual(2);
-      // The bucket across the step-up may average into Z4.
-      expect(Math.abs((seconds.get(3) ?? 0) - 1800)).toBeLessThanOrEqual(
-        bucketSeconds,
-      );
-      expect(Math.abs((seconds.get(5) ?? 0) - 1800)).toBeLessThanOrEqual(
-        bucketSeconds,
-      );
-    },
-  );
 });
 
 describe('axisLabels', () => {

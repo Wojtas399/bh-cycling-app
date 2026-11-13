@@ -38,8 +38,8 @@ export default function SettingsSection({
       ) : null}
 
       <SheenSurface marginHorizontal="base" overflow="hidden">
-        {rows.map((row, index) => (
-          <Fragment key={index}>
+        {Children.map(rows, (row, index) => (
+          <Fragment>
             {index > 0 ? (
               <Box
                 testID="settings-section-divider"

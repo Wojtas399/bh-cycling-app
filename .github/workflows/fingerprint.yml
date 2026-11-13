@@ -1,0 +1,43 @@
+name: Fingerprint
+
+# A PR that changes the native fingerprint can't ship over the air, so its
+# `ships: store` label must match what the fingerprint says. See
+# docs/agents/pr-labels.md.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  fingerprint:
+    name: Native fingerprint
+    runs-on: ubuntu-latest
+    steps:
+      # The PR merge commit; its first parent is the base branch tip.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compare with the base and check the ships label
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          status=0
+          scripts/fingerprint.sh HEAD^1 || status=$?
+          [[ $status == 0 || $status == 3 ]] || exit "$status"
+
+          store=$(jq 'index("ships: store") != null' <<<"$LABELS")
+          if [[ $status == 3 && $store == false ]]; then
+            echo "::error::The native fingerprint changed, so this PR needs a new store build. Label it 'ships: store' (it replaces 'ships: ota'), or move the native change into its own PR."
+            exit 1
+          fi
+          if [[ $status == 0 && $store == true ]]; then
+            echo "::error::The native fingerprint is unchanged, so this PR ships over the air. Remove 'ships: store'."
+            exit 1
+          fi

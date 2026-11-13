@@ -6,7 +6,7 @@ Expo (SDK 54) app with [Expo Router](https://docs.expo.dev/router/introduction/)
 
 - **Node.js** (current LTS recommended) and npm
 - **iOS:** Xcode and Command Line Tools (for the simulator and `expo run:ios`)
-- **Android:** Android Studio, SDK, and an emulator or USB device (for `expo run:android`)
+- **Android:** Android Studio, SDK, and an emulator or USB device (for `expo run:android`). Export `ANDROID_HOME=$HOME/Library/Android/sdk` in `~/.zshenv`, not `~/.zprofile`: editor and T3 terminals don't start login shells, and without it Gradle fails with "SDK location not found"
 - Optional: [EAS CLI](https://docs.expo.dev/build-reference/eas-cli/) (`npm i -g eas-cli`) if you pull environment config from EAS
 
 ## Install dependencies
@@ -42,6 +42,13 @@ npm start
 - iOS Simulator: `npm run ios`
 - Android emulator or device: `npm run android`
 
+`expo run:*` reuses an existing `ios/` or `android/` folder, which keeps the bundle ID, name and icon of the `APP_ENV` it was generated for. To run another variant, regenerate it first, for example the Dev build:
+
+```bash
+APP_ENV=dev npx expo prebuild --clean --platform ios
+APP_ENV=dev npx expo run:ios
+```
+
 After the dev client is installed on the simulator or emulator, you usually only need `npm start` and launch the app; it connects to Metro.
 
 Expo Go does **not** include this app’s native Firebase stack. Use the dev client from `expo run:ios` / `expo run:android` (or a Dev client build from EAS: `eas build --profile dev-client`).
@@ -50,7 +57,9 @@ Expo Go does **not** include this app’s native Firebase stack. Use the dev cli
 
 | Script                                              | Purpose                                                                     |
 | --------------------------------------------------- | --------------------------------------------------------------------------- |
-| `npm run lint`                                      | ESLint via Expo config                                                      |
+| `npm run lint`                                      | ESLint over the whole app; any warning fails it, locally and in CI          |
+| `npm run fingerprint -- [ref]`                      | Native fingerprint per platform; with a ref, what changed since it          |
+| `npm run eas:log -- ios\|android\|<build-id>`       | Latest (or given) EAS build: phases, then the failing phase's log           |
 | `npm run ios:prebuild` / `npm run android:prebuild` | Regenerate native projects (`expo prebuild --clean`)                        |
 | `npm run e2e:ios` / `npm run e2e:android`           | Run the e2e suite on the dedicated simulator or emulator (`docs/e2e.md`)    |
 | `npm run reset-project`                             | Moves starter `app` code to `app-example` and gives a blank `app` directory |

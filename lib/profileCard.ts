@@ -2,7 +2,6 @@ import type {
   ActivityDetails,
   ActivityProfileSummary,
 } from './activityDetails';
-import type { PowerStream } from './powerStream';
 import { type RideSettings, resolveRideSettings } from './rideSettings';
 import { NO_ZONE_TIMES, type ZoneTimes } from './timeInZone';
 import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
@@ -32,19 +31,6 @@ export interface ProfileStrip<Summary> {
 }
 
 /**
- * The recorded strip: the Activity Profile's blocks, and the power stream it's
- * drawn from when there is one.
- */
-export interface RecordedStrip extends ProfileStrip<ActivityProfileSummary> {
-  /**
-   * The ride's power stream, raw, placed on the card from the Profile's
-   * `summary.startSeconds`. `null` when there's none, or no FTP to read it by:
-   * the strip then draws its `blocks`, the detected intervals.
-   */
-  stream: PowerStream | null;
-}
-
-/**
  * Workout Details' profile card: the planned Workout Profile above the
  * recorded Activity Profile, on one shared time scale. A strip shorter than the
  * card ends early, so the two line up in time.
@@ -52,14 +38,13 @@ export interface RecordedStrip extends ProfileStrip<ActivityProfileSummary> {
 export interface ProfileCard {
   /** The shared time scale: the longer of the two strips, in s. */
   durationSeconds: number;
-  recorded: RecordedStrip | null;
+  recorded: ProfileStrip<ActivityProfileSummary> | null;
   planned: ProfileStrip<WorkoutProfileSummary> | null;
 }
 
 /**
- * What the large profile card is drawn from, before it's laid out: its strips
- * and the Ride settings to draw them by. `buildDetailedProfile` draws it for
- * the plot's width.
+ * What the large profile card is drawn from: its strips and the Ride settings
+ * to draw them by (see `buildDetailedProfile`).
  */
 export interface ProfileCardSource {
   card: ProfileCard;
@@ -83,27 +68,21 @@ export const NO_WORKOUT_PROFILE: Pick<
  * with one of no known duration, the Activity's shows alone. `null` when
  * neither has one. The plan's watts come from `currentFtp`, the athlete's Ride
  * FTP today; the ride's from the FTP intervals.icu used for it, or
- * `currentFtp` when it kept none. The ride is drawn from its power `stream`
- * when there's one and an FTP to read it by, and from its detected intervals
- * otherwise.
+ * `currentFtp` when it kept none.
  */
 export function buildProfileCard(
   workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
   activity: ActivityDetails | undefined,
   currentFtp: number | null,
-  stream: PowerStream | null = null,
 ): ProfileCard | null {
   const recorded =
     activity && !activity.isStravaActivity && activity.profileSummary
-      ? recordedStrip(
-          {
-            blocks: activity.blocks,
-            summary: activity.profileSummary,
-            ftp: activity.icuFtp ?? currentFtp,
-            zoneTimes: activity.zoneTimes,
-          },
-          stream,
-        )
+      ? {
+          blocks: activity.blocks,
+          summary: activity.profileSummary,
+          ftp: activity.icuFtp ?? currentFtp,
+          zoneTimes: activity.zoneTimes,
+        }
       : null;
   // A plan with no known duration can't be placed in time beside the ride.
   const planned =
@@ -129,14 +108,6 @@ export function buildProfileCard(
     recorded: recorded && onTimeScale(recorded, durationSeconds),
     planned: planned && onTimeScale(planned, durationSeconds),
   };
-}
-
-function recordedStrip(
-  strip: ProfileStrip<ActivityProfileSummary>,
-  stream: PowerStream | null,
-): RecordedStrip {
-  // Without an FTP the stream's watts have no %FTP or zone to be drawn in.
-  return { ...strip, stream: strip.ftp === null ? null : stream };
 }
 
 /**
@@ -169,18 +140,15 @@ function onTimeScale<Strip extends ProfileStrip<{ durationSeconds: number }>>(
 /**
  * The card of `workout` above `activity` (see `buildProfileCard`), drawn by
  * the athlete's Ride `settings`: on Coggan's zones in %FTP when there are
- * none, as when they failed. The ride is drawn from its power `stream` when
- * there's one, and from its detected intervals when there's none or it
- * failed (`undefined`). `null` when neither side has a profile.
+ * none, as when they failed. `null` when neither side has a profile.
  */
 export function profileCardSource(
   workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
   activity: ActivityDetails | undefined,
   settings: RideSettings | undefined,
-  stream: PowerStream | null | undefined,
 ): ProfileCardSource | null {
   const drawnBy = settings ?? resolveRideSettings(null);
-  const card = buildProfileCard(workout, activity, drawnBy.ftp, stream ?? null);
+  const card = buildProfileCard(workout, activity, drawnBy.ftp);
 
   return card && { card, settings: drawnBy };
 }

@@ -687,7 +687,7 @@ describe('useCalendarRange', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2026, 9, 31, 23, 59, 30));
     mockUseToday.mockImplementation(
-      jest.requireActual<typeof import('@/hooks/useToday')>('@/hooks/useToday')
+      jest.requireActual<{ useToday: typeof useToday }>('@/hooks/useToday')
         .useToday,
     );
     mockConnected();

@@ -23,19 +23,15 @@ const NOT_CONNECTED: IntervalsConnectionState = {
 };
 
 export function useIntervalsConnection(): IntervalsConnectionState {
-  const [state, setState] = useState<IntervalsConnectionState>({
-    ...NOT_CONNECTED,
-    loading: true,
-  });
+  // Signed out, there is no document to wait for.
+  const [state, setState] = useState<IntervalsConnectionState>(() =>
+    auth().currentUser ? { ...NOT_CONNECTED, loading: true } : NOT_CONNECTED,
+  );
 
   useEffect(() => {
     const uid = auth().currentUser?.uid;
 
-    if (!uid) {
-      setState(NOT_CONNECTED);
-
-      return;
-    }
+    if (!uid) return;
 
     const unsubscribe = firestore()
       .doc(intervalsIntegrationDocPath(uid))

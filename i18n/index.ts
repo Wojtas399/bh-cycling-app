@@ -7,6 +7,8 @@ import i18n from 'i18next';
 
 const deviceLanguage = getLocales()[0]?.languageCode ?? 'pl';
 
+// i18next documents `use` on the default instance; the named export is the same function.
+// eslint-disable-next-line import/no-named-as-default-member
 i18n.use(initReactI18next).init({
   resources: {
     pl: { translation: pl },

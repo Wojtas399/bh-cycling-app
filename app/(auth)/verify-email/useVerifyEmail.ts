@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { NOT_VERIFIED_CODE, mapVerifyEmailError } from './verifyEmailErrors';
+import { useCooldown } from '@/hooks/useCooldown';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { useMutation } from '@tanstack/react-query';
@@ -13,25 +14,11 @@ export function useVerifyEmail() {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const [cooldown, setCooldown] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function startCooldown() {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
-    setCooldown(COOLDOWN_SECONDS);
-    intervalRef.current = setInterval(() => {
-      setCooldown(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current!);
-
-          return 0;
-        }
-
-        return prev - 1;
-      });
-    }, 1000);
-  }
+  // Mounting sends the first email, so the cooldown is already running.
+  const { remaining: cooldown, start: startCooldown } = useCooldown(
+    COOLDOWN_SECONDS,
+    { startActive: true },
+  );
 
   const checkVerified = useMutation({
     mutationFn: async () => {
@@ -64,11 +51,6 @@ export function useVerifyEmail() {
     auth()
       .currentUser?.sendEmailVerification()
       .catch(() => {});
-    startCooldown();
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, []);
 
   async function handleVerified() {
