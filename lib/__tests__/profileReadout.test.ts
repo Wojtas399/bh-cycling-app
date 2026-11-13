@@ -125,6 +125,40 @@ const sweetSpot = {
   high: 232.5,
 } satisfies StripSegment;
 
+/**
+ * A planned ramp from 50% to 100% FTP over 0–600 s: 125 W to 250 W at a 250 W
+ * FTP, on the watts scale.
+ */
+const rampUp = {
+  ...flat(0, 600, 50, 2),
+  maxPct: 100,
+  maxWatts: 250,
+  high: 250,
+  ramp: {
+    startPct: 50,
+    endPct: 100,
+    startWatts: 125,
+    endWatts: 250,
+    startOnScale: 125,
+    endOnScale: 250,
+  },
+} satisfies StripSegment;
+
+/** The same ramp ridden the other way, from 100% to 50% FTP over 600–1200 s. */
+const rampDown = {
+  ...rampUp,
+  start: 600,
+  end: 1200,
+  ramp: {
+    startPct: 100,
+    endPct: 50,
+    startWatts: 250,
+    endWatts: 125,
+    startOnScale: 250,
+    endOnScale: 125,
+  },
+} satisfies StripSegment;
+
 describe('profileReadout', () => {
   it('reads each strip at the pointer: its zone, then %FTP and W', () => {
     const readout = profileReadout(
@@ -187,6 +221,38 @@ describe('profileReadout', () => {
     const readout = profileReadout(card('watts', null, [almostFlat]), 1200);
 
     expect(readout.strips[0].reading?.power).toBe('100% · 250 W');
+  });
+
+  it.each([
+    [0, '50% · 125 W'],
+    [300, '75% · 188 W'],
+    [600, '100% · 250 W'],
+  ])(
+    'reads a ramp up at %p s as one value along its slope: %p',
+    (seconds, power) => {
+      const readout = profileReadout(card('watts', [rampUp], null), seconds);
+
+      expect(readout.strips[0].reading).toEqual({ zone: 2, power });
+    },
+  );
+
+  it.each([
+    [600, '100% · 250 W'],
+    [900, '75% · 188 W'],
+    [1200, '50% · 125 W'],
+  ])(
+    'reads a ramp down at %p s as one value along its slope: %p',
+    (seconds, power) => {
+      const readout = profileReadout(card('watts', [rampDown], null), seconds);
+
+      expect(readout.strips[0].reading).toEqual({ zone: 2, power });
+    },
+  );
+
+  it('reads a ramp in %FTP alone on a %FTP card', () => {
+    const readout = profileReadout(card('ftpPct', [rampDown], null), 900);
+
+    expect(readout.strips[0].reading?.power).toBe('75%');
   });
 
   it.each([
