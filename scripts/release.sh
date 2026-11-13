@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Routes the ref that triggered .eas/workflows/release.yml, passed in as
+# Routes the ref that triggered .github/workflows/release.yml, passed in as
 # REF_TYPE and REF_NAME, to a build or an OTA update for one platform. See
 # "Releasing" in README.md.
 set -euo pipefail
@@ -7,8 +7,17 @@ set -euo pipefail
 platform="$1"
 semver='[0-9]+\.[0-9]+\.[0-9]+'
 
+# GitHub Actions turns ::error:: and ::warning:: lines into annotations.
+if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+  error_prefix='::error::'
+  warning_prefix='::warning::'
+else
+  error_prefix='Error: '
+  warning_prefix='Warning: '
+fi
+
 die() {
-  echo "Error: $1" >&2
+  echo "$error_prefix$1" >&2
   exit 1
 }
 
@@ -93,7 +102,9 @@ dev_build_fits_quota() {
 skip_dev_build() {
   local used="$1" limit="$2" resets="$3" name
   [[ "$platform" == ios ]] && name=iOS || name=Android
-  echo "Warning: Dev $name build skipped: $used/$limit build credit used, resets $resets"
+  local line="Dev $name build skipped: $used/$limit build credit used, resets $resets"
+  echo "$warning_prefix$line"
+  echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 }
 
 update() {
@@ -101,7 +112,7 @@ update() {
     --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
 }
 
-# EAS checks out a single commit, so the branch and its history are fetched
+# A shallow checkout lacks the branch and its history, so they're fetched
 # before the ancestry check. --unshallow fails on a full clone.
 require_commit_on() {
   local unshallow=""
