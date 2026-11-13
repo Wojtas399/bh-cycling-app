@@ -14,6 +14,7 @@ import { useAppTheme } from '@/constants/theme';
 import { type ProfileScale, axisLabels } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
+import { rampPolygonPoints } from '@/lib/profileBars';
 import type { PlotStrip } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 import type { StripSegment } from '@/lib/stripSegment';
@@ -299,13 +300,13 @@ function StripPlot({
         // A ramp is a solid slope from its start power to its end power, in
         // the order it's ridden, with no faint cap.
         if (ramp) {
-          const right = x + barWidth;
-          const points = [
-            `${x},${yOf(0)}`,
-            `${x},${yOf(ramp.startOnScale)}`,
-            `${right},${yOf(ramp.endOnScale)}`,
-            `${right},${yOf(0)}`,
-          ].join(' ');
+          const points = rampPolygonPoints({
+            x,
+            width: barWidth,
+            bottom: yOf(0),
+            startY: yOf(ramp.startOnScale),
+            endY: yOf(ramp.endOnScale),
+          });
 
           return <Polygon key={start} points={points} fill={color} />;
         }

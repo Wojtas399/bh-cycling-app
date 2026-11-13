@@ -1,10 +1,14 @@
+import type { Zone } from './powerZones';
 import { type WorkoutBlock, profileCeilingPct } from './workoutProfile';
 
 /** The plot a profile is drawn into, in px. */
 export interface ProfileBox {
   width: number;
   height: number;
-  /** Hairline left between neighbouring bars. */
+  /**
+   * Hairline left between neighbouring bars. Dropped when the gaps would take
+   * the whole width, so many blocks on a narrow plot still draw.
+   */
   gap: number;
 }
 
@@ -15,6 +19,12 @@ export interface ProfileBox {
 export interface ProfileBar {
   x: number;
   width: number;
+  zone: Zone;
+  /**
+   * How the bar is drawn: one power, a range from `floorY` up to `capY`, or a
+   * slope along `ramp`.
+   */
+  shape: 'flat' | 'range' | 'ramp';
   /** Top of the bar: the block's `maxPct`. */
   capY: number;
   /** Top of the solid fill: the block's `minPct`. Equals `capY` when flat. */
@@ -38,7 +48,9 @@ export function profileBars(
   if (ceilingPct <= 0) return [];
 
   const yOf = (pct: number) => height - (pct * height) / ceilingPct;
-  const drawable = width - gap * (blocks.length - 1);
+  const gapsWidth = gap * (blocks.length - 1);
+  const barGap = gapsWidth < width ? gap : 0;
+  const drawable = Math.max(0, width - barGap * (blocks.length - 1));
   let x = 0;
 
   return blocks.map(block => {
@@ -46,6 +58,12 @@ export function profileBars(
     const bar: ProfileBar = {
       x,
       width: barWidth,
+      zone: block.zone,
+      shape: block.ramp
+        ? 'ramp'
+        : block.minPct === block.maxPct
+          ? 'flat'
+          : 'range',
       capY: yOf(block.maxPct),
       floorY: yOf(block.minPct),
     };
@@ -57,16 +75,43 @@ export function profileBars(
       };
     }
 
-    x += barWidth + gap;
+    x += barWidth + barGap;
 
     return bar;
   });
 }
 
 /**
+ * An SVG polygon's points outlining a ramp: from `bottom` up to `startY` on
+ * the left, along the slope to `endY` on the right, and back down.
+ */
+export function rampPolygonPoints({
+  x,
+  width,
+  bottom,
+  startY,
+  endY,
+}: {
+  x: number;
+  width: number;
+  bottom: number;
+  startY: number;
+  endY: number;
+}): string {
+  const right = x + width;
+
+  return [
+    `${x},${bottom}`,
+    `${x},${startY}`,
+    `${right},${endY}`,
+    `${right},${bottom}`,
+  ].join(' ');
+}
+
+/**
  * An SVG path outlining a bar from `y` down to `bottom` with its top corners
  * rounded. The radius shrinks to fit a bar narrower than two radii or shorter
- * than one. Empty for a bar with no height.
+ * than one. Empty for a bar with no width or no height.
  */
 export function roundedTopPath({
   x,
@@ -83,7 +128,7 @@ export function roundedTopPath({
 }): string {
   const height = bottom - y;
 
-  if (height <= 0) return '';
+  if (height <= 0 || width <= 0) return '';
 
   const r = Math.min(radius, width / 2, height);
   const right = x + width;

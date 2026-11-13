@@ -4,8 +4,13 @@ import Svg, { G, Path, Polygon, Rect } from 'react-native-svg';
 import Box from '@/components/Box';
 import { type AppTheme, useAppTheme } from '@/constants/theme';
 import type { Zone } from '@/lib/powerZones';
-import { profileBars, roundedTopPath } from '@/lib/profileBars';
-import { type WorkoutBlock, profileCeilingPct } from '@/lib/workoutProfile';
+import {
+  type ProfileBar,
+  profileBars,
+  rampPolygonPoints,
+  roundedTopPath,
+} from '@/lib/profileBars';
+import type { WorkoutBlock } from '@/lib/workoutProfile';
 
 /** Default height of the plot area. Tall enough to read a shape, short enough for a tile. */
 const DEFAULT_PROFILE_HEIGHT = 48;
@@ -56,11 +61,11 @@ export default function WorkoutProfile({
   const { colors, borderRadii } = useAppTheme();
   const [width, setWidth] = useState(0);
 
+  const bars = profileBars(blocks, { width, height, gap: BLOCK_GAP });
+
   // Nothing to scale against, and nothing to draw: an empty profile, or one
   // whose every block sits on the floor.
-  if (profileCeilingPct(blocks) <= 0) return null;
-
-  const bars = profileBars(blocks, { width, height, gap: BLOCK_GAP });
+  if (bars.length === 0) return null;
 
   return (
     <Box
@@ -70,56 +75,70 @@ export default function WorkoutProfile({
     >
       {width > 0 && (
         <Svg width={width} height={height}>
-          {bars.map((bar, index) => {
-            const color = colors[ZONE_COLORS[blocks[index].zone]];
-            const right = bar.x + bar.width;
+          {bars.map((bar, index) => (
             // Blocks have no identity of their own: they are positions in a
             // time-ordered list that is replaced wholesale, never reordered
             // or spliced, so the index is the stable identity here.
-            const key = index;
-
-            // A slope has no flat top to round, so a ramp is drawn square.
-            if (bar.ramp) {
-              const points = [
-                `${bar.x},${height}`,
-                `${bar.x},${bar.ramp.startY}`,
-                `${right},${bar.ramp.endY}`,
-                `${right},${height}`,
-              ].join(' ');
-
-              return <Polygon key={key} points={points} fill={color} />;
-            }
-
-            const top = (y: number) =>
-              roundedTopPath({
-                x: bar.x,
-                y,
-                width: bar.width,
-                bottom: height,
-                radius: borderRadii.sm,
-              });
-
-            if (bar.floorY === bar.capY) {
-              return <Path key={key} d={top(bar.floorY)} fill={color} />;
-            }
-
-            // The rounded cap runs to the floor beneath the solid fill, which
-            // covers its lower part, so only the range above shows faintly.
-            return (
-              <G key={key}>
-                <Path d={top(bar.capY)} fill={color} opacity={CAP_OPACITY} />
-                <Rect
-                  x={bar.x}
-                  y={bar.floorY}
-                  width={bar.width}
-                  height={height - bar.floorY}
-                  fill={color}
-                />
-              </G>
-            );
-          })}
+            // eslint-disable-next-line react/no-array-index-key
+            <G key={index}>
+              <BarShape
+                bar={bar}
+                bottom={height}
+                color={colors[ZONE_COLORS[bar.zone]]}
+                radius={borderRadii.sm}
+              />
+            </G>
+          ))}
         </Svg>
       )}
     </Box>
+  );
+}
+
+/** One bar of the profile, drawn by its shape. */
+function BarShape({
+  bar,
+  bottom,
+  color,
+  radius,
+}: {
+  bar: ProfileBar;
+  bottom: number;
+  color: string;
+  radius: number;
+}) {
+  // A slope has no flat top to round, so a ramp is drawn square.
+  if (bar.shape === 'ramp' && bar.ramp) {
+    const points = rampPolygonPoints({
+      x: bar.x,
+      width: bar.width,
+      bottom,
+      startY: bar.ramp.startY,
+      endY: bar.ramp.endY,
+    });
+
+    return <Polygon points={points} fill={color} />;
+  }
+
+  const top = (y: number) =>
+    roundedTopPath({ x: bar.x, y, width: bar.width, bottom, radius });
+
+  if (bar.shape === 'flat') {
+    return <Path d={top(bar.floorY)} fill={color} />;
+  }
+
+  // The rounded cap runs to the floor beneath the solid fill, which covers its
+  // lower part, so only the range above shows faintly.
+  return (
+    <>
+      <Path d={top(bar.capY)} fill={color} opacity={CAP_OPACITY} />
+      <Rect
+        x={bar.x}
+        y={bar.floorY}
+        width={bar.width}
+        height={bottom - bar.floorY}
+        fill={color}
+      />
+    </>
   );
 }

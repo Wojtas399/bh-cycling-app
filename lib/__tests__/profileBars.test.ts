@@ -1,4 +1,4 @@
-import { profileBars, roundedTopPath } from '../profileBars';
+import { profileBars, rampPolygonPoints, roundedTopPath } from '../profileBars';
 import type { WorkoutBlock } from '../workoutProfile';
 
 describe('profileBars', () => {
@@ -69,6 +69,43 @@ describe('profileBars', () => {
     expect(bars.map(bar => bar.ramp)).toEqual([undefined, undefined]);
   });
 
+  it('drops the gaps when they would leave the bars no width', () => {
+    const blocks: WorkoutBlock[] = Array.from({ length: 30 }, () => ({
+      widthFraction: 1 / 30,
+      minPct: 100,
+      maxPct: 100,
+      zone: 4 as const,
+    }));
+
+    // 29 gaps of 2px would take 58px of a 30px tile.
+    const bars = profileBars(blocks, { width: 30, height: 40, gap: 2 });
+
+    expect(bars.every(bar => bar.width > 0)).toBe(true);
+    expect(bars[29].x + bars[29].width).toBeCloseTo(30);
+  });
+
+  it("carries each block's zone and says whether it is flat, a range or a ramp", () => {
+    const blocks: WorkoutBlock[] = [
+      { widthFraction: 0.25, minPct: 60, maxPct: 60, zone: 2 },
+      { widthFraction: 0.25, minPct: 80, maxPct: 100, zone: 4 },
+      {
+        widthFraction: 0.5,
+        minPct: 50,
+        maxPct: 100,
+        zone: 3,
+        ramp: { startPct: 50, endPct: 100 },
+      },
+    ];
+
+    const bars = profileBars(blocks, { width: 100, height: 40, gap: 0 });
+
+    expect(bars.map(bar => [bar.zone, bar.shape])).toEqual([
+      [2, 'flat'],
+      [4, 'range'],
+      [3, 'ramp'],
+    ]);
+  });
+
   it('draws nothing when no block asks for any power', () => {
     const blocks: WorkoutBlock[] = [
       { widthFraction: 1, minPct: 0, maxPct: 0, zone: 1 },
@@ -91,9 +128,23 @@ describe('roundedTopPath', () => {
     ).toBe('M10,40 V39 Q10,37 12,37 H12 Q14,37 14,39 V40 Z');
   });
 
+  it('outlines nothing for a bar with no width', () => {
+    expect(
+      roundedTopPath({ x: 0, y: 10, width: 0, bottom: 40, radius: 4 }),
+    ).toBe('');
+  });
+
   it('outlines nothing for a bar with no height', () => {
     expect(
       roundedTopPath({ x: 0, y: 40, width: 20, bottom: 40, radius: 4 }),
     ).toBe('');
+  });
+});
+
+describe('rampPolygonPoints', () => {
+  it('outlines a slope from its start height on the left to its end height on the right', () => {
+    expect(
+      rampPolygonPoints({ x: 10, width: 20, bottom: 40, startY: 30, endY: 5 }),
+    ).toBe('10,40 10,30 30,5 30,40');
   });
 });

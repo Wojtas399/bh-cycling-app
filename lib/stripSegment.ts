@@ -1,4 +1,5 @@
 import type { Zone } from './powerZones';
+import type { RampEnds } from './workoutProfile';
 
 /**
  * A stretch of a strip drawn at one power, or one range of power, in time
@@ -32,12 +33,10 @@ export interface StripSegment {
 
 /**
  * A ramp's power at its start and end, in ridden order. Its lower end is the
- * segment's `minPct`, its higher end `maxPct`.
+ * segment's `minPct`, its higher end `maxPct`. `startPct` and `endPct` are in
+ * %FTP of the strip's FTP.
  */
-export interface SegmentRamp {
-  /** In %FTP of the strip's FTP. */
-  startPct: number;
-  endPct: number;
+export interface SegmentRamp extends RampEnds {
   /** In W, `null` when the strip has no FTP. */
   startWatts: number | null;
   endWatts: number | null;
