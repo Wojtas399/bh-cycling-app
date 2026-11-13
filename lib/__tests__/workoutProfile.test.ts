@@ -123,6 +123,112 @@ describe('workoutProfile', () => {
     });
   });
 
+  describe('ramps', () => {
+    it('buildWorkoutProfile keeps a ramp up rising, in the order it is ridden', () => {
+      const steps = [
+        {
+          duration: 600,
+          ramp: true,
+          power: { units: '%ftp', start: 50, end: 90 },
+        },
+      ];
+
+      expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+        {
+          widthFraction: 1,
+          minPct: 50,
+          maxPct: 90,
+          zone: 2,
+          ramp: { startPct: 50, endPct: 90 },
+        },
+      ]);
+    });
+
+    it('buildWorkoutProfile keeps a ramp down falling', () => {
+      const steps = [
+        {
+          duration: 600,
+          ramp: true,
+          power: { units: '%ftp', start: 90, end: 50 },
+        },
+      ];
+
+      expect(buildWorkoutProfile(steps, CONFIG)[0]).toEqual({
+        widthFraction: 1,
+        minPct: 50,
+        maxPct: 90,
+        zone: 2,
+        ramp: { startPct: 90, endPct: 50 },
+      });
+    });
+
+    it('buildWorkoutProfile does not treat a range as a ramp', () => {
+      const steps = [
+        { duration: 600, power: { units: '%ftp', start: 90, end: 50 } },
+      ];
+
+      expect(buildWorkoutProfile(steps, CONFIG)[0].ramp).toBeUndefined();
+    });
+
+    it('buildWorkoutProfile draws a ramp with equal ends flat', () => {
+      const steps = [
+        {
+          duration: 600,
+          ramp: true,
+          power: { units: '%ftp', start: 70, end: 70 },
+        },
+      ];
+
+      expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+        { widthFraction: 1, minPct: 70, maxPct: 70, zone: 2 },
+      ]);
+    });
+
+    it('buildWorkoutProfile runs a power_zone ramp across its zone band', () => {
+      const steps = [
+        { duration: 420, ramp: true, power: { units: 'power_zone', value: 1 } },
+      ];
+
+      expect(buildWorkoutProfile(steps, CONFIG)[0]).toEqual({
+        widthFraction: 1,
+        minPct: 0,
+        maxPct: 55,
+        zone: 1,
+        ramp: { startPct: 0, endPct: 55 },
+      });
+    });
+
+    it('buildWorkoutProfile keeps the direction of ramps inside repeats on every rep', () => {
+      const steps = [
+        {
+          reps: 2,
+          duration: 1200,
+          steps: [
+            {
+              duration: 300,
+              ramp: true,
+              power: { units: '%ftp', start: 60, end: 100 },
+            },
+            {
+              duration: 300,
+              ramp: true,
+              power: { units: '%ftp', start: 100, end: 60 },
+            },
+          ],
+        },
+      ];
+
+      expect(
+        buildWorkoutProfile(steps, CONFIG).map(block => block.ramp),
+      ).toEqual([
+        { startPct: 60, endPct: 100 },
+        { startPct: 100, endPct: 60 },
+        { startPct: 60, endPct: 100 },
+        { startPct: 100, endPct: 60 },
+      ]);
+    });
+  });
+
   it('buildWorkoutProfile never turns a Sweet Spot effort into its own zone', () => {
     // Sweet Spot straddles Z3/Z4, so it must resolve to the underlying zone.
     const steps = [

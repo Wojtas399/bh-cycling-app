@@ -164,6 +164,106 @@ describe('buildDetailedProfile', () => {
     ]);
   });
 
+  describe('ramps', () => {
+    const RAMP_UP_THEN_DOWN: WorkoutBlock[] = [
+      {
+        widthFraction: 0.5,
+        minPct: 50,
+        maxPct: 90,
+        zone: 2,
+        ramp: { startPct: 50, endPct: 90 },
+      },
+      {
+        widthFraction: 0.5,
+        minPct: 40,
+        maxPct: 80,
+        zone: 2,
+        ramp: { startPct: 80, endPct: 40 },
+      },
+    ];
+
+    it('carry their direction in %FTP, in watts and on a watts scale', () => {
+      const profile = buildDetailedProfile(
+        card({ planned: planned(RAMP_UP_THEN_DOWN, 200) }),
+        { zoneConfig: COGGAN, ftp: 250 },
+      );
+
+      expect(profile.planned?.segments.map(({ ramp }) => ramp)).toEqual([
+        {
+          startPct: 50,
+          endPct: 90,
+          startWatts: 100,
+          endWatts: 180,
+          startOnScale: 100,
+          endOnScale: 180,
+        },
+        {
+          startPct: 80,
+          endPct: 40,
+          startWatts: 160,
+          endWatts: 80,
+          startOnScale: 160,
+          endOnScale: 80,
+        },
+      ]);
+    });
+
+    it('carry their direction on a %FTP scale, with no watts when the strip has no FTP', () => {
+      const profile = buildDetailedProfile(
+        card({ planned: planned(RAMP_UP_THEN_DOWN, null) }),
+        { zoneConfig: COGGAN, ftp: 250 },
+      );
+
+      expect(profile.planned?.segments.map(({ ramp }) => ramp)).toEqual([
+        {
+          startPct: 50,
+          endPct: 90,
+          startWatts: null,
+          endWatts: null,
+          startOnScale: 50,
+          endOnScale: 90,
+        },
+        {
+          startPct: 80,
+          endPct: 40,
+          startWatts: null,
+          endWatts: null,
+          startOnScale: 80,
+          endOnScale: 40,
+        },
+      ]);
+    });
+
+    it("leave a range's segment without a ramp, and the scale and power as a range's", () => {
+      const asRanges = RAMP_UP_THEN_DOWN.map(
+        ({ ramp: _ramp, ...block }) => block,
+      );
+      const settings = { zoneConfig: COGGAN, ftp: 250 };
+      const ramps = buildDetailedProfile(
+        card({ planned: planned(RAMP_UP_THEN_DOWN, 250) }),
+        settings,
+      );
+      const ranges = buildDetailedProfile(
+        card({ planned: planned(asRanges, 250) }),
+        settings,
+      );
+
+      expect(ranges.planned?.segments.map(({ ramp }) => ramp)).toEqual([
+        undefined,
+        undefined,
+      ]);
+      expect(ramps.scale).toEqual(ranges.scale);
+      expect(ramps.planned?.power).toEqual({
+        unit: 'watts',
+        peak: 225,
+        peakFtpPct: 90,
+        average: 163,
+      });
+      expect(ramps.planned?.power).toEqual(ranges.planned?.power);
+      expect(ramps.timeInZone).toEqual(ranges.timeInZone);
+    });
+  });
+
   describe('scale', () => {
     const PLAN_TO_110 = [
       { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },

@@ -239,24 +239,40 @@ function toSegments(
     ftp === null ? null : ftpPctToWatts(pct, ftp);
   let end = 0;
 
-  return blocks.flatMap(({ widthFraction, minPct, maxPct, zone }) => {
+  return blocks.flatMap(({ widthFraction, minPct, maxPct, zone, ramp }) => {
     const start = end;
 
     end += widthFraction * durationSeconds;
 
     if (maxPct <= 0) return [];
 
+    const segment: StripSegment = {
+      start,
+      end,
+      minPct,
+      maxPct,
+      minWatts: watts(minPct),
+      maxWatts: watts(maxPct),
+      low: inUnit(minPct, unit, ftp),
+      high: inUnit(maxPct, unit, ftp),
+      zone,
+    };
+
+    if (!ramp) return [segment];
+
+    const { startPct, endPct } = ramp;
+
     return [
       {
-        start,
-        end,
-        minPct,
-        maxPct,
-        minWatts: watts(minPct),
-        maxWatts: watts(maxPct),
-        low: inUnit(minPct, unit, ftp),
-        high: inUnit(maxPct, unit, ftp),
-        zone,
+        ...segment,
+        ramp: {
+          startPct,
+          endPct,
+          startWatts: watts(startPct),
+          endWatts: watts(endPct),
+          startOnScale: inUnit(startPct, unit, ftp),
+          endOnScale: inUnit(endPct, unit, ftp),
+        },
       },
     ];
   });
