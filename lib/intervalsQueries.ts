@@ -143,11 +143,12 @@ export async function removeIntervalsQueries(
 }
 
 /**
- * How a month, the upcoming workouts and a Workout's or an Activity's details
- * stay fresh: stale after 5 minutes, then refetched when shown again or when
- * the app returns to the foreground.
+ * How whatever the athlete can change on intervals.icu stays fresh (events,
+ * Activities, Wellness and Fitness, everywhere they show): stale after 5
+ * minutes, then refetched when shown again or when the app returns to the
+ * foreground. Settings and Routes, which rarely or never change, don't use it.
  */
-const WORKOUTS_FRESHNESS = {
+const CHANGING_DATA_FRESHNESS = {
   staleTime: 5 * 60_000,
   refetchOnWindowFocus: true,
 } as const;
@@ -201,7 +202,7 @@ export function upcomingQueryOptions(
           return getUpcomingItems(events, activities, notes, today, zoneConfig);
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -241,7 +242,7 @@ export function nextRaceQueryOptions(
           return toRaces(events).sort(compareRacesByDate);
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -281,7 +282,7 @@ export function todayQueryOptions(
           };
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -312,7 +313,7 @@ export function fitnessQueryOptions(
           return toFitnessDays(rows, today);
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -365,7 +366,7 @@ export function monthQueryOptions(
         }
       : skipToken,
     select,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -443,7 +444,7 @@ export function workoutDetailsQueryOptions(
         }
       : skipToken,
     select,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -477,7 +478,7 @@ export function noteDetailsQueryOptions(
           return note;
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -515,7 +516,7 @@ export function activityDetailsQueryOptions(
             )
         : skipToken,
     select,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -544,7 +545,7 @@ export function raceQueryOptions(
               ),
             ) ?? null
         : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 

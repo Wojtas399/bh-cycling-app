@@ -16,8 +16,8 @@ import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails'
 import { useNextRace } from '@/hooks/home/useNextRace';
 import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
+import { useOpenNoteDetails } from '@/hooks/note/useOpenNoteDetails';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
-import { useOpenNoteDetails } from '@/hooks/useOpenNoteDetails';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';

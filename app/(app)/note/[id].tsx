@@ -8,22 +8,21 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import DetailsLoadError from '@/components/DetailsLoadError';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import NoteMarkdown from '@/components/NoteMarkdown';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
 import NoteDetailsSkeleton from '@/components/note/NoteDetailsSkeleton';
-import NoteLoadError from '@/components/note/NoteLoadError';
 import { useAppTheme } from '@/constants/theme';
+import { useNoteDetails } from '@/hooks/note/useNoteDetails';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useNoteDateLabels } from '@/hooks/useNoteDateLabels';
-import { useNoteDetails } from '@/hooks/useNoteDetails';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useScrolledUnderHeader } from '@/hooks/useScrolledUnderHeader';
 import { noteFill } from '@/lib/noteColors';
 import { formatNoteDates } from '@/lib/noteDates';
-import type { Note } from '@/lib/notes';
-import { stripNoteHtml } from '@/lib/stripNoteHtml';
+import { type Note, noteText } from '@/lib/notes';
 import { useLocalSearchParams } from 'expo-router';
 
 /**
@@ -69,7 +68,8 @@ export default function NoteDetailsScreen() {
 
     if (query.isError) {
       return (
-        <NoteLoadError
+        <DetailsLoadError
+          keyPrefix="noteDetails"
           error={query.error}
           onRetry={() => void query.refetch()}
         />
@@ -129,7 +129,7 @@ function NoteDetailsContent({
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
   const noteTitle = useNoteTitle();
   const dateLabels = useNoteDateLabels();
-  const text = note.description ? stripNoteHtml(note.description).trim() : '';
+  const text = noteText(note);
 
   return (
     <>

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import DetailsLoadError from '@/components/DetailsLoadError';
 import RouteMapScreen from '@/components/route/RouteMapScreen';
-import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutNotFound from '@/components/workout/WorkoutNotFound';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import { useLocalSearchParams } from 'expo-router';
@@ -20,7 +20,8 @@ export default function WorkoutRouteMapScreen() {
       noSummary={<WorkoutNotFound />}
       detailsError={
         isError ? (
-          <WorkoutLoadError
+          <DetailsLoadError
+            keyPrefix="workoutDetails"
             error={error}
             onRetry={() => void details.refetch()}
           />

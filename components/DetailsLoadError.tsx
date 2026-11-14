@@ -5,17 +5,20 @@ import MessageWithBack from '@/components/MessageWithBack';
 import { isNotFoundError } from '@/lib/intervalsApi';
 
 /**
- * A failed Note: not found on intervals.icu (deleted, or not a Note), with a
- * way back, or any other error, with a retry.
+ * A details screen whose subject failed to load: not found on intervals.icu,
+ * with a way back, or any other error, with a retry. `keyPrefix` names the
+ * screen's strings, `notFound.title`, `notFound.body`, `error` and `retry`.
  */
-export default function NoteLoadError({
+export default function DetailsLoadError({
+  keyPrefix,
   error,
   onRetry,
 }: {
+  keyPrefix: 'workoutDetails' | 'activityDetails' | 'noteDetails';
   error: Error;
   onRetry: () => void;
 }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'noteDetails' });
+  const { t } = useTranslation(undefined, { keyPrefix });
 
   if (isNotFoundError(error)) {
     return (

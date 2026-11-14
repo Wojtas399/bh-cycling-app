@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import DetailsLoadError from '@/components/DetailsLoadError';
 import MessageWithBack from '@/components/MessageWithBack';
-import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
 import RouteMapScreen from '@/components/route/RouteMapScreen';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
@@ -28,7 +28,8 @@ export default function ActivityRouteMapScreen() {
       }
       detailsError={
         isError ? (
-          <ActivityLoadError
+          <DetailsLoadError
+            keyPrefix="activityDetails"
             error={error}
             onRetry={() => void details.refetch()}
           />
