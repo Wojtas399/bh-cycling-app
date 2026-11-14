@@ -25,11 +25,11 @@ import {
   compactItemRowLabel,
 } from '@/lib/compactItemRow';
 import { formatDuration, formatSpokenDuration } from '@/lib/formatDuration';
-import { noteFill, noteLabelColor } from '@/lib/noteColors';
+import { noteFill } from '@/lib/noteColors';
 import { formatNoteRange, formatNoteShortRange } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
 import type { Race } from '@/lib/races';
-import { weekNotes } from '@/lib/weekNotes';
+import { type LaneCrossing, type NoteRow, weekNotes } from '@/lib/weekNotes';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 const RAIL_WIDTH = 44;
@@ -41,11 +41,11 @@ const DAY_NUMBER_BOX = { width: 40, height: 36 };
 const ROW_MIN_HEIGHT = 44;
 const MINI_PROFILE = { width: 54, height: 14 };
 const MARKER_SIZE = 8;
-const STRIPE_WIDTH = 3;
-const CHIP_DOT_SIZE = 8;
-/** The chip's "control sheen": raised off the screen, but not glass. */
-const CHIP_SHEEN = 'linear-gradient(160deg, #2C2C2E, #141414)';
-const CHIP_HAIRLINE = 'rgba(255, 255, 255, 0.14)';
+/** A multi-day Note's line beside the rail, and the gap after it. */
+const LANE_WIDTH = 3;
+const LANE_GAP = 3;
+/** How far inside the day a line starts or ends on its Note's real day. */
+const LANE_INSET = 14;
 
 export interface CalendarWeekAgendaProps {
   /** Any date in the week to lay out. */
@@ -66,15 +66,16 @@ type ItemPressHandlers = Pick<
 >;
 
 /**
- * The weekly agenda as a date rail: a banner per multi-day Note above Monday,
- * then Monday to Sunday, each day its rail (short weekday over the day
- * number, today on a white square) beside one compact row per item — the
- * day's Races first, then its Workouts and Unplanned Activities — or a muted
- * "Odpoczynek" on a day with none. A hairline parts the rows and the days.
- * Days a multi-day Note covers get a stripe in its colour beside the rail,
- * and single-day Notes are chips above the rows. Tapping a banner or chip
- * opens the Note, a row opens its item, and tapping the rail or anywhere else
- * in the day, a Strava Activity's row included, opens the day sheet.
+ * The weekly agenda as a date rail: Monday to Sunday, each day its rail
+ * (short weekday over the day number, today on a white square) beside its
+ * rows — its Note rows (see `weekNotes`), a "+N notatki" row for the ones
+ * past the cap, then one compact row per item (the day's Races first, then
+ * its Workouts and Unplanned Activities) or a muted "Odpoczynek" on a day
+ * with none. A hairline parts the rows and the days. A multi-day Note is a
+ * line in its colour, in its own lane between the screen edge and the rail,
+ * down every day it covers. Tapping a Note row opens the Note, an item row
+ * opens its item, and tapping the rail, "+N notatki" or anywhere else in the
+ * day, a Strava Activity's row included, opens the day sheet.
  */
 export default function CalendarWeekAgenda({
   week,
@@ -94,41 +95,33 @@ export default function CalendarWeekAgenda({
 
   return (
     <Box testID="calendar-week-agenda">
-      {layout.banners.length > 0 && (
-        <Box gap="sm" marginBottom="sm">
-          {layout.banners.map(note => (
-            <NoteBanner
-              key={note.id}
-              note={note}
-              when={formatNoteRange(note, labels.monthNamesGenitive)}
-              onPress={() => onNotePress(note)}
-            />
-          ))}
-        </Box>
-      )}
-
       {days.map((day, index) => {
-        const { stripes, chips } = layout.days[day.date];
+        const {
+          crossings,
+          rows: noteRows,
+          hiddenCount,
+        } = layout.days[day.date];
         const items = itemsByDate[day.date] ?? [];
         const rows: ReactElement[] = [
-          ...(chips.length > 0
+          ...noteRows.map(row => (
+            <NoteRowButton
+              key={`note-${row.note.id}`}
+              row={row}
+              when={
+                row.multiDay
+                  ? formatNoteRange(row.note, labels.monthNamesGenitive)
+                  : labels.day(day)
+              }
+              onPress={() => onNotePress(row.note)}
+            />
+          )),
+          ...(hiddenCount > 0
             ? [
-                <Box
-                  key="chips"
-                  flexDirection="row"
-                  flexWrap="wrap"
-                  gap="sm"
-                  paddingVertical="sm"
-                >
-                  {chips.map(note => (
-                    <NoteChip
-                      key={note.id}
-                      note={note}
-                      when={labels.day(day)}
-                      onPress={() => onNotePress(note)}
-                    />
-                  ))}
-                </Box>,
+                <MoreNotesRow
+                  key="more-notes"
+                  count={hiddenCount}
+                  onPress={() => onDayPress(day)}
+                />,
               ]
             : []),
           ...(items.length > 0
@@ -157,10 +150,14 @@ export default function CalendarWeekAgenda({
               borderTopWidth={index === 0 ? 0 : 1}
               borderColor="hairline"
             >
+              <NoteLanes
+                laneCount={layout.lanes.length}
+                crossings={crossings}
+              />
+
               <DateRail
                 day={day}
                 isToday={day.date === today}
-                stripes={stripes}
                 onPress={() => onDayPress(day)}
               />
 
@@ -183,11 +180,53 @@ export default function CalendarWeekAgenda({
   );
 }
 
+interface NoteLanesProps {
+  /** The week's lane count, so every day's strip is as wide. */
+  laneCount: number;
+  crossings: LaneCrossing[];
+}
+
+/**
+ * A day's strip of Note lanes between the screen edge and the rail: a line
+ * per multi-day Note crossing the day, in its lane. A line starts or ends
+ * inside the day on its Note's real first or last day, and otherwise runs to
+ * the day's hairline, so it reads as one line down the week. Hidden from the
+ * screen reader: each Note is announced once, by its title row.
+ */
+function NoteLanes({ laneCount, crossings }: NoteLanesProps) {
+  const { spacing } = useAppTheme();
+
+  if (laneCount === 0) return null;
+
+  return (
+    <Box
+      width={laneCount * (LANE_WIDTH + LANE_GAP)}
+      // Runs to the day's hairlines, past its padding, like the rail.
+      style={{ marginVertical: -spacing[DAY_PADDING] }}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {crossings.map(({ note, lane, starts, ends }) => (
+        <Box
+          key={note.id}
+          position="absolute"
+          width={LANE_WIDTH}
+          borderRadius="full"
+          style={{
+            left: lane * (LANE_WIDTH + LANE_GAP),
+            top: starts ? LANE_INSET : 0,
+            bottom: ends ? LANE_INSET : 0,
+            backgroundColor: noteFill(note.color),
+          }}
+        />
+      ))}
+    </Box>
+  );
+}
+
 interface DateRailProps {
   day: CalendarDay;
   isToday: boolean;
-  /** The multi-day Notes covering the day, one stripe each. */
-  stripes: Note[];
   onPress: () => void;
 }
 
@@ -196,70 +235,50 @@ interface DateRailProps {
  * white filled square. To a screen reader it's the day's heading, so the
  * athlete can jump day to day, and double-tapping it opens the day sheet.
  */
-function DateRail({ day, isToday, stripes, onPress }: DateRailProps) {
+function DateRail({ day, isToday, onPress }: DateRailProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
   const { colors, spacing } = useAppTheme();
   const labels = useCalendarLabels();
   const dayLabel = labels.day(day);
 
   return (
-    // Runs to the day's hairlines, past its padding, so the whole height of
-    // the rail opens the day sheet and the stripes span the day.
-    <Box flexDirection="row" style={{ marginVertical: -spacing[DAY_PADDING] }}>
-      {stripes.length > 0 && (
-        <Box
-          flexDirection="row"
-          gap="xs"
-          marginRight="xs"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          {stripes.map(note => (
-            <Box
-              key={note.id}
-              width={STRIPE_WIDTH}
-              borderRadius="full"
-              style={{ backgroundColor: noteFill(note.color) }}
-            />
-          ))}
-        </Box>
-      )}
-
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="header"
-        accessibilityLabel={isToday ? t('today', { day: dayLabel }) : dayLabel}
-        accessibilityHint={t('opensDay')}
-        style={{
-          width: RAIL_WIDTH,
-          alignItems: 'center',
-          paddingVertical: spacing[DAY_PADDING],
-        }}
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="header"
+      accessibilityLabel={isToday ? t('today', { day: dayLabel }) : dayLabel}
+      accessibilityHint={t('opensDay')}
+      style={{
+        width: RAIL_WIDTH,
+        alignItems: 'center',
+        // Runs to the day's hairlines, past its padding, so the whole height
+        // of the rail opens the day sheet.
+        marginVertical: -spacing[DAY_PADDING],
+        paddingVertical: spacing[DAY_PADDING],
+      }}
+    >
+      <Text
+        variant="body-xs-medium"
+        color={isToday ? 'textPrimary' : 'textSecondary'}
+        style={{ letterSpacing: 0.5 }}
       >
-        <Text
-          variant="body-xs-medium"
-          color={isToday ? 'textPrimary' : 'textSecondary'}
-          style={{ letterSpacing: 0.5 }}
-        >
-          {labels.weekdaysShort[day.weekday].toUpperCase()}
+        {labels.weekdaysShort[day.weekday].toUpperCase()}
+      </Text>
+      <Box
+        marginTop="xs"
+        width={DAY_NUMBER_BOX.width}
+        height={DAY_NUMBER_BOX.height}
+        alignItems="center"
+        justifyContent="center"
+        borderRadius="lg"
+        style={
+          isToday ? { backgroundColor: colors.interactiveDefault } : undefined
+        }
+      >
+        <Text variant="h2" color={isToday ? 'textInverse' : 'textPrimary'}>
+          {day.dayOfMonth}
         </Text>
-        <Box
-          marginTop="xs"
-          width={DAY_NUMBER_BOX.width}
-          height={DAY_NUMBER_BOX.height}
-          alignItems="center"
-          justifyContent="center"
-          borderRadius="lg"
-          style={
-            isToday ? { backgroundColor: colors.interactiveDefault } : undefined
-          }
-        >
-          <Text variant="h2" color={isToday ? 'textInverse' : 'textPrimary'}>
-            {day.dayOfMonth}
-          </Text>
-        </Box>
-      </Pressable>
-    </Box>
+      </Box>
+    </Pressable>
   );
 }
 
@@ -472,91 +491,91 @@ function useCompactRowWords(): CompactItemRowWords {
   );
 }
 
-interface NoteButtonProps {
-  note: Note;
+interface NoteRowButtonProps {
+  row: NoteRow;
   /** When the Note applies, as a screen reader announces it. */
   when: string;
   onPress: () => void;
 }
 
-/** A multi-day Note above the week: its title and short range on its fill. */
-function NoteBanner({ note, when, onPress }: NoteButtonProps) {
+/**
+ * A Note's row: a multi-day Note's title in its colour and its short range
+ * (the lane beside the rail is its marker), or a single-day Note's dot in its
+ * colour and its title.
+ */
+function NoteRowButton({
+  row: { note, multiDay },
+  when,
+  onPress,
+}: NoteRowButtonProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
   const noteTitle = useNoteTitle();
   const title = noteTitle(note);
-  const color = noteLabelColor(note.color);
+  const fill = noteFill(note.color);
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={t('accessibilityLabel', { title, when })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.7 : 1,
+        minHeight: ROW_MIN_HEIGHT,
+        flexDirection: 'row',
+        alignItems: 'center',
+      })}
     >
-      <Box
-        flexDirection="row"
-        alignItems="center"
-        borderRadius="md"
-        paddingHorizontal="md"
-        paddingVertical="sm"
-        style={{ backgroundColor: noteFill(note.color) }}
+      {!multiDay && (
+        <Box
+          width={MARKER_SIZE}
+          height={MARKER_SIZE}
+          borderRadius="full"
+          marginRight="sm"
+          style={{ backgroundColor: fill }}
+        />
+      )}
+      <Text
+        variant="body-s-medium"
+        color="textPrimary"
+        numberOfLines={1}
+        style={[{ flexShrink: 1 }, multiDay && { color: fill }]}
       >
-        <Text
-          variant="body-s-medium"
-          numberOfLines={1}
-          style={{ flex: 1, color }}
-        >
-          {title}
-        </Text>
-        <Text variant="body-xs-medium" marginLeft="sm" style={{ color }}>
+        {title}
+      </Text>
+      {multiDay && (
+        <Text variant="body-xs-regular" color="textSecondary" marginLeft="sm">
           {formatNoteShortRange(note)}
         </Text>
-      </Box>
-    </TouchableOpacity>
+      )}
+    </Pressable>
   );
 }
 
-/** A single-day Note above its day's rows: a colour dot and its title. */
-function NoteChip({ note, when, onPress }: NoteButtonProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'note' });
-  const noteTitle = useNoteTitle();
-  const title = noteTitle(note);
+/** The day's Note rows past the cap, as one row that opens the day sheet. */
+function MoreNotesRow({
+  count,
+  onPress,
+}: {
+  count: number;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t('accessibilityLabel', { title, when })}
-      style={{ maxWidth: '100%' }}
+      accessibilityLabel={t('moreNotesLabel', { count })}
+      accessibilityHint={t('opensDay')}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.7 : 1,
+        minHeight: ROW_MIN_HEIGHT,
+        justifyContent: 'center',
+      })}
     >
-      <Box
-        flexDirection="row"
-        alignItems="center"
-        alignSelf="flex-start"
-        borderRadius="full"
-        borderWidth={1}
-        paddingHorizontal="md"
-        paddingVertical="xs"
-        style={{
-          experimental_backgroundImage: CHIP_SHEEN,
-          borderColor: CHIP_HAIRLINE,
-        }}
-      >
-        <Box
-          width={CHIP_DOT_SIZE}
-          height={CHIP_DOT_SIZE}
-          borderRadius="full"
-          marginRight="sm"
-          style={{ backgroundColor: noteFill(note.color) }}
-        />
-        <Text
-          variant="body-s-medium"
-          color="textPrimary"
-          numberOfLines={1}
-          style={{ flexShrink: 1 }}
-        >
-          {title}
-        </Text>
-      </Box>
-    </TouchableOpacity>
+      <Text variant="body-xs-medium" color="textSecondary">
+        {t('moreNotes', { count })}
+      </Text>
+    </Pressable>
   );
 }

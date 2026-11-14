@@ -352,6 +352,16 @@ const pl = {
       opensDay: 'Otwiera dzień',
       /** A day with no Workouts, Activities or Races. */
       rest: 'Odpoczynek',
+      /** A day's Note rows past the first 2, as the row shows them. */
+      moreNotes_one: '+{{count}} notatka',
+      moreNotes_few: '+{{count}} notatki',
+      moreNotes_many: '+{{count}} notatek',
+      moreNotes_other: '+{{count}} notatki',
+      /** The same row as a screen reader reads it. */
+      moreNotesLabel_one: 'Jeszcze {{count}} notatka',
+      moreNotesLabel_few: 'Jeszcze {{count}} notatki',
+      moreNotesLabel_many: 'Jeszcze {{count}} notatek',
+      moreNotesLabel_other: 'Jeszcze {{count}} notatki',
       /** An Activity's or paired Race's load, as a row shows it. */
       load: 'Obc. {{load}}',
       /** A row's screen-reader label opens with what it is and its status. */
