@@ -6,7 +6,8 @@ How agents run and write the end-to-end suite. `docs/e2e.md` is the full guide: 
 
 1. Rebuild if app code changed since the last build, because the JS is bundled into it: `npm run e2e:build:ios` or `npm run e2e:build:android`.
 2. Run `npm run e2e:ios` or `npm run e2e:android`. Both run the cache leak check and the seed first. To run one file, run `npm run e2e:seed`, then `npx e2e run --target <ios|android> e2e/tests/<file>.e2e.ts`.
-3. Read the results from `.e2e/report.json` and each failed test's `trace.md` under `.e2e/results/`.
+3. To run on Expo Simulators instead, run `npm run e2e:cloud:ios` or `npm run e2e:cloud:android`. Each builds on EAS, which uses build credit, so ask first. Set `E2E_IOS_BUILD_ID` or `E2E_ANDROID_BUILD_ID` to reuse a build.
+4. Read the results from `.e2e/report.json` and each failed test's `trace.md` under `.e2e/results/`.
 
 ## Rules
 

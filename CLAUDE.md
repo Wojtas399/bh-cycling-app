@@ -14,7 +14,7 @@ Single-context: `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain
 
 ### E2E tests
 
-The end-to-end suite runs against real staging, locally on dedicated simulator and emulator devices and in CI on Expo Simulators. See `docs/agents/e2e-tests.md` before you run or write one.
+The end-to-end suite runs against real staging, started by hand from the dev's machine, on dedicated simulator and emulator devices or on Expo Simulators. See `docs/agents/e2e-tests.md` before you run or write one.
 
 ## Coding standards
 
