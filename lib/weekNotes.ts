@@ -3,6 +3,7 @@ import {
   type Note,
   isMultiDay,
   noteLastDay,
+  noteOverlaps,
   notesOn,
   notesOverlapping,
 } from './notes';
@@ -69,7 +70,7 @@ export function weekNotes(notes: Note[], days: LocalDateString[]): WeekNotes {
     days: Object.fromEntries(
       days.map(date => {
         const crossings = lanes
-          .filter(({ note }) => note.start <= date && date < note.end)
+          .filter(({ note }) => noteOverlaps(note, date, date))
           .map(
             (lane): LaneCrossing => ({
               ...lane,

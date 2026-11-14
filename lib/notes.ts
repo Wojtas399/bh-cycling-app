@@ -91,13 +91,22 @@ export function noteWindow(
   };
 }
 
+/** Whether the Note covers any day of `first`..`last` (inclusive). */
+export function noteOverlaps(
+  note: Note,
+  first: LocalDateString,
+  last: LocalDateString,
+): boolean {
+  return note.start <= last && note.end > first;
+}
+
 /** The Notes covering any day of `first`..`last` (inclusive), in order. */
 export function notesOverlapping(
   notes: Note[],
   first: LocalDateString,
   last: LocalDateString,
 ): Note[] {
-  return notes.filter(note => note.start <= last && note.end > first);
+  return notes.filter(note => noteOverlaps(note, first, last));
 }
 
 /** The Notes covering `date`, in order. */
