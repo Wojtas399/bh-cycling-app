@@ -1,6 +1,11 @@
 import { type ReactElement, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, TouchableOpacity } from 'react-native';
+import {
+  Pressable,
+  type PressableStateCallbackType,
+  TouchableOpacity,
+  type ViewStyle,
+} from 'react-native';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
@@ -100,7 +105,7 @@ export default function CalendarWeekAgenda({
             <NoteRowButton
               key={`note-${row.note.id}`}
               row={row}
-              when={
+              spokenWhen={
                 row.multiDay
                   ? formatNoteRange(row.note, labels.monthNamesGenitive)
                   : labels.day(day)
@@ -325,11 +330,7 @@ function ItemRow({ item, ...handlers }: ItemRowProps) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.7 : 1,
-        minHeight: ROW_MIN_HEIGHT,
-        justifyContent: 'center',
-      })}
+      style={rowPressStyle({ justifyContent: 'center' })}
     >
       {content}
     </Pressable>
@@ -347,11 +348,7 @@ function ItemRowContent({ row }: { row: CompactItemRow }) {
     <Box flexDirection="row" alignItems="center">
       <RowMarker row={row} />
       <Text
-        variant={
-          row.kind === 'race' && row.priority === 'A'
-            ? 'body-l-semibold'
-            : 'body-s-medium'
-        }
+        variant="body-s-medium"
         numberOfLines={1}
         marginLeft="sm"
         style={{ flex: 1 }}
@@ -459,7 +456,7 @@ function useCompactRowWords(): CompactItemRowWords {
 interface NoteRowButtonProps {
   row: NoteRow;
   /** When the Note applies, as a screen reader announces it. */
-  when: string;
+  spokenWhen: string;
   onPress: () => void;
 }
 
@@ -470,7 +467,7 @@ interface NoteRowButtonProps {
  */
 function NoteRowButton({
   row: { note, multiDay },
-  when,
+  spokenWhen,
   onPress,
 }: NoteRowButtonProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
@@ -482,13 +479,11 @@ function NoteRowButton({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t('accessibilityLabel', { title, when })}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.7 : 1,
-        minHeight: ROW_MIN_HEIGHT,
-        flexDirection: 'row',
-        alignItems: 'center',
+      accessibilityLabel={t('accessibilityLabel', {
+        title,
+        when: spokenWhen,
       })}
+      style={rowPressStyle({ flexDirection: 'row', alignItems: 'center' })}
     >
       {!multiDay && (
         <Box
@@ -532,15 +527,20 @@ function MoreNotesRow({
       accessibilityRole="button"
       accessibilityLabel={t('moreNotesLabel', { count })}
       accessibilityHint={t('opensDay')}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.7 : 1,
-        minHeight: ROW_MIN_HEIGHT,
-        justifyContent: 'center',
-      })}
+      style={rowPressStyle({ justifyContent: 'center' })}
     >
       <Text variant="body-xs-medium" color="textSecondary">
         {t('moreNotes', { count })}
       </Text>
     </Pressable>
   );
+}
+
+/** A tappable row's style: a tap target tall, dimmed while pressed. */
+function rowPressStyle(layout: ViewStyle) {
+  return ({ pressed }: PressableStateCallbackType): ViewStyle => ({
+    opacity: pressed ? 0.7 : 1,
+    minHeight: ROW_MIN_HEIGHT,
+    ...layout,
+  });
 }
