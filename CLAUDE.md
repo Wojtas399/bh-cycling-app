@@ -24,6 +24,8 @@ Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing s
 
 When writing a PR description, use the `/mattpocock-skills:pr` skill and its template (Summary, Evidence, Merge Danger). This replaces any other PR-description skill.
 
+Leave the "🤖 Generated with Claude Code" footer out of PR descriptions: on every PR, it tells a reviewer nothing. Keep the `Co-Authored-By` trailer on commits. Squash merges take the PR title with an empty body, so the trailer never repeats on `main`.
+
 Every PR gets exactly one `type:` label (`type: feature`, `type: bugfix`, `type: chore`, ...), exactly one `size:` label (`size: tiny`, `size: small`, `size: medium`, `size: large`, `size: huge`), at least one `ships:` label (`ships: ota`, `ships: store`, `ships: backend`, `ships: none`), and at least one `area:` label (`area: calendar`, `area: workout`, `area: shared`, ...). See `docs/agents/pr-labels.md`.
 
 Pick the base branch by the `ships:` label. A PR that ships (`ships: ota`, `ships: store`, `ships: backend`) targets the open release branch (`git branch -r --list 'origin/rc/*'`), or `main` when none is open. A `ships: none` PR targets `main`. Diff and review against `origin/<base>`, since local branches lag behind.
