@@ -100,9 +100,9 @@ The app side needs the matching public client ID to build the authorization requ
 
 ## Releasing
 
-Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. CI also runs it on Expo Simulators, in `.eas/workflows/e2e.yml`, on every push to a PR from `rc/*` to `main` and on demand. That run is informational and gates no merge or build. See `docs/e2e.md`.
+Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. Nothing runs it automatically. To run it on Expo Simulators instead of the local devices, use `npm run e2e:cloud:ios` and `npm run e2e:cloud:android`. See `docs/e2e.md`.
 
-CI and releases run on GitHub Actions, on the repo's free minutes. Only the e2e suite runs on EAS Workflows. Pull requests run `.github/workflows/ci.yml`, with the `Lint`, `Type Check` and `Test` jobs. `.github/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android, so CI on `main` runs inside the release. The ref decides what ships.
+CI and releases run on GitHub Actions, on the repo's free minutes. Nothing runs on EAS Workflows. Pull requests run `.github/workflows/ci.yml`, with the `Lint`, `Type Check` and `Test` jobs. `.github/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android, so CI on `main` runs inside the release. The ref decides what ships.
 
 | Ref                                      | Result                                                                                                                                                                |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -134,7 +134,7 @@ Runs and logs are in the repo's Actions tab, and the builds and updates they sta
 These steps are for the owner after the Spec #361 PR merges. Delete this section once they're done.
 
 1. Delete the GitHub secret nothing uses anymore: `gh secret delete CLAUDE_CODE_OAUTH_TOKEN`. Keep the `EXPO_TOKEN` GitHub secret, because the release workflow uses it.
-2. Releases no longer read `EXPO_TOKEN` from EAS, so it needn't be assigned to the `production` environment. The e2e workflow still needs it in `development`.
+2. Releases no longer read `EXPO_TOKEN` from EAS, and the e2e workflow is gone, so `EXPO_TOKEN` can be deleted from the EAS environments. Also delete the e2e workflow's other secrets from the EAS `development` environment: `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, `E2E_INTERVALS_API_KEY`, `E2E_INTERVALS_ATHLETE_ID` and `CLAUDE_CODE_OAUTH_TOKEN`. Revoke that Claude token as well.
 3. The merge itself is a push to `main`, so it runs a release on GitHub Actions: CI, then a Dev OTA update or Dev build. Check the run in the Actions tab and the result on expo.dev.
 4. The next `rc/*` push runs the staging release on GitHub Actions. Check that it produces staging builds or an OTA update, as before.
 

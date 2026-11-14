@@ -11,7 +11,7 @@ It covers six flows:
 5. Open tomorrow's day sheet in the Calendar, and tap its A Race to swap the day sheet for the Race Detail Sheet.
 6. Open today's ride from "Dziś i jutro" in Activity Details, see its profile card in watts with its time-in-zone rows, scrub the card for the readout, and hide it with "✕ Ukryj".
 
-Run it on both platforms before cutting `rc/X.Y.Z`. CI also runs it on Expo Simulators for PRs from `rc/*` to `main`, and on demand. See [Run in CI on Expo Simulators](#run-in-ci-on-expo-simulators).
+Run it on both platforms before cutting `rc/X.Y.Z`. Nothing runs it automatically. You can also run it from your machine on Expo Simulators. See [Run on Expo Simulators](#run-on-expo-simulators).
 
 ## One-time setup
 
@@ -60,7 +60,7 @@ Other names work too. Set `E2E_IOS_DEVICE` or `E2E_ANDROID_DEVICE` to use them.
 
 The build script doesn't load `.env.local`. If you rename a device, also export its variable in your shell before you build.
 
-With a build id set, that target runs on Expo Simulators instead of the local device: an `iPhone 17 Pro` or a `pixel_9` that installs the build. `E2E_*_DEVICE` doesn't apply there. Leave both build ids out of `.env.local`, so `npm run e2e:ios|android` stays local.
+With a build id set, that target runs on Expo Simulators instead of the local device: an `iPhone 17 Pro` or a `pixel_9` that installs the build. `E2E_*_DEVICE` doesn't apply there. Leave both build ids out of `.env.local`, so `npm run e2e:ios|android` stays local. `npm run e2e:cloud:ios|android` sets them.
 
 When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. The cache leak check stops the same way when the email, password or key is missing. A plain `npx e2e run` without the test user's email or password stops before any test with `CONFIG_LOAD_FAILED`.
 
@@ -102,55 +102,28 @@ Every test starts signed out. The fixture clears the app's state, and on iOS the
 
 The output goes to `.e2e/`, which is gitignored except for the replay cache: the run's `report.json` and a `trace.md` page for each failed test in its folder under `.e2e/results/`. Traces contain the test email, so mask it before you paste one anywhere.
 
-The replay cache, `.e2e/cache/`, is committed so CI can replay recorded agent steps. The cache leak check fails, naming only the files, when a cache file holds the test email, password or Intervals.icu key. Delete those files and record the step again without typing the value as plain text.
+The replay cache, `.e2e/cache/`, is committed so another machine can replay recorded agent steps instead of recording them again. The cache leak check fails, naming only the files, when a cache file holds the test email, password or Intervals.icu key. Delete those files and record the step again without typing the value as plain text.
 
-## Run in CI on Expo Simulators
+## Run on Expo Simulators
 
-The EAS workflow `.eas/workflows/e2e.yml` runs the suite on Expo Simulators, the cloud iOS simulators and Android emulators that Expo hosts. It's informational. Nothing requires its jobs, so a red run blocks no merge or build.
-
-### When it runs
-
-- On every push to a PR from `rc/*` to `main`. These runs always test both platforms.
-- When you start it by hand, from any branch.
-
-Only one run goes at a time, because every run reseeds the same test athlete. A new run cancels the one in progress, builds included.
-
-### Start a manual run
-
-Push the branch, then run:
+Expo Simulators are the cloud iOS simulators and Android emulators that Expo hosts. Nothing runs the suite there automatically. You start a run from your machine, and only the device is in the cloud.
 
 ```sh
-npx eas-cli@latest workflow:run .eas/workflows/e2e.yml --ref <branch> -F platform=both
+npm run e2e:cloud:ios
+npm run e2e:cloud:android
 ```
 
-The `platform` input is `both` (the default), `ios` or `android`. With `ios` or `android`, the other platform's build and test jobs are skipped. `--ref` runs the workflow from the branch on GitHub. Without it, eas-cli uploads your local working tree instead. The command prints the run's URL on expo.dev.
+Each script runs the cache leak check, then builds the `e2e` profile on EAS: a staging simulator app for iOS or a staging APK for Android. The first iOS build took 14 minutes and the first Android one 26. The script waits for the build and prints its id as `E2E_IOS_BUILD_ID=<id>` or `E2E_ANDROID_BUILD_ID=<id>`. Then it runs `npm run e2e:ios` or `npm run e2e:android` with that id set. The seed and the suite run on your machine, and `@e2e-dev/eas` leases a device that installs the build.
 
-### What a run does
+Every build uses EAS build credit. When only the tests changed, reuse a build by setting its id, and the script skips the build:
 
-1. `E2E Build iOS` and `E2E Build Android` build the `e2e` profile on EAS: a staging simulator app for iOS and a staging APK for Android. On the first CI run the iOS build took 14 minutes and the Android one 26, and the whole run took 31.
-2. `E2E Seed` runs beside the builds. It runs the cache leak check, then the seed, and finishes about two minutes after the run starts. So a leaked secret, a bad credential or a staging outage shows up as a red `E2E Seed` long before the builds end. The builds still finish, but the test jobs never start.
-3. `E2E iOS` and `E2E Android` each start once their own build and the seed are done. Each logs the runner's timezone and date, then runs `npx e2e run --target <platform> --reporter list,junit --video=retain-on-failure --retries 1` on Linux. The build's id reaches the target through `E2E_IOS_BUILD_ID` or `E2E_ANDROID_BUILD_ID`, so `@e2e-dev/eas` leases an Expo Simulators device that installs that build.
+```sh
+E2E_IOS_BUILD_ID=<id> npm run e2e:cloud:ios
+```
 
-With `CI=1`, e2e reads the replay cache and never writes it. An agent step the cache misses calls Claude Code through `CLAUDE_CODE_OAUTH_TOKEN` instead of failing. The suite has no agent steps yet, so CI makes no model calls today.
+The JS is bundled into the build, so reuse one only when the app code hasn't changed since it was built.
 
-### Secrets
-
-The seed and test jobs run in the EAS `development` environment, which the `e2e` profile also builds with. These variables have secret visibility there:
-
-| Variable                   | Used for                                                       |
-| -------------------------- | -------------------------------------------------------------- |
-| `EXPO_TOKEN`               | The robot user's token. `@e2e-dev/eas` leases devices with it. |
-| `E2E_USER_EMAIL`           | The test user's staging email                                  |
-| `E2E_USER_PASSWORD`        | The test user's staging password                               |
-| `E2E_INTERVALS_API_KEY`    | The test athlete's Intervals.icu API key, for the seed         |
-| `E2E_INTERVALS_ATHLETE_ID` | The test athlete's Intervals.icu id, for the seed              |
-| `CLAUDE_CODE_OAUTH_TOKEN`  | Agent steps that miss the replay cache                         |
-
-Change them on expo.dev in the project's environment variables, or with `npx eas-cli@latest env:set`. Nobody can read a secret value back, so keep the source of each one.
-
-### Find the artifacts
-
-Each test job uploads its `.e2e/` folder, even when tests fail, as the artifact `e2e-ios` or `e2e-android`. Open the run on expo.dev and look under **Artifacts**, where each one downloads as `artifacts.tar.gz`. The folder holds `report.json`, `junit.xml` and a folder per test attempt under `results/`. A failed attempt's folder also has its `trace.md` and failure screenshot. With `--video=retain-on-failure` it should also keep the attempt's video, but no CI run has failed yet to show that. Traces contain the test email and screenshots aren't redacted, so mask the email before you paste one anywhere.
+`@e2e-dev/eas` leases the device with your `eas login` session, or with `EXPO_TOKEN` when it's set. The seed and the suite read `.env.local` as in a local run, agent steps run on your own `claude` login, and the output lands in `.e2e/`. Run one at a time, because every run reseeds the same test athlete.
 
 ### How the cloud devices differ
 
@@ -158,7 +131,7 @@ Each test job uploads its `.e2e/` folder, even when tests fail, as the artifact 
 - The cloud iPhone's system language is English, so system sheets are in English. The sign-in helper taps "Not Now" there instead of "Nie teraz". The app itself stays in Polish.
 - Android runs the Android 35 Google APIs x86_64 image on a `pixel_9`, which Expo marks as still in development. Local runs use Android 37.2 on arm64.
 - Every command goes over the network, so steps are slower. A device takes about 2 to 3 minutes to start. Then the suite takes about 3 minutes on iOS and 2 on Android.
-- The seed and the suite take "today" from the Linux runner, which runs in UTC. The app takes it from the cloud device. The logged timezone and date are the runner's, because neither `@e2e-dev/eas` nor agent-device can read the cloud device's timezone. If the device's timezone differs from UTC, a run near midnight in either timezone may fail.
+- The seed and the suite take "today" from your machine. The app takes it from the cloud device, whose timezone nothing can read. If the two differ, a run near midnight in either timezone may fail.
 
 ## Write a test
 
