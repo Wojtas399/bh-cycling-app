@@ -24,6 +24,7 @@ import {
   compactItemRow,
   compactItemRowLabel,
   compactItemRowPress,
+  rowFigures,
 } from '@/lib/compactItemRow';
 import { formatDuration, formatSpokenDuration } from '@/lib/formatDuration';
 import { noteFill } from '@/lib/noteColors';
@@ -337,13 +338,10 @@ function ItemRow({ item, ...handlers }: ItemRowProps) {
 
 function ItemRowContent({ row }: { row: CompactItemRow }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
-  const load = row.kind === 'workout' ? undefined : row.load;
-  const figures = [
-    ...(row.durationSeconds === undefined
-      ? []
-      : [formatDuration(row.durationSeconds)]),
-    ...(load === undefined ? [] : [t('load', { load })]),
-  ];
+  const figures = rowFigures(row, {
+    duration: formatDuration,
+    load: load => t('load', { load }),
+  });
 
   return (
     <Box flexDirection="row" alignItems="center">

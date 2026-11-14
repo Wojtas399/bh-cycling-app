@@ -126,18 +126,37 @@ export function compactItemRowPress(
   }
 }
 
+/** How a compact row's figures are worded, on screen or aloud. */
+export interface RowFigureWords {
+  /** A duration: "1h 15m", or as spoken "1 godz. 15 min". */
+  duration: (seconds: number) => string;
+  /** A load: "Obc. 26", or as spoken "obciążenie 26". */
+  load: (load: number) => string;
+}
+
+/** The row's duration then its load, as `words` put them, each only when set. */
+export function rowFigures(
+  row: CompactItemRow,
+  words: RowFigureWords,
+): string[] {
+  const load = row.kind === 'workout' ? undefined : row.load;
+
+  return [
+    ...(row.durationSeconds === undefined
+      ? []
+      : [words.duration(row.durationSeconds)]),
+    ...(load === undefined ? [] : [words.load(load)]),
+  ];
+}
+
 /** The words a compact row's screen-reader label is built from. */
-export interface CompactItemRowWords {
+export interface CompactItemRowWords extends RowFigureWords {
   /** A Workout with its status: "Trening wykonany". */
   workout: (status: WorkoutStatus) => string;
   /** An Unplanned Activity: "Aktywność". */
   activity: string;
   /** A Race with its priority, done when paired: "Wyścig A wykonany". */
   race: (priority: RacePriority, paired: boolean) => string;
-  /** A duration as spoken: "1 godz. 15 min". */
-  duration: (seconds: number) => string;
-  /** A load as spoken: "obciążenie 26". */
-  load: (load: number) => string;
 }
 
 /**
@@ -149,17 +168,9 @@ export function compactItemRowLabel(
   row: CompactItemRow,
   words: CompactItemRowWords,
 ): string {
-  const load = row.kind === 'workout' ? undefined : row.load;
-  const parts = [
-    kindPhrase(row, words),
-    row.title,
-    ...(row.durationSeconds === undefined
-      ? []
-      : [words.duration(row.durationSeconds)]),
-    ...(load === undefined ? [] : [words.load(load)]),
-  ];
-
-  return parts.join(', ');
+  return [kindPhrase(row, words), row.title, ...rowFigures(row, words)].join(
+    ', ',
+  );
 }
 
 function kindPhrase(row: CompactItemRow, words: CompactItemRowWords): string {

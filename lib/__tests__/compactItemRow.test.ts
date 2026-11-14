@@ -4,8 +4,9 @@ import {
   compactItemRow,
   compactItemRowLabel,
   compactItemRowPress,
+  rowFigures,
 } from '../compactItemRow';
-import { formatSpokenDuration } from '../formatDuration';
+import { formatDuration, formatSpokenDuration } from '../formatDuration';
 import type { Race } from '../races';
 import type { WorkoutBlock } from '../workoutProfile';
 import type { CalendarWorkout } from '../workoutStatus';
@@ -291,6 +292,28 @@ describe('compactItemRowLabel', () => {
   it("reads a paired Race as done, with the Activity's duration and load", () => {
     expect(label(race({}, RACED))).toBe(
       'Wyścig A wykonany, Mazovia Maraton, 3 godz. 2 min, obciążenie 210',
+    );
+  });
+});
+
+describe('rowFigures', () => {
+  const SHOWN = {
+    duration: formatDuration,
+    load: (load: number) => `Obc. ${load}`,
+  };
+
+  it('is the duration then the load, each as worded', () => {
+    expect(
+      rowFigures(compactItemRow(race({}, RACED), STRAVA_TITLE), SHOWN),
+    ).toEqual(['3h 2m', 'Obc. 210']);
+  });
+
+  it('leaves out the figures the row does not have', () => {
+    expect(
+      rowFigures(compactItemRow(activity({ load: 12.4 }), STRAVA_TITLE), SHOWN),
+    ).toEqual(['Obc. 12']);
+    expect(rowFigures(compactItemRow(workout(), STRAVA_TITLE), SHOWN)).toEqual(
+      [],
     );
   });
 });
