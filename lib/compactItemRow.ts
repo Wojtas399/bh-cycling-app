@@ -1,7 +1,7 @@
-import type { CalendarItem } from './calendarItems';
-import type { RacePriority } from './races';
+import type { CalendarItem, UnplannedActivity } from './calendarItems';
+import type { Race, RacePriority } from './races';
 import type { WorkoutBlock } from './workoutProfile';
-import type { WorkoutStatus } from './workoutStatus';
+import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
 
 interface CompactItemRowBase {
   title: string;
@@ -88,6 +88,42 @@ function figures(
     ...(durationSeconds !== undefined && { durationSeconds }),
     ...(load !== undefined && { load: Math.round(load) }),
   };
+}
+
+/** What a compact row opens, one handler per thing it can open. */
+export interface ItemPressHandlers {
+  onWorkoutPress: (workout: CalendarWorkout) => void;
+  onActivityPress: (activity: UnplannedActivity) => void;
+  onRacePress: (race: Race) => void;
+}
+
+/**
+ * What tapping `item`'s compact row opens, like the cards do: a paired Race
+ * opens its Activity, and a Strava Activity's row opens nothing, so a tap on
+ * it reaches the day.
+ */
+export function compactItemRowPress(
+  item: CalendarItem,
+  { onWorkoutPress, onActivityPress, onRacePress }: ItemPressHandlers,
+): (() => void) | undefined {
+  switch (item.kind) {
+    case 'workout':
+      return () => onWorkoutPress(item.workout);
+    case 'race': {
+      const { race, activity } = item;
+
+      return activity
+        ? () => onActivityPress(activity)
+        : () => onRacePress(race);
+    }
+    case 'activity': {
+      const { activity } = item;
+
+      return activity.isStravaActivity
+        ? undefined
+        : () => onActivityPress(activity);
+    }
+  }
 }
 
 /** The words a compact row's screen-reader label is built from. */

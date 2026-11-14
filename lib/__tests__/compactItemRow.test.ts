@@ -3,6 +3,7 @@ import {
   type CompactItemRowWords,
   compactItemRow,
   compactItemRowLabel,
+  compactItemRowPress,
 } from '../compactItemRow';
 import { formatSpokenDuration } from '../formatDuration';
 import type { Race } from '../races';
@@ -291,5 +292,69 @@ describe('compactItemRowLabel', () => {
     expect(label(race({}, RACED))).toBe(
       'Wyścig A wykonany, Mazovia Maraton, 3 godz. 2 min, obciążenie 210',
     );
+  });
+});
+
+describe('compactItemRowPress', () => {
+  function press(item: CalendarItem) {
+    const handlers = {
+      onWorkoutPress: jest.fn(),
+      onActivityPress: jest.fn(),
+      onRacePress: jest.fn(),
+    };
+
+    compactItemRowPress(item, handlers)?.();
+
+    return handlers;
+  }
+
+  it('opens a Workout', () => {
+    const { onWorkoutPress, onActivityPress, onRacePress } = press(workout());
+
+    expect(onWorkoutPress).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 1 }),
+    );
+    expect(onActivityPress).not.toHaveBeenCalled();
+    expect(onRacePress).not.toHaveBeenCalled();
+  });
+
+  it('opens an unpaired Race', () => {
+    const { onWorkoutPress, onActivityPress, onRacePress } = press(race());
+
+    expect(onRacePress).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 7 }),
+    );
+    expect(onWorkoutPress).not.toHaveBeenCalled();
+    expect(onActivityPress).not.toHaveBeenCalled();
+  });
+
+  it("opens a paired Race's Activity, not the Race", () => {
+    const { onWorkoutPress, onActivityPress, onRacePress } = press(
+      race({}, RACED),
+    );
+
+    expect(onActivityPress).toHaveBeenCalledWith(RACED);
+    expect(onRacePress).not.toHaveBeenCalled();
+    expect(onWorkoutPress).not.toHaveBeenCalled();
+  });
+
+  it('opens an Unplanned Activity', () => {
+    const { onWorkoutPress, onActivityPress, onRacePress } = press(activity());
+
+    expect(onActivityPress).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'a1' }),
+    );
+    expect(onWorkoutPress).not.toHaveBeenCalled();
+    expect(onRacePress).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for a Strava Activity, which has no details to open', () => {
+    expect(
+      compactItemRowPress(strava(), {
+        onWorkoutPress: jest.fn(),
+        onActivityPress: jest.fn(),
+        onRacePress: jest.fn(),
+      }),
+    ).toBeUndefined();
   });
 });

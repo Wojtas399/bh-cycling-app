@@ -15,14 +15,15 @@ import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import {
   type CalendarItem,
   type CalendarItemsByDate,
-  type UnplannedActivity,
   calendarItemKey,
 } from '@/lib/calendarItems';
 import {
   type CompactItemRow,
   type CompactItemRowWords,
+  type ItemPressHandlers,
   compactItemRow,
   compactItemRowLabel,
+  compactItemRowPress,
 } from '@/lib/compactItemRow';
 import { formatDuration, formatSpokenDuration } from '@/lib/formatDuration';
 import { noteFill } from '@/lib/noteColors';
@@ -30,7 +31,6 @@ import { formatNoteRange, formatNoteShortRange } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
 import type { Race } from '@/lib/races';
 import { type LaneCrossing, type NoteRow, weekNotes } from '@/lib/weekNotes';
-import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 const RAIL_WIDTH = 44;
 /** Above and below a day's rows; the rail runs through it. */
@@ -47,23 +47,15 @@ const LANE_GAP = 3;
 /** How far inside the day a line starts or ends on its Note's real day. */
 const LANE_INSET = 14;
 
-export interface CalendarWeekAgendaProps {
+export interface CalendarWeekAgendaProps extends ItemPressHandlers {
   /** Any date in the week to lay out. */
   week: Date;
   itemsByDate: CalendarItemsByDate;
   /** The Notes overlapping the week, in `id` order. */
   notes: Note[];
   onDayPress: (day: CalendarDay) => void;
-  onWorkoutPress: (workout: CalendarWorkout) => void;
-  onActivityPress: (activity: UnplannedActivity) => void;
-  onRacePress: (race: Race) => void;
   onNotePress: (note: Note) => void;
 }
-
-type ItemPressHandlers = Pick<
-  CalendarWeekAgendaProps,
-  'onWorkoutPress' | 'onActivityPress' | 'onRacePress'
->;
 
 /**
  * The weekly agenda as a date rail: Monday to Sunday, each day its rail
@@ -302,16 +294,16 @@ interface ItemRowProps extends ItemPressHandlers {
 /**
  * One item on one line: its marker, title, a Workout's mini profile, a Race's
  * priority tag, then its duration and load. The title is what truncates. Read
- * as one stop, by `compactItemRowLabel`. It opens its item like the cards do:
- * a paired Race opens its Activity, and a Strava Activity's row isn't a
- * button, so a tap on it reaches the day sheet.
+ * as one stop, by `compactItemRowLabel`. It opens what `compactItemRowPress`
+ * gives. A row with nothing to open, a Strava Activity's, isn't a button, so a
+ * tap on it reaches the day sheet.
  */
 function ItemRow({ item, ...handlers }: ItemRowProps) {
   const { t } = useTranslation();
   const words = useCompactRowWords();
   const row = compactItemRow(item, t('common.stravaActivity'));
   const label = compactItemRowLabel(row, words);
-  const onPress = itemPress(item, handlers);
+  const onPress = compactItemRowPress(item, handlers);
   const content = <ItemRowContent row={row} />;
 
   if (!onPress) {
@@ -341,31 +333,6 @@ function ItemRow({ item, ...handlers }: ItemRowProps) {
       {content}
     </Pressable>
   );
-}
-
-/** What tapping an item's row opens; nothing for a Strava Activity. */
-function itemPress(
-  item: CalendarItem,
-  { onWorkoutPress, onActivityPress, onRacePress }: ItemPressHandlers,
-): (() => void) | undefined {
-  switch (item.kind) {
-    case 'workout':
-      return () => onWorkoutPress(item.workout);
-    case 'race': {
-      const { race, activity } = item;
-
-      return activity
-        ? () => onActivityPress(activity)
-        : () => onRacePress(race);
-    }
-    case 'activity': {
-      const { activity } = item;
-
-      return activity.isStravaActivity
-        ? undefined
-        : () => onActivityPress(activity);
-    }
-  }
 }
 
 function ItemRowContent({ row }: { row: CompactItemRow }) {
