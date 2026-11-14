@@ -2,7 +2,6 @@ import { type ReactNode, useState } from 'react';
 
 import Box from '@/components/Box';
 import GlassHeader from '@/components/GlassHeader';
-import NoteDetailSheet from '@/components/NoteDetailSheet';
 import CalendarBody, {
   type CalendarBodyState,
 } from '@/components/calendar/CalendarBody';
@@ -13,13 +12,13 @@ import CalendarWeekAgenda from '@/components/calendar/CalendarWeekAgenda';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import { useOpenActivityDetails } from '@/hooks/activity/useOpenActivityDetails';
-import { useCalendarNoteSheet } from '@/hooks/calendar/useCalendarNoteSheet';
 import { useCalendarRaceSheet } from '@/hooks/calendar/useCalendarRaceSheet';
 import type { CalendarRangeView } from '@/hooks/calendar/useCalendarRange';
 import { useDaySheet } from '@/hooks/calendar/useDaySheet';
 import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useOpenNoteDetails } from '@/hooks/useOpenNoteDetails';
 import { useToday } from '@/hooks/useToday';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
@@ -161,14 +160,14 @@ interface LoadedViewProps {
   onActivityPress: (activity: UnplannedActivity) => void;
   /** Opens the Race Detail Sheet straight from the view (no day sheet). */
   onRacePress: (race: Race) => void;
-  /** Opens the Note Detail Sheet straight from the view (no day sheet). */
+  /** Opens Note Details straight from the view (no day sheet). */
   onNotePress: (note: Note) => void;
 }
 
 /**
  * Everything the two views share: the header (toggle, "Dziś", refresh, range
  * navigation) sticky on Glass, the loading/error/ready body under it, the
- * day sheet, and the Note and Race Detail Sheets.
+ * day sheet, and the Race Detail Sheet.
  */
 function CalendarLayout({
   view,
@@ -182,10 +181,10 @@ function CalendarLayout({
 }: CalendarLayoutProps) {
   const header = useGlassHeader('tab');
   const sheet = useDaySheet(query.data);
-  const noteSheet = useCalendarNoteSheet(query.data?.notes, sheet.closeThen);
   const raceSheet = useCalendarRaceSheet(sheet.closeThen);
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
+  const openNote = useOpenNoteDetails();
 
   if (availability === 'unavailable') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
@@ -202,7 +201,7 @@ function CalendarLayout({
             onWorkoutPress: workout => openWorkout(workout.id),
             onActivityPress: activity => openActivity(activity.id),
             onRacePress: raceSheet.open,
-            onNotePress: note => noteSheet.open(note.id),
+            onNotePress: note => openNote(note.id),
           })
         }
       </CalendarBody>
@@ -238,10 +237,9 @@ function CalendarLayout({
           sheet.closeThen(() => openActivity(activity.id))
         }
         onRacePress={raceSheet.openFromDaySheet}
-        onNotePress={note => noteSheet.openFromDaySheet(note.id)}
+        onNotePress={note => sheet.closeThen(() => openNote(note.id))}
       />
 
-      <NoteDetailSheet sheet={noteSheet} />
       <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );

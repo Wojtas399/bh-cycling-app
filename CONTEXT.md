@@ -29,8 +29,8 @@ The screen for one Activity with no Workout behind it: an Unplanned Activity, or
 _Avoid_: Unpaired workout details, activity mode
 
 **Note Details**:
-The screen for one Note: its title, colour and dates, then its text as Note Markdown. A sibling of Workout Details and Activity Details, pushed from a Note's card.
-_Avoid_: Note view, note page
+The screen for one Note: its title, colour and dates, then its text as Note Markdown. A sibling of Workout Details and Activity Details, pushed from a Note's card on Home, the Calendar and the Calendar day sheet. It replaced the Note sheet, so a Note never opens in a sheet.
+_Avoid_: Note view, note page, Note sheet, Note Detail Sheet
 
 **Activity Profile**:
 The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.

@@ -9,8 +9,8 @@ export interface NoteDateLabels {
 }
 
 /**
- * The days a Note covers, as its sheet's subtitle shows them: the weekday and
- * date for one day ("pon., 20 paź"), else the inclusive range, naming only
+ * The days a Note covers, as Note Details shows them: the weekday and date
+ * for one day ("pon., 20 paź"), else the inclusive range, naming only
  * what changes ("20–24 paź", "30 paź – 2 lis", "30 gru 2026 – 2 sty 2027").
  */
 export function formatNoteDates(note: Note, labels: NoteDateLabels): string {

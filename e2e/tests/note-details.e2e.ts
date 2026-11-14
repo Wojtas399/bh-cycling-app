@@ -1,3 +1,4 @@
+import { monthTitle } from '../support/calendar';
 import { LOAD_TIMEOUT } from '../support/constants';
 import { test } from '../support/fixtures';
 import { planSeed } from '../support/seedPlan';
@@ -21,6 +22,39 @@ test('Home → E2E Briefing → Note Details', async ({ screen }) => {
 
   // The Home card stays in the tree under Note Details, so match the title
   // whole. The header shows no title until the top block scrolls under it.
+  await expect(screen.getByText(new RegExp(`^${name}$`))).toBeVisible(
+    LOAD_TIMEOUT,
+  );
+  await expect(screen.getByText(new RegExp(`^${description}$`))).toBeVisible();
+});
+
+test('Kalendarz → today → E2E Briefing closes the day sheet for Note Details', async ({
+  screen,
+}) => {
+  const today = new Date();
+  const { name, description, date } = planSeed(today).events.note;
+
+  await signIn(screen);
+
+  await screen.getByText(/Kalendarz/).tap();
+  await expect(screen.getByText(monthTitle(today))).toBeVisible(LOAD_TIMEOUT);
+
+  // The day's label is "<day>. <counts>", Notes last.
+  const dayCell = screen.getByTestId(`calendar-day-${date}`);
+
+  await expect(dayCell).toHaveAccessibleName(/ notat/, LOAD_TIMEOUT);
+  await dayCell.tap();
+
+  // In the day sheet a Note card's label ends in the sheet's day, not "Dziś".
+  const daySheet = screen.getByTestId('calendar-day-sheet');
+  const card = daySheet.getByLabel(new RegExp(`^Notatka: ${name}, `));
+
+  await expect(card).toBeVisible();
+  await card.tap();
+
+  await expect(daySheet).toBeHidden();
+  // A pushed screen's back arrow, which no sheet has.
+  await expect(screen.getByLabel(/^Wstecz$/)).toBeVisible();
   await expect(screen.getByText(new RegExp(`^${name}$`))).toBeVisible(
     LOAD_TIMEOUT,
   );

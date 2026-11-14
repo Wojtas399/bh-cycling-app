@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
@@ -34,108 +33,31 @@ export interface BottomSheetProps {
   /** Called once the sheet has fully left the screen, however it closed. */
   onDismissed?: () => void;
   title?: string;
-  /** A muted line under the title. */
-  subtitle?: string;
-  /**
-   * Opens the sheet at the full screen height, for reading long content,
-   * instead of sizing it to its content.
-   */
-  fullHeight?: boolean;
   children: ReactNode;
   testID?: string;
 }
 
 /**
- * Native bottom sheet (Expo UI) with a header — optional title and subtitle,
- * and an always-present ✕ — over a body that sizes to its content and scrolls
- * once it reaches 70% of the window height. `fullHeight` opens it at the full
- * screen height instead, its body scrolling within. See ADR 0003.
+ * Native bottom sheet (Expo UI) with a header — an optional title and an
+ * always-present ✕ — over a body that sizes to its content and scrolls once
+ * it reaches 70% of the window height. See ADR 0003.
  */
 export default function BottomSheet({
   visible,
   onClose,
   onDismissed,
   title,
-  subtitle,
-  fullHeight = false,
   children,
   testID,
 }: BottomSheetProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'common' });
   const theme = useAppTheme();
   const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-
-  const body = (
-    <Box
-      paddingHorizontal="lg"
-      style={{
-        width,
-        // Full height fixes the body so its ScrollView can flex into it;
-        // the default caps a content-sized body.
-        ...(fullHeight
-          ? { height: height - insets.top }
-          : { maxHeight: height * MAX_HEIGHT_RATIO }),
-        paddingTop: Platform.OS === 'ios' ? IOS_HEADER_TOP_PADDING : 0,
-      }}
-      testID={testID}
-    >
-      <Box
-        flexDirection="row"
-        alignItems="center"
-        justifyContent={title ? 'space-between' : 'flex-end'}
-        marginBottom="base"
-      >
-        {title ? (
-          <Box flex={1} marginRight="sm">
-            <Text variant="h3">{title}</Text>
-            {subtitle ? (
-              <Text
-                variant="body-s-regular"
-                color="textSecondary"
-                marginTop="xs"
-              >
-                {subtitle}
-              </Text>
-            ) : null}
-          </Box>
-        ) : null}
-        <TouchableOpacity
-          onPress={onClose}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t('close')}
-        >
-          <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
-      </Box>
-
-      <ScrollView
-        nestedScrollEnabled
-        style={fullHeight ? { flex: 1 } : undefined}
-        contentContainerStyle={
-          fullHeight
-            ? { paddingBottom: insets.bottom + theme.spacing.lg }
-            : undefined
-        }
-      >
-        {children}
-      </ScrollView>
-
-      {/* On Android the sheet is a Dialog window above the root toast
-          host, so it carries its own host while presented. iOS keeps
-          the root host above sheets (ADR 0004). */}
-      {Platform.OS === 'android' && visible ? <SheetToastHost /> : null}
-
-      {onDismissed ? <DismissedSignal onDismissed={onDismissed} /> : null}
-    </Box>
-  );
 
   return (
     <ExpoBottomSheet
       isPresented={visible}
       onDismiss={onClose}
-      snapPoints={fullHeight ? ['full'] : undefined}
       showDragIndicator
       // Our own content view carries the theme padding and the full width.
       contentPadding={0}
@@ -151,11 +73,51 @@ export default function BottomSheet({
           : undefined
       }
     >
-      {fullHeight ? (
-        <RNHostView>{body}</RNHostView>
-      ) : (
-        <RNHostView matchContents>{body}</RNHostView>
-      )}
+      <RNHostView matchContents>
+        <Box
+          paddingHorizontal="lg"
+          style={{
+            width,
+            maxHeight: height * MAX_HEIGHT_RATIO,
+            paddingTop: Platform.OS === 'ios' ? IOS_HEADER_TOP_PADDING : 0,
+          }}
+          testID={testID}
+        >
+          <Box
+            flexDirection="row"
+            alignItems="center"
+            justifyContent={title ? 'space-between' : 'flex-end'}
+            marginBottom="base"
+          >
+            {title ? (
+              <Box flex={1} marginRight="sm">
+                <Text variant="h3">{title}</Text>
+              </Box>
+            ) : null}
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('close')}
+            >
+              <Ionicons
+                name="close"
+                size={24}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </Box>
+
+          <ScrollView nestedScrollEnabled>{children}</ScrollView>
+
+          {/* On Android the sheet is a Dialog window above the root toast
+              host, so it carries its own host while presented. iOS keeps
+              the root host above sheets (ADR 0004). */}
+          {Platform.OS === 'android' && visible ? <SheetToastHost /> : null}
+
+          {onDismissed ? <DismissedSignal onDismissed={onDismissed} /> : null}
+        </Box>
+      </RNHostView>
     </ExpoBottomSheet>
   );
 }
