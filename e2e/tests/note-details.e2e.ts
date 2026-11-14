@@ -14,6 +14,9 @@ test('Home → E2E Briefing → Note Details', async ({ screen }) => {
   const card = screen.getByLabel(new RegExp(`^Notatka: ${name}, Dziś$`));
 
   await screen.scrollUntilVisible(card, LOAD_TIMEOUT);
+  // The card can stop under the tab bar, above only E2E Goal Race, so swipe
+  // it clear before tapping.
+  await screen.swipe({ direction: 'down' });
   await card.tap();
 
   // The Home card stays in the tree under Note Details, so match the title

@@ -41,7 +41,7 @@ test('Home → next-race card and Dziś i jutro open E2E Goal Race', async ({
 
   await screen.scrollUntilVisible(tile);
   // The tile can stop under the tab bar, the last of "Dziś i jutro" below
-  // E2E Ride, so swipe it clear before tapping.
+  // E2E Ride and E2E Briefing, so swipe it clear before tapping.
   await screen.swipe({ direction: 'down' });
   await tile.tap();
   await expectRaceSheet(screen);
