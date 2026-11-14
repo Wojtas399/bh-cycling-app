@@ -96,7 +96,7 @@ npx e2e run --target android --grep "sign in"
 
 `--debug` adds phase timings and a table of agent steps with their model calls.
 
-The seed brings the test athlete to a known state. It deletes every event and every Activity whose `external_id` starts with `e2e-` from the start of last month to the end of the month after next. Then it creates the Workouts "E2E Sweet Spot" for today and "E2E Endurance" on the 15th of next month, and the A Race "E2E Goal Race", a run, for tomorrow. Last, it uploads "E2E Ride", an 18-minute TCX ride with power from noon today, as an unpaired Activity with the `external_id` `e2e-ride`, so Activity Details has an Activity Profile to draw. Nothing else on the athlete is touched. If the seed fails, the script stops before any test runs, naming the failed call. The seed is a separate step in the npm scripts because e2e 0.23 has no global setup and its `test.setup` isn't available on mobile.
+The seed brings the test athlete to a known state. It deletes every event and every Activity whose `external_id` starts with `e2e-` from the start of last month to the end of the month after next. Then it creates the Workouts "E2E Sweet Spot" for today and "E2E Endurance" on the 15th of next month, the A Race "E2E Goal Race", a run, for tomorrow, and the Note "E2E Briefing", with one line of text, for today. Last, it uploads "E2E Ride", an 18-minute TCX ride with power from noon today, as an unpaired Activity with the `external_id` `e2e-ride`, so Activity Details has an Activity Profile to draw. Nothing else on the athlete is touched. If the seed fails, the script stops before any test runs, naming the failed call. The seed is a separate step in the npm scripts because e2e 0.23 has no global setup and its `test.setup` isn't available on mobile.
 
 Every test starts signed out. The fixture clears the app's state, and on iOS the keychain, where the Firebase session lives. Then it opens the app on the sign-in screen.
 
@@ -165,7 +165,7 @@ Each test job uploads its `.e2e/` folder, even when tests fail, as the artifact 
 - Put it in `e2e/tests/` as `<flow>.e2e.ts`. Jest ignores `*.e2e.ts` files, and e2e runs only `e2e/tests/**/*.e2e.ts`.
 - Import `test` from `../support/fixtures`, not from `@e2e-dev/mobile`, so the test starts signed out. Sign in with `signIn(screen)` from `../support/signIn`.
 - Follow the locator rules in `CODING_STANDARDS.md`. Match visible text with a regex, reach fields by placeholder, and add a `testID` only when text is ambiguous or missing.
-- Assert only on the seeded Workouts, Race and ride, by name.
+- Assert only on the seeded Workouts, Race, Note and ride, by name.
 - Confirm a React Native `Alert` by locator on its button text, with `/i`, because Android may report the button in capitals. Don't use `device.alert('accept')`, which matches only English labels on iOS. A locator reaches the alert on both platforms.
 - On iOS, an accessible element hides the elements inside it. A `testID` inside a button, such as `calendar-today` inside a Calendar day, isn't in the tree, so reach the button instead.
 - Scroll to a row below the fold with `screen.scrollUntilVisible(locator)` before you tap it.

@@ -25,6 +25,7 @@ import {
 import {
   EVENT_CATEGORY,
   type IntervalsActivity,
+  IntervalsApiError,
   type IntervalsCalendarEvent,
   getActivities,
   getActivity,
@@ -107,6 +108,9 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
+  /** One Note, by its intervals.icu event id. */
+  note: (athleteId: string | undefined, eventId: number) =>
+    [...intervalsKeys.athlete(athleteId), 'note', eventId] as const,
   /**
    * The Race behind an Activity's paired event, by its intervals.icu event id.
    * The id is `null` only in the key of a query skipped for want of one.
@@ -439,6 +443,40 @@ export function workoutDetailsQueryOptions(
         }
       : skipToken,
     select,
+    ...WORKOUTS_FRESHNESS,
+  });
+}
+
+/**
+ * One Note for Note Details, read by its intervals.icu event id. An event that
+ * isn't a Note fails as a 404, like a deleted one, so both read as not found
+ * (see `isNotFoundError`). Never reads from or writes into the month or
+ * upcoming caches. Fresh as long as a Workout's details. Skipped while there
+ * are no credentials.
+ */
+export function noteDetailsQueryOptions(
+  credentials: IntervalsCredentials | null,
+  eventId: number,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.note(credentials?.athleteId, eventId),
+    queryFn: credentials
+      ? async ({ signal }): Promise<Note> => {
+          const [note] = toNotes([
+            await getCalendarEvent(
+              credentials.accessToken,
+              credentials.athleteId,
+              eventId,
+              { signal },
+            ),
+          ]);
+
+          if (!note)
+            throw new IntervalsApiError(404, 'The event is not a Note.');
+
+          return note;
+        }
+      : skipToken,
     ...WORKOUTS_FRESHNESS,
   });
 }

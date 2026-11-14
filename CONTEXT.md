@@ -28,6 +28,10 @@ _Avoid_: Stub, hidden activity
 The screen for one Activity with no Workout behind it: an Unplanned Activity, or an Activity paired to a Race, which opens with that Race named on top. It's a sibling of Workout Details, not one of its modes.
 _Avoid_: Unpaired workout details, activity mode
 
+**Note Details**:
+The screen for one Note: its title, colour and dates, then its text as Note Markdown. A sibling of Workout Details and Activity Details, pushed from a Note's card.
+_Avoid_: Note view, note page
+
 **Activity Profile**:
 The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.
 _Avoid_: Workout Profile, which is the planned shape

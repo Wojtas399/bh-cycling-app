@@ -285,6 +285,15 @@ const pl = {
       'gru',
     ],
   },
+  noteDetails: {
+    notFound: {
+      title: 'Notatka nie istnieje',
+      body: 'Ta notatka mogła zostać usunięta z Intervals.icu.',
+    },
+    error: 'Nie udało się wczytać notatki.',
+    retry: 'Spróbuj ponownie',
+    loading: 'Wczytywanie notatki',
+  },
   race: {
     /** A Race Priority as shown and spoken: "Wyścig A". */
     priority: 'Wyścig {{priority}}',

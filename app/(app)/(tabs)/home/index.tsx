@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 
@@ -7,7 +7,6 @@ import CalendarItemTile from '@/components/CalendarItemTile';
 import GlassHeader from '@/components/GlassHeader';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import NoteCard from '@/components/NoteCard';
-import NoteDetailSheet from '@/components/NoteDetailSheet';
 import Text from '@/components/Text';
 import NextRaceCard from '@/components/home/NextRaceCard';
 import TodayCards from '@/components/home/TodayCards';
@@ -18,10 +17,9 @@ import { useNextRace } from '@/hooks/home/useNextRace';
 import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
-import { useNoteSheet } from '@/hooks/useNoteSheet';
+import { useOpenNoteDetails } from '@/hooks/useOpenNoteDetails';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
-import type { Note } from '@/lib/notes';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
 /**
@@ -44,14 +42,7 @@ export default function HomeScreen() {
   const { next: nextRace, refetch: refetchNextRace } = useNextRace();
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
-  const notes = useMemo(
-    () =>
-      query.data?.flatMap((item): Note[] =>
-        item.kind === 'note' ? [item.note] : [],
-      ),
-    [query.data],
-  );
-  const noteSheet = useNoteSheet(notes);
+  const openNote = useOpenNoteDetails();
   const raceSheet = useRaceSheet();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,7 +90,7 @@ export default function HomeScreen() {
                 <NoteCard
                   note={item.note}
                   when={t(item.dayLabel)}
-                  onPress={() => noteSheet.open(item.note.id)}
+                  onPress={() => openNote(item.note.id)}
                 />
               ) : (
                 <CalendarItemTile
@@ -146,7 +137,6 @@ export default function HomeScreen() {
         </Box>
       </GlassHeader>
 
-      <NoteDetailSheet sheet={noteSheet} />
       <RaceDetailSheet sheet={raceSheet} />
     </Box>
   );
