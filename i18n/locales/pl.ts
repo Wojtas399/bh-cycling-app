@@ -344,6 +344,31 @@ const pl = {
       notes_many: '{{count}} notatek',
       notes_other: '{{count}} notatki',
     },
+    /** The week view's date rail and its compact item rows. */
+    week: {
+      /** Today's rail as a screen reader reads it: "Sobota, 14 listopada, dziś". */
+      today: '{{day}}, dziś',
+      /** What double-tapping a rail does. */
+      opensDay: 'Otwiera dzień',
+      /** A day with no Workouts, Activities or Races. */
+      rest: 'Odpoczynek',
+      /** An Activity's or paired Race's load, as a row shows it. */
+      load: 'Obc. {{load}}',
+      /** A row's screen-reader label opens with what it is and its status. */
+      workout: {
+        completed: 'Trening wykonany',
+        planned: 'Trening zaplanowany',
+        missed: 'Trening pominięty',
+      },
+      activity: 'Aktywność',
+      race: 'Wyścig {{priority}}',
+      racePaired: 'Wyścig {{priority}} wykonany',
+      /** A duration as spoken in a row's label: "1 godz. 15 min". */
+      hours: '{{hours}} godz.',
+      minutes: '{{minutes}} min',
+      /** A load as spoken in a row's label. */
+      loadSpoken: 'obciążenie {{load}}',
+    },
     monthNames: [
       'Styczeń',
       'Luty',
