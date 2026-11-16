@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Appearance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -34,23 +33,24 @@ export default function RootLayout() {
   // Shift+M in `expo start`; a no-op in production builds.
   useReactQueryDevTools(queryClient);
 
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+  // The splash stays up until the root view has laid out with fonts loaded,
+  // so the app never shows a blank frame.
+  if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView
+      style={{ flex: 1 }}
+      onLayout={() => SplashScreen.hideAsync()}
+    >
       <QueryClientProvider client={queryClient}>
-        {fontsLoaded && (
-          <ThemeProvider theme={theme}>
-            <NavThemeProvider value={DarkTheme}>
-              <Stack screenOptions={{ headerShown: false }} />
-              <StatusBar style="light" />
-              {/* Outside the navigator, so toasts survive navigation. */}
-              <ToastHost />
-            </NavThemeProvider>
-          </ThemeProvider>
-        )}
+        <ThemeProvider theme={theme}>
+          <NavThemeProvider value={DarkTheme}>
+            <Stack screenOptions={{ headerShown: false }} />
+            <StatusBar style="light" />
+            {/* Outside the navigator, so toasts survive navigation. */}
+            <ToastHost />
+          </NavThemeProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
