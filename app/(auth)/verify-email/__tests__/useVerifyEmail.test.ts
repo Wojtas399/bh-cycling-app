@@ -1,8 +1,10 @@
 import { useVerifyEmail } from '../useVerifyEmail';
+import { sendVerificationEmail } from '@/lib/verificationEmail';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act } from '@testing-library/react-native';
 
 const mockUser = {
+  uid: 'rider',
   email: 'rider@example.com',
   emailVerified: false,
   reload: jest.fn(),
@@ -18,22 +20,28 @@ jest.mock('@/lib/firebase', () => ({
 }));
 
 /**
- * Renders the hook with the cooldown that starts on mount already run down,
- * so a resend goes through.
+ * Opens verify-email when no email went out in the last minute, as on a cold
+ * start, so a resend goes through. A send an earlier test made is a minute
+ * old by then.
  */
-async function setupAfterCooldown() {
+async function openWithNoRecentSend() {
   jest.useFakeTimers();
+  jest.advanceTimersByTime(60_000);
   const hook = await renderHookWithClient(() => useVerifyEmail());
 
-  await act(async () => {
-    jest.advanceTimersByTime(60_000);
-  });
   jest.useRealTimers();
 
   return hook;
 }
 
-type Hook = Awaited<ReturnType<typeof setupAfterCooldown>>;
+type Hook = Awaited<ReturnType<typeof openWithNoRecentSend>>;
+
+// What sign-up and sign-in do after the account signs in.
+async function handlerSends() {
+  await act(async () => {
+    await sendVerificationEmail(mockUser);
+  });
+}
 
 // React Query hands the settled state to the hook on a later tick.
 async function settle() {
@@ -66,8 +74,48 @@ describe('useVerifyEmail', () => {
     jest.useRealTimers();
   });
 
+  it('sends no email on mount', async () => {
+    await renderHookWithClient(() => useVerifyEmail());
+    await settle();
+
+    expect(mockUser.sendEmailVerification).not.toHaveBeenCalled();
+  });
+
+  it('has Resend ready when no email went out in the last minute', async () => {
+    const hook = await openWithNoRecentSend();
+
+    expect(hook.result.current.cooldown).toBe(0);
+
+    await resend(hook);
+
+    expect(mockUser.sendEmailVerification).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.cooldown).toBe(60);
+  });
+
+  it('opens with Resend on cooldown after sign-up or sign-in sent the email', async () => {
+    await handlerSends();
+    const hook = await renderHookWithClient(() => useVerifyEmail());
+
+    expect(hook.result.current.cooldown).toBe(60);
+
+    await resend(hook);
+
+    // One email: the handler's. Resend did nothing.
+    expect(mockUser.sendEmailVerification).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the cooldown when the email goes out after the screen opened', async () => {
+    const hook = await openWithNoRecentSend();
+
+    expect(hook.result.current.cooldown).toBe(0);
+
+    await handlerSends();
+
+    expect(hook.result.current.cooldown).toBe(60);
+  });
+
   it('shows notVerified when the user is still unverified', async () => {
-    const hook = await setupAfterCooldown();
+    const hook = await openWithNoRecentSend();
 
     await checkVerified(hook);
 
@@ -75,7 +123,7 @@ describe('useVerifyEmail', () => {
   });
 
   it('clears the check error when a resend starts', async () => {
-    const hook = await setupAfterCooldown();
+    const hook = await openWithNoRecentSend();
 
     await checkVerified(hook);
 
@@ -90,7 +138,7 @@ describe('useVerifyEmail', () => {
     mockUser.sendEmailVerification.mockRejectedValue({
       code: 'auth/network-request-failed',
     });
-    const hook = await setupAfterCooldown();
+    const hook = await openWithNoRecentSend();
 
     await resend(hook);
 

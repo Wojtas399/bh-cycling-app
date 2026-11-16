@@ -15,6 +15,7 @@ import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle } from '@/lib/signInWithGoogle';
+import { sendVerificationEmail } from '@/lib/verificationEmail';
 import { useMutation } from '@tanstack/react-query';
 
 export function useSignUp() {
@@ -26,10 +27,12 @@ export function useSignUp() {
 
   const emailSignUp = useMutation({
     mutationFn: async (variables: SignUpValues) => {
-      await auth().createUserWithEmailAndPassword(
+      const { user } = await auth().createUserWithEmailAndPassword(
         variables.email,
         variables.password,
       );
+
+      await sendVerificationEmail(user);
     },
   });
 

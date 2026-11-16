@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { NOT_VERIFIED_CODE, mapVerifyEmailError } from './verifyEmailErrors';
 import { useCooldown } from '@/hooks/useCooldown';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
+import {
+  getVerificationEmailSentAt,
+  subscribeVerificationEmailSent,
+} from '@/lib/verificationEmail';
 import { useMutation } from '@tanstack/react-query';
 
 const COOLDOWN_SECONDS = 60;
@@ -12,11 +16,29 @@ const COOLDOWN_SECONDS = 60;
 export function useVerifyEmail() {
   const { t } = useTranslation();
 
-  // Mounting sends the first email, so the cooldown is already running.
+  // Sign-up and sign-in send the email; this screen never does. Resend opens
+  // on cooldown when that send went out in the last minute, and is ready on a
+  // cold start, which sends nothing.
+  const sentAt = useSyncExternalStore(
+    subscribeVerificationEmailSent,
+    getVerificationEmailSentAt,
+  );
+  const [sentRecently] = useState(
+    () => sentAt !== null && Date.now() - sentAt < COOLDOWN_SECONDS * 1000,
+  );
   const { remaining: cooldown, start: startCooldown } = useCooldown(
     COOLDOWN_SECONDS,
-    { startActive: true },
+    { startActive: sentRecently },
   );
+
+  // The auth gate can open this screen before the handler records its send,
+  // so a send recorded after mount starts the cooldown too.
+  const [seenSentAt, setSeenSentAt] = useState(sentAt);
+
+  if (sentAt !== seenSentAt) {
+    setSeenSentAt(sentAt);
+    startCooldown();
+  }
 
   const checkVerified = useMutation({
     mutationFn: async () => {
@@ -41,12 +63,6 @@ export function useVerifyEmail() {
   });
 
   const loading = checkVerified.isPending || resend.isPending;
-
-  useEffect(() => {
-    auth()
-      .currentUser?.sendEmailVerification()
-      .catch(() => {});
-  }, []);
 
   async function handleVerified() {
     if (loading) return;
