@@ -476,7 +476,7 @@ describe('useDeleteAccount', () => {
       const hook = await setup(['google.com']);
       const finish = await startHangingDelete(hook);
 
-      expect(hook.result.current.screenOptions.gestureEnabled).toBe(false);
+      expect(hook.result.current.busy).toBe(true);
       expect(removes('GO_BACK')).toBe(false);
       expect(removes('POP')).toBe(false);
       expect(removes('REPLACE')).toBe(true);
@@ -489,7 +489,7 @@ describe('useDeleteAccount', () => {
   it('allows going back when idle', async () => {
     const hook = await setup(['password']);
 
-    expect(hook.result.current.screenOptions.gestureEnabled).toBe(true);
+    expect(hook.result.current.busy).toBe(false);
     expect(removes('GO_BACK')).toBe(true);
     expect(removes('POP')).toBe(true);
   });
@@ -504,7 +504,7 @@ describe('useDeleteAccount', () => {
     await submit(hook);
 
     expect(hook.result.current.formError).toBe('deleteAccount.errors.generic');
-    expect(hook.result.current.screenOptions.gestureEnabled).toBe(true);
+    expect(hook.result.current.busy).toBe(false);
     expect(removes('GO_BACK')).toBe(true);
     expect(removes('POP')).toBe(true);
   });

@@ -112,7 +112,7 @@ export function useDeleteAccount() {
   const busy = deleteAccount.isPending;
 
   // Going back is blocked while the request runs: the hardware back button
-  // and the header button here, the swipe gesture through `screenOptions`.
+  // and the header button here, the swipe gesture in the screen's options.
   // Any other dispatched removal goes through: dispatching it again doesn't
   // loop, since React Navigation skips screens that already saw the action.
   // The auth gate dispatches nothing: it drops this screen by changing the
@@ -157,7 +157,5 @@ export function useDeleteAccount() {
     busy,
     requiresPassword,
     submit,
-    /** For the screen's `Stack.Screen`. */
-    screenOptions: { gestureEnabled: !busy },
   };
 }

@@ -16,18 +16,18 @@ The idea comes from "Why we banned React's useEffect" (alvinsng, Factory). This 
 - **Exempt paths.** `e2e/` and `__tests__/` folders aren't app code, so the grep below skips them. The lint rule still covers them.
 - **Replacements.** Each of the 10 effects became a primitive that states its intent:
 
-  | Need                                     | Replacement                                                                                                         | Where                                          |
-  | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-  | Where the user may be                    | `Stack.Protected` guards. When a guard turns off, the router leaves its screens.                                    | `app/_layout.tsx`, `app/(auth)/_layout.tsx`    |
-  | The auth state                           | `useSyncExternalStore` over Firebase `onUserChanged`                                                                | `hooks/useAuthState.ts`                        |
-  | Sending the verification email           | The sign-up and sign-in handlers, not the verify-email mount                                                        | `lib/verificationEmail.ts`                     |
-  | Blocking back while deleting the account | `usePreventRemove(busy, …)` plus `gestureEnabled: !busy`                                                            | `app/(app)/delete-account/useDeleteAccount.ts` |
-  | Hiding the splash                        | The root view's `onLayout` once fonts have loaded                                                                   | `app/_layout.tsx`                              |
-  | Today across midnight                    | `useSyncExternalStore`, whose subscribe arms a midnight timer and an `AppState` listener                            | `hooks/useToday.ts`                            |
-  | A resend countdown                       | An `endsAt` timestamp read against a shared one-second clock store                                                  | `hooks/useCooldown.ts`, `lib/secondClock.ts`   |
-  | The Intervals.icu connection             | `useSyncExternalStore` over the integration document's `onSnapshot`                                                 | `hooks/useIntervalsConnection.ts`              |
-  | An Android sheet's toast host            | The `registerWhileMounted` ref callback with cleanup                                                                | `lib/toast/ToastHost.tsx`                      |
-  | The sheet's dismissed signal             | The `signalOnDetach` ref callback, whose cleanup fires when Expo UI unmounts the content after dismissal (ADR 0003) | `components/BottomSheet.tsx`                   |
+  | Need                                     | Replacement                                                                                                         | Where                                                              |
+  | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+  | Where the user may be                    | `Stack.Protected` guards. When a guard turns off, the router leaves its screens.                                    | `app/_layout.tsx`, `app/(auth)/_layout.tsx`                        |
+  | The auth state                           | `useSyncExternalStore` over Firebase `onUserChanged`                                                                | `hooks/useAuthState.ts`                                            |
+  | Sending the verification email           | The sign-up and sign-in handlers, not the verify-email mount                                                        | `lib/verificationEmail.ts`                                         |
+  | Blocking back while deleting the account | `usePreventRemove(busy, …)` in the hook, plus `gestureEnabled: !busy` in the screen's options                       | `app/(app)/delete-account/useDeleteAccount.ts` and its `index.tsx` |
+  | Hiding the splash                        | The root view's `onLayout` once fonts have loaded                                                                   | `app/_layout.tsx`                                                  |
+  | Today across midnight                    | `useSyncExternalStore`, whose subscribe arms a midnight timer and an `AppState` listener                            | `hooks/useToday.ts`                                                |
+  | A resend countdown                       | An `endsAt` timestamp read against a shared one-second clock store                                                  | `hooks/useCooldown.ts`, `lib/secondClock.ts`                       |
+  | The Intervals.icu connection             | `useSyncExternalStore` over the integration document's `onSnapshot`                                                 | `hooks/useIntervalsConnection.ts`                                  |
+  | An Android sheet's toast host            | The `registerWhileMounted` ref callback with cleanup                                                                | `lib/toast/ToastHost.tsx`                                          |
+  | The sheet's dismissed signal             | The `signalOnDetach` ref callback, whose cleanup fires when Expo UI unmounts the content after dismissal (ADR 0003) | `components/BottomSheet.tsx`                                       |
 
   Two more rules cover what an effect usually does. A value computed from props or state is derived during render. Work caused by a user action runs in that action's handler.
 

@@ -24,12 +24,12 @@ export default function DeleteAccountScreen() {
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
 
-  const { form, formError, busy, requiresPassword, submit, screenOptions } =
+  const { form, formError, busy, requiresPassword, submit } =
     useDeleteAccount();
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <Stack.Screen options={screenOptions} />
+      <Stack.Screen options={{ gestureEnabled: !busy }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
