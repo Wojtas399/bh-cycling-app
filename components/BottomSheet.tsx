@@ -1,9 +1,10 @@
-import { type ReactNode, useEffect, useEffectEvent } from 'react';
+import { type ReactNode, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  View,
   useWindowDimensions,
 } from 'react-native';
 
@@ -30,7 +31,10 @@ export interface BottomSheetProps {
   visible: boolean;
   /** Called on every user dismissal: swipe, backdrop tap, back, or ✕. */
   onClose: () => void;
-  /** Called once the sheet has fully left the screen, however it closed. */
+  /**
+   * Called once the sheet has fully left the screen, however it closed. Keep
+   * it stable: a new function while the sheet is shown calls the old one.
+   */
   onDismissed?: () => void;
   title?: string;
   children: ReactNode;
@@ -53,6 +57,13 @@ export default function BottomSheet({
   const { t } = useTranslation(undefined, { keyPrefix: 'common' });
   const theme = useAppTheme();
   const { width, height } = useWindowDimensions();
+  // Expo UI's universal sheet has no "finished dismissing" event, but on both
+  // platforms it unmounts the content only after the dismissal has finished
+  // (ADR 0003), which detaches this callback's view.
+  const signalOnDetach = useCallback(
+    () => () => onDismissed?.(),
+    [onDismissed],
+  );
 
   return (
     <ExpoBottomSheet
@@ -115,21 +126,9 @@ export default function BottomSheet({
               the root host above sheets (ADR 0004). */}
           {Platform.OS === 'android' && visible ? <SheetToastHost /> : null}
 
-          {onDismissed ? <DismissedSignal onDismissed={onDismissed} /> : null}
+          <View ref={signalOnDetach} />
         </Box>
       </RNHostView>
     </ExpoBottomSheet>
   );
-}
-
-/**
- * Expo UI's universal sheet has no "finished dismissing" event, but on both
- * platforms it unmounts the content only after the dismissal has finished.
- */
-function DismissedSignal({ onDismissed }: { onDismissed: () => void }) {
-  const notify = useEffectEvent(onDismissed);
-
-  useEffect(() => () => notify(), []);
-
-  return null;
 }
