@@ -6,13 +6,11 @@ import { useCooldown } from '@/hooks/useCooldown';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 
 const COOLDOWN_SECONDS = 60;
 
 export function useVerifyEmail() {
   const { t } = useTranslation();
-  const router = useRouter();
 
   // Mounting sends the first email, so the cooldown is already running.
   const { remaining: cooldown, start: startCooldown } = useCooldown(
@@ -30,9 +28,6 @@ export function useVerifyEmail() {
           code: NOT_VERIFIED_CODE,
         });
       }
-    },
-    onSuccess: () => {
-      router.replace('/(app)/(tabs)/home');
     },
   });
 

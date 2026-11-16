@@ -3,17 +3,12 @@ import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-const mockReplace = jest.fn();
 const mockCreateUser = jest.fn();
 const mockSignInWithCredential = jest.fn();
 const mockGoogleSignIn = jest.fn();
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
-}));
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: mockReplace }),
 }));
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
@@ -210,7 +205,6 @@ describe('useSignUp', () => {
         'rider@example.com',
         ' password-1 ',
       );
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/verify-email');
       expect(hook.result.current.busy).toBe(false);
     });
 
@@ -263,7 +257,6 @@ describe('useSignUp', () => {
 
       expect(hook.result.current.formError).toBe(key);
       expect(FIELDS.map(name => errorOf(hook, name))).toEqual(['', '', '']);
-      expect(mockReplace).not.toHaveBeenCalled();
       expect(hook.result.current.busy).toBe(false);
     });
 
@@ -296,12 +289,12 @@ describe('useSignUp', () => {
       await fill(hook, { email: 'not-an-email' });
       await signUpWithGoogle(hook);
 
-      expect(mockReplace).toHaveBeenCalledWith('/(app)/(tabs)/home');
+      expect(mockSignInWithCredential).toHaveBeenCalled();
       expect(errorOf(hook, 'email')).toBe('');
       expect(mockCreateUser).not.toHaveBeenCalled();
     });
 
-    it('resolves a cancel with no error and no navigation', async () => {
+    it('resolves a cancel with no error', async () => {
       mockGoogleSignIn.mockRejectedValue({ code: 'SIGN_IN_CANCELLED' });
       const hook = await setup();
 
@@ -309,7 +302,6 @@ describe('useSignUp', () => {
 
       expect(hook.result.current.formError).toBe('');
       expect(hook.result.current.busy).toBe(false);
-      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it('shows a form error when it fails', async () => {

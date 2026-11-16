@@ -2,7 +2,6 @@ import { useVerifyEmail } from '../useVerifyEmail';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act } from '@testing-library/react-native';
 
-const mockReplace = jest.fn();
 const mockUser = {
   email: 'rider@example.com',
   emailVerified: false,
@@ -12,10 +11,6 @@ const mockUser = {
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
-}));
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: mockReplace }),
 }));
 
 jest.mock('@/lib/firebase', () => ({
@@ -77,7 +72,6 @@ describe('useVerifyEmail', () => {
     await checkVerified(hook);
 
     expect(hook.result.current.error).toBe('verifyEmail.errors.notVerified');
-    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it('clears the check error when a resend starts', async () => {
@@ -106,6 +100,5 @@ describe('useVerifyEmail', () => {
     await checkVerified(hook);
 
     expect(hook.result.current.error).toBe('');
-    expect(mockReplace).toHaveBeenCalledWith('/(app)/(tabs)/home');
   });
 });

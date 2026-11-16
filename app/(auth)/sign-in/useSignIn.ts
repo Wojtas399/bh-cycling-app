@@ -16,11 +16,9 @@ import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle as googleSignInFlow } from '@/lib/signInWithGoogle';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 
 export function useSignIn() {
   const { t } = useTranslation();
-  const router = useRouter();
 
   const { control, setFocus, handleSubmit } = useAppForm(signInSchema, {
     defaultValues: { email: '', password: '' },
@@ -33,18 +31,10 @@ export function useSignIn() {
         variables.password,
       );
     },
-    onSuccess: () => {
-      router.replace('/(app)/(tabs)/home');
-    },
   });
 
   const googleSignIn = useMutation({
     mutationFn: googleSignInFlow,
-    onSuccess: outcome => {
-      if (outcome === 'cancelled') return;
-
-      router.replace('/(app)/(tabs)/home');
-    },
   });
 
   const busy = emailSignIn.isPending || googleSignIn.isPending;

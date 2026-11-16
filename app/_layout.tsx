@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import theme from '@/constants/theme';
+import { useAuthState } from '@/hooks/useAuthState';
 import '@/i18n';
 import { setupAppFocus } from '@/lib/appFocus';
 import { queryClient } from '@/lib/queryClient';
@@ -30,6 +31,7 @@ setupAppFocus();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ ...Ionicons.font });
+  const authState = useAuthState();
 
   // Shift+M in `expo start`; a no-op in production builds.
   useReactQueryDevTools(queryClient);
@@ -44,7 +46,25 @@ export default function RootLayout() {
         {fontsLoaded && (
           <ThemeProvider theme={theme}>
             <NavThemeProvider value={DarkTheme}>
-              <Stack screenOptions={{ headerShown: false }} />
+              {/* The guards decide where the user may be. When one turns
+                  off, the router leaves its screens for the first reachable
+                  one, so signing in, out or verifying needs no redirect. */}
+              <Stack screenOptions={{ headerShown: false }}>
+                {/* Blank until Firebase first reports the user. */}
+                <Stack.Protected guard={authState === 'unknown'}>
+                  <Stack.Screen name="index" />
+                </Stack.Protected>
+                <Stack.Protected guard={authState === 'verified'}>
+                  <Stack.Screen name="(app)" />
+                </Stack.Protected>
+                <Stack.Protected
+                  guard={
+                    authState === 'signedOut' || authState === 'unverified'
+                  }
+                >
+                  <Stack.Screen name="(auth)" />
+                </Stack.Protected>
+              </Stack>
               <StatusBar style="light" />
               {/* Outside the navigator, so toasts survive navigation. */}
               <ToastHost />

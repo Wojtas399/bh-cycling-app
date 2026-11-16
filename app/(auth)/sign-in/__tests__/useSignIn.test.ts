@@ -3,17 +3,12 @@ import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-const mockReplace = jest.fn();
 const mockSignInWithEmail = jest.fn();
 const mockSignInWithCredential = jest.fn();
 const mockGoogleSignIn = jest.fn();
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
-}));
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: mockReplace }),
 }));
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
@@ -161,7 +156,6 @@ describe('useSignIn', () => {
         'rider@example.com',
         ' pass ',
       );
-      expect(mockReplace).toHaveBeenCalledWith('/(app)/(tabs)/home');
       expect(hook.result.current.busy).toBe(false);
     });
 
@@ -208,7 +202,6 @@ describe('useSignIn', () => {
       expect(hook.result.current.formError).toBe(message);
       expect(errorOf(hook, 'email')).toBe('');
       expect(errorOf(hook, 'password')).toBe('');
-      expect(mockReplace).not.toHaveBeenCalled();
       expect(hook.result.current.busy).toBe(false);
     });
 
@@ -258,7 +251,7 @@ describe('useSignIn', () => {
       expect(errorOf(hook, 'email')).toBe('');
     });
 
-    it('resolves a cancel with no error and no navigation', async () => {
+    it('resolves a cancel with no error', async () => {
       mockGoogleSignIn.mockRejectedValue({ code: 'SIGN_IN_CANCELLED' });
       const hook = await setup();
 
@@ -266,7 +259,6 @@ describe('useSignIn', () => {
 
       expect(hook.result.current.formError).toBe('');
       expect(hook.result.current.busy).toBe(false);
-      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it('shows a form error when it fails', async () => {
