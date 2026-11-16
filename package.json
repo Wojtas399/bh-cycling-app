@@ -13,7 +13,7 @@
     "ios:prebuild": "expo prebuild --clean --platform ios",
     "android:prebuild": "expo prebuild --clean --platform android",
     "prebuild": "expo prebuild --clean",
-    "lint": "expo lint . --max-warnings 0",
+    "lint": "expo lint . --max-warnings 0 && bash scripts/check-no-effects.sh",
     "test": "jest",
     "fingerprint": "bash scripts/fingerprint.sh",
     "eas:log": "bash scripts/eas-build-log.sh",
