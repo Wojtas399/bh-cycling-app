@@ -1,6 +1,6 @@
 /**
- * Recreates the test athlete's `e2e-` Workouts, Race and ride on Intervals.icu,
- * so every suite run starts from the same data. `npm run e2e:ios` and
+ * Recreates the test athlete's `e2e-` Workouts, Race, Note and ride on
+ * Intervals.icu, so every suite run starts from the same data. `npm run e2e:ios` and
  * `npm run e2e:android` run it before `e2e run`, because e2e 0.23 has no
  * global setup and its `test.setup` isn't available on mobile. `planSeed`
  * decides what to write; this file only makes the calls. Run it on its own with `npm run e2e:seed`.
@@ -85,7 +85,7 @@ try {
     await call('POST', eventsPath, {
       category: event.category,
       start_date_local: `${event.date}T00:00:00`,
-      type: event.type,
+      type: 'type' in event ? event.type : undefined,
       name: event.name,
       description: 'description' in event ? event.description : undefined,
       external_id: event.external_id,

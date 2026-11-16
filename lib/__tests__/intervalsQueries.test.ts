@@ -2,11 +2,14 @@ import { buildActivityDetails } from '../activityDetails';
 import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
+  IntervalsApiError,
   type IntervalsCalendarEvent,
   type IntervalsWorkoutDoc,
   getActivities,
   getAthleteSettings,
+  getCalendarEvent,
   getCalendarEvents,
+  isNotFoundError,
 } from '../intervalsApi';
 import {
   activityDetailsQueryOptions,
@@ -14,6 +17,7 @@ import {
   fitnessQueryOptions,
   intervalsKeys,
   monthQueryOptions,
+  noteDetailsQueryOptions,
   routeQueryOptions,
   selectMonthAsOf,
   upcomingQueryOptions,
@@ -29,6 +33,7 @@ jest.mock('../handleIntervalsAuthError', () => ({
 
 jest.mock('../intervalsApi', () => ({
   ...jest.requireActual('../intervalsApi'),
+  getCalendarEvent: jest.fn(),
   getCalendarEvents: jest.fn(),
   getActivities: jest.fn(),
   getAthleteSettings: jest.fn(),
@@ -38,6 +43,7 @@ const TODAY = '2026-02-11';
 const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 
 const mockGetActivities = getActivities as jest.Mock;
+const mockGetCalendarEvent = getCalendarEvent as jest.Mock;
 const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
@@ -198,6 +204,83 @@ describe('routeQueryOptions', () => {
 
   it('keeps a loaded Route fresh forever', () => {
     expect(routeQueryOptions(CREDENTIALS, 'i42').staleTime).toBe(Infinity);
+  });
+});
+
+describe('noteDetailsQueryOptions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('reads the event by its id and stores it as a Note', async () => {
+    mockGetCalendarEvent.mockResolvedValue({
+      id: 7,
+      category: 'NOTE',
+      name: 'Camp briefing',
+      description: 'Pack the rain jacket.',
+      color: '#ff0000',
+      start_date_local: '2026-11-20T00:00:00',
+      end_date_local: '2026-11-23T00:00:00',
+    });
+
+    const note = await createQueryClient().fetchQuery(
+      noteDetailsQueryOptions(CREDENTIALS, 7),
+    );
+
+    expect(note).toEqual({
+      id: 7,
+      name: 'Camp briefing',
+      description: 'Pack the rain jacket.',
+      color: '#ff0000',
+      start: '2026-11-20',
+      end: '2026-11-23',
+    });
+    expect(mockGetCalendarEvent).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      7,
+      {
+        signal: expect.any(AbortSignal),
+      },
+    );
+  });
+
+  it('fails as not found when the event is not a Note', async () => {
+    mockGetCalendarEvent.mockResolvedValue({
+      id: 7,
+      category: 'WORKOUT',
+      name: 'Sweet spot',
+      start_date_local: '2026-11-20T08:00:00',
+    });
+
+    const error = await createQueryClient()
+      .fetchQuery(noteDetailsQueryOptions(CREDENTIALS, 7))
+      .catch((caught: unknown) => caught);
+
+    expect(isNotFoundError(error)).toBe(true);
+  });
+
+  it('fails as not found when the event was deleted', async () => {
+    mockGetCalendarEvent.mockRejectedValue(new IntervalsApiError(404));
+
+    const error = await createQueryClient()
+      .fetchQuery(noteDetailsQueryOptions(CREDENTIALS, 7))
+      .catch((caught: unknown) => caught);
+
+    expect(isNotFoundError(error)).toBe(true);
+  });
+
+  it("keys the Note by its event id under the athlete's prefix", () => {
+    expect(noteDetailsQueryOptions(CREDENTIALS, 7).queryKey).toEqual([
+      'intervals',
+      'athlete-1',
+      'note',
+      7,
+    ]);
+  });
+
+  it('is skipped without credentials', () => {
+    expect(noteDetailsQueryOptions(null, 7).queryFn).toBe(skipToken);
   });
 });
 

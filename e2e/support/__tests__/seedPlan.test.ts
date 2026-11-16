@@ -31,6 +31,19 @@ describe('planSeed', () => {
     });
   });
 
+  it('plans E2E Briefing, a Note with text, for today', () => {
+    const { note } = planSeed(new Date(2026, 10, 8, 14, 30)).events;
+
+    expect(note).toEqual({
+      category: 'NOTE',
+      external_id: 'e2e-today-note',
+      name: 'E2E Briefing',
+      date: '2026-11-08',
+      day: new Date(2026, 10, 8),
+      description: 'Bring a spare tube and two bottles.',
+    });
+  });
+
   it.each([
     ['the last day of a 31-day month', new Date(2027, 0, 31), '2027-02-01'],
     ['the last day of February', new Date(2027, 1, 28), '2027-03-01'],

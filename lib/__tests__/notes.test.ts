@@ -4,6 +4,7 @@ import {
   type Note,
   isMultiDay,
   noteLastDay,
+  noteText,
   noteWindow,
   notesOn,
   notesOverlapping,
@@ -174,5 +175,19 @@ describe('noteWindow', () => {
       oldest: '2026-09-22',
       newest: '2026-10-24',
     });
+  });
+});
+
+describe('noteText', () => {
+  it('is empty for a Note without text', () => {
+    expect(noteText(note({ description: null }))).toBe('');
+  });
+
+  it('is the Markdown left once the HTML is stripped, without outer blank lines', () => {
+    expect(
+      noteText(
+        note({ description: '<p>**Rano** <i>rozjazd</i></p><p>Wieczór</p>' }),
+      ),
+    ).toBe('**Rano** rozjazd\n\nWieczór');
   });
 });

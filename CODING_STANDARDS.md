@@ -9,7 +9,7 @@ Binding rules for anyone writing or reviewing code in this repo, human or agent.
 - **Jest render tests of components and screens stay banned.** That covers `components/**` and route screens (`index.tsx`, `_layout.tsx`). Don't add new ones. The existing ones (e.g. `components/__tests__/`) can stay, but don't extend them unless asked.
 - **The seam:** if a component has logic worth testing, move it into a `lib/` function or a hook and test that in Jest. What a screen shows is the e2e suite's job.
 - **E2E steps and asserts are locators.** Match visible text with a regex, because merged labels carry icon glyphs on iOS. Reach fields by placeholder. Add a `testID` only when visible text is ambiguous or missing. Use `agent.act` only where no locator can reach an element, and never commit an `agent.assert`.
-- **E2E tests are independent.** Each one starts signed out through the `test` from `e2e/support/fixtures.ts`, signs in through the shared helper, and asserts only on seeded Workouts, Races and Activities, never on other data on the test athlete.
+- **E2E tests are independent.** Each one starts signed out through the `test` from `e2e/support/fixtures.ts`, signs in through the shared helper, and asserts only on seeded Workouts, Races, Notes and Activities, never on other data on the test athlete.
 - **No secret reaches an agent step.** Never pass a password, token or API key in an agent step's params.
 
 For reviewers:

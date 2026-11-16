@@ -14,6 +14,12 @@ export interface SeedWorkout extends SeedEventBase {
   description: string;
 }
 
+/** A one-day Note with text, so Note Details has a title and a body. */
+export interface SeedNote extends SeedEventBase {
+  category: 'NOTE';
+  description: string;
+}
+
 /** An all-day Race with no description, duration or distance. */
 export interface SeedRace extends SeedEventBase {
   category: 'RACE_A';
@@ -42,7 +48,12 @@ export interface RideEffort {
 }
 
 export interface SeedPlan {
-  events: { sweetSpot: SeedWorkout; endurance: SeedWorkout; race: SeedRace };
+  events: {
+    sweetSpot: SeedWorkout;
+    endurance: SeedWorkout;
+    race: SeedRace;
+    note: SeedNote;
+  };
   ride: SeedRide;
   /** Inclusive local dates to clear seed-owned events and Activities from. */
   deleteWindow: { oldest: string; newest: string };
@@ -114,6 +125,14 @@ export function planSeed(today: Date): SeedPlan {
         date: toLocalDate(raceDay),
         day: raceDay,
         type: 'Run',
+      },
+      note: {
+        category: 'NOTE',
+        external_id: `${SEED_PREFIX}today-note`,
+        name: 'E2E Briefing',
+        date: toLocalDate(sweetSpotDay),
+        day: sweetSpotDay,
+        description: 'Bring a spare tube and two bottles.',
       },
     },
     ride: {

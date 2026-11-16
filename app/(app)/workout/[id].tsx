@@ -4,6 +4,7 @@ import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import DetailsLoadError from '@/components/DetailsLoadError';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import RouteBanner from '@/components/route/RouteBanner';
@@ -15,7 +16,6 @@ import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 import WorkoutDetailsHero from '@/components/workout/WorkoutDetailsHero';
 import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton';
 import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
-import WorkoutLoadError from '@/components/workout/WorkoutLoadError';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import WorkoutStravaCard from '@/components/workout/WorkoutStravaCard';
 import { useAppTheme } from '@/constants/theme';
@@ -65,7 +65,8 @@ export default function WorkoutDetailsScreen() {
 
     if (query.isError) {
       return (
-        <WorkoutLoadError
+        <DetailsLoadError
+          keyPrefix="workoutDetails"
           error={query.error}
           onRetry={() => void query.refetch()}
         />

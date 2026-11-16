@@ -25,6 +25,7 @@ import {
 import {
   EVENT_CATEGORY,
   type IntervalsActivity,
+  IntervalsApiError,
   type IntervalsCalendarEvent,
   getActivities,
   getActivity,
@@ -107,6 +108,9 @@ export const intervalsKeys = {
   /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
+  /** One Note, by its intervals.icu event id. */
+  note: (athleteId: string | undefined, eventId: number) =>
+    [...intervalsKeys.athlete(athleteId), 'note', eventId] as const,
   /**
    * The Race behind an Activity's paired event, by its intervals.icu event id.
    * The id is `null` only in the key of a query skipped for want of one.
@@ -139,11 +143,12 @@ export async function removeIntervalsQueries(
 }
 
 /**
- * How a month, the upcoming workouts and a Workout's or an Activity's details
- * stay fresh: stale after 5 minutes, then refetched when shown again or when
- * the app returns to the foreground.
+ * How whatever the athlete can change on intervals.icu stays fresh (events,
+ * Activities, Wellness and Fitness, everywhere they show): stale after 5
+ * minutes, then refetched when shown again or when the app returns to the
+ * foreground. Settings and Routes, which rarely or never change, don't use it.
  */
-const WORKOUTS_FRESHNESS = {
+const CHANGING_DATA_FRESHNESS = {
   staleTime: 5 * 60_000,
   refetchOnWindowFocus: true,
 } as const;
@@ -197,7 +202,7 @@ export function upcomingQueryOptions(
           return getUpcomingItems(events, activities, notes, today, zoneConfig);
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -237,7 +242,7 @@ export function nextRaceQueryOptions(
           return toRaces(events).sort(compareRacesByDate);
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -277,7 +282,7 @@ export function todayQueryOptions(
           };
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -308,7 +313,7 @@ export function fitnessQueryOptions(
           return toFitnessDays(rows, today);
         }
       : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -361,7 +366,7 @@ export function monthQueryOptions(
         }
       : skipToken,
     select,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -439,7 +444,41 @@ export function workoutDetailsQueryOptions(
         }
       : skipToken,
     select,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
+  });
+}
+
+/**
+ * One Note for Note Details, read by its intervals.icu event id. An event that
+ * isn't a Note fails as a 404, like a deleted one, so both read as not found
+ * (see `isNotFoundError`). Never reads from or writes into the month or
+ * upcoming caches. Fresh as long as a Workout's details. Skipped while there
+ * are no credentials.
+ */
+export function noteDetailsQueryOptions(
+  credentials: IntervalsCredentials | null,
+  eventId: number,
+) {
+  return queryOptions({
+    queryKey: intervalsKeys.note(credentials?.athleteId, eventId),
+    queryFn: credentials
+      ? async ({ signal }): Promise<Note> => {
+          const [note] = toNotes([
+            await getCalendarEvent(
+              credentials.accessToken,
+              credentials.athleteId,
+              eventId,
+              { signal },
+            ),
+          ]);
+
+          if (!note)
+            throw new IntervalsApiError(404, 'The event is not a Note.');
+
+          return note;
+        }
+      : skipToken,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -477,7 +516,7 @@ export function activityDetailsQueryOptions(
             )
         : skipToken,
     select,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 
@@ -506,7 +545,7 @@ export function raceQueryOptions(
               ),
             ) ?? null
         : skipToken,
-    ...WORKOUTS_FRESHNESS,
+    ...CHANGING_DATA_FRESHNESS,
   });
 }
 

@@ -11,14 +11,14 @@ import { type AppTheme, useAppTheme } from '@/constants/theme';
  * Renders a Note's text-structural Markdown and tones down the rest.
  *
  * A Note is written in intervals.icu's editor, so it can hold anything
- * CommonMark allows, but it shows inside a bottom sheet:
+ * CommonMark allows, but it shows on a phone screen:
  *
  * - **Images** have unknown remote sizes, so they show as their alt text
  *   (nothing when there is no alt).
  * - **Tables** would overflow sideways, so each row becomes a wrapping line
  *   of cells. The content stays; the table grid doesn't.
  * - **Links** are styled but can't be tapped. A Note is read-only, and
- *   opening a browser from the sheet loses the reader's place.
+ *   opening a browser from it loses the reader's place.
  */
 class NoteRenderer extends Renderer implements RendererInterface {
   constructor(private readonly theme: AppTheme) {
@@ -159,7 +159,7 @@ export interface NoteMarkdownProps {
 /**
  * A Note's text rendered from Markdown, as bare elements with no scroll
  * container of its own. The library's `<Markdown>` renders a FlatList, which
- * throws when nested in the sheet's ScrollView, so it must never be used here.
+ * throws when nested in the screen's ScrollView, so it must never be used here.
  */
 export default function NoteMarkdown({ text }: NoteMarkdownProps) {
   const theme = useAppTheme();

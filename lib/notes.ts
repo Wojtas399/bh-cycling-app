@@ -5,6 +5,7 @@ import {
   fromLocalDateString,
   toLocalDateString,
 } from './localDate';
+import { stripNoteHtml } from './stripNoteHtml';
 
 /**
  * A Note from the athlete's Intervals.icu calendar, for one day or a range of
@@ -113,4 +114,13 @@ export function noteLastDay(note: Note): LocalDateString {
 /** Whether the Note covers more than one day. */
 export function isMultiDay(note: Note): boolean {
   return noteLastDay(note) > note.start;
+}
+
+/**
+ * The Note's text as Note Details renders it: its Markdown with the HTML
+ * stripped (see `stripNoteHtml`) and outer whitespace trimmed, `''` when it
+ * has none.
+ */
+export function noteText(note: Note): string {
+  return note.description ? stripNoteHtml(note.description).trim() : '';
 }

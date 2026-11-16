@@ -28,6 +28,8 @@ Considered and rejected:
 
 ## Amendment: full-height variant
 
+Superseded by Note Details (#381). A Note now opens as its own pushed screen, so the primitive has lost `fullHeight` and `subtitle`, and every sheet is content-sized again, capped at 70% of the window. Kept below for the record.
+
 The Note Detail Sheet shows a Note's text, which can be a long briefing. A sheet capped at 70% of the window is too cramped to read it, so the primitive gains a `fullHeight` variant for reading long content, and an optional `subtitle` line under the title. The content-sized body capped at 70% stays the default for every other sheet.
 
 - `fullHeight` passes `snapPoints={['full']}` to the Expo UI sheet. On Android that skips the partly expanded state and fills the height. The body drops `RNHostView`'s `matchContents`, takes a fixed height (the window minus the top safe area), and scrolls in a `flex: 1` ScrollView.
@@ -36,7 +38,7 @@ The Note Detail Sheet shows a Note's text, which can be a long briefing. A sheet
 
 ## Amendment: acting after a sheet has dismissed
 
-Leaving the Calendar day sheet for another screen or sheet has to wait until it has fully closed. The Workout and Activity screens otherwise slide in behind it, and iOS refuses to present a Note sheet over one still dismissing.
+Leaving the Calendar day sheet for another screen or sheet has to wait until it has fully closed. The Workout, Activity and Note screens otherwise slide in behind it, and iOS refuses to present another sheet, such as the Race sheet, over one still dismissing.
 
 - The primitive gains an optional `onDismissed` callback, which fires once the sheet has left the screen, however it closed.
 - The universal sheet has no such event, so `onDismissed` fires when the sheet's content unmounts. iOS unmounts it on the native dismiss, Android after `hide()` resolves.
@@ -46,7 +48,7 @@ Leaving the Calendar day sheet for another screen or sheet has to wait until it 
 
 The Glass and Sheen restyle (#330) treats bottom sheets as floating chrome. On iOS 26 the system draws a sheet in Liquid Glass, and a painted background hides it.
 
-- On iOS 26 the primitive sets no background and no per-sheet dark scheme, so the day, note and race sheets show the system glass material. They stay dark through the app-wide forced dark: `Appearance.setColorScheme('dark')` at startup, and `userInterfaceStyle: 'dark'` once a store build carries it. This replaces the first consequence's painted background and forced dark scheme on iOS 26.
+- On iOS 26 the primitive sets no background and no per-sheet dark scheme, so the day and race sheets show the system glass material. They stay dark through the app-wide forced dark: `Appearance.setColorScheme('dark')` at startup, and `userInterfaceStyle: 'dark'` once a store build carries it. This replaces the first consequence's painted background and forced dark scheme on iOS 26.
 - The system adapts its glass to Reduce Transparency and Increase Contrast, so the sheet doesn't read those settings.
 - On Android and iOS below 26 the sheet is unchanged: the painted `bgTertiary` background, the Android scrim, and the forced dark scheme on iOS.
 - Content on the sheet keeps its own surface. Item tiles stay Sheen on top of the glass.

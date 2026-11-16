@@ -4,10 +4,10 @@ import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import DetailsLoadError from '@/components/DetailsLoadError';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import ScreenHeader from '@/components/ScreenHeader';
 import ActivityDetailsHero from '@/components/activity/ActivityDetailsHero';
-import ActivityLoadError from '@/components/activity/ActivityLoadError';
 import ActivityUnavailable from '@/components/activity/ActivityUnavailable';
 import RaceDetailSheet from '@/components/race/RaceDetailSheet';
 import RaceHeader from '@/components/race/RaceHeader';
@@ -93,7 +93,8 @@ export default function ActivityDetailsScreen() {
 
     if (query.isError) {
       return (
-        <ActivityLoadError
+        <DetailsLoadError
+          keyPrefix="activityDetails"
           error={query.error}
           onRetry={() => void query.refetch()}
         />
