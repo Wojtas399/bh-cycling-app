@@ -7,6 +7,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import '@/i18n';
 import { setupAppFocus } from '@/lib/appFocus';
 import { queryClient } from '@/lib/queryClient';
+import { hideSplashScreen } from '@/lib/splashScreen';
 import { ToastHost } from '@/lib/toast/ToastHost';
 import { useReactQueryDevTools } from '@dev-plugins/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,10 +41,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView
-      style={{ flex: 1 }}
-      onLayout={() => SplashScreen.hideAsync()}
-    >
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplashScreen}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <NavThemeProvider value={DarkTheme}>
