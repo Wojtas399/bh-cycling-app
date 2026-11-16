@@ -95,7 +95,7 @@ export function ToastHost({ id }: ToastHostProps) {
  */
 export function SheetToastHost() {
   const id = useId();
-  const registerWhileMounted = useCallback(() => {
+  const registerWhileAttached = useCallback(() => {
     registerSheetHost(id);
 
     return () => unregisterSheetHost(id);
@@ -105,7 +105,7 @@ export function SheetToastHost() {
   // through to the sheet.
   return (
     <View
-      ref={registerWhileMounted}
+      ref={registerWhileAttached}
       style={StyleSheet.absoluteFill}
       pointerEvents="box-none"
     >
