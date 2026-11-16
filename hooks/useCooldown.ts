@@ -1,12 +1,9 @@
 import { useCallback, useState, useSyncExternalStore } from 'react';
 
+import { subscribeToNothing } from '@/lib/externalStore';
 import { getClockNow, subscribeToClock } from '@/lib/secondClock';
 
 const MS_PER_SECOND = 1000;
-
-function subscribeToNothing() {
-  return () => {};
-}
 
 /**
  * Seconds left before an action such as resending an email is allowed again.

@@ -1,5 +1,6 @@
 import { useState, useSyncExternalStore } from 'react';
 
+import { subscribeToNothing } from '@/lib/externalStore';
 import { auth, firestore } from '@/lib/firebase';
 import { intervalsIntegrationDocPath } from '@/lib/firestorePaths';
 
@@ -32,7 +33,7 @@ interface ConnectionStore {
 /** Follows one user's integration document; signed out, there is none. */
 function createConnectionStore(uid: string | undefined): ConnectionStore {
   if (!uid) {
-    return { subscribe: () => () => {}, getSnapshot: () => NOT_CONNECTED };
+    return { subscribe: subscribeToNothing, getSnapshot: () => NOT_CONNECTED };
   }
 
   let state = LOADING;

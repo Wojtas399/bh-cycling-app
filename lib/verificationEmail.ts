@@ -1,9 +1,8 @@
+import { createListeners } from '@/lib/externalStore';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
 
-type Listener = () => void;
-
 let sentAt: number | null = null;
-const listeners = new Set<Listener>();
+const listeners = createListeners();
 
 /**
  * When sign-up or sign-in last sent the verification email, or null. It is
@@ -13,11 +12,7 @@ export function getVerificationEmailSentAt(): number | null {
   return sentAt;
 }
 
-export function subscribeVerificationEmailSent(listener: Listener): () => void {
-  listeners.add(listener);
-
-  return () => listeners.delete(listener);
-}
+export const subscribeVerificationEmailSent = listeners.subscribe;
 
 /**
  * Sends the verification email. Sign-up and sign-in call it; verify-email
@@ -30,7 +25,7 @@ export async function sendVerificationEmail(
   user: Pick<FirebaseAuthTypes.User, 'sendEmailVerification'>,
 ): Promise<void> {
   sentAt = Date.now();
-  listeners.forEach(listener => listener());
+  listeners.notify();
 
   try {
     await user.sendEmailVerification();
