@@ -3,9 +3,10 @@ import { act, renderHook } from '@testing-library/react-native';
 
 const mockOnSnapshot = jest.fn();
 const mockDoc = jest.fn(() => ({ onSnapshot: mockOnSnapshot }));
+let mockCurrentUser: { uid: string } | null = { uid: 'user-1' };
 
 jest.mock('@/lib/firebase', () => ({
-  auth: () => ({ currentUser: { uid: 'user-1' } }),
+  auth: () => ({ currentUser: mockCurrentUser }),
   firestore: () => ({ doc: mockDoc }),
 }));
 
@@ -22,6 +23,7 @@ async function emitSnapshot(data: Record<string, unknown> | undefined) {
 describe('useIntervalsConnection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCurrentUser = { uid: 'user-1' };
   });
 
   it('is loading before the first snapshot resolves', async () => {
@@ -112,5 +114,42 @@ describe('useIntervalsConnection', () => {
       scope: null,
       loading: false,
     });
+  });
+
+  it('is not connected and not loading when signed out, without listening', async () => {
+    mockCurrentUser = null;
+
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    expect(result.current).toEqual({
+      isConnected: false,
+      athleteName: null,
+      athleteId: null,
+      accessToken: null,
+      scope: null,
+      loading: false,
+    });
+    expect(mockDoc).not.toHaveBeenCalled();
+  });
+
+  it('listens once, however often it re-renders', async () => {
+    const { rerender } = await renderHook(() => useIntervalsConnection());
+
+    await rerender({});
+    await rerender({});
+
+    expect(mockOnSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops listening when unmounted', async () => {
+    const unsubscribe = jest.fn();
+
+    mockOnSnapshot.mockReturnValueOnce(unsubscribe);
+
+    const { unmount } = await renderHook(() => useIntervalsConnection());
+
+    await unmount();
+
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
