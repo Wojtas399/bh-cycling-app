@@ -1,5 +1,5 @@
-import { useEffect, useId } from 'react';
-import { StyleSheet, type TextStyle } from 'react-native';
+import { useCallback, useId } from 'react';
+import { StyleSheet, type TextStyle, View } from 'react-native';
 
 import theme from '@/constants/theme';
 import { DarkGlassView, liquidGlassAvailable } from '@/lib/liquidGlass';
@@ -90,17 +90,26 @@ export function ToastHost({ id }: ToastHostProps) {
 
 /**
  * A host inside a sheet, for Android, where a sheet is a Dialog window that
- * covers the root host. It takes toasts while mounted, so mount it only while
- * the sheet is presented.
+ * covers the root host. It takes toasts while its view is attached, so mount
+ * it only while the sheet is presented.
  */
 export function SheetToastHost() {
   const id = useId();
-
-  useEffect(() => {
+  const registerWhileMounted = useCallback(() => {
     registerSheetHost(id);
 
     return () => unregisterSheetHost(id);
   }, [id]);
 
-  return <ToastHost id={id} />;
+  // Fills the sheet like the host's own absolute layer did, and lets touches
+  // through to the sheet.
+  return (
+    <View
+      ref={registerWhileMounted}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="box-none"
+    >
+      <ToastHost id={id} />
+    </View>
+  );
 }
