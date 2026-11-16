@@ -16,6 +16,7 @@ import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { Ionicons } from '@expo/vector-icons';
+import { Stack } from 'expo-router';
 
 export default function DeleteAccountScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'deleteAccount' });
@@ -23,11 +24,12 @@ export default function DeleteAccountScreen() {
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
 
-  const { form, formError, busy, requiresPassword, submit } =
+  const { form, formError, busy, requiresPassword, submit, screenOptions } =
     useDeleteAccount();
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
+      <Stack.Screen options={screenOptions} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

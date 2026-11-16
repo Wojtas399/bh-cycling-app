@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -23,6 +22,7 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigation } from 'expo-router';
+import { usePreventRemove } from 'expo-router/react-navigation';
 
 export function useDeleteAccount() {
   const { t } = useTranslation();
@@ -111,21 +111,20 @@ export function useDeleteAccount() {
 
   const busy = deleteAccount.isPending;
 
-  // Going back is blocked while the request runs: swipe gesture, hardware
-  // back button and the header button.
-  useEffect(() => {
-    navigation.setOptions({ gestureEnabled: !busy });
+  // Going back is blocked while the request runs: the hardware back button
+  // and the header button here, the swipe gesture through `screenOptions`.
+  // Any other dispatched removal goes through: dispatching it again doesn't
+  // loop, since React Navigation skips screens that already saw the action.
+  // The auth gate dispatches nothing: it drops this screen by changing the
+  // route list, which this hook never sees, so the deleted user still lands
+  // on sign-in.
+  usePreventRemove(busy, ({ data }) => {
+    const { type } = data.action;
 
-    return navigation.addListener('beforeRemove', event => {
-      // Only back navigation is blocked: the auth gate must still be able to
-      // replace this screen with sign-in once the account is deleted.
-      const { type } = event.data.action;
+    if (type === 'GO_BACK' || type === 'POP') return;
 
-      if (busy && (type === 'GO_BACK' || type === 'POP')) {
-        event.preventDefault();
-      }
-    });
-  }, [navigation, busy]);
+    navigation.dispatch(data.action);
+  });
 
   const mapped = deleteAccount.error
     ? mapDeleteAccountError(getErrorCode(deleteAccount.error))
@@ -158,5 +157,7 @@ export function useDeleteAccount() {
     busy,
     requiresPassword,
     submit,
+    /** For the screen's `Stack.Screen`. */
+    screenOptions: { gestureEnabled: !busy },
   };
 }
