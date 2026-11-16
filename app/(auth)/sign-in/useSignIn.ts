@@ -15,6 +15,7 @@ import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle as googleSignInFlow } from '@/lib/signInWithGoogle';
+import { sendVerificationEmail } from '@/lib/verificationEmail';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
@@ -28,10 +29,13 @@ export function useSignIn() {
 
   const emailSignIn = useMutation({
     mutationFn: async (variables: SignInValues) => {
-      await auth().signInWithEmailAndPassword(
+      const { user } = await auth().signInWithEmailAndPassword(
         variables.email,
         variables.password,
       );
+
+      // A fresh link for an account that still has to verify its email.
+      if (!user.emailVerified) await sendVerificationEmail(user);
     },
     onSuccess: () => {
       router.replace('/(app)/(tabs)/home');

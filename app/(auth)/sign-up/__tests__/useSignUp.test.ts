@@ -7,6 +7,12 @@ const mockReplace = jest.fn();
 const mockCreateUser = jest.fn();
 const mockSignInWithCredential = jest.fn();
 const mockGoogleSignIn = jest.fn();
+const mockNewUser = {
+  uid: 'new-rider',
+  email: 'rider@example.com',
+  emailVerified: false,
+  sendEmailVerification: jest.fn(),
+};
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -105,7 +111,8 @@ function errorOf(hook: Hook, name: (typeof FIELDS)[number]) {
 describe('useSignUp', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateUser.mockResolvedValue(undefined);
+    mockCreateUser.mockResolvedValue({ user: mockNewUser });
+    mockNewUser.sendEmailVerification.mockResolvedValue(undefined);
   });
 
   // Per-field rules live in signUpSchema.test.ts; these cover timing.
@@ -214,6 +221,28 @@ describe('useSignUp', () => {
       expect(hook.result.current.busy).toBe(false);
     });
 
+    it('sends the verification email once the account is created', async () => {
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(mockNewUser.sendEmailVerification).toHaveBeenCalledTimes(1);
+    });
+
+    it('still opens verify-email when the email fails to send', async () => {
+      mockNewUser.sendEmailVerification.mockRejectedValue({
+        code: 'auth/network-request-failed',
+      });
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/verify-email');
+      expect(hook.result.current.formError).toBe('');
+    });
+
     it('keeps the email field showing what the user typed', async () => {
       const hook = await setup();
 
@@ -228,8 +257,8 @@ describe('useSignUp', () => {
       let finish!: () => void;
 
       mockCreateUser.mockReturnValueOnce(
-        new Promise<void>(resolve => {
-          finish = resolve;
+        new Promise(resolve => {
+          finish = () => resolve({ user: mockNewUser });
         }),
       );
       const hook = await setup();

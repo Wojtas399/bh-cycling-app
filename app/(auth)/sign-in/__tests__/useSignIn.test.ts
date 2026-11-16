@@ -7,6 +7,12 @@ const mockReplace = jest.fn();
 const mockSignInWithEmail = jest.fn();
 const mockSignInWithCredential = jest.fn();
 const mockGoogleSignIn = jest.fn();
+const mockUser = {
+  uid: 'rider',
+  email: 'rider@example.com',
+  emailVerified: true,
+  sendEmailVerification: jest.fn(),
+};
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -94,7 +100,9 @@ function errorOf(hook: Hook, name: (typeof FIELDS)[number]) {
 describe('useSignIn', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSignInWithEmail.mockResolvedValue(undefined);
+    mockUser.emailVerified = true;
+    mockUser.sendEmailVerification.mockResolvedValue(undefined);
+    mockSignInWithEmail.mockResolvedValue({ user: mockUser });
   });
 
   // Per-field rules live in signInSchema.test.ts; these cover timing.
@@ -165,12 +173,31 @@ describe('useSignIn', () => {
       expect(hook.result.current.busy).toBe(false);
     });
 
+    it('sends the verification email when the email is unverified', async () => {
+      mockUser.emailVerified = false;
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(mockUser.sendEmailVerification).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends no verification email when the email is verified', async () => {
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(mockUser.sendEmailVerification).not.toHaveBeenCalled();
+    });
+
     it('disables every field while the sign-in is pending', async () => {
       let finish!: () => void;
 
       mockSignInWithEmail.mockReturnValueOnce(
-        new Promise<void>(resolve => {
-          finish = resolve;
+        new Promise(resolve => {
+          finish = () => resolve({ user: mockUser });
         }),
       );
       const hook = await setup();
