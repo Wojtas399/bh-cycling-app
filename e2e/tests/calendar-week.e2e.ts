@@ -19,9 +19,10 @@ test("Kalendarz → Tygodniowy → today's E2E Sweet Spot row → Workout Detail
   // The view toggle sits in the Calendar header, under iOS's "Toolbar".
   await tapCenter(screen, screen.getByText(/^Tygodniowy$/));
 
-  // Each day's rail is a heading read as "<Weekday>, <day> <month>", and
-  // today's ends ", dziś".
-  const todayRail = screen.getByRole('heading', /, dziś$/);
+  // Each day's rail is read as "<Weekday>, <day> <month>", and today's ends
+  // ", dziś". Found by label: the engine reports iOS's header trait as
+  // "other", not "heading".
+  const todayRail = screen.getByLabel(/, dziś$/);
 
   await screen.scrollUntilVisible(todayRail, LOAD_TIMEOUT);
 
