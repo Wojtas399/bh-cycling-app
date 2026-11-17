@@ -1,5 +1,5 @@
 import type { LocalDateString } from './localDate';
-import { type Note, noteLastDay } from './notes';
+import { type Note, noteLastDay, noteOverlaps } from './notes';
 
 /** One Note's bar within a grid row: a run of adjacent cells. */
 export interface NoteBarSegment {
@@ -46,10 +46,7 @@ export function layoutNoteRow(
   for (const note of notes) {
     const columns = row
       .map((date, column) => ({ date, column }))
-      .filter(
-        ({ date }) =>
-          inMonth.has(date) && note.start <= date && date < note.end,
-      )
+      .filter(({ date }) => inMonth.has(date) && noteOverlaps(note, date, date))
       .map(({ column }) => column);
 
     if (columns.length === 0) continue;
