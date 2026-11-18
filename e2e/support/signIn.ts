@@ -25,7 +25,7 @@ export async function signIn(screen: Screen): Promise<void> {
   // The sheet can arrive seconds after Home shows, and it then covers
   // whatever the test does next. Give it a grace period before moving on.
   if (!(await notNow.isVisible())) {
-    await notNow.waitFor({ timeout: SAVE_PASSWORD_GRACE_MS }).catch(() => {});
+    await notNow.waitFor({ timeout: SAVE_SHEET_GRACE_MS }).catch(() => {});
   }
 
   if (await notNow.isVisible()) await notNow.tap();
@@ -34,4 +34,4 @@ export async function signIn(screen: Screen): Promise<void> {
 }
 
 /** How long iOS gets to show its save-password sheet after Home appears. */
-const SAVE_PASSWORD_GRACE_MS = 5_000;
+const SAVE_SHEET_GRACE_MS = 5_000;
