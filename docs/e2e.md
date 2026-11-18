@@ -34,6 +34,8 @@ Create the simulator:
 xcrun simctl create "BH e2e iPhone" "iPhone 17 Pro" com.apple.CoreSimulator.SimRuntime.iOS-27-0
 ```
 
+Then turn off password AutoFill on it: boot it, open Settings → General → AutoFill & Passwords, and switch off AutoFill Passwords and Passkeys. Otherwise iOS may offer to save the password after sign-in in a sheet over the app. The sheet can arrive after Home shows and cover the next screen a test reads. Closing it can also leave the e2e engine without screen coordinates for the next tap (`ENGINE_FAILURE: … has no established screen-coordinate origin`).
+
 Create the emulator. It needs the Android 37.2 Google Play system image, which `sdkmanager` installs:
 
 ```sh
@@ -129,6 +131,7 @@ The JS is bundled into the build, so reuse one only when the app code hasn't cha
 
 - iOS runs 26.x on an `iPhone 17 Pro`, and the version can't be chosen. Local runs use iOS 27.
 - The cloud iPhone's system language is English, so system sheets are in English. The sign-in helper taps "Not Now" there instead of "Nie teraz". The app itself stays in Polish.
+- Password AutoFill can't be turned off on a cloud iPhone, so the save-password sheet can still show and make a test flaky.
 - Android runs the Android 35 Google APIs x86_64 image on a `pixel_9`, which Expo marks as still in development. Local runs use Android 37.2 on arm64.
 - Every command goes over the network, so steps are slower. A device takes about 2 to 3 minutes to start. Then the suite takes about 3 minutes on iOS and 2 on Android.
 - The seed and the suite take "today" from your machine. The app takes it from the cloud device, whose timezone nothing can read. If the two differ, a run near midnight in either timezone may fail.
