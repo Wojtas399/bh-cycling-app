@@ -54,9 +54,19 @@ test('Kalendarz → today → E2E Briefing closes the day sheet for Note Details
 
   await expect(daySheet).toBeHidden();
   // A pushed screen's back arrow, which no sheet has.
-  await expect(screen.getByLabel(/^Wstecz$/)).toBeVisible();
+  const back = screen.getByLabel(/^Wstecz$/);
+
+  await expect(back).toBeVisible();
   await expect(screen.getByText(new RegExp(`^${name}$`))).toBeVisible(
     LOAD_TIMEOUT,
   );
   await expect(screen.getByText(new RegExp(`^${description}$`))).toBeVisible();
+
+  // The sheet runs its chained action once, so one back returns to the
+  // Calendar. A second run would have pushed a second Note Details.
+  await back.tap();
+
+  await expect(screen.getByText(monthTitle(today))).toBeVisible();
+  await expect(back).toBeHidden();
+  await expect(daySheet).toBeHidden();
 });
