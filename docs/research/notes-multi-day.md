@@ -3,7 +3,7 @@
 Research ticket: #141 (child of map #140, "Notes from Intervals.icu").
 
 This builds on the earlier research
-(`research/home-day-notes-api-shape:.scratch/home-day-notes/research/notes-api-shape.md`),
+([home-day-notes-api-shape.md](home-day-notes-api-shape.md)),
 which settled that Notes are `Event` objects with `category: "NOTE"`, returned by
 `GET /api/v1/athlete/{id}/events`, with a Markdown `description`. That is not repeated here.
 
