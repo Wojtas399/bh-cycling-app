@@ -15,6 +15,22 @@ export function athleteFromEnv(): { email: string; password: string } {
 }
 
 /**
+ * A second staging user whose email is never verified, so it always lands on
+ * verify-email. Like the athlete, the config reads it at load.
+ */
+export function unverifiedUserFromEnv(): { email: string; password: string } {
+  const env = requireEnv(
+    ['E2E_UNVERIFIED_USER_EMAIL', 'E2E_UNVERIFIED_USER_PASSWORD'],
+    'the verify-email e2e test signs in as the unverified user with them',
+  );
+
+  return {
+    email: env.E2E_UNVERIFIED_USER_EMAIL,
+    password: env.E2E_UNVERIFIED_USER_PASSWORD,
+  };
+}
+
+/**
  * The test athlete's Intervals.icu API key and athlete id, which the seed
  * uses to recreate its Workouts before a run.
  */

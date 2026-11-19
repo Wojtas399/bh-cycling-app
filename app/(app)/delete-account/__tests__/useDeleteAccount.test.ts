@@ -14,18 +14,26 @@ const mockHasPlayServices = jest.fn();
 const mockGoogleSignIn = jest.fn();
 const mockGoogleSignOut = jest.fn();
 let mockProviderIds: string[] = [];
-const mockSetOptions = jest.fn();
-const mockRemoveListener = jest.fn();
-const mockAddListener = jest.fn(
-  (_event: string, _listener: unknown) => mockRemoveListener,
-);
-const mockNavigation = {
-  setOptions: mockSetOptions,
-  addListener: mockAddListener,
-};
+const mockDispatch = jest.fn();
+const mockNavigation = { dispatch: mockDispatch };
+
+type PreventRemoveCallback = (event: {
+  data: { action: { type: string } };
+}) => void;
+
+let mockPreventRemove: {
+  prevent: boolean;
+  callback: PreventRemoveCallback;
+} | null = null;
 
 jest.mock('expo-router', () => ({
   useNavigation: () => mockNavigation,
+}));
+
+jest.mock('expo-router/react-navigation', () => ({
+  usePreventRemove: (prevent: boolean, callback: PreventRemoveCallback) => {
+    mockPreventRemove = { prevent, callback };
+  },
 }));
 
 jest.mock('react-i18next', () => ({
@@ -126,25 +134,23 @@ async function submit(hook: Hook) {
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 }
 
-type BeforeRemoveListener = (event: {
-  data: { action: { type: string } };
-  preventDefault: () => void;
-}) => void;
+/**
+ * Tries to remove the screen with a dispatched action, the way React
+ * Navigation's `usePreventRemove` handles it: while prevented, the action is
+ * stopped and handed to the callback, which lets it through by dispatching it
+ * again. True when the screen would be removed.
+ */
+function removes(type: string): boolean {
+  expect(mockPreventRemove).not.toBeNull();
 
-/** Fires the latest `beforeRemove` listener; true when it blocked removal. */
-function blocksRemoval(type: string): boolean {
-  const call = mockAddListener.mock.calls.at(-1);
+  if (!mockPreventRemove?.prevent) return true;
 
-  expect(call?.[0]).toBe('beforeRemove');
+  const action = { type };
 
-  const preventDefault = jest.fn();
+  mockDispatch.mockClear();
+  mockPreventRemove.callback({ data: { action } });
 
-  (call?.[1] as BeforeRemoveListener)({
-    data: { action: { type } },
-    preventDefault,
-  });
-
-  return preventDefault.mock.calls.length > 0;
+  return mockDispatch.mock.calls.some(([dispatched]) => dispatched === action);
 }
 
 /** Starts a deletion whose callable hangs; returns a function finishing it. */
@@ -178,6 +184,7 @@ describe('useDeleteAccount', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     callOrder.length = 0;
+    mockPreventRemove = null;
     mockReauthenticate.mockImplementation(async () => {
       callOrder.push('reauth');
     });
@@ -465,25 +472,40 @@ describe('useDeleteAccount', () => {
       await finish();
     });
 
-    it('blocks back navigation but still lets the auth gate replace the screen', async () => {
+    it('blocks back navigation but lets any other removal through', async () => {
       const hook = await setup(['google.com']);
       const finish = await startHangingDelete(hook);
 
-      expect(mockSetOptions).toHaveBeenLastCalledWith({
-        gestureEnabled: false,
-      });
-      expect(blocksRemoval('GO_BACK')).toBe(true);
-      expect(blocksRemoval('POP')).toBe(true);
-      expect(blocksRemoval('REPLACE')).toBe(false);
+      expect(hook.result.current.busy).toBe(true);
+      expect(removes('GO_BACK')).toBe(false);
+      expect(removes('POP')).toBe(false);
+      expect(removes('REPLACE')).toBe(true);
+      expect(removes('RESET')).toBe(true);
 
       await finish();
     });
   });
 
   it('allows going back when idle', async () => {
-    await setup(['password']);
+    const hook = await setup(['password']);
 
-    expect(mockSetOptions).toHaveBeenLastCalledWith({ gestureEnabled: true });
-    expect(blocksRemoval('GO_BACK')).toBe(false);
+    expect(hook.result.current.busy).toBe(false);
+    expect(removes('GO_BACK')).toBe(true);
+    expect(removes('POP')).toBe(true);
+  });
+
+  it('allows going back after a failed deletion', async () => {
+    mockDeleteAccountCallable.mockRejectedValue({
+      code: 'functions/unavailable',
+    });
+    const hook = await setup(['password']);
+
+    await enterPassword(hook, 'secret-password');
+    await submit(hook);
+
+    expect(hook.result.current.formError).toBe('deleteAccount.errors.generic');
+    expect(hook.result.current.busy).toBe(false);
+    expect(removes('GO_BACK')).toBe(true);
+    expect(removes('POP')).toBe(true);
   });
 });

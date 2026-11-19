@@ -3,17 +3,18 @@ import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-const mockReplace = jest.fn();
 const mockCreateUser = jest.fn();
 const mockSignInWithCredential = jest.fn();
 const mockGoogleSignIn = jest.fn();
+const mockNewUser = {
+  uid: 'new-rider',
+  email: 'rider@example.com',
+  emailVerified: false,
+  sendEmailVerification: jest.fn(),
+};
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
-}));
-
-jest.mock('expo-router', () => ({
-  useRouter: () => ({ replace: mockReplace }),
 }));
 
 jest.mock('@react-native-google-signin/google-signin', () => ({
@@ -105,7 +106,8 @@ function errorOf(hook: Hook, name: (typeof FIELDS)[number]) {
 describe('useSignUp', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCreateUser.mockResolvedValue(undefined);
+    mockCreateUser.mockResolvedValue({ user: mockNewUser });
+    mockNewUser.sendEmailVerification.mockResolvedValue(undefined);
   });
 
   // Per-field rules live in signUpSchema.test.ts; these cover timing.
@@ -210,8 +212,30 @@ describe('useSignUp', () => {
         'rider@example.com',
         ' password-1 ',
       );
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/verify-email');
       expect(hook.result.current.busy).toBe(false);
+    });
+
+    it('sends the verification email once the account is created', async () => {
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(mockNewUser.sendEmailVerification).toHaveBeenCalledTimes(1);
+    });
+
+    it('still completes sign-up when the email fails to send', async () => {
+      mockNewUser.sendEmailVerification.mockRejectedValue({
+        code: 'auth/network-request-failed',
+      });
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(mockNewUser.sendEmailVerification).toHaveBeenCalledTimes(1);
+      expect(hook.result.current.busy).toBe(false);
+      expect(hook.result.current.formError).toBe('');
     });
 
     it('keeps the email field showing what the user typed', async () => {
@@ -228,8 +252,8 @@ describe('useSignUp', () => {
       let finish!: () => void;
 
       mockCreateUser.mockReturnValueOnce(
-        new Promise<void>(resolve => {
-          finish = resolve;
+        new Promise(resolve => {
+          finish = () => resolve({ user: mockNewUser });
         }),
       );
       const hook = await setup();
@@ -263,7 +287,6 @@ describe('useSignUp', () => {
 
       expect(hook.result.current.formError).toBe(key);
       expect(FIELDS.map(name => errorOf(hook, name))).toEqual(['', '', '']);
-      expect(mockReplace).not.toHaveBeenCalled();
       expect(hook.result.current.busy).toBe(false);
     });
 
@@ -296,12 +319,12 @@ describe('useSignUp', () => {
       await fill(hook, { email: 'not-an-email' });
       await signUpWithGoogle(hook);
 
-      expect(mockReplace).toHaveBeenCalledWith('/(app)/(tabs)/home');
+      expect(mockSignInWithCredential).toHaveBeenCalled();
       expect(errorOf(hook, 'email')).toBe('');
       expect(mockCreateUser).not.toHaveBeenCalled();
     });
 
-    it('resolves a cancel with no error and no navigation', async () => {
+    it('resolves a cancel with no error', async () => {
       mockGoogleSignIn.mockRejectedValue({ code: 'SIGN_IN_CANCELLED' });
       const hook = await setup();
 
@@ -309,7 +332,6 @@ describe('useSignUp', () => {
 
       expect(hook.result.current.formError).toBe('');
       expect(hook.result.current.busy).toBe(false);
-      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it('shows a form error when it fails', async () => {

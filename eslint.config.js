@@ -24,6 +24,9 @@ const formFieldPaths = [
     'Screens build forms with FormTextField (ADR 0006). A live, non-form input may disable this inline with a reason.',
 }));
 
+const noEffectsMessage =
+  'useEffect and useLayoutEffect are banned, with no exceptions (ADR 0012). Derive during render, act in the event handler, or see "Do this instead of an effect" in CODING_STANDARDS.md.';
+
 module.exports = defineConfig([
   expoConfig,
   eslintPluginPrettierRecommended,
@@ -52,10 +55,6 @@ module.exports = defineConfig([
         'warn',
         { props: 'never', children: 'never', propElementValues: 'always' },
       ],
-      // New in eslint-config-expo 57. The connection-driven data hooks reset
-      // their state from an effect when the Intervals connection changes;
-      // reworking them is follow-up work, so this warns rather than fails.
-      'react-hooks/set-state-in-effect': 'warn',
 
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -98,8 +97,19 @@ module.exports = defineConfig([
       ],
 
       // Forms (ADR 0006): watch() is incompatible with the React Compiler.
+      // No effects (ADR 0012): scripts/check-no-effects.sh, chained into
+      // `npm run lint`, also fails on these when a disable comment hides them.
       'no-restricted-syntax': [
         'error',
+        {
+          selector: 'CallExpression[callee.name=/^use(Layout)?Effect$/]',
+          message: noEffectsMessage,
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='React'][callee.property.name=/^use(Layout)?Effect$/]",
+          message: noEffectsMessage,
+        },
         {
           selector: "CallExpression[callee.property.name='watch']",
           message:

@@ -1,23 +1,6 @@
-import { useEffect } from 'react';
-
 import Box from '@/components/Box';
-import { auth } from '@/lib/firebase';
-import { useRouter } from 'expo-router';
 
+/** Shown until the auth state is known; the root guards then move on. */
 export default function RootIndex() {
-  const router = useRouter();
-
-  useEffect(() => {
-    return auth().onAuthStateChanged(user => {
-      if (!user) {
-        router.replace('/(auth)/sign-in');
-      } else if (!user.emailVerified) {
-        router.replace('/(auth)/verify-email');
-      } else {
-        router.replace('/(app)/(tabs)/home');
-      }
-    });
-  }, [router]);
-
   return <Box flex={1} backgroundColor="bgPrimary" />;
 }

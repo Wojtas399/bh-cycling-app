@@ -1,12 +1,13 @@
-import { useEffect } from 'react';
 import { Appearance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import theme from '@/constants/theme';
+import { useAuthState } from '@/hooks/useAuthState';
 import '@/i18n';
 import { setupAppFocus } from '@/lib/appFocus';
 import { queryClient } from '@/lib/queryClient';
+import { hideSplashScreen } from '@/lib/splashScreen';
 import { ToastHost } from '@/lib/toast/ToastHost';
 import { useReactQueryDevTools } from '@dev-plugins/react-query';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,27 +31,42 @@ setupAppFocus();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ ...Ionicons.font });
+  const authState = useAuthState();
 
   // Shift+M in `expo start`; a no-op in production builds.
   useReactQueryDevTools(queryClient);
 
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+  // The splash stays up until the root view has laid out with fonts loaded,
+  // so the app never shows a blank frame.
+  if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplashScreen}>
       <QueryClientProvider client={queryClient}>
-        {fontsLoaded && (
-          <ThemeProvider theme={theme}>
-            <NavThemeProvider value={DarkTheme}>
-              <Stack screenOptions={{ headerShown: false }} />
-              <StatusBar style="light" />
-              {/* Outside the navigator, so toasts survive navigation. */}
-              <ToastHost />
-            </NavThemeProvider>
-          </ThemeProvider>
-        )}
+        <ThemeProvider theme={theme}>
+          <NavThemeProvider value={DarkTheme}>
+            {/* The guards decide where the user may be. When one turns off,
+                the router leaves its screens for the first reachable one, so
+                signing in, out or verifying needs no redirect. */}
+            <Stack screenOptions={{ headerShown: false }}>
+              {/* Blank until Firebase first reports the user. */}
+              <Stack.Protected guard={authState === 'unknown'}>
+                <Stack.Screen name="index" />
+              </Stack.Protected>
+              <Stack.Protected guard={authState === 'verified'}>
+                <Stack.Screen name="(app)" />
+              </Stack.Protected>
+              <Stack.Protected
+                guard={authState === 'signedOut' || authState === 'unverified'}
+              >
+                <Stack.Screen name="(auth)" />
+              </Stack.Protected>
+            </Stack>
+            <StatusBar style="light" />
+            {/* Outside the navigator, so toasts survive navigation. */}
+            <ToastHost />
+          </NavThemeProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

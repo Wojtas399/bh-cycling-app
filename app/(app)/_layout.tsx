@@ -1,7 +1,4 @@
-import { useEffect } from 'react';
-
-import { auth } from '@/lib/firebase';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 
 const ROUTE_MAP_OPTIONS = {
   presentation: 'fullScreenModal',
@@ -9,20 +6,10 @@ const ROUTE_MAP_OPTIONS = {
 } as const;
 
 export default function AppLayout() {
-  const router = useRouter();
-
-  useEffect(() => {
-    return auth().onAuthStateChanged(user => {
-      if (!user) {
-        router.replace('/(auth)/sign-in');
-      } else if (!user.emailVerified) {
-        router.replace('/(auth)/verify-email');
-      }
-    });
-  }, [router]);
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      {/* First, so the auth gate lands a verified user on the tabs. */}
+      <Stack.Screen name="(tabs)" />
       {/* Slide up over Workout Details and Activity Details. On Android,
           where a full-screen modal is an ordinary push, the animation gives
           the same slide up. */}

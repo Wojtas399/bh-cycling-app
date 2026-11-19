@@ -15,12 +15,11 @@ import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
 import { signInWithGoogle } from '@/lib/signInWithGoogle';
+import { sendVerificationEmail } from '@/lib/verificationEmail';
 import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 
 export function useSignUp() {
   const { t } = useTranslation();
-  const router = useRouter();
 
   const { control, setFocus, handleSubmit } = useAppForm(signUpSchema, {
     defaultValues: { email: '', password: '', confirmPassword: '' },
@@ -28,23 +27,17 @@ export function useSignUp() {
 
   const emailSignUp = useMutation({
     mutationFn: async (variables: SignUpValues) => {
-      await auth().createUserWithEmailAndPassword(
+      const { user } = await auth().createUserWithEmailAndPassword(
         variables.email,
         variables.password,
       );
-    },
-    onSuccess: () => {
-      router.replace('/(auth)/verify-email');
+
+      await sendVerificationEmail(user);
     },
   });
 
   const googleSignUp = useMutation({
     mutationFn: signInWithGoogle,
-    onSuccess: outcome => {
-      if (outcome === 'cancelled') return;
-
-      router.replace('/(app)/(tabs)/home');
-    },
   });
 
   const busy = emailSignUp.isPending || googleSignUp.isPending;
