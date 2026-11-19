@@ -47,6 +47,27 @@ For reviewers:
 
 - `npm run lint` catches every effect, so don't report those. Report a disguised effect: a ref callback that does more than attach, detach and call its caller's callback on detach, a subscribe function that causes a side effect, or a setter called during render for anything other than following changed data.
 
+## Write no comments
+
+Linted TS and JS has no comments ([ADR 0013](docs/adr/0013-no-comments.md)). That rules out JSDoc, TODO, links, issue numbers and commented-out code. Two forms are allowed, and only with a reason: `// eslint-disable-next-line <rule> -- <reason>` and `// @ts-expect-error: <reason>`. `npm run lint` fails on everything else, in CI too.
+
+| You want to say…                  | Put it in                                                  |
+| --------------------------------- | ---------------------------------------------------------- |
+| What it does                      | The name of the function, variable or type                 |
+| A unit or constraint              | The name (`durationSeconds`) or the type                   |
+| Why it behaves this way           | A test named after the behaviour                           |
+| Why we chose this, upstream links | The PR body; an ADR if it's hard to reverse and surprising |
+| A domain term                     | `CONTEXT.md`                                               |
+| Work still to do                  | An issue                                                   |
+
+For reviewers:
+
+- `npm run lint` catches every comment, so don't report those.
+- Report a name that hides a workaround (`hack`, `fix`, `temp`) instead of saying what the code does.
+- Report a directive reason that only restates the rule.
+- Report a new path in the check's exclusion list that holds hand-written code or whose PR doesn't name its generator.
+- Report a workaround with no test named after its constraint.
+
 ## ADRs are binding
 
 - `docs/adr/` records accepted decisions, and code must follow them.
