@@ -1,10 +1,10 @@
 /**
  * Fails when a file in the committed replay cache, `.e2e/cache`, holds the
- * test athlete's email or password or the Intervals.icu key, so a recording
+ * test users' emails or passwords or the Intervals.icu key, so a recording
  * can't leak one into git. `npm run e2e:ios` and `npm run e2e:android` run it
  * before the seed. `findCacheLeaks` decides what leaks; this file only reads
  * the files and the env. It prints file names, never a value. It stops when any
- * of the three variables is unset, naming them, so it never passes without
+ * of the five variables is unset, naming them, so it never passes without
  * checking. Run it on its own with `npm run e2e:check-cache`.
  */
 import { findCacheLeaks } from './support/cacheLeaks.ts';
@@ -17,6 +17,8 @@ const CACHE_DIR = fileURLToPath(new URL('../.e2e/cache', import.meta.url));
 const SECRET_NAMES = [
   'E2E_USER_EMAIL',
   'E2E_USER_PASSWORD',
+  'E2E_UNVERIFIED_USER_EMAIL',
+  'E2E_UNVERIFIED_USER_PASSWORD',
   'E2E_INTERVALS_API_KEY',
 ];
 

@@ -17,10 +17,9 @@ export type CalendarDayTileProps = Omit<
 };
 
 /**
- * The day tile both Calendar views draw: each day on its own flat, lighter
- * surface, a thin gap away from the next, so the days read as separate. Flat,
- * never Sheen, so the Sheen item tiles in the week agenda never sit
- * Sheen-inside-Sheen. Lays out its content as a `Box` does.
+ * The month grid's day tile: each day on its own flat, lighter surface, a
+ * thin gap away from the next, so the days read as separate. Flat, never
+ * Sheen. Lays out its content as a `Box` does.
  */
 export default function CalendarDayTile({
   outsideMonth = false,

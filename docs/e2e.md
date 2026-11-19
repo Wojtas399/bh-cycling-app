@@ -34,6 +34,8 @@ Create the simulator:
 xcrun simctl create "BH e2e iPhone" "iPhone 17 Pro" com.apple.CoreSimulator.SimRuntime.iOS-27-0
 ```
 
+Then turn off password AutoFill on it: boot it, open Settings → General → AutoFill & Passwords, and switch off AutoFill Passwords and Passkeys. Otherwise iOS may offer to save the password after sign-in in a sheet over the app. The sheet can arrive after Home shows and cover the next screen a test reads. Closing it can also leave the e2e engine without screen coordinates for the next tap (`ENGINE_FAILURE: … has no established screen-coordinate origin`).
+
 Create the emulator. It needs the Android 37.2 Google Play system image, which `sdkmanager` installs:
 
 ```sh
@@ -45,28 +47,32 @@ Other names work too. Set `E2E_IOS_DEVICE` or `E2E_ANDROID_DEVICE` to use them.
 
 ### Environment variables
 
-`e2e.config.ts` loads `.env.local`, which is gitignored. Put the four required variables in it. The two device names are optional.
+`e2e.config.ts` loads `.env.local`, which is gitignored. Put the six required variables in it. The two device names are optional.
 
-| Variable                   | Holds                                    | Read by                            | Default         |
-| -------------------------- | ---------------------------------------- | ---------------------------------- | --------------- |
-| `E2E_USER_EMAIL`           | The test user's staging email            | The sign-in helper                 | None, required  |
-| `E2E_USER_PASSWORD`        | The test user's staging password         | The sign-in helper                 | None, required  |
-| `E2E_INTERVALS_API_KEY`    | The test athlete's Intervals.icu API key | The seed                           | None, required  |
-| `E2E_INTERVALS_ATHLETE_ID` | The test athlete's Intervals.icu id      | The seed                           | None, required  |
-| `E2E_IOS_DEVICE`           | The simulator's name                     | The `ios` target and its build     | `BH e2e iPhone` |
-| `E2E_ANDROID_DEVICE`       | The AVD's name                           | The `android` target and its build | `BH_e2e_Pixel`  |
-| `E2E_IOS_BUILD_ID`         | An `e2e`-profile EAS build's id          | The `ios` target                   | None, local     |
-| `E2E_ANDROID_BUILD_ID`     | An `e2e`-profile EAS build's id          | The `android` target               | None, local     |
+| Variable                       | Holds                                    | Read by                            | Default         |
+| ------------------------------ | ---------------------------------------- | ---------------------------------- | --------------- |
+| `E2E_USER_EMAIL`               | The test user's staging email            | The sign-in helper                 | None, required  |
+| `E2E_USER_PASSWORD`            | The test user's staging password         | The sign-in helper                 | None, required  |
+| `E2E_UNVERIFIED_USER_EMAIL`    | The unverified user's staging email      | The verify-email test              | None, required  |
+| `E2E_UNVERIFIED_USER_PASSWORD` | The unverified user's staging password   | The verify-email test              | None, required  |
+| `E2E_INTERVALS_API_KEY`        | The test athlete's Intervals.icu API key | The seed                           | None, required  |
+| `E2E_INTERVALS_ATHLETE_ID`     | The test athlete's Intervals.icu id      | The seed                           | None, required  |
+| `E2E_IOS_DEVICE`               | The simulator's name                     | The `ios` target and its build     | `BH e2e iPhone` |
+| `E2E_ANDROID_DEVICE`           | The AVD's name                           | The `android` target and its build | `BH_e2e_Pixel`  |
+| `E2E_IOS_BUILD_ID`             | An `e2e`-profile EAS build's id          | The `ios` target                   | None, local     |
+| `E2E_ANDROID_BUILD_ID`         | An `e2e`-profile EAS build's id          | The `android` target               | None, local     |
 
 The build script doesn't load `.env.local`. If you rename a device, also export its variable in your shell before you build.
 
 With a build id set, that target runs on Expo Simulators instead of the local device: an `iPhone 17 Pro` or a `pixel_9` that installs the build. `E2E_*_DEVICE` doesn't apply there. Leave both build ids out of `.env.local`, so `npm run e2e:ios|android` stays local. `npm run e2e:cloud:ios|android` sets them.
 
-When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. The cache leak check stops the same way when the email, password or key is missing. A plain `npx e2e run` without the test user's email or password stops before any test with `CONFIG_LOAD_FAILED`.
+When a required variable is missing, the seed stops before it calls Intervals.icu and names the missing variables. The cache leak check stops the same way when an email, password or the key is missing. A plain `npx e2e run` without either user's email or password stops before any test with `CONFIG_LOAD_FAILED`.
 
 e2e reads `E2E_TELEMETRY_DISABLED` when the CLI starts, before it loads the config, so the config can't turn telemetry off. `npm run e2e:ios` and `npm run e2e:android` set it. Before you run `npx e2e` directly, run `npx e2e telemetry disable` once, which saves the choice on your Mac.
 
 The test user is a verified staging email/password account, connected once from the staging app to the test athlete, which has no Strava link. Tests never go through the Intervals.icu OAuth flow. Connecting the athlete to the app again from anywhere replaces its token, so don't connect it from another account. If that happens, connect it again from the test user.
+
+The unverified user is a second staging email/password account whose email is never verified, so it always lands on verify-email. Create it by signing up in the staging app, and never tap the link in the verification email. The verify-email test signs in as it, which sends it a verification email on every run. It needs no Intervals.icu connection.
 
 ## Build and install
 
@@ -129,6 +135,7 @@ The JS is bundled into the build, so reuse one only when the app code hasn't cha
 
 - iOS runs 26.x on an `iPhone 17 Pro`, and the version can't be chosen. Local runs use iOS 27.
 - The cloud iPhone's system language is English, so system sheets are in English. The sign-in helper taps "Not Now" there instead of "Nie teraz". The app itself stays in Polish.
+- Password AutoFill can't be turned off on a cloud iPhone, so the save-password sheet can still show and make a test flaky.
 - Android runs the Android 35 Google APIs x86_64 image on a `pixel_9`, which Expo marks as still in development. Local runs use Android 37.2 on arm64.
 - Every command goes over the network, so steps are slower. A device takes about 2 to 3 minutes to start. Then the suite takes about 3 minutes on iOS and 2 on Android.
 - The seed and the suite take "today" from your machine. The app takes it from the cloud device, whose timezone nothing can read. If the two differ, a run near midnight in either timezone may fail.
@@ -151,7 +158,7 @@ The JS is bundled into the build, so reuse one only when the app code hasn't cha
 - **iOS keyboard covers the sign-in button.** With the keyboard up, `/^Zaloguj się$/` matches only the screen title, and tapping it just closes the keyboard. The sign-in helper submits with the keyboard's Done key instead, then taps "Nie teraz" (or "Not Now" on Expo Simulators' English iOS) if iOS offers to save the password.
 - **iOS reports a full-screen "Toolbar" over the Calendar header.** A locator tap on "Następny" or "Dziś" fails with "covered by the toolbar", though nothing covers it on screen. The Calendar test taps the middle of the button's bounding box with `screen.tapAt`.
 - **Screenshots aren't redacted.** Never type the real password into a field that isn't secure, even to debug. A failure screenshot would show it.
-- **"Nieprawidłowy e-mail lub hasło." at sign-in:** staging rejected `E2E_USER_EMAIL` or `E2E_USER_PASSWORD`. Fix them in `.env.local` before you run again, because Firebase blocks an account for a while after many failed sign-ins.
+- **"Nieprawidłowy e-mail lub hasło." at sign-in:** staging rejected `E2E_USER_EMAIL` and `E2E_USER_PASSWORD`, or the unverified pair. Fix them in `.env.local` before you run again, because Firebase blocks an account for a while after many failed sign-ins.
 - **Android infra flakes under load:** `adb timed out after 10000ms` while preparing the device, or `app.clearState` reporting that the app "remained foreground after close". Run again when the Mac is less busy.
 - **iOS build fails with `lipo: write() failed, errno=28`:** the disk is full. An iOS Release build needs about 11 GB of DerivedData. Free space, then rerun only the build step, which reuses the DerivedData: `APP_ENV=staging LANG=en_US.UTF-8 npx expo run:ios --configuration Release --no-bundler --device "BH e2e iPhone"`.
 - **iOS build fails with `MapLibre/MapLibre.h not found`:** the native project is stale. Build with `npm run e2e:build:ios`, which always prebuilds clean.
