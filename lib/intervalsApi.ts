@@ -1,6 +1,6 @@
 import {
   INTERVALS_API_BASE_URL,
-  INTERVALS_CURRENT_ATHLETE_PATH,
+  INTERVALS_TOKEN_OWNER_PATH,
   intervalsActivitiesPath,
   intervalsActivityMapPath,
   intervalsActivityPath,
@@ -9,8 +9,23 @@ import {
   intervalsWellnessPath,
   intervalsWellnessRangePath,
 } from './intervalsApiPaths';
-import type { AthleteZoneSettings } from './powerZones';
+import type { LocalDateString } from './localDate';
+import type { LocalDateTimeString } from './localDateTime';
+import type { AthleteZoneSettings, Zone } from './powerZones';
 import type { WorkoutStep } from './workoutProfile';
+
+export type Watts = number;
+export type Bpm = number;
+export type Seconds = number;
+export type Milliseconds = number;
+export type Percent = number;
+export type Meters = number;
+export type MetersPerSecond = number;
+export type Rpm = number;
+export type Kilocalories = number;
+export type Joules = number;
+export type HexColorString = string;
+export type LatLng = [lat: number, lng: number];
 
 export class IntervalsAuthError extends Error {
   constructor(message = 'Intervals.icu access token is invalid or expired.') {
@@ -29,26 +44,19 @@ export class IntervalsApiError extends Error {
   }
 }
 
-/** True when Intervals.icu answered 404: the thing asked for doesn't exist. */
 export function isNotFoundError(error: unknown): boolean {
   return error instanceof IntervalsApiError && error.status === 404;
 }
 
-/** True when Intervals.icu answered 403: the token lacks the scope needed. */
 export function isForbiddenError(error: unknown): boolean {
   return error instanceof IntervalsApiError && error.status === 403;
 }
 
 export interface IntervalsDateRangeParams {
-  oldest?: string;
-  newest?: string;
+  oldest?: LocalDateString;
+  newest?: LocalDateString;
 }
 
-/**
- * The calendar event categories the app reads, a Race's being its Race
- * Priority. intervals.icu has more (holidays, targets, …), which arrive as
- * plain strings on `IntervalsCalendarEvent`.
- */
 export const EVENT_CATEGORY = {
   workout: 'WORKOUT',
   note: 'NOTE',
@@ -61,223 +69,128 @@ export type EventCategory =
   (typeof EVENT_CATEGORY)[keyof typeof EVENT_CATEGORY];
 
 export interface IntervalsCalendarEventsParams extends IntervalsDateRangeParams {
-  /** Only events of this category, or of any of these. */
   category?: EventCategory | readonly EventCategory[];
-  /** Adds each Workout step's target in watts (`_power`). */
   resolve?: boolean;
 }
 
-/** A date range read of Activities or Wellness Entries, each projected to `fields`. */
-export interface IntervalsProjectedRangeParams extends IntervalsDateRangeParams {
-  /** Comma-separated field projection, e.g. `'id,ctl,atl,ctlLoad'`. */
-  fields?: string;
+export type IntervalsField<Row> = keyof Row & string;
+
+export interface IntervalsProjectedRangeParams<
+  Row,
+> extends IntervalsDateRangeParams {
+  fields?: readonly IntervalsField<Row>[];
 }
 
 export interface IntervalsActivityParams {
-  /** Include the detected intervals (`icu_intervals`). */
   intervals?: boolean;
 }
 
-/**
- * One interval intervals.icu detected in an Activity. Together they tile the
- * whole elapsed time with no gaps.
- */
 export interface IntervalsActivityInterval {
-  /** Elapsed seconds from the Activity's start. */
-  start_time?: number;
-  /** Elapsed seconds from the Activity's start. */
-  end_time?: number;
-  /** Average power as %FTP. Absent or `null` without power. */
-  intensity?: number | null;
-  /** The power zone, 1–7. */
-  zone?: number | null;
-  /** `WORK` or `RECOVERY`. */
-  type?: string;
+  start_time?: Seconds;
+  end_time?: Seconds;
+  intensity?: Percent | null;
+  zone?: Zone | null;
+  type?: 'WORK' | 'RECOVERY';
 }
 
-/** One entry of an Activity's `icu_zone_times`. */
 export interface IntervalsZoneTime {
-  /** `Z1`…`Z7`, or another bucket such as `SS`. */
   id: string;
-  secs: number;
+  secs: Seconds;
 }
 
 export interface IntervalsActivity {
   id: string;
-  /**
-   * Absent, like `type`, on a Strava Activity: intervals.icu can't share an
-   * Activity it received from Strava, so the list returns it without either.
-   */
   name?: string;
-  /** intervals.icu's sport type, e.g. `Ride`, `VirtualRide`, `Run`. */
   type?: string;
-  start_date_local: string;
-  moving_time: number;
-  distance: number;
+  start_date_local: LocalDateTimeString;
+  moving_time: Seconds;
+  distance: Meters;
   icu_training_load?: number;
-  /** The calendar event this activity fulfils, when intervals.icu paired one. */
   paired_event_id?: number;
-  /** Seconds from start to finish, stops included. */
-  elapsed_time?: number;
-  /** Intensity factor as a percentage (IF × 100). */
-  icu_intensity?: number;
-  /** W. */
-  icu_average_watts?: number;
-  /** Normalized power, W. */
-  icu_weighted_avg_watts?: number;
-  /** The FTP intervals.icu used for this Activity, W. */
-  icu_ftp?: number | null;
-  /**
-   * Time in each power zone as intervals.icu counted it, at the zones that
-   * applied to the ride. Besides `Z1`…`Z7` it may hold `SS` (Sweet Spot).
-   */
+  elapsed_time?: Seconds;
+  icu_intensity?: Percent;
+  icu_average_watts?: Watts;
+  icu_weighted_avg_watts?: Watts;
+  icu_ftp?: Watts | null;
   icu_zone_times?: IntervalsZoneTime[] | null;
-  /** Variability index, a ratio (NP / average power). */
   icu_variability_index?: number;
-  /** bpm. */
-  average_heartrate?: number;
-  /** bpm. */
-  max_heartrate?: number;
-  /** rpm. */
-  average_cadence?: number;
-  /** m. */
-  total_elevation_gain?: number;
-  /** kcal. */
-  calories?: number;
-  /** Work, J. */
-  icu_joules?: number;
-  /** m/s. */
-  average_speed?: number;
-  /**
-   * intervals.icu's plan compliance, %. `null` when not calculated, negative
-   * when the athlete asked to ignore it.
-   */
-  compliance?: number | null;
-  /** The streams recorded for the Activity; `latlng` means it has GPS. */
+  average_heartrate?: Bpm;
+  max_heartrate?: Bpm;
+  average_cadence?: Rpm;
+  total_elevation_gain?: Meters;
+  calories?: Kilocalories;
+  icu_joules?: Joules;
+  average_speed?: MetersPerSecond;
+  compliance?: Percent | null;
   stream_types?: string[];
-  /** Ridden on a trainer. intervals.icu omits it when it's false. */
   trainer?: boolean;
-  /** The athlete's own notes on the Activity. Only on a single Activity. */
   description?: string | null;
-  /**
-   * The intervals intervals.icu detected, in time order. Only on a single
-   * Activity read with `intervals: true`.
-   */
   icu_intervals?: IntervalsActivityInterval[] | null;
-  /** Where the Activity came from, e.g. `STRAVA`. */
   source?: string;
-  /**
-   * Why intervals.icu left the rest out. A Strava Activity's body carries it
-   * in place of a `type`.
-   */
   _note?: string;
 }
 
-/**
- * An Activity's GPS track, as verified against the real API. The response
- * also carries `route` and `weather`, which the app doesn't use.
- */
 export interface IntervalsActivityMap {
-  /** [lat, lng] pairs, not thinned (same count as the latlng stream). */
-  latlngs?: ([number, number] | null)[] | null;
-  /** [[minLat, minLng], [maxLat, maxLng]]. */
-  bounds?: [[number, number], [number, number]] | null;
+  latlngs?: (LatLng | null)[] | null;
+  bounds?: [min: LatLng, max: LatLng] | null;
 }
 
 export interface IntervalsWorkoutDoc {
-  duration?: number;
-  /** The free-text notes only, without the builder's step lines. */
+  duration?: Seconds;
   description?: string;
-  /** Planned distance in metres, usually 0 for a time-based ride. */
-  distance?: number;
-  /** The workout's steps in time order, with repeats nested (see `WorkoutStep`). */
+  distance?: Meters;
   steps?: WorkoutStep[];
 }
 
 export interface IntervalsCalendarEvent {
   id: number;
-  /** An `EventCategory`, or one of the others the app ignores. */
   category: string;
-  /**
-   * On a Note it may also be `null`, `""` or missing; `toNotes` reads events
-   * as `NoteEvent`, which says so, so Workout code can keep it a string.
-   */
   name: string;
-  start_date_local: string;
-  /**
-   * The local midnight after the event's last day (exclusive), e.g. start + 1
-   * day for a one-day Note.
-   */
-  end_date_local?: string | null;
-  /** A hex colour such as `'#ff0000'`, or `null` for none. */
-  color?: string | null;
+  start_date_local: LocalDateTimeString;
+  end_date_local?: LocalDateTimeString | null;
+  color?: HexColorString | null;
   type?: string;
-  /**
-   * The full builder text: free-text notes plus the step lines. On a Note,
-   * its text, which may be `null`, `""` or missing.
-   */
   description?: string;
-  /** Planned duration in seconds. */
-  moving_time?: number;
-  /** Planned distance in metres, usually 0 for a time-based ride. */
-  distance?: number;
-  /** Planned training load. */
+  moving_time?: Seconds;
+  distance?: Meters;
   icu_training_load?: number;
-  /** Planned intensity in percent (IF × 100). */
-  icu_intensity?: number;
-  /** Planned work in joules. */
-  joules?: number;
+  icu_intensity?: Percent;
+  joules?: Joules;
   workout_doc?: IntervalsWorkoutDoc;
-  /**
-   * The Activity this event is paired to, when the pairing is recorded on the
-   * event's side: numeric for a Strava Activity, `i…` for a native one. Not
-   * in intervals.icu's OpenAPI schema, but returned by the events list.
-   */
   paired_activity_id?: string | null;
 }
 
-/**
- * One athlete's Wellness Entry for one day. intervals.icu returns it for any
- * date, with every metric `null` on a day without data. Only the metrics the
- * app reads are typed; the rest, such as `updated`, are ignored.
- */
 export interface IntervalsWellness {
-  /** The API's field for Fitness. */
   ctl?: number | null;
-  /** The API's field for Fatigue. */
   atl?: number | null;
-  /** The day's training load, the one Fitness and Fatigue are built from. */
   ctlLoad?: number | null;
-  /** The device's readiness score, on the device's own scale. */
   readiness?: number | null;
-  /** s. */
-  sleepSecs?: number | null;
-  /** The device's sleep score, on the device's own scale. */
+  sleepSecs?: Seconds | null;
   sleepScore?: number | null;
-  /** rMSSD, ms. */
-  hrv?: number | null;
-  /** SDNN, ms. Apple Watch reports this one instead of `hrv`. */
-  hrvSDNN?: number | null;
-  /** bpm. */
-  restingHR?: number | null;
+  hrv?: Milliseconds | null;
+  hrvSDNN?: Milliseconds | null;
+  restingHR?: Bpm | null;
 }
 
-/** A Wellness Entry from a range read, dated by its `id`. */
 export interface IntervalsWellnessDay extends IntervalsWellness {
-  /** The entry's local `YYYY-MM-DD` date. */
-  id: string;
+  id: LocalDateString;
 }
 
 export interface IntervalsRequestOptions {
-  /** Aborts the request in flight, e.g. when React Query cancels its query. */
   signal?: AbortSignal;
 }
 
-/** The query parameters some endpoint accepts; each public call takes only its own. */
 type IntervalsQueryParams =
   | IntervalsCalendarEventsParams
-  | IntervalsProjectedRangeParams
+  | IntervalsProjectedRangeParams<IntervalsActivity>
+  | IntervalsProjectedRangeParams<IntervalsWellnessDay>
   | IntervalsActivityParams;
+
+type IntervalsParamValue = string | readonly string[] | boolean;
+
+function commaJoinedParamValue(value: IntervalsParamValue): string {
+  return Array.isArray(value) ? value.join(',') : String(value);
+}
 
 async function request<T>(
   path: string,
@@ -290,15 +203,11 @@ async function request<T>(
   if (params) {
     for (const [key, value] of Object.entries(params) as [
       string,
-      string | readonly string[] | boolean | undefined,
+      IntervalsParamValue | undefined,
     ][]) {
       if (value === undefined) continue;
 
-      // A multi-value param is one comma-joined value, e.g. `RACE_A,RACE_B`.
-      url.searchParams.set(
-        key,
-        Array.isArray(value) ? value.join(',') : String(value),
-      );
+      url.searchParams.set(key, commaJoinedParamValue(value));
     }
   }
 
@@ -321,7 +230,7 @@ async function request<T>(
 export function getActivities(
   token: string,
   athleteId: string,
-  params?: IntervalsProjectedRangeParams,
+  params?: IntervalsProjectedRangeParams<IntervalsActivity>,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsActivity[]> {
   return request<IntervalsActivity[]>(
@@ -332,43 +241,28 @@ export function getActivities(
   );
 }
 
-/**
- * The slice of the athlete record the app reads. Power zones are per sport:
- * each `sportSettings` entry covers the activity types in its `types`.
- */
+interface IntervalsSportSettings {
+  types?: string[] | null;
+  power_zones?: Percent[] | null;
+  ftp?: Watts | null;
+}
+
 interface IntervalsAthlete {
-  sportSettings?:
-    | {
-        types?: string[] | null;
-        power_zones?: number[] | null;
-        ftp?: number | null;
-      }[]
-    | null;
+  sportSettings?: IntervalsSportSettings[] | null;
 }
 
-/** What the app reads of the athlete's Ride settings. */
 export interface AthleteRideSettings extends AthleteZoneSettings {
-  /** The current Ride FTP, W. */
-  ftp?: number | null;
+  ftp?: Watts | null;
 }
 
-/**
- * The sport whose settings hold the zones Workout Profiles are coloured by,
- * and the FTP the profile card's watts come from.
- */
 const CYCLING_SPORT_TYPE = 'Ride';
 
-/**
- * Reads the power zones and FTP of the athlete the token belongs to, from
- * their Ride settings. The endpoint returns a far larger athlete record the
- * app ignores.
- */
 export async function getAthleteSettings(
   token: string,
   options?: IntervalsRequestOptions,
 ): Promise<AthleteRideSettings> {
   const athlete = await request<IntervalsAthlete>(
-    INTERVALS_CURRENT_ATHLETE_PATH,
+    INTERVALS_TOKEN_OWNER_PATH,
     token,
     undefined,
     options,
@@ -394,10 +288,6 @@ export function getCalendarEvents(
   );
 }
 
-/**
- * Reads one calendar event by id. A deleted or unknown event surfaces as an
- * `IntervalsApiError` with status 404.
- */
 export function getCalendarEvent(
   token: string,
   athleteId: string,
@@ -412,12 +302,6 @@ export function getCalendarEvent(
   );
 }
 
-/**
- * Reads one Activity. The endpoint has no fields projection, so the whole
- * body comes back (about 71 KB with intervals). An unknown Activity surfaces
- * as an `IntervalsApiError` with status 404. A Strava Activity is a 200
- * carrying only its id, day, `source` and `_note`.
- */
 export function getActivity(
   token: string,
   activityId: string,
@@ -432,10 +316,6 @@ export function getActivity(
   );
 }
 
-/**
- * Reads an Activity's GPS track. An Activity without one, or unknown, surfaces
- * as an `IntervalsApiError` with status 404.
- */
 export function getActivityMap(
   token: string,
   activityId: string,
@@ -449,15 +329,10 @@ export function getActivityMap(
   );
 }
 
-/**
- * Reads one day's Wellness Entry by its local `YYYY-MM-DD` date. A day without
- * data is a 200 with every metric `null`, never a 404. A token without
- * `WELLNESS:READ` surfaces as an `IntervalsApiError` with status 403.
- */
 export function getWellness(
   token: string,
   athleteId: string,
-  date: string,
+  date: LocalDateString,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsWellness> {
   return request<IntervalsWellness>(
@@ -468,16 +343,10 @@ export function getWellness(
   );
 }
 
-/**
- * Reads the Wellness Entries from `oldest` to `newest`, each projected to
- * `fields`. Whether intervals.icu returns a row for every day isn't confirmed,
- * so a day may come without one. A token without `WELLNESS:READ` surfaces as
- * an `IntervalsApiError` with status 403.
- */
 export function getWellnessRange(
   token: string,
   athleteId: string,
-  params: IntervalsProjectedRangeParams,
+  params: IntervalsProjectedRangeParams<IntervalsWellnessDay>,
   options?: IntervalsRequestOptions,
 ): Promise<IntervalsWellnessDay[]> {
   return request<IntervalsWellnessDay[]>(

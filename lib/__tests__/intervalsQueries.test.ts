@@ -356,8 +356,16 @@ describe('upcomingQueryOptions', () => {
       {
         oldest: '2026-10-04',
         newest: '2026-10-19',
-        fields:
-          'id,start_date_local,type,paired_event_id,name,moving_time,distance,icu_training_load',
+        fields: [
+          'id',
+          'start_date_local',
+          'type',
+          'paired_event_id',
+          'name',
+          'moving_time',
+          'distance',
+          'icu_training_load',
+        ],
       },
       { signal: expect.any(AbortSignal) },
     );
@@ -499,8 +507,16 @@ describe('monthQueryOptions', () => {
       {
         oldest: '2026-05-25',
         newest: '2026-07-07',
-        fields:
-          'id,start_date_local,type,paired_event_id,name,moving_time,distance,icu_training_load',
+        fields: [
+          'id',
+          'start_date_local',
+          'type',
+          'paired_event_id',
+          'name',
+          'moving_time',
+          'distance',
+          'icu_training_load',
+        ],
       },
       { signal: expect.any(AbortSignal) },
     );

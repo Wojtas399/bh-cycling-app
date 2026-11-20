@@ -1,10 +1,10 @@
+import type { LocalDateString } from './localDate';
+
 export const INTERVALS_API_BASE_URL = 'https://intervals.icu/api/v1';
 
-/**
- * The athlete the access token belongs to. intervals.icu reads the athlete id
- * `0` as "whoever is calling", so settings can be read without knowing an id.
- */
-export const INTERVALS_CURRENT_ATHLETE_PATH = '/athlete/0';
+const ATHLETE_ID_OF_THE_CALLER = '0';
+
+export const INTERVALS_TOKEN_OWNER_PATH = `/athlete/${ATHLETE_ID_OF_THE_CALLER}`;
 
 export function intervalsActivitiesPath(athleteId: string): string {
   return `/athlete/${athleteId}/activities`;
@@ -21,22 +21,21 @@ export function intervalsCalendarEventPath(
   return `${intervalsCalendarEventsPath(athleteId)}/${eventId}`;
 }
 
-/** One Activity. Activity ids aren't scoped by athlete. */
 export function intervalsActivityPath(activityId: string): string {
   return `/activity/${activityId}`;
 }
 
-/** An Activity's GPS track. */
 export function intervalsActivityMapPath(activityId: string): string {
   return `${intervalsActivityPath(activityId)}/map`;
 }
 
-/** The athlete's Wellness Entries, read by date range. */
 export function intervalsWellnessRangePath(athleteId: string): string {
   return `/athlete/${athleteId}/wellness`;
 }
 
-/** One day's Wellness Entry, by its local `YYYY-MM-DD` date. */
-export function intervalsWellnessPath(athleteId: string, date: string): string {
+export function intervalsWellnessPath(
+  athleteId: string,
+  date: LocalDateString,
+): string {
   return `${intervalsWellnessRangePath(athleteId)}/${date}`;
 }
