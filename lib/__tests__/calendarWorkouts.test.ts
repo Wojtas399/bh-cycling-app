@@ -13,10 +13,13 @@ import { toLocalDateString } from '../localDate';
 describe('calendarWorkouts', () => {
   describe('daysSinceMonday', () => {
     it('counts Monday as 0 and Sunday as 6', () => {
-      // 2026-10-12 is a Monday.
-      expect(daysSinceMonday(new Date(2026, 9, 12))).toBe(0);
-      expect(daysSinceMonday(new Date(2026, 9, 14))).toBe(2);
-      expect(daysSinceMonday(new Date(2026, 9, 18))).toBe(6);
+      const monday12October2026 = new Date(2026, 9, 12);
+      const wednesday14October2026 = new Date(2026, 9, 14);
+      const sunday18October2026 = new Date(2026, 9, 18);
+
+      expect(daysSinceMonday(monday12October2026)).toBe(0);
+      expect(daysSinceMonday(wednesday14October2026)).toBe(2);
+      expect(daysSinceMonday(sunday18October2026)).toBe(6);
     });
   });
 
@@ -54,6 +57,26 @@ describe('calendarWorkouts', () => {
         '2026-06-19',
         '2026-06-20',
         '2026-06-21',
+      ]);
+    });
+
+    it("lists every calendar day once, whatever the anchors' times of day or a DST change between them", () => {
+      const lateBeforeEuropeanDstEnd = new Date(2026, 9, 24, 23, 30);
+      const justAfterAmericanDstEnd = new Date(2026, 10, 2, 0, 15);
+
+      expect(
+        eachDate(lateBeforeEuropeanDstEnd, justAfterAmericanDstEnd),
+      ).toEqual([
+        '2026-10-24',
+        '2026-10-25',
+        '2026-10-26',
+        '2026-10-27',
+        '2026-10-28',
+        '2026-10-29',
+        '2026-10-30',
+        '2026-10-31',
+        '2026-11-01',
+        '2026-11-02',
       ]);
     });
   });
