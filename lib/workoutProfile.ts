@@ -47,7 +47,7 @@ export const GAP_BAND = { minPct: 0, maxPct: 0, zone: 1 } as const;
 type StepBand = Pick<WorkoutBlock, 'minPct' | 'maxPct' | 'zone' | 'ramp'>;
 
 interface DrawableStep {
-  duration: Seconds;
+  durationSeconds: number;
   band: StepBand;
 }
 
@@ -55,11 +55,11 @@ const MIN_VISIBLE_WIDTH_FRACTION = 0.01;
 
 const MIN_DRAWABLE_DURATION_SHARE = 0.5;
 
-function widthFractionsFlooredToVisible(durations: Seconds[]): number[] {
-  const total = durations.reduce((sum, duration) => sum + duration, 0);
-  const fractions = durations.map(duration => duration / total);
+function widthFractionsFlooredToVisible(secondsPerStep: number[]): number[] {
+  const total = secondsPerStep.reduce((sum, seconds) => sum + seconds, 0);
+  const fractions = secondsPerStep.map(seconds => seconds / total);
   const floorsAloneFillTheProfile =
-    durations.length * MIN_VISIBLE_WIDTH_FRACTION >= 1;
+    secondsPerStep.length * MIN_VISIBLE_WIDTH_FRACTION >= 1;
 
   if (floorsAloneFillTheProfile) return fractions;
 
@@ -134,15 +134,13 @@ function stepsWithLengthAndPlaceablePower(
   steps: WorkoutStep[],
   config: ZoneConfig,
 ): DrawableStep[] {
-  return steps
-    .map(step => ({
-      duration: step.duration,
-      band: resolveBandAboveAxis(step, config),
-    }))
-    .filter(
-      (step): step is DrawableStep =>
-        step.band !== null && hasPositiveDuration(step),
-    );
+  return steps.flatMap(step => {
+    const band = resolveBandAboveAxis(step, config);
+
+    return band !== null && hasPositiveDuration(step)
+      ? [{ durationSeconds: step.duration, band }]
+      : [];
+  });
 }
 
 export function buildWorkoutProfile(
@@ -157,7 +155,7 @@ export function buildWorkoutProfile(
   if (drawable.length === 0) return [];
 
   const drawableSeconds = drawable.reduce(
-    (sum, step) => sum + step.duration,
+    (sum, step) => sum + step.durationSeconds,
     0,
   );
   const totalSeconds = steps
@@ -173,7 +171,7 @@ export function buildWorkoutProfile(
   if (everyBlockIsFlatOnTheAxis) return [];
 
   const widthFractions = widthFractionsFlooredToVisible(
-    drawable.map(step => step.duration),
+    drawable.map(step => step.durationSeconds),
   );
 
   return drawable.map(({ band }, index) => ({

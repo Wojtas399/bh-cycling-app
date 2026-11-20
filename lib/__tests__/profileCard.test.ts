@@ -53,8 +53,7 @@ function plan(durationSeconds: number): {
 
 const NO_PLAN = { blocks: [], profileSummary: null, zoneTimes: NO_ZONE_TIMES };
 
-/** The athlete's current Ride FTP. */
-const CURRENT_FTP = 280;
+const CURRENT_RIDE_FTP = 280;
 
 function ride(
   durationSeconds: number,
@@ -87,7 +86,7 @@ const rideWithoutProfile: ActivityDetails = {
 
 describe('buildProfileCard', () => {
   it('draws both strips at full width when they last as long', () => {
-    expect(buildProfileCard(plan(3600), ride(3600), CURRENT_FTP)).toEqual({
+    expect(buildProfileCard(plan(3600), ride(3600), CURRENT_RIDE_FTP)).toEqual({
       durationSeconds: 3600,
       recorded: {
         blocks: RECORDED_BLOCKS,
@@ -102,7 +101,7 @@ describe('buildProfileCard', () => {
       planned: {
         blocks: PLANNED_BLOCKS,
         summary: { durationSeconds: 3600, stepCount: 2, peakFtpPct: 110 },
-        ftp: CURRENT_FTP,
+        ftp: CURRENT_RIDE_FTP,
         zoneTimes: PLANNED_ZONE_TIMES,
       },
     });
@@ -112,7 +111,7 @@ describe('buildProfileCard', () => {
     const card = buildProfileCard(
       plan(3600),
       { ...ride(3600), zoneTimes: null },
-      CURRENT_FTP,
+      CURRENT_RIDE_FTP,
     );
 
     expect(card?.recorded?.zoneTimes).toBeNull();
@@ -120,7 +119,7 @@ describe('buildProfileCard', () => {
   });
 
   it('ends the planned strip early when the ride ran longer', () => {
-    const card = buildProfileCard(plan(3000), ride(4000), CURRENT_FTP);
+    const card = buildProfileCard(plan(3000), ride(4000), CURRENT_RIDE_FTP);
 
     expect(card?.durationSeconds).toBe(4000);
     expect(card?.recorded?.blocks).toEqual(RECORDED_BLOCKS);
@@ -132,7 +131,7 @@ describe('buildProfileCard', () => {
   });
 
   it('ends the recorded strip early when the ride was shorter', () => {
-    const card = buildProfileCard(plan(4000), ride(2000), CURRENT_FTP);
+    const card = buildProfileCard(plan(4000), ride(2000), CURRENT_RIDE_FTP);
 
     expect(card?.durationSeconds).toBe(4000);
     expect(card?.planned?.blocks).toEqual(PLANNED_BLOCKS);
@@ -144,7 +143,7 @@ describe('buildProfileCard', () => {
   });
 
   it('keeps each strip’s own summary, unscaled', () => {
-    const card = buildProfileCard(plan(3000), ride(4000), CURRENT_FTP);
+    const card = buildProfileCard(plan(3000), ride(4000), CURRENT_RIDE_FTP);
 
     expect(card?.planned?.summary.durationSeconds).toBe(3000);
     expect(card?.recorded?.summary.durationSeconds).toBe(4000);
@@ -155,20 +154,20 @@ describe('buildProfileCard', () => {
     ['a Strava Activity', { isStravaActivity: true }],
     ['no drawable profile', rideWithoutProfile],
   ])('shows the plan alone, as before, with an Activity %s', (_, activity) => {
-    expect(buildProfileCard(plan(3600), activity, CURRENT_FTP)).toEqual({
+    expect(buildProfileCard(plan(3600), activity, CURRENT_RIDE_FTP)).toEqual({
       durationSeconds: 3600,
       recorded: null,
       planned: {
         blocks: PLANNED_BLOCKS,
         summary: { durationSeconds: 3600, stepCount: 2, peakFtpPct: 110 },
-        ftp: CURRENT_FTP,
+        ftp: CURRENT_RIDE_FTP,
         zoneTimes: PLANNED_ZONE_TIMES,
       },
     });
   });
 
   it('shows the recorded strip alone for a Workout without a profile', () => {
-    expect(buildProfileCard(NO_PLAN, ride(2000), CURRENT_FTP)).toEqual({
+    expect(buildProfileCard(NO_PLAN, ride(2000), CURRENT_RIDE_FTP)).toEqual({
       durationSeconds: 2000,
       recorded: {
         blocks: RECORDED_BLOCKS,
@@ -185,14 +184,14 @@ describe('buildProfileCard', () => {
   });
 
   it('is null when neither side has a profile', () => {
-    expect(buildProfileCard(NO_PLAN, undefined, CURRENT_FTP)).toBeNull();
+    expect(buildProfileCard(NO_PLAN, undefined, CURRENT_RIDE_FTP)).toBeNull();
     expect(
-      buildProfileCard(NO_PLAN, rideWithoutProfile, CURRENT_FTP),
+      buildProfileCard(NO_PLAN, rideWithoutProfile, CURRENT_RIDE_FTP),
     ).toBeNull();
   });
 
   it('drops a plan with no known duration beside a ride, as it can’t be placed in time', () => {
-    expect(buildProfileCard(plan(0), ride(2000), CURRENT_FTP)).toEqual({
+    expect(buildProfileCard(plan(0), ride(2000), CURRENT_RIDE_FTP)).toEqual({
       durationSeconds: 2000,
       recorded: {
         blocks: RECORDED_BLOCKS,
@@ -230,19 +229,19 @@ describe('buildProfileCard', () => {
 
   it('leaves a plan with no known duration unscaled', () => {
     expect(
-      buildProfileCard(plan(0), undefined, CURRENT_FTP)?.planned?.blocks,
+      buildProfileCard(plan(0), undefined, CURRENT_RIDE_FTP)?.planned?.blocks,
     ).toEqual(PLANNED_BLOCKS);
   });
 });
 
 describe('profileCardSource', () => {
-  const SETTINGS = resolveRideSettings({ ftp: CURRENT_FTP });
+  const SETTINGS = resolveRideSettings({ ftp: CURRENT_RIDE_FTP });
 
   it("draws the card by the athlete's Ride settings", () => {
     const source = profileCardSource(plan(3600), ride(3600), SETTINGS);
 
     expect(source?.settings).toBe(SETTINGS);
-    expect(source?.card.planned?.ftp).toBe(CURRENT_FTP);
+    expect(source?.card.planned?.ftp).toBe(CURRENT_RIDE_FTP);
     expect(source?.card.recorded?.blocks).toEqual(RECORDED_BLOCKS);
   });
 

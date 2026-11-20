@@ -2,13 +2,12 @@ import { profileBars, rampPolygonPoints, roundedTopPath } from '../profileBars';
 import type { WorkoutBlock } from '../workoutProfile';
 
 describe('profileBars', () => {
-  it('splits the width between the blocks by widthFraction, less the gaps between them', () => {
+  it('splits the width between the blocks by widthFraction, less the gaps between them: 75 and 25 px of 102 px with one 2 px gap', () => {
     const blocks: WorkoutBlock[] = [
       { widthFraction: 0.75, minPct: 50, maxPct: 50, zone: 1 },
       { widthFraction: 0.25, minPct: 100, maxPct: 100, zone: 4 },
     ];
 
-    // 102px wide with one 2px gap leaves 100px: 75 and 25.
     const bars = profileBars(blocks, { width: 102, height: 40, gap: 2 });
 
     expect(bars.map(bar => [bar.x, bar.width])).toEqual([
@@ -17,13 +16,12 @@ describe('profileBars', () => {
     ]);
   });
 
-  it('scales heights against the tallest block, with a range capped above its floor', () => {
+  it('scales heights against the tallest block, with a range capped above its floor, y down from the top: 4% FTP per px for a 200% ceiling on a 50 px plot', () => {
     const blocks: WorkoutBlock[] = [
       { widthFraction: 0.5, minPct: 40, maxPct: 40, zone: 1 },
       { widthFraction: 0.5, minPct: 160, maxPct: 200, zone: 6 },
     ];
 
-    // Ceiling 200% FTP on a 50px plot: 4% FTP per px, y measured from the top.
     const bars = profileBars(blocks, { width: 100, height: 50, gap: 0 });
 
     expect(bars.map(bar => [bar.capY, bar.floorY])).toEqual([
@@ -69,7 +67,7 @@ describe('profileBars', () => {
     expect(bars.map(bar => bar.ramp)).toEqual([undefined, undefined]);
   });
 
-  it('drops the gaps when they would leave the bars no width', () => {
+  it('drops the gaps when they would leave the bars no width, as 29 gaps of 2 px would on a 30 px tile', () => {
     const blocks: WorkoutBlock[] = Array.from({ length: 30 }, () => ({
       widthFraction: 1 / 30,
       minPct: 100,
@@ -77,7 +75,6 @@ describe('profileBars', () => {
       zone: 4 as const,
     }));
 
-    // 29 gaps of 2px would take 58px of a 30px tile.
     const bars = profileBars(blocks, { width: 30, height: 40, gap: 2 });
 
     expect(bars.every(bar => bar.width > 0)).toBe(true);

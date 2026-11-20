@@ -11,8 +11,7 @@ const t = i18n.getFixedT('pl');
 
 const FTP = 250;
 
-/** 20 minutes: 10 at 60% FTP, then 10 at 100%. */
-const PLAN = {
+const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100 = {
   blocks: [
     { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 as const },
     { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 as const },
@@ -21,8 +20,7 @@ const PLAN = {
   zoneTimes: NO_ZONE_TIMES,
 };
 
-/** 10 minutes whose intervals peak at 98% FTP. */
-const RIDE: ActivityDetails = {
+const RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT: ActivityDetails = {
   isStravaActivity: false,
   title: 'Popołudniowa jazda',
   type: 'Ride',
@@ -47,7 +45,9 @@ const PLAN_LABEL =
   'Profil treningu: 20m, 2 kroki, maks. 100% FTP. Moc szczytowa 250 W, średnia 200 W';
 
 function plotOf(
-  workout: typeof PLAN | typeof NO_WORKOUT_PROFILE,
+  workout:
+    | typeof PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100
+    | typeof NO_WORKOUT_PROFILE,
   activity: ActivityDetails | undefined,
 ) {
   const card = buildProfileCard(workout, activity, FTP);
@@ -61,7 +61,10 @@ function plotOf(
 
 describe('profilePlot', () => {
   it('plots the plan alone, labelled with its steps and power', () => {
-    const { profile, plot } = plotOf(PLAN, undefined);
+    const { profile, plot } = plotOf(
+      PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+      undefined,
+    );
 
     expect(plot).toEqual({
       strips: [{ segments: profile.planned?.segments, caption: 'Plan' }],
@@ -70,7 +73,10 @@ describe('profilePlot', () => {
   });
 
   it('plots the plan above the ride, and labels both', () => {
-    const { profile, plot } = plotOf(PLAN, RIDE);
+    const { profile, plot } = plotOf(
+      PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+      RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT,
+    );
 
     expect(plot.strips).toEqual([
       { segments: profile.planned?.segments, caption: 'Plan' },
@@ -79,5 +85,11 @@ describe('profilePlot', () => {
     expect(plot.accessibilityLabel).toBe(
       `Plan i wykonanie. ${PLAN_LABEL}. Profil aktywności: 10m, 2 odcinki, maks. 98% FTP. Moc szczytowa 245 W, średnia 218 W`,
     );
+  });
+
+  it('has an empty label for a card with no strip', () => {
+    expect(
+      profilePlot({ planned: null, recorded: null }, t).accessibilityLabel,
+    ).toBe('');
   });
 });
