@@ -29,8 +29,9 @@ describe('noteLabelColor', () => {
 });
 
 describe('noteFill', () => {
-  it('keeps the Note colour', () => {
+  it('keeps a #rrggbb or #rgb Note colour', () => {
     expect(noteFill('#FF3B30')).toBe('#FF3B30');
+    expect(noteFill('#f00')).toBe('#f00');
   });
 
   it('falls back to neutral for no colour', () => {
