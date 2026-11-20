@@ -3,7 +3,13 @@ const { existsSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
 
-const ENFORCED_PATHS = [];
+const ENFORCED_PATHS = [
+  'lib/__tests__/intervalsApi.test.ts',
+  'lib/__tests__/intervalsQueries.test.ts',
+  'lib/intervalsApi.ts',
+  'lib/intervalsApiPaths.ts',
+  'lib/intervalsQueries.ts',
+];
 
 const EXCLUDED_GENERATED_PATHS = ['dist/', 'expo-env.d.ts'];
 

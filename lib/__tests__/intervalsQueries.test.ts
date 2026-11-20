@@ -17,10 +17,15 @@ import {
   fitnessQueryOptions,
   intervalsKeys,
   monthQueryOptions,
+  nextRaceQueryOptions,
   noteDetailsQueryOptions,
+  raceQueryOptions,
   routeQueryOptions,
   selectMonthAsOf,
+  selectWorkoutDetailsAsOf,
+  todayQueryOptions,
   upcomingQueryOptions,
+  workoutDetailsQueryOptions,
 } from '../intervalsQueries';
 import { toLocalDateString } from '../localDate';
 import { resolveZoneConfig } from '../powerZones';
@@ -48,14 +53,14 @@ const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
 const ATHLETE_ZONES = [60, 80, 95, 110, 130, 160, 220];
+const ATHLETE_Z2 = { zone: 2, minPct: 60, maxPct: 80 };
 
 const ZONE_2_HOUR: IntervalsWorkoutDoc = {
   duration: 3600,
   steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
 };
 
-/** A workout scheduled for today, whichever day the suite happens to run on. */
-function todayEvent(
+function workoutOnTheDayTheSuiteRuns(
   overrides: Partial<IntervalsCalendarEvent> = {},
 ): IntervalsCalendarEvent {
   return {
@@ -112,6 +117,70 @@ describe('intervalsKeys', () => {
   });
 });
 
+describe('query keys', () => {
+  it.each([
+    ['the athlete settings', athleteSettingsQueryOptions(CREDENTIALS).queryKey],
+    ['the upcoming items', upcomingQueryOptions(CREDENTIALS, TODAY).queryKey],
+    ['the next Race', nextRaceQueryOptions(CREDENTIALS, TODAY).queryKey],
+    ["today's Wellness Entry", todayQueryOptions(CREDENTIALS, TODAY).queryKey],
+    ['the Fitness year', fitnessQueryOptions(CREDENTIALS, TODAY).queryKey],
+    [
+      'a month',
+      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY))
+        .queryKey,
+    ],
+    [
+      "a Workout's details",
+      workoutDetailsQueryOptions(
+        CREDENTIALS,
+        42,
+        selectWorkoutDetailsAsOf(TODAY),
+      ).queryKey,
+    ],
+    ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42).queryKey],
+    [
+      "an Activity's details",
+      activityDetailsQueryOptions(CREDENTIALS, 'i42', buildActivityDetails)
+        .queryKey,
+    ],
+    ['a paired Race', raceQueryOptions(CREDENTIALS, 42).queryKey],
+    ['a Route', routeQueryOptions(CREDENTIALS, 'i42').queryKey],
+  ])(
+    "keys %s under the athlete's prefix, never by the access token",
+    (_, queryKey) => {
+      expect(queryKey.slice(0, 2)).toEqual(['intervals', 'athlete-1']);
+      expect(JSON.stringify(queryKey)).not.toContain(CREDENTIALS.accessToken);
+    },
+  );
+
+  it('keys a query skipped for want of credentials under no athlete', () => {
+    expect(athleteSettingsQueryOptions(null).queryKey).toEqual([
+      'intervals',
+      undefined,
+      'athleteSettings',
+    ]);
+  });
+
+  it('keys a query skipped for want of an id under a null id', () => {
+    expect(
+      activityDetailsQueryOptions(CREDENTIALS, null, buildActivityDetails)
+        .queryKey,
+    ).toEqual(['intervals', 'athlete-1', 'activity', null]);
+    expect(raceQueryOptions(CREDENTIALS, null).queryKey).toEqual([
+      'intervals',
+      'athlete-1',
+      'race',
+      null,
+    ]);
+    expect(routeQueryOptions(CREDENTIALS, null).queryKey).toEqual([
+      'intervals',
+      'athlete-1',
+      'route',
+      null,
+    ]);
+  });
+});
+
 describe('freshness', () => {
   const FIVE_MINUTES = 5 * 60_000;
 
@@ -151,6 +220,24 @@ describe('freshness', () => {
   it('lets the Fitness year go stale after 5 minutes and refetch on focus', () => {
     const options = fitnessQueryOptions(CREDENTIALS, '2026-11-06');
 
+    expect(options.staleTime).toBe(FIVE_MINUTES);
+    expect(options.refetchOnWindowFocus).toBe(true);
+  });
+
+  it.each([
+    ['the next Race', nextRaceQueryOptions(CREDENTIALS, TODAY)],
+    ["today's Wellness Entry", todayQueryOptions(CREDENTIALS, TODAY)],
+    [
+      "a Workout's details",
+      workoutDetailsQueryOptions(
+        CREDENTIALS,
+        42,
+        selectWorkoutDetailsAsOf(TODAY),
+      ),
+    ],
+    ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42)],
+    ['a paired Race', raceQueryOptions(CREDENTIALS, 42)],
+  ])('lets %s go stale after 5 minutes and refetch on focus', (_, options) => {
     expect(options.staleTime).toBe(FIVE_MINUTES);
     expect(options.refetchOnWindowFocus).toBe(true);
   });
@@ -289,7 +376,7 @@ describe('athleteSettingsQueryOptions', () => {
     jest.clearAllMocks();
   });
 
-  it('stores the zone config and current FTP resolved from the athlete settings', async () => {
+  it("stores the athlete's own zone boundaries, not Coggan's, and current FTP", async () => {
     mockGetAthleteSettings.mockResolvedValue({
       powerZones: ATHLETE_ZONES,
       ftp: 265,
@@ -300,8 +387,7 @@ describe('athleteSettingsQueryOptions', () => {
       athleteSettingsQueryOptions(CREDENTIALS),
     );
 
-    // This athlete's Z2 is 60–80% FTP, not the Coggan 55–75%.
-    expect(settings.zoneConfig[1]).toEqual({ zone: 2, minPct: 60, maxPct: 80 });
+    expect(settings.zoneConfig[1]).toEqual(ATHLETE_Z2);
     expect(settings.ftp).toBe(265);
     expect(mockGetAthleteSettings).toHaveBeenCalledWith('token-1', {
       signal: expect.any(AbortSignal),
@@ -373,7 +459,7 @@ describe('upcomingQueryOptions', () => {
 
   it("lists today's items as of the day in its key, statuses included", async () => {
     mockGetCalendarEvents.mockResolvedValue([
-      todayEvent({ start_date_local: '2026-10-11T08:00:00' }),
+      workoutOnTheDayTheSuiteRuns({ start_date_local: '2026-10-11T08:00:00' }),
     ]);
     mockGetActivities.mockResolvedValue([
       {
@@ -421,7 +507,7 @@ describe('upcomingQueryOptions', () => {
 
   it('builds the profile blocks against the athlete own zone boundaries', async () => {
     mockGetCalendarEvents.mockResolvedValue([
-      todayEvent({ workout_doc: ZONE_2_HOUR }),
+      workoutOnTheDayTheSuiteRuns({ workout_doc: ZONE_2_HOUR }),
     ]);
 
     const client = createQueryClient();
@@ -448,7 +534,7 @@ describe('upcomingQueryOptions', () => {
   it('falls back to the Coggan zones and still lists workouts when the settings fetch fails', async () => {
     mockGetAthleteSettings.mockRejectedValue(new Error('settings unavailable'));
     mockGetCalendarEvents.mockResolvedValue([
-      todayEvent({ workout_doc: ZONE_2_HOUR }),
+      workoutOnTheDayTheSuiteRuns({ workout_doc: ZONE_2_HOUR }),
     ]);
 
     const client = createQueryClient();
@@ -477,6 +563,22 @@ describe('upcomingQueryOptions', () => {
       zoneConfig: resolveZoneConfig({ powerZones: ATHLETE_ZONES }),
       ftp: null,
     });
+  });
+
+  it('fails when the Notes call fails', async () => {
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params: { category?: string }) => {
+        if (params.category === 'NOTE') throw new Error('notes down');
+
+        return [];
+      },
+    );
+
+    const client = createQueryClient();
+
+    await expect(
+      client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11')),
+    ).rejects.toThrow('notes down');
   });
 });
 
@@ -702,6 +804,18 @@ describe('monthQueryOptions', () => {
   });
 
   it('stores the whole Notes overlapping the month, in id order, apart from the days', async () => {
+    const campStartedInLookBackCoveringFirstDays = noteEvent({
+      id: 3,
+      name: 'Obóz',
+      start_date_local: '2026-01-28T00:00:00',
+      end_date_local: '2026-02-03T00:00:00',
+    });
+    const noteEndedBeforeTheMonth = noteEvent({
+      id: 5,
+      start_date_local: '2026-01-10T00:00:00',
+      end_date_local: '2026-01-12T00:00:00',
+    });
+
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params: { category?: string }) =>
         params.category === 'NOTE'
@@ -710,19 +824,8 @@ describe('monthQueryOptions', () => {
                 id: 7,
                 start_date_local: '2026-02-20T00:00:00',
               }),
-              // Started in the look-back, still covers 1–2 February.
-              noteEvent({
-                id: 3,
-                name: 'Obóz',
-                start_date_local: '2026-01-28T00:00:00',
-                end_date_local: '2026-02-03T00:00:00',
-              }),
-              // Ended before the month began.
-              noteEvent({
-                id: 5,
-                start_date_local: '2026-01-10T00:00:00',
-                end_date_local: '2026-01-12T00:00:00',
-              }),
+              campStartedInLookBackCoveringFirstDays,
+              noteEndedBeforeTheMonth,
             ]
           : [],
     );
@@ -799,21 +902,22 @@ describe('monthQueryOptions', () => {
   });
 
   it('stores only the items whose day falls in the month', async () => {
+    const plannedInMarchRiddenInFebruary = {
+      id: 1,
+      category: 'WORKOUT',
+      name: 'Ridden early',
+      start_date_local: '2026-03-01T08:00:00',
+    };
+    const plannedInFebruaryRiddenInMarch = {
+      id: 2,
+      category: 'WORKOUT',
+      name: 'Ridden late',
+      start_date_local: '2026-02-28T08:00:00',
+    };
+
     mockGetCalendarEvents.mockResolvedValue([
-      // Planned in March, ridden in February: shows in February.
-      {
-        id: 1,
-        category: 'WORKOUT',
-        name: 'Ridden early',
-        start_date_local: '2026-03-01T08:00:00',
-      },
-      // Planned in February, ridden in March: shows in March.
-      {
-        id: 2,
-        category: 'WORKOUT',
-        name: 'Ridden late',
-        start_date_local: '2026-02-28T08:00:00',
-      },
+      plannedInMarchRiddenInFebruary,
+      plannedInFebruaryRiddenInMarch,
     ]);
     mockGetActivities.mockResolvedValue([
       ride({
@@ -846,6 +950,86 @@ describe('monthQueryOptions', () => {
     ]);
   });
 });
+
+describe('workoutDetailsQueryOptions', () => {
+  const SINGLE_READ = workoutEvent({
+    id: 42,
+    start_date_local: '2026-02-11T08:00:00',
+  });
+  const LISTED = {
+    ...SINGLE_READ,
+    paired_activity_id: '20664018356',
+    workout_doc: {
+      steps: [
+        {
+          duration: 600,
+          power: { units: '%ftp', value: 90 },
+          _power: { units: 'w', value: 239 },
+        },
+      ],
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetAthleteSettings.mockResolvedValue({ powerZones: ATHLETE_ZONES });
+    mockGetActivities.mockResolvedValue([]);
+    mockGetCalendarEvent.mockResolvedValue(SINGLE_READ);
+  });
+
+  it("takes the Workout from its day's list, since the single read lacks paired_activity_id and step watts", async () => {
+    mockGetCalendarEvents.mockResolvedValue([workoutEvent({ id: 7 }), LISTED]);
+
+    const client = createQueryClient();
+    const stored = await client.fetchQuery(
+      workoutDetailsQueryOptions(
+        CREDENTIALS,
+        42,
+        selectWorkoutDetailsAsOf(TODAY),
+      ),
+    );
+
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
+      'token-1',
+      'athlete-1',
+      {
+        oldest: '2026-02-11',
+        newest: '2026-02-11',
+        category: 'WORKOUT',
+        resolve: true,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(stored.event).toEqual(LISTED);
+  });
+
+  it("falls back to the single read when its day's list lacks the event", async () => {
+    mockGetCalendarEvents.mockResolvedValue([workoutEvent({ id: 7 })]);
+
+    const client = createQueryClient();
+    const stored = await client.fetchQuery(
+      workoutDetailsQueryOptions(
+        CREDENTIALS,
+        42,
+        selectWorkoutDetailsAsOf(TODAY),
+      ),
+    );
+
+    expect(stored.event).toEqual(SINGLE_READ);
+  });
+});
+
+function workoutEvent(
+  overrides: Partial<IntervalsCalendarEvent>,
+): IntervalsCalendarEvent {
+  return {
+    id: 1,
+    category: 'WORKOUT',
+    name: 'Sweet spot',
+    start_date_local: '2026-02-11T08:00:00',
+    ...overrides,
+  };
+}
 
 function ride(overrides: Partial<IntervalsActivity>): IntervalsActivity {
   return {

@@ -69,72 +69,41 @@ import {
   skipToken,
 } from '@tanstack/react-query';
 
-/** What every Intervals.icu request needs: who to ask about, and the token. */
 export interface IntervalsCredentials {
   accessToken: string;
   athleteId: string;
 }
 
-/**
- * Every Intervals.icu query key starts with `intervalsKeys.all`, so all of it
- * can be cancelled and removed by that prefix. The access token is never part
- * of a key — the `queryFn` closures capture it instead. The athlete id is
- * `undefined` only in the key of a query skipped for want of credentials.
- */
 export const intervalsKeys = {
   all: ['intervals'] as const,
-  /** Everything for one athlete, the prefix the refresh control invalidates. */
   athlete: (athleteId: string | undefined) =>
     [...intervalsKeys.all, athleteId] as const,
   athleteSettings: (athleteId: string | undefined) =>
     [...intervalsKeys.athlete(athleteId), 'athleteSettings'] as const,
-  /** `today` is the date the upcoming workouts are counted from. */
   upcoming: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'upcoming', today] as const,
-  /** `today` is the first day the next-race card looks for a Race on. */
   nextRace: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'nextRace', today] as const,
-  /** `today` is the day whose Wellness Entry is read. */
   wellness: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'wellness', today] as const,
-  /** `today` is the last day of the year of Fitness read. */
   fitness: (athleteId: string | undefined, today: LocalDateString) =>
     [...intervalsKeys.athlete(athleteId), 'fitness', today] as const,
-  /** Every Calendar month. */
   calendar: (athleteId: string | undefined) =>
     [...intervalsKeys.athlete(athleteId), 'calendar'] as const,
   month: (athleteId: string | undefined, yearMonth: YearMonth) =>
     [...intervalsKeys.calendar(athleteId), 'month', yearMonth] as const,
-  /** One Workout's details, by its intervals.icu event id. */
   workout: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'workout', eventId] as const,
-  /** One Note, by its intervals.icu event id. */
   note: (athleteId: string | undefined, eventId: number) =>
     [...intervalsKeys.athlete(athleteId), 'note', eventId] as const,
-  /**
-   * The Race behind an Activity's paired event, by its intervals.icu event id.
-   * The id is `null` only in the key of a query skipped for want of one.
-   */
   race: (athleteId: string | undefined, eventId: number | null) =>
     [...intervalsKeys.athlete(athleteId), 'race', eventId] as const,
-  /**
-   * One Activity's details, by its intervals.icu id. The id is `null` only in
-   * the key of a query skipped for want of one.
-   */
   activity: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.athlete(athleteId), 'activity', activityId] as const,
-  /**
-   * One Activity's Route, by its intervals.icu id. The id is `null` only in
-   * the key of a query skipped for want of one.
-   */
   route: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.athlete(athleteId), 'route', activityId] as const,
 };
 
-/**
- * Cancels every Intervals.icu query, aborting its request in flight, and then
- * drops them all, so a late response can never refill the cache.
- */
 export async function removeIntervalsQueries(
   client: QueryClient,
 ): Promise<void> {
@@ -142,22 +111,11 @@ export async function removeIntervalsQueries(
   client.removeQueries({ queryKey: intervalsKeys.all });
 }
 
-/**
- * How whatever the athlete can change on intervals.icu stays fresh (events,
- * Activities, Wellness and Fitness, everywhere they show): stale after 5
- * minutes, then refetched when shown again or when the app returns to the
- * foreground. Settings and Routes, which rarely or never change, don't use it.
- */
 const CHANGING_DATA_FRESHNESS = {
   staleTime: 5 * 60_000,
   refetchOnWindowFocus: true,
 } as const;
 
-/**
- * The athlete's power zones and current Ride FTP, resolved from their
- * Intervals.icu settings (see `resolveRideSettings`). They rarely change, so
- * only a refresh fetches them again. Skipped while there are no credentials.
- */
 export function athleteSettingsQueryOptions(
   credentials: IntervalsCredentials | null,
 ) {
@@ -173,14 +131,6 @@ export function athleteSettingsQueryOptions(
   });
 }
 
-/**
- * Home's items for `today` and the day after (see `getUpcomingItems`). Events
- * and Activities are fetched a pairing window past each edge, since a paired
- * Workout shows on its Activity's day. Notes come from their own call, reaching
- * back `NOTE_LOOK_BACK_DAYS` for one that started earlier; if it fails, the
- * query fails. `today` is in the key, so the statuses are derived in the
- * fetch. Skipped while there are no credentials.
- */
 export function upcomingQueryOptions(
   credentials: IntervalsCredentials | null,
   today: LocalDateString,
@@ -206,14 +156,6 @@ export function upcomingQueryOptions(
   });
 }
 
-/**
- * The Races from `today` to `NEXT_RACE_WINDOW_DAYS` days ahead, by date, for
- * the next-race card: one Race-only events read, never derived from the
- * upcoming query, whose window is far shorter. It fails on its own, so "Dziś
- * i jutro" never fails with it. `today` is in the key, so the window moves on
- * at midnight. Fresh as long as the upcoming workouts. Skipped while there
- * are no credentials.
- */
 export function nextRaceQueryOptions(
   credentials: IntervalsCredentials | null,
   today: LocalDateString,
@@ -246,21 +188,11 @@ export function nextRaceQueryOptions(
   });
 }
 
-/** Today's Wellness Entry as Home's two top cards show it. */
 export interface TodayEntry {
-  /** `null` on a day without Fitness and Fatigue (see `toFitnessValues`). */
   fitness: FitnessValues | null;
-  /** None on a day without data (see `toWellnessRows`). */
   wellness: WellnessRow[];
 }
 
-/**
- * Today's Wellness Entry, the one read behind both the Fitness and the
- * Wellness card. `today` is in the key, so the cards move to the new day at
- * midnight. Fresh as long as the upcoming workouts. Retries are the global
- * default (none), so a 403 is never retried. Skipped while there are no
- * credentials.
- */
 export function todayQueryOptions(
   credentials: IntervalsCredentials | null,
   today: LocalDateString,
@@ -286,15 +218,6 @@ export function todayQueryOptions(
   });
 }
 
-/**
- * The Fitness chart's year ending `today`, a day for every date (see
- * `toFitnessDays`), from one Wellness range read. Every range is a slice of
- * it, so switching ranges never fetches. It never asks past `today`, so no
- * projected value arrives. `today` is in the key, so the year moves on at
- * midnight. Separate from today's Wellness Entry, which Home reads. Fresh as
- * long as the upcoming workouts. Retries are the global default (none), so a
- * 403 is never retried. Skipped while there are no credentials.
- */
 export function fitnessQueryOptions(
   credentials: IntervalsCredentials | null,
   today: LocalDateString,
@@ -317,14 +240,8 @@ export function fitnessQueryOptions(
   });
 }
 
-/** Derives a stored month's Workout Statuses for display; Notes pass through. */
 export type MonthSelect = (month: StoredMonth) => CalendarData;
 
-/**
- * The month `select` deriving each Workout Status as of `today`. Callers keep
- * it referentially stable per `today`, so a month's selected result is only
- * recomputed when the data or the day changes.
- */
 export function selectMonthAsOf(today: LocalDateString): MonthSelect {
   return month => ({
     itemsByDate: withItemStatuses(month, today),
@@ -332,17 +249,6 @@ export function selectMonthAsOf(today: LocalDateString): MonthSelect {
   });
 }
 
-/**
- * One Calendar month's items by day — Workouts and Unplanned Activities —
- * every day of it present, and the Notes overlapping it. Events and
- * Activities are both fetched a pairing window past each edge (see
- * `PAIRING_WINDOW_DAYS`), since a paired Workout shows on its Activity's day.
- * Notes come from their own call, reaching back `NOTE_LOOK_BACK_DAYS` for one
- * that started earlier; if it fails, the month fails. The query stores the
- * Workouts without a status; `select` (see `selectMonthAsOf`) derives each
- * Workout Status, so a planned workout turns missed at midnight without a
- * fetch. Skipped while there are no credentials.
- */
 export function monthQueryOptions(
   credentials: IntervalsCredentials | null,
   yearMonth: YearMonth,
@@ -370,31 +276,16 @@ export function monthQueryOptions(
   });
 }
 
-/** Derives a stored Workout's view model, Workout Status included. */
 export type WorkoutDetailsSelect = (
   stored: StoredWorkoutDetails,
 ) => WorkoutDetails;
 
-/**
- * The Workout Details `select` building the view model as of `today`. Callers
- * keep it referentially stable per `today`, like `selectMonthAsOf`.
- */
 export function selectWorkoutDetailsAsOf(
   today: LocalDateString,
 ): WorkoutDetailsSelect {
   return stored => buildWorkoutDetails(stored, today);
 }
 
-/**
- * One Workout with how it is paired. The single event read lacks
- * `paired_activity_id` (#191) and can't resolve step watts, so it only dates
- * the Workout: the event itself is then taken from that day's Workouts list,
- * which has both, alongside the Activities a pairing window around the day.
- * Should the list lack the event, the single read stands in. The query stores no status; `select` (see
- * `selectWorkoutDetailsAsOf`) derives it, so a planned Workout turns missed at
- * midnight without a fetch. Never reads from or writes into the month or
- * upcoming caches. Skipped while there are no credentials.
- */
 export function workoutDetailsQueryOptions(
   credentials: IntervalsCredentials | null,
   eventId: number,
@@ -405,7 +296,10 @@ export function workoutDetailsQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }): Promise<StoredWorkoutDetails> => {
           const { accessToken, athleteId } = credentials;
-          const rideSettingsPromise = fetchRideSettings(client, credentials);
+          const rideSettingsPromise = fetchRideSettingsOrCoggan(
+            client,
+            credentials,
+          );
           const eventRead = await getCalendarEvent(
             accessToken,
             athleteId,
@@ -437,8 +331,7 @@ export function workoutDetailsQueryOptions(
             ),
             rideSettingsPromise,
           ]);
-          const event =
-            dayWorkouts.find(({ id }) => id === eventId) ?? eventRead;
+          const event = listedCopyOrSingleRead(dayWorkouts, eventId, eventRead);
 
           return { event, ...pairWorkout(event, activities), rideSettings };
         }
@@ -448,13 +341,6 @@ export function workoutDetailsQueryOptions(
   });
 }
 
-/**
- * One Note for Note Details, read by its intervals.icu event id. An event that
- * isn't a Note fails as a 404, like a deleted one, so both read as not found
- * (see `isNotFoundError`). Never reads from or writes into the month or
- * upcoming caches. Fresh as long as a Workout's details. Skipped while there
- * are no credentials.
- */
 export function noteDetailsQueryOptions(
   credentials: IntervalsCredentials | null,
   eventId: number,
@@ -482,20 +368,10 @@ export function noteDetailsQueryOptions(
   });
 }
 
-/** Derives a stored Activity's view model. */
 export type ActivityDetailsSelect = (
   stored: StoredActivityDetails,
 ) => ActivityDetails;
 
-/**
- * One Activity, with its detected intervals, for Activity Details. The query
- * stores the body trimmed to what the screen needs (see
- * `toStoredActivityDetails`), never the whole of it; `select` builds the view
- * model. Activity Details and a completed Workout's profile card share it.
- * Never reads from or writes into the month, upcoming or Workout Details
- * caches. Fresh as long as a Workout's details. Skipped without credentials or
- * an Activity id.
- */
 export function activityDetailsQueryOptions(
   credentials: IntervalsCredentials | null,
   activityId: string | null,
@@ -520,13 +396,6 @@ export function activityDetailsQueryOptions(
   });
 }
 
-/**
- * The Race an Activity is paired to, for the Race header on Activity Details:
- * one read of the paired event, `null` when that event isn't a Race (a
- * Workout, say). Never reads from or writes into the month or upcoming
- * caches. Fresh as long as a Workout's details. Skipped without credentials
- * or an event id.
- */
 export function raceQueryOptions(
   credentials: IntervalsCredentials | null,
   eventId: number | null,
@@ -549,14 +418,6 @@ export function raceQueryOptions(
   });
 }
 
-/**
- * One Activity's Route, simplified for drawing. A 404 means intervals.icu has
- * no track for it, which resolves to `null` ("no Route"), not an error; so
- * does a track with fewer than 2 usable points. A recorded track never
- * changes, so a loaded Route stays fresh forever and is never refetched on
- * foreground. Retries, `gcTime` and 401 routing are the global defaults.
- * Skipped without credentials or an Activity id.
- */
 export function routeQueryOptions(
   credentials: IntervalsCredentials | null,
   activityId: string | null,
@@ -583,21 +444,13 @@ export function routeQueryOptions(
   });
 }
 
-/** Everything Home and the Calendar draw for a range of days. */
 interface CalendarRangeData {
   events: IntervalsCalendarEvent[];
   activities: IntervalsActivity[];
-  /** In `id` order. */
   notes: Note[];
   zoneConfig: ZoneConfig;
 }
 
-/**
- * Fetches what `first`..`last` shows, in parallel: events and Activities a
- * pairing window past each edge, the zone config (see `fetchZoneConfig`), and
- * the Notes from their own call reaching back `NOTE_LOOK_BACK_DAYS`. Any
- * request but the zone config failing fails the whole fetch.
- */
 async function fetchCalendarRange(
   client: QueryClient,
   credentials: IntervalsCredentials,
@@ -615,7 +468,7 @@ async function fetchCalendarRange(
       { ...window, fields: ACTIVITY_FIELDS },
       { signal },
     ),
-    fetchZoneConfig(client, credentials),
+    fetchZoneConfigOrCoggan(client, credentials),
     getCalendarEvents(
       accessToken,
       athleteId,
@@ -627,26 +480,24 @@ async function fetchCalendarRange(
   return { events, activities, notes: toNotes(noteEvents), zoneConfig };
 }
 
-/**
- * Custom zone boundaries only sharpen the colours of a profile, and Coggan
- * stands in for them well enough. Losing them must never cost the athlete the
- * workouts themselves. A failed settings query isn't cached, so the next fetch
- * retries it.
- */
-function fetchZoneConfig(
+function listedCopyOrSingleRead(
+  dayWorkouts: IntervalsCalendarEvent[],
+  eventId: number,
+  singleRead: IntervalsCalendarEvent,
+): IntervalsCalendarEvent {
+  return dayWorkouts.find(({ id }) => id === eventId) ?? singleRead;
+}
+
+function fetchZoneConfigOrCoggan(
   client: QueryClient,
   credentials: IntervalsCredentials,
 ): Promise<ZoneConfig> {
-  return fetchRideSettings(client, credentials).then(
+  return fetchRideSettingsOrCoggan(client, credentials).then(
     ({ zoneConfig }) => zoneConfig,
   );
 }
 
-/**
- * The athlete's Ride settings, or Coggan's zones and no FTP when they fail
- * (see `fetchZoneConfig`).
- */
-function fetchRideSettings(
+function fetchRideSettingsOrCoggan(
   client: QueryClient,
   credentials: IntervalsCredentials,
 ): Promise<RideSettings> {
