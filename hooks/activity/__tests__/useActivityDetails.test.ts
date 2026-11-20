@@ -1,5 +1,6 @@
 import { useActivityDetails } from '../useActivityDetails';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
+import * as activityDetails from '@/lib/activityDetails';
 import {
   type IntervalsActivity,
   IntervalsApiError,
@@ -711,6 +712,34 @@ describe('useActivityDetails', () => {
       await act(() => removeIntervalsQueries(client));
 
       expect(client.getQueryData(activityKey)).toBeUndefined();
+    });
+
+    it('does not build the view model again until the data changes', async () => {
+      mockConnected();
+      mockGetActivity.mockResolvedValue(activity());
+      const build = jest.spyOn(activityDetails, 'buildActivityDetails');
+
+      const { result, rerender } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      const builds = build.mock.calls.length;
+
+      await rerender(undefined);
+
+      expect(build).toHaveBeenCalledTimes(builds);
+      build.mockRestore();
+    });
+
+    it('keeps the same refetch across renders', async () => {
+      mockConnected();
+      mockGetActivity.mockResolvedValue(activity());
+
+      const { result, rerender } = await renderDetails();
+      const first = result.current.refetch;
+
+      await rerender(undefined);
+
+      expect(result.current.refetch).toBe(first);
     });
 
     it('refetches only this query on refetch', async () => {

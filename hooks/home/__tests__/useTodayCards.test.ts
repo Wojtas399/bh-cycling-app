@@ -9,6 +9,7 @@ import {
 } from '@/lib/intervalsApi';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -104,13 +105,11 @@ const FULL_CARDS = {
   wellness: FULL_ROWS,
 };
 
-/** Refetches, then lets React Query hand the settled state to the hook. */
-async function refetch(hook: {
+async function refetchAndSettle(hook: {
   result: { current: { refetch: () => Promise<void> } };
 }) {
   await act(() => hook.result.current.refetch());
-  // React Query hands the settled state to the hook on a later tick.
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  await settleQueries();
 }
 
 async function renderSettled() {
@@ -203,7 +202,7 @@ describe('useTodayCards', () => {
     const hook = await renderSettled();
 
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
   });
@@ -259,7 +258,7 @@ describe('useTodayCards', () => {
     const hook = await renderSettled();
 
     mockGetWellness.mockRejectedValue(new IntervalsApiError(500));
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
     expect(hook.result.current.state).toEqual(FULL_CARDS);
@@ -431,7 +430,7 @@ describe('useTodayCards', () => {
       atl: 43.1,
       restingHR: 48,
     });
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
     expect(hook.result.current.state).toEqual({
@@ -449,7 +448,7 @@ describe('useTodayCards', () => {
 
     mockConnected(SCOPE_WITHOUT_WELLNESS);
     await hook.rerender({});
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
     expect(mockGetWellness).toHaveBeenCalledTimes(1);

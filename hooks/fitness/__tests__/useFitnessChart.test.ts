@@ -9,6 +9,7 @@ import {
 } from '@/lib/intervalsApi';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -70,13 +71,11 @@ const NEW_ATHLETE_ROWS = [
   { id: '2026-11-06', ctl: 10.4, atl: 33.5, ctlLoad: null },
 ];
 
-/** Refetches, then lets React Query hand the settled state to the hook. */
-async function refetch(hook: {
+async function refetchAndSettle(hook: {
   result: { current: { refetch: () => Promise<void> } };
 }) {
   await act(() => hook.result.current.refetch());
-  // React Query hands the settled state to the hook on a later tick.
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  await settleQueries();
 }
 
 async function renderSettled() {
@@ -160,7 +159,7 @@ describe('useFitnessChart', () => {
     const hook = await renderSettled();
 
     mockGetWellnessRange.mockRejectedValue(new IntervalsApiError(403));
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
   });
@@ -182,7 +181,7 @@ describe('useFitnessChart', () => {
     const loaded = hook.result.current.state;
 
     mockGetWellnessRange.mockRejectedValue(new Error('Network request failed'));
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(mockGetWellnessRange).toHaveBeenCalledTimes(2);
     expect(loaded.status).toBe('ready');
@@ -335,7 +334,7 @@ describe('useFitnessChart', () => {
     expect(hook.result.current.state).toEqual({ status: 'empty' });
 
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_ROWS);
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(mockGetWellnessRange).toHaveBeenCalledTimes(2);
     expect(hook.result.current.state).toMatchObject({ status: 'ready' });
@@ -350,7 +349,7 @@ describe('useFitnessChart', () => {
     expect(hook.result.current.state).toEqual({ status: 'error' });
 
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_ROWS);
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(hook.result.current.state).toMatchObject({ status: 'ready' });
   });

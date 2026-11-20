@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from '@/hooks/useIntervalsAvailability';
+import { useStableSelect } from '@/hooks/useStableSelect';
 import { useToday } from '@/hooks/useToday';
 import type { YearMonth } from '@/lib/calendarWorkouts';
 import {
@@ -60,6 +61,14 @@ export interface UseCalendarRangeConfig {
   step: (anchor: Date, direction: -1 | 1) => Date;
 }
 
+function combineRangeMonths(
+  anchor: Date,
+  startOf: (anchor: Date) => Date,
+  endOf: (anchor: Date) => Date,
+) {
+  return combineMonthResults(startOf(anchor), endOf(anchor));
+}
+
 export function useCalendarRange({
   startDate,
   startOf,
@@ -74,14 +83,8 @@ export function useCalendarRange({
     startOf(startDate ?? fromLocalDateString(today)),
   );
 
-  // Stable per range, so `useQueries` only re-combines when a result changes.
-  const combine = useMemo(
-    () => combineMonthResults(startOf(anchor), endOf(anchor)),
-    [anchor, startOf, endOf],
-  );
-
-  // Stable per day, so a month's statuses are only re-derived when it changes.
-  const select = useMemo(() => selectMonthAsOf(today), [today]);
+  const combine = useStableSelect(combineRangeMonths, anchor, startOf, endOf);
+  const select = useStableSelect(selectMonthAsOf, today);
 
   const query = useQueries({
     queries: monthsFor(anchor).map(yearMonth =>

@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 
 import type { FormBinding } from '../formBinding';
 import { useFormTextField } from '../useFormTextField';
+import { flushPromises } from '@/test-utils/settle';
 import { act, renderHook } from '@testing-library/react-native';
 
 jest.mock('react-i18next', () => ({
@@ -48,8 +49,7 @@ describe('useFormTextField', () => {
 
     await act(async () => {
       hook.result.current.email.onSubmitEditing?.();
-      // RHF focuses on the next tick.
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await flushPromises();
     });
 
     expect(focusPassword).toHaveBeenCalledTimes(1);
