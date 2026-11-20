@@ -112,8 +112,7 @@ describe('planZoneTimes', () => {
     ).toEqual({ 1: 600, 2: 0, 3: 1200, 4: 300, 5: 0, 6: 0, 7: 0 });
   });
 
-  it('reads the zones at the zone config it is given', () => {
-    // 58% is Z2 on Coggan's zones but Z1 under a 60% ceiling.
+  it("reads the zones at the zone config it is given: 58% is Z2 on Coggan's zones but Z1 under a 60% ceiling", () => {
     const config = resolveZoneConfig({
       powerZones: [60, 80, 95, 110, 125, 160, 999],
     });
@@ -157,8 +156,7 @@ describe('planZoneTimes', () => {
     ).toBe(600);
   });
 
-  it('splits a ramp between the zones it climbs through, in proportion', () => {
-    // 45→75% spends a third of its span below the 55% edge.
+  it('splits a ramp between the zones it climbs through, in proportion: 45→75% spends a third of its span below the 55% edge', () => {
     expect(
       planZoneTimes(
         [
@@ -188,8 +186,7 @@ describe('planZoneTimes', () => {
     ).toEqual({ 1: 200, 2: 400, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 });
   });
 
-  it('keeps a ramp past the top zone in the top zone', () => {
-    // 140→240%: 10 points in Z6, the other 90 above Z7's 150% floor.
+  it("keeps a ramp past the top zone in the top zone: 140→240% has 10 points in Z6 and the other 90 above Z7's 150% floor", () => {
     expect(
       planZoneTimes(
         [

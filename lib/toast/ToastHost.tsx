@@ -12,12 +12,7 @@ const { colors, spacing, borderRadii, textVariants } = theme;
 const ICON_SIZE = 20;
 const label = textVariants['body-s-medium'];
 
-/**
- * The pill's surface. On iOS 26 it is native glass behind a transparent
- * toast, and the glass draws its own edge. Elsewhere it is a solid pill with
- * a ring.
- */
-const surface = liquidGlassAvailable
+const pillSurface = liquidGlassAvailable
   ? { backgroundColor: 'transparent' }
   : {
       backgroundColor: colors.bgTertiary,
@@ -25,22 +20,20 @@ const surface = liquidGlassAvailable
       borderColor: colors.borderStrong,
     };
 
-/**
- * The Toast look and behaviour (ADR 0004). Every host spreads this, so a
- * toast looks the same whichever host shows it.
- */
+function asTextStyleFontWeight(fontWeight: string): TextStyle['fontWeight'] {
+  return fontWeight as TextStyle['fontWeight'];
+}
+
 export const toasterConfig = {
   position: 'top-center',
   theme: 'dark',
-  // sonner's collapsed stack expands on tap and pauses every timer, so
-  // toasts show as a plain list instead.
   enableStacking: false,
   visibleToasts: 3,
   gap: spacing.sm,
   swipeToDismissDirection: 'up',
   toastOptions: {
     style: {
-      ...surface,
+      ...pillSurface,
       borderRadius: borderRadii.full,
       paddingVertical: spacing.md,
       paddingHorizontal: spacing.base,
@@ -51,8 +44,7 @@ export const toasterConfig = {
       fontFamily: label.fontFamily,
       fontSize: label.fontSize,
       lineHeight: label.lineHeight,
-      // Overrides sonner's default '600', which Android would fake-bold.
-      fontWeight: label.fontWeight as TextStyle['fontWeight'],
+      fontWeight: asTextStyleFontWeight(label.fontWeight),
     },
   },
   icons: {
@@ -76,23 +68,18 @@ export const toasterConfig = {
 } satisfies Omit<ToasterProps, 'id'>;
 
 interface ToastHostProps {
-  /**
-   * Names a sheet-level host. Omit it for the root host, which shows every
-   * toast not sent to a named host.
-   */
-  id?: string;
+  sheetHostId?: string;
 }
 
-/** Renders toasts. Mount the root host once, outside the navigator. */
-export function ToastHost({ id }: ToastHostProps) {
-  return <Toaster {...toasterConfig} id={id} />;
+export function ToastHost({ sheetHostId }: ToastHostProps) {
+  return <Toaster {...toasterConfig} id={sheetHostId} />;
 }
 
-/**
- * A host inside a sheet, for Android, where a sheet is a Dialog window that
- * covers the root host. It takes toasts while its view is attached, so mount
- * it only while the sheet is presented.
- */
+const FILL_SHEET_LETTING_TOUCHES_THROUGH = {
+  style: StyleSheet.absoluteFill,
+  pointerEvents: 'box-none',
+} as const;
+
 export function SheetToastHost() {
   const id = useId();
   const registerWhileAttached = useCallback(() => {
@@ -101,15 +88,9 @@ export function SheetToastHost() {
     return () => unregisterSheetHost(id);
   }, [id]);
 
-  // Fills the sheet like the host's own absolute layer did, and lets touches
-  // through to the sheet.
   return (
-    <View
-      ref={registerWhileAttached}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="box-none"
-    >
-      <ToastHost id={id} />
+    <View ref={registerWhileAttached} {...FILL_SHEET_LETTING_TOUCHES_THROUGH}>
+      <ToastHost sheetHostId={id} />
     </View>
   );
 }
