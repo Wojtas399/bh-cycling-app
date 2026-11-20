@@ -1,4 +1,8 @@
-import type { IntervalsWellness, IntervalsWellnessDay } from './intervalsApi';
+import type {
+  IntervalsField,
+  IntervalsWellness,
+  IntervalsWellnessDay,
+} from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import {
   type LocalDateString,
@@ -89,7 +93,12 @@ export function sliceFitnessRange(
 }
 
 /** The Wellness fields the chart reads: the date, Fitness, Fatigue and load. */
-export const FITNESS_FIELDS = 'id,ctl,atl,ctlLoad';
+export const FITNESS_FIELDS: readonly IntervalsField<IntervalsWellnessDay>[] = [
+  'id',
+  'ctl',
+  'atl',
+  'ctlLoad',
+];
 
 /** The year the chart reads: `FITNESS_HISTORY_DAYS` ending `today`. */
 export function fitnessHistoryWindow(today: LocalDateString): {

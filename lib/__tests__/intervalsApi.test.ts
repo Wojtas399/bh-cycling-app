@@ -77,7 +77,7 @@ describe('intervalsApi', () => {
     );
   });
 
-  it('getCalendarEvents sends several categories comma-joined', async () => {
+  it('sends a multi-value param as one comma-joined value, the only form intervals.icu reads', async () => {
     mockFetchOnce({ ok: true, status: 200, json: async () => [] });
 
     await getCalendarEvents('token-1', 'athlete-1', {
@@ -345,8 +345,8 @@ describe('intervalsApi', () => {
     const RANGE = {
       oldest: '2025-11-07',
       newest: '2026-11-06',
-      fields: 'id,ctl,atl,ctlLoad',
-    };
+      fields: ['id', 'ctl', 'atl', 'ctlLoad'],
+    } as const;
 
     it('reads the Wellness rows of a date range, projected to the fields asked for', async () => {
       const rows = [{ id: '2026-11-06', ctl: 42.6, atl: 50.4, ctlLoad: 85 }];
@@ -368,7 +368,11 @@ describe('intervalsApi', () => {
       expect(`${url.origin}${url.pathname}`).toBe(
         'https://intervals.icu/api/v1/athlete/athlete-1/wellness',
       );
-      expect(Object.fromEntries(url.searchParams)).toEqual(RANGE);
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        oldest: '2025-11-07',
+        newest: '2026-11-06',
+        fields: 'id,ctl,atl,ctlLoad',
+      });
     });
 
     it('passes the abort signal through to fetch', async () => {

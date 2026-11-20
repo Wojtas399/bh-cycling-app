@@ -5,7 +5,11 @@ import {
   joinCalendarItems,
   withWorkoutStatus,
 } from './calendarItems';
-import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
+import type {
+  IntervalsActivity,
+  IntervalsCalendarEvent,
+  IntervalsField,
+} from './intervalsApi';
 import { type LocalDateString, addDays, toLocalDateString } from './localDate';
 import { type Note, notesOverlapping } from './notes';
 import type { ZoneConfig } from './powerZones';
@@ -15,8 +19,16 @@ import type { ZoneConfig } from './powerZones';
  * against events, and what an Unplanned Activity's tile shows. A slim
  * projection, not the full Activity payload Workout Details reads.
  */
-export const ACTIVITY_FIELDS =
-  'id,start_date_local,type,paired_event_id,name,moving_time,distance,icu_training_load';
+export const ACTIVITY_FIELDS: readonly IntervalsField<IntervalsActivity>[] = [
+  'id',
+  'start_date_local',
+  'type',
+  'paired_event_id',
+  'name',
+  'moving_time',
+  'distance',
+  'icu_training_load',
+];
 
 /**
  * An Activity can be paired to an event scheduled on a different day (ridden
