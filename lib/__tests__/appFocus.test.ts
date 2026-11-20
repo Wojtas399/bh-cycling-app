@@ -5,11 +5,13 @@ import { focusManager } from '@tanstack/react-query';
 
 type FocusSetup = Parameters<typeof focusManager.setEventListener>[0];
 
+const keepSetupWithoutRunningIt = () => undefined;
+
 describe('setupAppFocus', () => {
   const originalOS = Platform.OS;
   const remove = jest.fn();
   let appStateListener: (state: AppStateStatus) => void;
-  let setEventListener: jest.SpyInstance;
+  let focusSetupCapture: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -20,10 +22,9 @@ describe('setupAppFocus', () => {
 
         return { remove };
       });
-    // Captures the setup instead of running it against the real AppState.
-    setEventListener = jest
+    focusSetupCapture = jest
       .spyOn(focusManager, 'setEventListener')
-      .mockImplementation(() => {});
+      .mockImplementation(keepSetupWithoutRunningIt);
   });
 
   afterEach(() => {
@@ -34,7 +35,7 @@ describe('setupAppFocus', () => {
   function runSetup(handleFocus: jest.Mock) {
     setupAppFocus();
 
-    const setup: FocusSetup = setEventListener.mock.calls[0][0];
+    const setup: FocusSetup = focusSetupCapture.mock.calls[0][0];
 
     return setup(handleFocus);
   }
@@ -70,6 +71,6 @@ describe('setupAppFocus', () => {
 
     setupAppFocus();
 
-    expect(setEventListener).not.toHaveBeenCalled();
+    expect(focusSetupCapture).not.toHaveBeenCalled();
   });
 });

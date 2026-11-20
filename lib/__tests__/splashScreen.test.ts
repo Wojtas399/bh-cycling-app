@@ -8,16 +8,22 @@ jest.mock('expo-splash-screen', () => ({
 
 let hideSplashScreen: typeof SplashScreenModule.hideSplashScreen;
 
+function loadSplashScreenNeverHiddenBefore() {
+  jest.isolateModules(() => {
+    ({ hideSplashScreen } =
+      jest.requireActual<typeof SplashScreenModule>('../splashScreen'));
+  });
+}
+
+function letTheHideSettleSoAnUnhandledRejectionFails() {
+  return new Promise(resolve => setImmediate(resolve));
+}
+
 describe('hideSplashScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockHideAsync.mockResolvedValue(undefined);
-
-    // A fresh module per test, so an earlier test's hide doesn't count.
-    jest.isolateModules(() => {
-      ({ hideSplashScreen } =
-        jest.requireActual<typeof SplashScreenModule>('../splashScreen'));
-    });
+    loadSplashScreenNeverHiddenBefore();
   });
 
   it('hides the splash', () => {
@@ -38,8 +44,7 @@ describe('hideSplashScreen', () => {
     mockHideAsync.mockRejectedValue(new Error('no splash'));
 
     hideSplashScreen();
-    // An unhandled rejection would fail the test once the hide settles.
-    await new Promise(resolve => setImmediate(resolve));
+    await letTheHideSettleSoAnUnhandledRejectionFails();
 
     expect(mockHideAsync).toHaveBeenCalledTimes(1);
   });

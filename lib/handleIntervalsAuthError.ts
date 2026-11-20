@@ -4,21 +4,21 @@ import { removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import type { QueryClient } from '@tanstack/react-query';
 
-/**
- * The token is known-bad: prompt for a reconnect and drop everything cached
- * with it. Runs once per failed query, so several 401s at once run it several
- * times — every step is safe to repeat.
- */
 export async function handleIntervalsAuthError(
   client: QueryClient,
 ): Promise<void> {
-  // First, so every Intervals query is disabled before the wipe below — a
-  // remounting screen must not refetch with the bad token and 401 again.
+  await disableIntervalsQueriesThenRemoveThem(client);
+  await deleteIntervalsIntegrationDoc();
+}
+
+async function disableIntervalsQueriesThenRemoveThem(
+  client: QueryClient,
+): Promise<void> {
   setNeedsReconnect(true);
   await removeIntervalsQueries(client);
+}
 
-  // Best-effort: even if the integration doc can't be deleted (offline,
-  // rules), the steps above have already run.
+async function deleteIntervalsIntegrationDoc(): Promise<void> {
   const uid = auth().currentUser?.uid;
 
   if (uid) {

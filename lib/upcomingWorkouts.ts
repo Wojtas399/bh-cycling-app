@@ -15,28 +15,18 @@ import {
 import { type Note, notesOn } from './notes';
 import type { ZoneConfig } from './powerZones';
 
-/** An item on Home, labelled with the day it shows on. */
 export type UpcomingItem = (CalendarItem | { kind: 'note'; note: Note }) & {
   dayLabel: 'today' | 'tomorrow';
 };
 
-/** A key unique across Home's items. */
 export function upcomingItemKey(item: UpcomingItem): string {
   return item.kind === 'note' ? `note-${item.note.id}` : calendarItemKey(item);
 }
 
-/**
- * Home's items for `today` and the day after, in order: the day's Races, in
- * Race order; each Workout with its Workout Status, on its Activity's day
- * when paired, and today's Unplanned Activities among them; then that day's
- * Notes, in `id` order, as `notes` must already be (`toNotes` gives them so).
- * Tomorrow holds no Unplanned Activities. A Note shows once: under today if
- * it covers today, else under tomorrow if it starts then.
- */
 export function getUpcomingItems(
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
-  notes: Note[],
+  notesInIdOrder: Note[],
   today: LocalDateString,
   zoneConfig: ZoneConfig,
 ): UpcomingItem[] {
@@ -61,11 +51,11 @@ export function getUpcomingItems(
     }
   }
 
-  for (const note of notesOn(notes, today)) {
+  for (const note of notesOn(notesInIdOrder, today)) {
     todays.push({ kind: 'note', note, dayLabel: 'today' });
   }
 
-  for (const note of notes) {
+  for (const note of notesInIdOrder) {
     if (note.start === tomorrow) {
       tomorrows.push({ kind: 'note', note, dayLabel: 'tomorrow' });
     }

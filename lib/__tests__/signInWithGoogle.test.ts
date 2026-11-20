@@ -41,4 +41,19 @@ describe('signInWithGoogle', () => {
 
     await expect(signInWithGoogle()).resolves.toBe('cancelled');
   });
+
+  it('rejects any failure other than a cancel', async () => {
+    mockGoogleSignIn.mockRejectedValue({ code: 'NETWORK_ERROR' });
+
+    await expect(signInWithGoogle()).rejects.toEqual({
+      code: 'NETWORK_ERROR',
+    });
+  });
+
+  it('rejects when Google returns no ID token', async () => {
+    mockGoogleSignIn.mockResolvedValue({ type: 'success', data: {} });
+
+    await expect(signInWithGoogle()).rejects.toThrow('no_id_token');
+    expect(mockSignInWithCredential).not.toHaveBeenCalled();
+  });
 });
