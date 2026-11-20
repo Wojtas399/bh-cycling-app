@@ -8,8 +8,7 @@ import {
   toRaces,
 } from '../races';
 
-// Shaped like the live Race bodies in #280.
-function event(
+function liveShapedRaceEvent(
   overrides: Partial<IntervalsCalendarEvent>,
 ): IntervalsCalendarEvent {
   return {
@@ -28,12 +27,12 @@ describe('toRaces', () => {
   it('keeps only RACE_A, RACE_B and RACE_C events, priority from the category', () => {
     expect(
       toRaces([
-        event({ id: 1, category: 'RACE_A' }),
-        event({ id: 2, category: 'WORKOUT' }),
-        event({ id: 3, category: 'RACE_C' }),
-        event({ id: 4, category: 'NOTE' }),
-        event({ id: 5, category: 'RACE_B' }),
-        event({ id: 6, category: 'TARGET' }),
+        liveShapedRaceEvent({ id: 1, category: 'RACE_A' }),
+        liveShapedRaceEvent({ id: 2, category: 'WORKOUT' }),
+        liveShapedRaceEvent({ id: 3, category: 'RACE_C' }),
+        liveShapedRaceEvent({ id: 4, category: 'NOTE' }),
+        liveShapedRaceEvent({ id: 5, category: 'RACE_B' }),
+        liveShapedRaceEvent({ id: 6, category: 'TARGET' }),
       ]).map(({ id, priority }) => [id, priority]),
     ).toEqual([
       [1, 'A'],
@@ -47,7 +46,7 @@ describe('toRace', () => {
   it('maps a timed Race with every field set', () => {
     expect(
       toRace(
-        event({
+        liveShapedRaceEvent({
           id: 7,
           name: 'Test 2',
           start_date_local: '2026-11-13T14:00:00',
@@ -70,10 +69,10 @@ describe('toRace', () => {
     });
   });
 
-  it('leaves out the start time of an all-day Race and every field Intervals.icu has no value for', () => {
+  it('leaves out the start time of an all-day Race, which starts at midnight, and every field Intervals.icu has no value for', () => {
     expect(
       toRace(
-        event({
+        liveShapedRaceEvent({
           moving_time: undefined,
           distance: 0,
           description: null as unknown as undefined,
@@ -89,24 +88,37 @@ describe('toRace', () => {
   });
 
   it('leaves out a whitespace-only description', () => {
-    expect(toRace(event({ description: ' \n ' }))).not.toHaveProperty(
-      'description',
-    );
+    expect(
+      toRace(liveShapedRaceEvent({ description: ' \n ' })),
+    ).not.toHaveProperty('description');
   });
 
   it('passes a non-cycling sport through', () => {
-    expect(toRace(event({ type: 'Run' }))).toMatchObject({ sport: 'Run' });
+    expect(toRace(liveShapedRaceEvent({ type: 'Run' }))).toMatchObject({
+      sport: 'Run',
+    });
   });
 
-  it('ignores the Race colour and load', () => {
-    const race = toRace(event({ icu_training_load: 120 }));
+  it("falls back to Other, Intervals.icu's catch-all sport, when the event has no type", () => {
+    expect(toRace(liveShapedRaceEvent({ type: undefined }))).toMatchObject({
+      sport: 'Other',
+    });
+    expect(toRace(liveShapedRaceEvent({ type: '' }))).toMatchObject({
+      sport: 'Other',
+    });
+  });
+
+  it('ignores the Race colour, as Races draw in a fixed red, and the load, which Intervals.icu leaves empty on a Race', () => {
+    const race = toRace(liveShapedRaceEvent({ icu_training_load: 120 }));
 
     expect(race).not.toHaveProperty('color');
     expect(race).not.toHaveProperty('load');
   });
 
   it('returns nothing for an event that is not a Race', () => {
-    expect(toRace(event({ category: 'WORKOUT' }))).toBeUndefined();
+    expect(
+      toRace(liveShapedRaceEvent({ category: 'WORKOUT' })),
+    ).toBeUndefined();
   });
 });
 
