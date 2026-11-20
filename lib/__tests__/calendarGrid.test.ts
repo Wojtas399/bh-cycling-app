@@ -1,8 +1,14 @@
 import { getMonthGrid, getWeekDays } from '../calendarGrid';
 
+const THURSDAY_8_OCTOBER_2026_AFTERNOON = new Date(2026, 9, 8, 15, 30);
+const THURSDAY_31_DECEMBER_2026 = new Date(2026, 11, 31);
+const OCTOBER_2026_FROM_THURSDAY_1ST = new Date(2026, 9, 1);
+const FEBRUARY_2021_FROM_MONDAY_1ST_TO_SUNDAY_28TH = new Date(2021, 1, 15);
+const AUGUST_2026_FROM_SATURDAY_1ST_TO_MONDAY_31ST = new Date(2026, 7, 1);
+
 describe('getWeekDays', () => {
   it('returns Monday through Sunday of the anchor week', () => {
-    const days = getWeekDays(new Date(2026, 9, 8, 15, 30)); // Thu 8 Oct 2026
+    const days = getWeekDays(THURSDAY_8_OCTOBER_2026_AFTERNOON);
 
     expect(days.map(day => day.date)).toEqual([
       '2026-10-05',
@@ -24,7 +30,7 @@ describe('getWeekDays', () => {
   });
 
   it('spans a month and year boundary', () => {
-    const days = getWeekDays(new Date(2026, 11, 31)); // Thu 31 Dec 2026
+    const days = getWeekDays(THURSDAY_31_DECEMBER_2026);
 
     expect(days[0].date).toBe('2026-12-28');
     expect(days[6]).toEqual({
@@ -39,7 +45,7 @@ describe('getWeekDays', () => {
 
 describe('getMonthGrid', () => {
   it('lays the month out in Monday-first weeks, padded with dimmed neighbours', () => {
-    const grid = getMonthGrid(new Date(2026, 9, 1)); // October 2026 starts on a Thursday
+    const grid = getMonthGrid(OCTOBER_2026_FROM_THURSDAY_1ST);
 
     expect(grid).toHaveLength(5);
     expect(grid.every(week => week.length === 7)).toBe(true);
@@ -63,8 +69,8 @@ describe('getMonthGrid', () => {
     ]);
   });
 
-  it('adds no padding when the month starts on Monday and ends on Sunday', () => {
-    const grid = getMonthGrid(new Date(2021, 1, 15)); // February 2021
+  it('adds no padding, in four weeks, when the month starts on Monday and ends on Sunday', () => {
+    const grid = getMonthGrid(FEBRUARY_2021_FROM_MONDAY_1ST_TO_SUNDAY_28TH);
 
     expect(grid).toHaveLength(4);
     expect(grid[0][0].date).toBe('2021-02-01');
@@ -73,7 +79,7 @@ describe('getMonthGrid', () => {
   });
 
   it('grows to six weeks when the month needs them', () => {
-    const grid = getMonthGrid(new Date(2026, 7, 1)); // August 2026: Sat 1st – Mon 31st
+    const grid = getMonthGrid(AUGUST_2026_FROM_SATURDAY_1ST_TO_MONDAY_31ST);
 
     expect(grid).toHaveLength(6);
     expect(grid[0][5].date).toBe('2026-08-01');

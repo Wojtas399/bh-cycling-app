@@ -2,6 +2,7 @@ import { rideSteps } from './cyclingWorkout';
 import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
+import type { LocalDateTimeString } from './localDateTime';
 import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { ZoneConfig } from './powerZones';
@@ -16,98 +17,48 @@ import {
 
 interface UnplannedActivityBase {
   id: string;
-  /** Local calendar date the Activity was recorded on, `YYYY-MM-DD`. */
   date: LocalDateString;
   durationSeconds?: number;
   distanceMeters?: number;
   load?: number;
 }
 
-/**
- * An Activity paired to no Workout, per the `Unplanned Activity` glossary term
- * in CONTEXT.md. It has no Workout Status. Each metric is absent when
- * intervals.icu has none, zero included.
- *
- * A Strava Activity (see CONTEXT.md) is one intervals.icu can't share, so it
- * has no name or sport type, and `isStravaActivity` tells it apart.
- */
 export type UnplannedActivity =
   | (UnplannedActivityBase & {
       isStravaActivity?: false;
       name: string;
-      /** intervals.icu's sport type, e.g. `Ride`, `VirtualRide`, `Run`. */
       type: string;
     })
   | (UnplannedActivityBase & { isStravaActivity: true });
 
-/**
- * A Race on its day: its earliest paired Activity's, else its own. It never
- * gets a Workout Status: the Activity it carries completes it, and an
- * unpaired Race is never planned or missed, whatever its date.
- */
 export interface RaceItem {
   kind: 'race';
   race: Race;
-  /**
-   * The Activity paired to the Race, which completes it, sets its day
-   * (ADR 0007) and gives its recorded figures. It has an Unplanned Activity's
-   * shape, so a tap opens it the same way, but it isn't one: it's never
-   * listed on its own.
-   */
   activity?: UnplannedActivity;
 }
 
-/** One entry of a day's list: a Workout, a Race or an Unplanned Activity. */
 export type CalendarItem =
   | { kind: 'workout'; workout: CalendarWorkout }
   | RaceItem
   | { kind: 'activity'; activity: UnplannedActivity };
 
-/** A day's entry as stored: a Workout's status depends on today. */
 export type StoredCalendarItem =
   | { kind: 'workout'; workout: StoredWorkout }
   | RaceItem
   | { kind: 'activity'; activity: UnplannedActivity };
 
-/** Items by local `YYYY-MM-DD`; a day with none maps to `[]`. */
-export type CalendarItemsByDate = Record<string, CalendarItem[]>;
+export type CalendarItemsByDate = Record<LocalDateString, CalendarItem[]>;
 
-/**
- * The items without a Workout Status, plus the IDs of the events an Activity
- * is paired to — plain arrays, so they stay JSON.
- */
 export interface JoinedCalendarItems {
   items: StoredCalendarItem[];
   completedEventIds: number[];
 }
 
-/** An item with the `start_date_local` that orders it within its day. */
 interface SortableItem {
-  start: string;
+  startDateLocal: LocalDateTimeString;
   item: StoredCalendarItem;
 }
 
-/**
- * Joins calendar events against Activities with the pairing rule in
- * `pairWorkouts` (ADR 0009): a Workout or a Race and an Activity are paired
- * when either names the other. Primary-key matching only — never by date or
- * type. A Race event never names an Activity, so only an Activity naming the
- * Race pairs it.
- *
- * A paired Workout or Race and its Activities are one item on the earliest
- * Activity's day, as on Intervals.icu (ADR 0007). A Workout whose event names
- * an Activity outside `activities` is still completed, on its planned day; a
- * Race is completed only by the Activity it carries. Every other Activity is
- * an Unplanned Activity — including one paired to an event not among
- * `events` (a Workout outside the fetched window), so it still shows once
- * rather than vanishing.
- *
- * Every other Race among `events` is an unpaired Race item on its own day.
- *
- * Items come out day by day. Within a day, the Races lead in Race order (see
- * `compareRaces`); the Workouts and Activities follow by `start_date_local`,
- * Workouts first on ties.
- */
 export function joinCalendarItems(
   events: IntervalsCalendarEvent[],
   activities: IntervalsActivity[],
@@ -128,7 +79,7 @@ export function joinCalendarItems(
     .filter(activity => !pairedActivityIds.has(activity.id))
     .map(
       (activity): SortableItem => ({
-        start: activity.start_date_local,
+        startDateLocal: activity.start_date_local,
         item: { kind: 'activity', activity: toUnplannedActivity(activity) },
       }),
     );
@@ -137,7 +88,7 @@ export function joinCalendarItems(
     const paired = byEventId.get(event.id)?.activity;
 
     return {
-      start: paired?.start_date_local ?? event.start_date_local,
+      startDateLocal: paired?.start_date_local ?? event.start_date_local,
       item: {
         kind: 'workout',
         workout: {
@@ -157,7 +108,7 @@ export function joinCalendarItems(
     const paired = byEventId.get(event.id)?.activity;
 
     return {
-      start: event.start_date_local,
+      startDateLocal: event.start_date_local,
       item: {
         kind: 'race',
         race,
@@ -166,7 +117,6 @@ export function joinCalendarItems(
     };
   });
 
-  // Stable, and Workouts go in before Activities, so they lead on a tie.
   const items = [...races, ...workouts, ...unplanned]
     .sort(compareItems)
     .map(({ item }) => item);
@@ -174,7 +124,8 @@ export function joinCalendarItems(
   return { items, completedEventIds: [...completedEventIds] };
 }
 
-/** Day by day; within a day, Races first in Race order, then by start. */
+const WORKOUT_BEFORE_ACTIVITY_AT_SAME_START = { workout: 0, activity: 1 };
+
 function compareItems(a: SortableItem, b: SortableItem): number {
   const byDay = calendarItemDate(a.item).localeCompare(
     calendarItemDate(b.item),
@@ -188,14 +139,17 @@ function compareItems(a: SortableItem, b: SortableItem): number {
 
   if (b.item.kind === 'race') return 1;
 
-  return a.start.localeCompare(b.start);
+  return (
+    a.startDateLocal.localeCompare(b.startDateLocal) ||
+    WORKOUT_BEFORE_ACTIVITY_AT_SAME_START[a.item.kind] -
+      WORKOUT_BEFORE_ACTIVITY_AT_SAME_START[b.item.kind]
+  );
 }
 
-function toDate(startDateLocal: string): LocalDateString {
+function toDate(startDateLocal: LocalDateTimeString): LocalDateString {
   return startDateLocal.slice(0, 10);
 }
 
-/** The local date an item shows on, `YYYY-MM-DD`. */
 export function calendarItemDate(item: StoredCalendarItem): LocalDateString {
   switch (item.kind) {
     case 'workout':
@@ -207,10 +161,6 @@ export function calendarItemDate(item: StoredCalendarItem): LocalDateString {
   }
 }
 
-/**
- * A key unique across a day's items: Workout, Race and Activity IDs may
- * collide.
- */
 export function calendarItemKey(item: StoredCalendarItem): string {
   switch (item.kind) {
     case 'workout':
@@ -226,9 +176,9 @@ function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
   const activity: UnplannedActivityBase = {
     id: source.id,
     date: toDate(source.start_date_local),
-    durationSeconds: positive(source.moving_time),
-    distanceMeters: positive(source.distance),
-    load: positive(source.icu_training_load),
+    durationSeconds: positiveOrUndefined(source.moving_time),
+    distanceMeters: positiveOrUndefined(source.distance),
+    load: positiveOrUndefined(source.icu_training_load),
   };
 
   return isSharedActivity(source)
@@ -236,11 +186,10 @@ function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
     : { ...activity, isStravaActivity: true };
 }
 
-function positive(value: number | undefined): number | undefined {
+function positiveOrUndefined(value: number | undefined): number | undefined {
   return isFiniteNumber(value) && value > 0 ? value : undefined;
 }
 
-/** Gives a stored item its Workout Status as of `today`, when it is a Workout. */
 export function withWorkoutStatus(
   item: StoredCalendarItem,
   completedEventIds: ReadonlySet<number>,
@@ -257,14 +206,11 @@ export function withWorkoutStatus(
   };
 }
 
-/** A metric an Unplanned Activity's tile can show. */
 export interface ActivityMetric {
   metric: 'duration' | 'distance' | 'load';
-  /** In s, m, or load points. */
   value: number;
 }
 
-/** The Activity's tile metrics, in display order, each only when present. */
 export function activityMetrics({
   durationSeconds,
   distanceMeters,
