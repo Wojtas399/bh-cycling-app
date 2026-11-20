@@ -89,7 +89,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
@@ -111,7 +111,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(mockHttpsCallable).toHaveBeenCalledWith('exchangeIntervalsToken');
@@ -133,7 +133,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(getNeedsReconnect()).toBe(false);
@@ -151,12 +151,56 @@ describe('useIntervalsAuth', () => {
       client.setQueryData(ATHLETE_SETTINGS_KEY, {});
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(client.getQueryState(INTERVALS_KEY)?.isInvalidated).toBe(true);
       expect(client.getQueryState(ATHLETE_SETTINGS_KEY)?.isInvalidated).toBe(
         true,
+      );
+    });
+
+    it('invalidates Intervals data under any athlete id, since the new connection may not carry one yet', async () => {
+      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+      const { result, client } = await renderAuth();
+      const otherAthleteKey = ['intervals', 'athlete-2', 'athleteSettings'];
+
+      client.setQueryData(otherAthleteKey, {});
+
+      await act(async () => {
+        result.current.handleConnect();
+      });
+
+      expect(client.getQueryState(otherAthleteKey)?.isInvalidated).toBe(true);
+    });
+
+    it('re-enables the gated Intervals queries before invalidating them, so they refetch under the new consent', async () => {
+      setNeedsReconnect(true);
+      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+      const { result, client } = await renderAuth();
+      const needsReconnectAtInvalidation: boolean[] = [];
+
+      client.setQueryData(INTERVALS_KEY, []);
+      client.getQueryCache().subscribe(event => {
+        if (event.type === 'updated' && event.action.type === 'invalidate') {
+          needsReconnectAtInvalidation.push(getNeedsReconnect());
+        }
+      });
+
+      await act(async () => {
+        result.current.handleConnect();
+      });
+
+      await waitFor(() =>
+        expect(needsReconnectAtInvalidation).toEqual([false]),
       );
     });
 
@@ -171,7 +215,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(mockToast.success).toHaveBeenCalledTimes(1);
@@ -192,7 +236,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       await waitFor(() =>
@@ -211,7 +255,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(mockHttpsCallable).not.toHaveBeenCalled();
@@ -230,7 +274,7 @@ describe('useIntervalsAuth', () => {
       const { result } = await renderAuth();
 
       await act(async () => {
-        await result.current.handleConnect();
+        result.current.handleConnect();
       });
 
       expect(mockHttpsCallable).not.toHaveBeenCalled();
@@ -268,7 +312,7 @@ describe('useIntervalsAuth', () => {
       expect(mockHttpsCallable).toHaveBeenCalledWith('disconnectIntervals');
     });
 
-    it('drops the cached Intervals data and shows no toast once the disconnect succeeds', async () => {
+    it('drops the cached Intervals data and shows no toast once the disconnect succeeds, so reconnecting the same athlete shows none of it', async () => {
       mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
       const { result, client } = await renderAuth();
 

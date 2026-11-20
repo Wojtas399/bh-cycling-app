@@ -11,6 +11,6 @@ export function useReconnectIntervals(): () => void {
 
   return () => {
     router.push('/(app)/(tabs)/settings');
-    void handleConnect();
+    handleConnect();
   };
 }
