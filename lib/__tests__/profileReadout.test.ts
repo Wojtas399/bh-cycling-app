@@ -8,8 +8,12 @@ import { pointerSeconds, profileReadout, segmentAt } from '../profileReadout';
 import type { StripSegment } from '../stripSegment';
 import { NO_ZONE_TIMES } from '../timeInZone';
 
-/** A flat segment at `pct` %FTP of a 250 W FTP, on the watts scale. */
-function flat(start: number, end: number, pct: number, zone: Zone) {
+function flatAt250WFtpOnWattsScale(
+  start: number,
+  end: number,
+  pct: number,
+  zone: Zone,
+) {
   const watts = (pct * 250) / 100;
 
   return {
@@ -26,16 +30,20 @@ function flat(start: number, end: number, pct: number, zone: Zone) {
 }
 
 describe('segmentAt', () => {
-  const warmup = flat(0, 600, 60, 2);
-  const effort = flat(600, 900, 100, 4);
-  // A stop from 900 s to 960 s, then a ride home that ends at 1200 s.
-  const home = flat(960, 1200, 50, 1);
-  const segments = [warmup, effort, home];
+  const warmup = flatAt250WFtpOnWattsScale(0, 600, 60, 2);
+  const effort = flatAt250WFtpOnWattsScale(600, 900, 100, 4);
+  const homeAfterAStopFrom900To960 = flatAt250WFtpOnWattsScale(
+    960,
+    1200,
+    50,
+    1,
+  );
+  const segments = [warmup, effort, homeAfterAStopFrom900To960];
 
   it('finds the segment the time falls in', () => {
     expect(segmentAt(segments, 300)).toBe(warmup);
     expect(segmentAt(segments, 700)).toBe(effort);
-    expect(segmentAt(segments, 1000)).toBe(home);
+    expect(segmentAt(segments, 1000)).toBe(homeAfterAStopFrom900To960);
   });
 
   it('finds nothing in a stop, which the strip leaves as a gap', () => {
@@ -56,16 +64,18 @@ describe('segmentAt', () => {
 
   it('includes each end of the strip, so the pointer at either edge reads it', () => {
     expect(segmentAt(segments, 0)).toBe(warmup);
-    expect(segmentAt(segments, 1200)).toBe(home);
+    expect(segmentAt(segments, 1200)).toBe(homeAfterAStopFrom900To960);
   });
 
   it('includes the end of a segment that a stop follows', () => {
     expect(segmentAt(segments, 900)).toBe(effort);
   });
 
-  it('snaps to the detected interval when the strip falls back to blocks', () => {
-    // A ride with no stream: two long blocks rather than 2 px buckets.
-    const blocks = [flat(0, 1800, 65, 2), flat(1800, 3600, 95, 4)];
+  it('snaps to the detected interval when the strip falls back to long blocks', () => {
+    const blocks = [
+      flatAt250WFtpOnWattsScale(0, 1800, 65, 2),
+      flatAt250WFtpOnWattsScale(1800, 3600, 95, 4),
+    ];
 
     expect(segmentAt(blocks, 1799)).toBe(blocks[0]);
     expect(segmentAt(blocks, 2500)).toBe(blocks[1]);
@@ -87,8 +97,9 @@ describe('pointerSeconds', () => {
   });
 });
 
-/** A strip of `segments`, its other numbers unread by the readout. */
-function strip(segments: StripSegment[]): DetailedStrip<null> {
+function stripWithNumbersTheReadoutLeavesUnread(
+  segments: StripSegment[],
+): DetailedStrip<null> {
   return {
     summary: null,
     ftp: 250,
@@ -105,8 +116,14 @@ function card(
 ): Pick<DetailedProfile, 'scale' | 'planned' | 'recorded'> {
   return {
     scale: { unit, ceiling: 400, gridlines: [] },
-    planned: planned && { ...strip(planned), summary: PLAN_SUMMARY },
-    recorded: recorded && { ...strip(recorded), summary: RIDE_SUMMARY },
+    planned: planned && {
+      ...stripWithNumbersTheReadoutLeavesUnread(planned),
+      summary: PLAN_SUMMARY,
+    },
+    recorded: recorded && {
+      ...stripWithNumbersTheReadoutLeavesUnread(recorded),
+      summary: RIDE_SUMMARY,
+    },
   };
 }
 
@@ -117,20 +134,15 @@ const RIDE_SUMMARY = {
   peakFtpPct: 100,
 };
 
-/** A planned range, 88–93% FTP: 220–232.5 W at a 250 W FTP. */
-const sweetSpot = {
-  ...flat(600, 2400, 88, 3),
+const sweetSpotFrom88To93PctAt250WFtp = {
+  ...flatAt250WFtpOnWattsScale(600, 2400, 88, 3),
   maxPct: 93,
   maxWatts: 232.5,
   high: 232.5,
 } satisfies StripSegment;
 
-/**
- * A planned ramp from 50% to 100% FTP over 0–600 s: 125 W to 250 W at a 250 W
- * FTP, on the watts scale.
- */
-const rampUp = {
-  ...flat(0, 600, 50, 2),
+const rampUpFrom50To100PctOverFirst600Seconds = {
+  ...flatAt250WFtpOnWattsScale(0, 600, 50, 2),
   maxPct: 100,
   maxWatts: 250,
   high: 250,
@@ -144,9 +156,8 @@ const rampUp = {
   },
 } satisfies StripSegment;
 
-/** The same ramp ridden the other way, from 100% to 50% FTP over 600–1200 s. */
-const rampDown = {
-  ...rampUp,
+const rampDownFrom100To50PctOver600To1200Seconds = {
+  ...rampUpFrom50To100PctOverFirst600Seconds,
   start: 600,
   end: 1200,
   ramp: {
@@ -162,7 +173,11 @@ const rampDown = {
 describe('profileReadout', () => {
   it('reads each strip at the pointer: its zone, then %FTP and W', () => {
     const readout = profileReadout(
-      card('watts', [sweetSpot], [flat(0, 3600, 100, 4)]),
+      card(
+        'watts',
+        [sweetSpotFrom88To93PctAt250WFtp],
+        [flatAt250WFtpOnWattsScale(0, 3600, 100, 4)],
+      ),
       1200,
     );
 
@@ -174,7 +189,7 @@ describe('profileReadout', () => {
 
   it('reads only the strips the card has', () => {
     const readout = profileReadout(
-      card('watts', null, [flat(0, 3600, 100, 4)]),
+      card('watts', null, [flatAt250WFtpOnWattsScale(0, 3600, 100, 4)]),
       1200,
     );
 
@@ -183,7 +198,11 @@ describe('profileReadout', () => {
 
   it('leaves W out on a %FTP card, even for a strip that has an FTP', () => {
     const readout = profileReadout(
-      card('ftpPct', [sweetSpot], [flat(0, 3600, 100, 4)]),
+      card(
+        'ftpPct',
+        [sweetSpotFrom88To93PctAt250WFtp],
+        [flatAt250WFtpOnWattsScale(0, 3600, 100, 4)],
+      ),
       1200,
     );
 
@@ -194,12 +213,12 @@ describe('profileReadout', () => {
   });
 
   it('reads nothing for a strip with no data at the pointer, and still reads the other', () => {
-    // The plan ends at 2400 s; the ride stops from 3000 s to 3300 s.
-    const profile = card(
-      'watts',
-      [sweetSpot],
-      [flat(0, 3000, 100, 4), flat(3300, 3600, 60, 2)],
-    );
+    const planEndingAt2400 = [sweetSpotFrom88To93PctAt250WFtp];
+    const rideStoppingFrom3000To3300 = [
+      flatAt250WFtpOnWattsScale(0, 3000, 100, 4),
+      flatAt250WFtpOnWattsScale(3300, 3600, 60, 2),
+    ];
+    const profile = card('watts', planEndingAt2400, rideStoppingFrom3000To3300);
 
     expect(profileReadout(profile, 2500).strips).toEqual([
       { side: 'planned', reading: null },
@@ -213,7 +232,7 @@ describe('profileReadout', () => {
 
   it('rounds to whole %FTP and W, and reads a range that rounds to one value as one', () => {
     const almostFlat = {
-      ...flat(0, 3600, 99.8, 4),
+      ...flatAt250WFtpOnWattsScale(0, 3600, 99.8, 4),
       maxPct: 100.2,
       minWatts: 249.6,
       maxWatts: 250.4,
@@ -230,7 +249,10 @@ describe('profileReadout', () => {
   ])(
     'reads a ramp up at %p s as one value along its slope: %p',
     (seconds, power) => {
-      const readout = profileReadout(card('watts', [rampUp], null), seconds);
+      const readout = profileReadout(
+        card('watts', [rampUpFrom50To100PctOverFirst600Seconds], null),
+        seconds,
+      );
 
       expect(readout.strips[0].reading).toEqual({ zone: 2, power });
     },
@@ -243,14 +265,20 @@ describe('profileReadout', () => {
   ])(
     'reads a ramp down at %p s as one value along its slope: %p',
     (seconds, power) => {
-      const readout = profileReadout(card('watts', [rampDown], null), seconds);
+      const readout = profileReadout(
+        card('watts', [rampDownFrom100To50PctOver600To1200Seconds], null),
+        seconds,
+      );
 
       expect(readout.strips[0].reading).toEqual({ zone: 2, power });
     },
   );
 
   it('reads a ramp in %FTP alone on a %FTP card', () => {
-    const readout = profileReadout(card('ftpPct', [rampDown], null), 900);
+    const readout = profileReadout(
+      card('ftpPct', [rampDownFrom100To50PctOver600To1200Seconds], null),
+      900,
+    );
 
     expect(readout.strips[0].reading?.power).toBe('75%');
   });
@@ -262,8 +290,10 @@ describe('profileReadout', () => {
     [3725, '1:02:05'],
   ])('shows the pointer at %p s as %p', (seconds, time) => {
     expect(
-      profileReadout(card('watts', null, [flat(0, 3600, 100, 4)]), seconds)
-        .time,
+      profileReadout(
+        card('watts', null, [flatAt250WFtpOnWattsScale(0, 3600, 100, 4)]),
+        seconds,
+      ).time,
     ).toBe(time);
   });
 });

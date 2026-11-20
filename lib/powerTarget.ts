@@ -7,19 +7,11 @@ import {
 } from './powerZones';
 import type { StepTarget } from './workoutProfile';
 
-/**
- * A target as a span, in its step's order: a range or ramp runs `start` to
- * `end`, and a single value has `start === end`.
- */
 export interface StepSpan {
   start: number;
   end: number;
 }
 
-/**
- * Reads a target as a span. A range (or ramp) wins over a single value because
- * it is the wider truth; a range with one end missing collapses to the other.
- */
 export function toSpan(target: StepTarget | undefined): StepSpan | undefined {
   if (!target) return undefined;
 
@@ -37,17 +29,11 @@ export function toSpan(target: StepTarget | undefined): StepSpan | undefined {
   return undefined;
 }
 
-/** A step's Power Target on the %FTP axis, and the zone it is coloured by. */
 export interface ResolvedPower {
   zone: Zone;
   ftpPct: StepSpan;
 }
 
-/**
- * Resolves a step's Power Target to %FTP. A `power_zone` target reads as that
- * zone's band; a `%ftp` span is coloured by its middle, the average power that
- * decides which zone the effort trains. Any other unit has no %FTP reading.
- */
 export function resolvePowerTarget(
   target: StepTarget | undefined,
   config: ZoneConfig,

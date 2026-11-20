@@ -79,8 +79,7 @@ describe('powerZones', () => {
     expect(bandForZone(7, config)).toEqual(config[4]);
   });
 
-  it('resolveZoneConfig ignores Sweet Spot bounds on the settings payload', () => {
-    // Sweet Spot overlaps Z3/Z4, so it must never become a resolvable zone.
+  it('resolveZoneConfig ignores Sweet Spot bounds on the settings payload, since Sweet Spot overlaps Z3 and Z4', () => {
     const withSweetSpot = {
       powerZones: CUSTOM_CEILINGS,
       sweetSpotMin: 84,
@@ -138,10 +137,9 @@ describe('powerZones', () => {
     expect(zoneForFtpPercent(-10, config)).toBe(1);
   });
 
-  it('zoneForFtpPercent buckets against the customized boundaries, not the Coggan ones', () => {
+  it("zoneForFtpPercent buckets against the customized boundaries, so 78% FTP is this athlete's Z2, not Coggan's Z3", () => {
     const config = resolveZoneConfig({ powerZones: CUSTOM_CEILINGS });
 
-    // 78% FTP is Z3 under Coggan but Z2 for this athlete.
     expect(zoneForFtpPercent(78, config)).toBe(2);
     expect(zoneForFtpPercent(100, config)).toBe(4);
   });
