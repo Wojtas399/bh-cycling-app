@@ -12,12 +12,6 @@ import { useRouter } from 'expo-router';
 
 const COLUMNS = ['fitness', 'fatigue', 'form'] as const;
 
-/**
- * Today's Fitness, Fatigue and Form at the top of Home: three equal columns,
- * big numbers over small labels, with no title, and a muted "Zobacz więcej"
- * under them. Once loaded, the whole card is one button opening the chart,
- * on a day without values too.
- */
 export default function FitnessCard({
   state,
 }: {
@@ -89,7 +83,6 @@ export default function FitnessCard({
   );
 }
 
-/** The card surface; a `busyLabel` marks it as loading. */
 function Card({
   busyLabel,
   children,
@@ -109,7 +102,6 @@ function Card({
   );
 }
 
-/** One of three equal, centred columns, with a hairline left of all but the first. */
 function Column({ index, children }: { index: number; children: ReactNode }) {
   return (
     <Box

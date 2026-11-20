@@ -8,10 +8,6 @@ export interface ActivityMetricGridProps {
   metrics: ActivityMetric[];
 }
 
-/**
- * An Activity's summary metrics in a two-column grid, labelled and formatted
- * the same on Workout Details and Activity Details.
- */
 export default function ActivityMetricGrid({
   metrics,
 }: ActivityMetricGridProps) {
@@ -24,7 +20,7 @@ export default function ActivityMetricGrid({
       items={metrics.map(({ metric, value }) => ({
         key: metric,
         label: t(metric),
-        value: formatMetric(metric, value),
+        formattedValue: formatMetric(metric, value),
       }))}
     />
   );

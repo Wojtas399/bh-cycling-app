@@ -119,7 +119,7 @@ function WorkoutDetailsContent({
 }) {
   const profile = useProfileCard(details);
   const description = details.description !== undefined && (
-    <WorkoutDescriptionCard description={details.description} markdown />
+    <WorkoutDescriptionCard description={details.description} asNoteMarkdown />
   );
 
   return (
@@ -144,7 +144,7 @@ function WorkoutDetailsContent({
         <WorkoutDetailsCard>
           <DetailedProfileCard
             source={profile}
-            testID="workout-details-profile"
+            plotTestID="workout-details-profile"
           />
         </WorkoutDetailsCard>
       )}

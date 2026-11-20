@@ -6,10 +6,6 @@ import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { RACE_RANKS } from '@/components/race/raceRanks';
 import type { RacePriority } from '@/lib/races';
 
-/**
- * A Race Priority as the tiles draw it: its rank icon, then "Wyścig X" — a
- * red "WYŚCIG A" eyebrow for an A Race, muted for the others.
- */
 export default function RacePriorityLabel({
   priority,
 }: {

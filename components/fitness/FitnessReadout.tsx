@@ -6,7 +6,6 @@ import { FITNESS_SERIES_COLORS } from '@/components/fitness/fitnessSeriesColors'
 import type { AppTheme } from '@/constants/theme';
 import type { FitnessReadout as Readout } from '@/lib/fitness';
 
-/** The readout's columns, each with its series' colour on the chart. */
 const COLUMNS: {
   key: Exclude<keyof Readout, 'date'>;
   dot: keyof AppTheme['colors'];
@@ -17,10 +16,6 @@ const COLUMNS: {
   { key: 'load', dot: 'neutral' },
 ];
 
-/**
- * The row above the chart: a day's date, then its Fitness, Zmęczenie, Forma
- * and Obciążenie in four equal columns, each a dot and label over the value.
- */
 export default function FitnessReadout({ readout }: { readout: Readout }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'fitness' });
 

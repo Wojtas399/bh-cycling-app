@@ -3,6 +3,8 @@ import { Children, Fragment } from 'react';
 import Box from '@/components/Box';
 import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
+import { ICON_TILE_SIZE } from '@/components/settings/SettingsRow';
+import theme from '@/constants/theme';
 
 interface SettingsSectionProps {
   title?: string;
@@ -11,8 +13,8 @@ interface SettingsSectionProps {
   footerColor?: 'textTertiary' | 'danger';
 }
 
-// Row horizontal padding (base = 16) + icon tile (28) + gap (md = 12).
-const DIVIDER_INSET = 56;
+const DIVIDER_INSET_TO_ROW_TEXT =
+  theme.spacing.base + ICON_TILE_SIZE + theme.spacing.md;
 
 export default function SettingsSection({
   title,
@@ -45,7 +47,7 @@ export default function SettingsSection({
                 testID="settings-section-divider"
                 height={1}
                 backgroundColor="borderDefault"
-                style={{ marginLeft: DIVIDER_INSET }}
+                style={{ marginLeft: DIVIDER_INSET_TO_ROW_TEXT }}
               />
             ) : null}
             {row}

@@ -7,10 +7,6 @@ import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { FITNESS_RANGES, type FitnessRange } from '@/lib/fitness';
 
-/**
- * Segmented control choosing the chart's range: 6 tygodni, 3 miesiące, rok.
- * A glass track with the selected range on prominent glass.
- */
 export default function FitnessRangeSelector({
   range,
   onRangeChange,

@@ -11,10 +11,6 @@ export interface CalendarViewToggleProps {
   onViewChange: (view: CalendarView) => void;
 }
 
-/**
- * Segmented control switching the Calendar between its monthly and weekly
- * views: a glass track with the selected view on prominent glass.
- */
 export default function CalendarViewToggle({
   view,
   onViewChange,
