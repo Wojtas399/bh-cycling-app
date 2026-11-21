@@ -58,6 +58,28 @@ describe('changePasswordSchema', () => {
     ).toEqual({ confirmPassword: 'validation.passwordsMismatch' });
   });
 
+  it('compares the passwords exactly, without trimming', () => {
+    expect(
+      errors({
+        currentPassword: 'old-password',
+        newPassword: 'new-password-1',
+        confirmPassword: 'new-password-1 ',
+      }),
+    ).toEqual({ confirmPassword: 'validation.passwordsMismatch' });
+  });
+
+  it('leaves an empty confirmation to its own required error', () => {
+    expect(
+      errors({
+        currentPassword: 'old-password',
+        newPassword: 'new-password-1',
+        confirmPassword: '',
+      }),
+    ).toEqual({
+      confirmPassword: 'changePassword.validation.confirmPasswordRequired',
+    });
+  });
+
   it('still checks the confirmation when the current password is empty', () => {
     expect(
       errors({

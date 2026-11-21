@@ -1,7 +1,7 @@
 import {
   emailField,
+  msg,
   newPasswordField,
-  passwordsMatch,
   requiredString,
 } from '@/lib/validation';
 import * as v from 'valibot';
@@ -16,7 +16,13 @@ export const signUpSchema = v.pipe(
   }),
   // The mismatch comes after each field's own issue, and the resolver keeps
   // the first issue per field, so each field still shows at most one error.
-  passwordsMatch('password', 'confirmPassword'),
+  v.forward(
+    v.check(
+      input => input.confirmPassword === input.password,
+      msg('validation.passwordsMismatch'),
+    ),
+    ['confirmPassword'],
+  ),
 );
 
 export type SignUpInput = v.InferInput<typeof signUpSchema>;

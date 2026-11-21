@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
-import ofmDark from '@/assets/map/ofm-dark.json';
+import { ofmDarkStyle } from '@/constants/ofmDarkStyle';
 import { useAppTheme } from '@/constants/theme';
 import type { Route } from '@/lib/route';
 import { routeMapData } from '@/lib/routeMapData';
@@ -14,15 +14,8 @@ import {
   Map,
   type MapProps,
   type MapRef,
-  type StyleSpecification,
   type ViewPadding,
 } from '@maplibre/maplibre-react-native';
-
-/**
- * OpenFreeMap's "Dark" style, bundled so the map never fetches its style.
- * If OpenFreeMap is down only the streets go missing, never the Route (ADR-0008).
- */
-const mapStyle = ofmDark as unknown as StyleSpecification;
 
 const LINE_LAYOUT = { 'line-cap': 'round', 'line-join': 'round' } as const;
 
@@ -67,7 +60,7 @@ export default function RouteMap({
         <Map
           ref={mapRef}
           style={{ flex: 1 }}
-          mapStyle={mapStyle}
+          mapStyle={ofmDarkStyle}
           dragPan={interactive}
           touchZoom={interactive}
           doubleTapZoom={interactive}
