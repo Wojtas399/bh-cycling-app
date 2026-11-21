@@ -44,11 +44,11 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockUseToday = useToday as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetActivities = getActivities as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseToday = jest.mocked(useToday);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetActivities = jest.mocked(getActivities);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 function mockConnection(
   overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
@@ -58,6 +58,7 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });
@@ -118,7 +119,7 @@ const SIX_MINUTES = 6 * 60_000;
 
 function monthFetches(): number {
   return mockGetCalendarEvents.mock.calls.filter(
-    ([, , params]) => params.category === undefined,
+    ([, , params]) => params?.category === undefined,
   ).length;
 }
 
@@ -233,8 +234,8 @@ describe('useCalendarRange', () => {
   it("surfaces the month's Races from its existing events call, with no new request", async () => {
     mockConnected();
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE'
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE'
           ? []
           : [
               event({ id: 1, start_date_local: `${today}T06:00:00` }),
@@ -268,7 +269,7 @@ describe('useCalendarRange', () => {
       { kind: 'workout', workout: { id: 1, status: 'planned' } },
     ]);
     expect(
-      mockGetCalendarEvents.mock.calls.map(([, , params]) => params.category),
+      mockGetCalendarEvents.mock.calls.map(([, , params]) => params?.category),
     ).toEqual(expect.arrayContaining([undefined, 'NOTE']));
     expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
   });
@@ -303,8 +304,8 @@ describe('useCalendarRange', () => {
     const second = toLocalDateString(addDays(first, 2));
 
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE'
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE'
           ? [
               event({
                 id: 9,
@@ -330,8 +331,8 @@ describe('useCalendarRange', () => {
   it('is an error when the Notes call fails', async () => {
     mockConnected();
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) => {
-        if (params.category === 'NOTE') throw new Error('notes down');
+      async (_token, _athlete, params) => {
+        if (params?.category === 'NOTE') throw new Error('notes down');
 
         return [event({ id: 1 })];
       },
@@ -374,7 +375,12 @@ describe('useCalendarRange', () => {
     mockConnected();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 42 })]);
     mockGetActivities.mockResolvedValue([
-      { id: '20679555658', start_date_local: `${today}T18:00:00` },
+      {
+        id: '20679555658',
+        start_date_local: `${today}T18:00:00`,
+        moving_time: 0,
+        distance: 0,
+      },
     ]);
 
     const { result } = await renderHookWithClient(() =>

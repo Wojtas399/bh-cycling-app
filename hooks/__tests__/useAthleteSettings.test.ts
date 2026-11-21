@@ -20,14 +20,15 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 
 describe('useAthleteSettings', () => {
   it("reads the athlete's zones and current Ride FTP", async () => {
-    (useIntervalsConnection as jest.Mock).mockReturnValue({
+    jest.mocked(useIntervalsConnection).mockReturnValue({
       isConnected: true,
       athleteName: null,
       athleteId: 'athlete-1',
       accessToken: 'token-1',
+      scope: null,
       loading: false,
     });
-    (getAthleteSettings as jest.Mock).mockResolvedValue({ ftp: 265 });
+    jest.mocked(getAthleteSettings).mockResolvedValue({ ftp: 265 });
 
     const { result } = await renderHookWithClient(() => useAthleteSettings());
 

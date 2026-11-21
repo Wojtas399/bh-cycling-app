@@ -86,7 +86,7 @@ describe('intervalsApi', () => {
       category: ['RACE_A', 'RACE_B', 'RACE_C'],
     });
 
-    const url = new URL((global.fetch as jest.Mock).mock.calls[0][0]);
+    const url = new URL(String(jest.mocked(global.fetch).mock.calls[0][0]));
 
     expect(Object.fromEntries(url.searchParams)).toEqual({
       oldest: '2026-11-08',
@@ -363,7 +363,7 @@ describe('intervalsApi', () => {
         }),
       );
 
-      const url = new URL((global.fetch as jest.Mock).mock.calls[0][0]);
+      const url = new URL(String(jest.mocked(global.fetch).mock.calls[0][0]));
 
       expect(`${url.origin}${url.pathname}`).toBe(
         'https://intervals.icu/api/v1/athlete/athlete-1/wellness',
