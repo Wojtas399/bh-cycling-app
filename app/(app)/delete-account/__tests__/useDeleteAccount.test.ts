@@ -265,6 +265,21 @@ describe('useDeleteAccount', () => {
       expect(signOutAndClear).toHaveBeenCalledTimes(1);
     });
 
+    it('force-refreshes the ID token after re-authenticating, so the token the function checks carries the new auth_time', async () => {
+      const hook = await setup(['password']);
+
+      await enterPassword(hook, 'secret-password');
+      await submit(hook);
+
+      expect(mockGetIdToken).toHaveBeenCalledTimes(1);
+      expect(mockGetIdToken).toHaveBeenCalledWith(true);
+      expect(callOrder.slice(0, 3)).toEqual([
+        'reauth',
+        'getIdToken',
+        'deleteAccount',
+      ]);
+    });
+
     it.each(['auth/wrong-password', 'auth/invalid-credential'])(
       'maps %s to an inline password error and stays signed in',
       async code => {
@@ -372,7 +387,7 @@ describe('useDeleteAccount', () => {
       expect(hook.result.current.busy).toBe(false);
     });
 
-    it('shows a form error then signs out of Google on user-mismatch, so the next attempt shows the account picker', async () => {
+    it('shows a form error then signs out of Google on user-mismatch, so the account picker shows again on the next attempt', async () => {
       mockReauthenticate.mockRejectedValue({ code: 'auth/user-mismatch' });
       const hook = await setup(['google.com']);
 
@@ -481,7 +496,7 @@ describe('useDeleteAccount', () => {
       await finish();
     });
 
-    it('blocks back navigation but lets any other removal through', async () => {
+    it('blocks only going back, GO_BACK and POP, and dispatches any other removal again so it still goes through', async () => {
       const hook = await setup(['google.com']);
       const finish = await startHangingDelete(hook);
 

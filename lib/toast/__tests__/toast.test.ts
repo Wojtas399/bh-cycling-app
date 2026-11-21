@@ -1,4 +1,5 @@
 import type * as ToastModule from '@/lib/toast';
+import { loadFreshModule } from '@/test-utils/loadFreshModule';
 import * as Haptics from 'expo-haptics';
 import { toast as sonner } from 'sonner-native';
 
@@ -28,10 +29,9 @@ let registerSheetHost: typeof ToastModule.registerSheetHost;
 let unregisterSheetHost: typeof ToastModule.unregisterSheetHost;
 
 function loadToastWithNoSheetHostOpen() {
-  jest.isolateModules(() => {
-    ({ toast, registerSheetHost, unregisterSheetHost } =
-      jest.requireActual<typeof ToastModule>('@/lib/toast'));
-  });
+  ({ toast, registerSheetHost, unregisterSheetHost } = loadFreshModule(() =>
+    jest.requireActual<typeof ToastModule>('@/lib/toast'),
+  ));
 }
 
 function shownToast(variant: 'success' | 'warning' | 'error', call: number) {

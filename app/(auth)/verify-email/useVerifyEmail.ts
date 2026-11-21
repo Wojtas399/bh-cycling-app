@@ -80,7 +80,7 @@ export function useVerifyEmail() {
   }
 
   function handleSignOut() {
-    return ignoreFailure(auth().signOut());
+    return ignoreFailure(() => auth().signOut());
   }
 
   const mutationError = checkVerified.error ?? resend.error;

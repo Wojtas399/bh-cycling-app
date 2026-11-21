@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 
-import { type FormBinding, formErrorsOnly } from '../formBinding';
+import { type FormBinding, noServerErrorOnAnyField } from '../formBinding';
 import { useFormTextField } from '../useFormTextField';
 import { flushPromises } from '@/test-utils/settle';
 import { act, renderHook } from '@testing-library/react-native';
@@ -24,7 +24,7 @@ async function setup() {
       setFocus,
       busy: false,
       onFieldChange: () => {},
-      serverError: formErrorsOnly,
+      serverError: noServerErrorOnAnyField,
     };
 
     return {

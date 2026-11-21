@@ -88,7 +88,7 @@ describe('removeIntervalsQueries', () => {
 
     client.setQueryData(otherKey, 'kept');
 
-    const pending = ignoreFailure(
+    const pending = ignoreFailure(() =>
       client.fetchQuery({
         queryKey: intervalsKey,
         queryFn: ({ signal }) => {

@@ -10,7 +10,7 @@ import {
   type SignInValues,
   signInSchema,
 } from './signInSchema';
-import { type FormBinding, formErrorsOnly } from '@/hooks/formBinding';
+import { type FormBinding, noServerErrorOnAnyField } from '@/hooks/formBinding';
 import { resetOtherSubmissions } from '@/hooks/formSubmissions';
 import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
@@ -62,7 +62,7 @@ export function useSignIn() {
       emailSignIn.reset();
       googleSignIn.reset();
     },
-    serverError: formErrorsOnly,
+    serverError: noServerErrorOnAnyField,
   };
 
   async function submit() {

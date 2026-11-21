@@ -2,25 +2,25 @@ import type * as ReactNative from 'react-native';
 
 import type * as BottomSheetModule from '@/lib/bottomSheet';
 import { sheetSurface, signalOnDetach } from '@/lib/bottomSheet';
+import { loadFreshModule } from '@/test-utils/loadFreshModule';
 
 function bottomSheetModuleOn(os: typeof ReactNative.Platform.OS) {
-  let loaded: typeof BottomSheetModule | undefined;
-
-  jest.isolateModules(() => {
+  return loadFreshModule(() => {
     jest.requireActual<typeof ReactNative>('react-native').Platform.OS = os;
-    loaded = jest.requireActual<typeof BottomSheetModule>('@/lib/bottomSheet');
-  });
 
-  return loaded!;
+    return jest.requireActual<typeof BottomSheetModule>('@/lib/bottomSheet');
+  });
 }
 
-describe('ANDROID_SHEET_TOAST_HOST', () => {
+describe('SHEET_HOSTS_ITS_OWN_TOASTS', () => {
   it('gives an Android sheet its own toast host, because the sheet is a Dialog window above the root host', () => {
-    expect(bottomSheetModuleOn('android').ANDROID_SHEET_TOAST_HOST).toBe(true);
+    expect(bottomSheetModuleOn('android').SHEET_HOSTS_ITS_OWN_TOASTS).toBe(
+      true,
+    );
   });
 
   it('leaves an iOS sheet to the root toast host, which stays above sheets', () => {
-    expect(bottomSheetModuleOn('ios').ANDROID_SHEET_TOAST_HOST).toBe(false);
+    expect(bottomSheetModuleOn('ios').SHEET_HOSTS_ITS_OWN_TOASTS).toBe(false);
   });
 });
 
