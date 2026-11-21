@@ -23,7 +23,7 @@ describe('stripNoteHtml', () => {
     );
   });
 
-  it('leaves plain Markdown unchanged', () => {
+  it('leaves plain Markdown unchanged, autolinks like <https://…> included', () => {
     const markdown = [
       '## 🍝 Odżywianie treningowe',
       '',
