@@ -4,11 +4,11 @@ import type { CallableRequest } from 'firebase-functions/v2/https';
 
 const callOrder: string[] = [];
 const userRef = { path: 'users/user-1' };
-const docMock = jest.fn((_path: string) => userRef);
-const recursiveDeleteMock = jest.fn(async (_ref: unknown) => {
+const docMock = jest.fn<typeof userRef, [string]>(() => userRef);
+const recursiveDeleteMock = jest.fn<Promise<void>, [unknown]>(async () => {
   callOrder.push('recursiveDelete');
 });
-const deleteUserMock = jest.fn(async (_uid: string) => {
+const deleteUserMock = jest.fn<Promise<void>, [string]>(async () => {
   callOrder.push('deleteUser');
 });
 
