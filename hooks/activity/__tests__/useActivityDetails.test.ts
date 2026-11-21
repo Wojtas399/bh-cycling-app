@@ -3,11 +3,17 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import * as activityDetails from '@/lib/activityDetails';
 import {
   type IntervalsActivity,
+  type IntervalsActivityInterval,
   IntervalsApiError,
   getActivity,
 } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+  readIntervalsBody,
+} from '@/test-utils/intervalsJson';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -24,8 +30,8 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockGetActivity = getActivity as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockGetActivity = jest.mocked(getActivity);
 
 const ACTIVITY_ID = 'i196064284';
 
@@ -37,6 +43,7 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });
@@ -51,9 +58,9 @@ function mockConnected() {
 }
 
 function activity(
-  overrides: Partial<IntervalsActivity> = {},
+  overrides: Partial<IntervalsJson<IntervalsActivity>> = {},
 ): IntervalsActivity {
-  return {
+  return fromIntervalsJson<IntervalsActivity>({
     id: ACTIVITY_ID,
     name: 'Popołudniowa jazda',
     type: 'Ride',
@@ -61,12 +68,12 @@ function activity(
     moving_time: 5520,
     distance: 48_200,
     ...overrides,
-  };
+  });
 }
 
 function missingFieldsAsIntervalsIcuSendsThem(
   ...fields: (keyof IntervalsActivity)[]
-): Partial<IntervalsActivity> {
+): Partial<IntervalsJson<IntervalsActivity>> {
   return Object.fromEntries(fields.map(field => [field, null]));
 }
 
@@ -154,7 +161,7 @@ describe('useActivityDetails', () => {
       ['blank', ' \n '],
       ['empty', ''],
       ['missing', undefined],
-      ['null', null as unknown as undefined],
+      ['null', null],
     ])(
       'has no title when the name is %s, so the screen can fall back to the sport',
       async (_, name) => {
@@ -330,7 +337,7 @@ describe('useActivityDetails', () => {
         activity({
           moving_time: 2400,
           distance: 7100,
-          icu_average_watts: null as unknown as undefined,
+          icu_average_watts: null,
           average_heartrate: 152,
           elapsed_time: 2460,
         }),
@@ -448,7 +455,7 @@ describe('useActivityDetails', () => {
 
     it.each([
       ['missing', undefined],
-      ['null', null as unknown as undefined],
+      ['null', null],
     ])('is null when the paired event id is %s', async (_, paired_event_id) => {
       const details = await shownDetailsOf(activity({ paired_event_id }));
 
@@ -465,7 +472,7 @@ describe('useActivityDetails', () => {
 
     it.each([
       ['missing', undefined],
-      ['null', null as unknown as undefined],
+      ['null', null],
       ['zero', 0],
     ])('is null when it is %s', async (_, icu_ftp) => {
       const details = await shownDetailsOf(activity({ icu_ftp }));
@@ -507,13 +514,15 @@ describe('useActivityDetails', () => {
 
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
-      const stravaBodyAsVerified = {
-        id: '20679555658',
-        icu_athlete_id: 'athlete-1',
-        start_date_local: '2026-10-14T18:00:00',
-        source: 'STRAVA',
-        _note: 'STRAVA activities are not available via the API',
-      } as unknown as IntervalsActivity;
+      const stravaBodyAsVerified = readIntervalsBody<IntervalsActivity>(
+        {
+          id: '20679555658',
+          start_date_local: '2026-10-14T18:00:00',
+          source: 'STRAVA',
+          _note: 'STRAVA activities are not available via the API',
+        },
+        { icu_athlete_id: 'athlete-1' },
+      );
 
       expect(await loadedDetailsOf(stravaBodyAsVerified)).toEqual({
         isStravaActivity: true,
@@ -537,59 +546,63 @@ describe('useActivityDetails', () => {
     const activityKey = ['intervals', 'athlete-1', 'activity', ACTIVITY_ID];
 
     it('keeps only the agreed fields of the body, and of each interval, from a slice of the full body with fields Activity Details never reads', async () => {
-      const body = {
-        id: ACTIVITY_ID,
-        name: 'Popołudniowa jazda',
-        type: 'Ride',
-        start_date_local: '2026-10-23T16:42:00',
-        description: 'Wiatr w twarz.',
-        moving_time: 5520,
-        distance: 48_200,
-        icu_training_load: 92,
-        icu_intensity: 81,
-        icu_average_watts: 198,
-        icu_weighted_avg_watts: 221,
-        average_heartrate: 146,
-        max_heartrate: 178,
-        average_cadence: 88,
-        total_elevation_gain: 640,
-        calories: 1094,
-        average_speed: 8.7,
-        elapsed_time: 6180,
-        icu_variability_index: 1.12,
-        stream_types: ['time', 'watts', 'latlng'],
-        trainer: false,
-        paired_event_id: 4242,
-        icu_intervals: [
-          {
-            start_time: 0,
-            end_time: 900,
-            intensity: 62,
-            zone: 2,
-            type: 'RECOVERY',
-            label: null,
-            average_watts: 166,
-            moving_time: 880,
-          },
-          {
-            start_time: 900,
-            end_time: 6180,
-            intensity: 104,
-            zone: 4,
-            type: 'WORK',
-            label: null,
-            average_watts: 279,
-            moving_time: 4640,
-          },
-        ],
-        icu_athlete_id: 'athlete-1',
-        icu_ftp: 268,
-        icu_joules: 1_090_000,
-        compliance: null,
-        icu_zone_times: [{ id: 'Z1', secs: 900 }],
-        interval_summary: ['1x 1h28m 279w'],
-        icu_power_hr_z2: 1.4,
-      } as unknown as IntervalsActivity;
+      const body = readIntervalsBody<IntervalsActivity>(
+        {
+          id: ACTIVITY_ID,
+          name: 'Popołudniowa jazda',
+          type: 'Ride',
+          start_date_local: '2026-10-23T16:42:00',
+          description: 'Wiatr w twarz.',
+          moving_time: 5520,
+          distance: 48_200,
+          icu_training_load: 92,
+          icu_intensity: 81,
+          icu_average_watts: 198,
+          icu_weighted_avg_watts: 221,
+          average_heartrate: 146,
+          max_heartrate: 178,
+          average_cadence: 88,
+          total_elevation_gain: 640,
+          calories: 1094,
+          average_speed: 8.7,
+          elapsed_time: 6180,
+          icu_variability_index: 1.12,
+          stream_types: ['time', 'watts', 'latlng'],
+          trainer: false,
+          paired_event_id: 4242,
+          icu_intervals: [
+            readIntervalsBody<IntervalsActivityInterval>(
+              {
+                start_time: 0,
+                end_time: 900,
+                intensity: 62,
+                zone: 2,
+                type: 'RECOVERY',
+              },
+              { label: null, average_watts: 166, moving_time: 880 },
+            ),
+            readIntervalsBody<IntervalsActivityInterval>(
+              {
+                start_time: 900,
+                end_time: 6180,
+                intensity: 104,
+                zone: 4,
+                type: 'WORK',
+              },
+              { label: null, average_watts: 279, moving_time: 4640 },
+            ),
+          ],
+          icu_ftp: 268,
+          icu_joules: 1_090_000,
+          compliance: null,
+          icu_zone_times: [{ id: 'Z1', secs: 900 }],
+        },
+        {
+          icu_athlete_id: 'athlete-1',
+          interval_summary: ['1x 1h28m 279w'],
+          icu_power_hr_z2: 1.4,
+        },
+      );
 
       mockConnected();
       mockGetActivity.mockResolvedValue(body);
@@ -634,13 +647,15 @@ describe('useActivityDetails', () => {
 
     it('keeps no field the body leaves out', async () => {
       mockConnected();
-      mockGetActivity.mockResolvedValue({
-        id: ACTIVITY_ID,
-        type: 'WeightTraining',
-        start_date_local: '2026-10-21T07:30:00',
-        moving_time: 3480,
-        icu_intervals: [],
-      } as unknown as IntervalsActivity);
+      mockGetActivity.mockResolvedValue(
+        readIntervalsBody<IntervalsActivity>({
+          id: ACTIVITY_ID,
+          type: 'WeightTraining',
+          start_date_local: '2026-10-21T07:30:00',
+          moving_time: 3480,
+          icu_intervals: [],
+        }),
+      );
 
       const { result, client } = await renderDetails();
 
@@ -659,13 +674,17 @@ describe('useActivityDetails', () => {
 
     it('stores a Strava Activity as an explicit marker, with nothing of its body', async () => {
       mockConnected();
-      mockGetActivity.mockResolvedValue({
-        id: '20679555658',
-        icu_athlete_id: 'athlete-1',
-        start_date_local: '2026-10-14T18:00:00',
-        source: 'STRAVA',
-        _note: 'STRAVA activities are not available via the API',
-      } as unknown as IntervalsActivity);
+      mockGetActivity.mockResolvedValue(
+        readIntervalsBody<IntervalsActivity>(
+          {
+            id: '20679555658',
+            start_date_local: '2026-10-14T18:00:00',
+            source: 'STRAVA',
+            _note: 'STRAVA activities are not available via the API',
+          },
+          { icu_athlete_id: 'athlete-1' },
+        ),
+      );
 
       const { result, client } = await renderDetails();
 

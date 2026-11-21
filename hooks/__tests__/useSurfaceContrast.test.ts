@@ -1,6 +1,7 @@
 import { AccessibilityInfo, AppState, Platform } from 'react-native';
 
 import { useSurfaceContrast } from '../useSurfaceContrast';
+import { emitterSubscription } from '@/test-utils/reactNative';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 describe('useSurfaceContrast', () => {
@@ -159,7 +160,7 @@ describe('useSurfaceContrast', () => {
 
     jest
       .spyOn(AccessibilityInfo, 'addEventListener')
-      .mockReturnValue({ remove: removeAccessibility } as never);
+      .mockReturnValue(emitterSubscription(removeAccessibility));
     jest
       .spyOn(AppState, 'addEventListener')
       .mockReturnValue({ remove: removeAppState });
@@ -182,16 +183,15 @@ describe('useSurfaceContrast', () => {
 function captureListenersByEventName(emitter: {
   addEventListener: (...args: never[]) => unknown;
 }) {
-  const listeners = new Map<string, (value: never) => void>();
+  const listeners = new Map<string, (value: unknown) => void>();
 
   jest
     .spyOn(emitter, 'addEventListener')
-    .mockImplementation((event: string, listener: (value: never) => void) => {
+    .mockImplementation((event: string, listener: (value: unknown) => void) => {
       listeners.set(event, listener);
 
-      return { remove: jest.fn() } as never;
+      return { remove: jest.fn() };
     });
 
-  return (event: string, value: unknown) =>
-    listeners.get(event)?.(value as never);
+  return (event: string, value: unknown) => listeners.get(event)?.(value);
 }

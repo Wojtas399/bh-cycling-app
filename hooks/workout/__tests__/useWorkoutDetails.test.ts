@@ -15,6 +15,10 @@ import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { resolveRideSettings } from '@/lib/rideSettings';
 import * as workoutDetails from '@/lib/workoutDetails';
 import type { WorkoutStep } from '@/lib/workoutProfile';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+} from '@/test-utils/intervalsJson';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -38,12 +42,12 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockUseToday = useToday as jest.Mock;
-const mockGetCalendarEvent = getCalendarEvent as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetActivities = getActivities as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseToday = jest.mocked(useToday);
+const mockGetCalendarEvent = jest.mocked(getCalendarEvent);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetActivities = jest.mocked(getActivities);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 const EVENT_ID = 42;
 const TODAY = '2026-10-17';
@@ -56,6 +60,7 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });
@@ -82,9 +87,9 @@ function event(
 }
 
 function activity(
-  overrides: Partial<IntervalsActivity> = {},
+  overrides: Partial<IntervalsJson<IntervalsActivity>> = {},
 ): IntervalsActivity {
-  return {
+  return fromIntervalsJson<IntervalsActivity>({
     id: 'i1',
     name: 'Morning ride',
     type: 'Ride',
@@ -92,7 +97,7 @@ function activity(
     moving_time: 3600,
     distance: 30_000,
     ...overrides,
-  };
+  });
 }
 
 function renderDetails() {
@@ -243,7 +248,12 @@ describe('useWorkoutDetails', () => {
         { ...planned, paired_activity_id: '20664018356' },
       ]);
       mockGetActivities.mockResolvedValue([
-        { id: '20664018356', start_date_local: '2026-10-16T15:05:00' },
+        {
+          id: '20664018356',
+          start_date_local: '2026-10-16T15:05:00',
+          moving_time: 0,
+          distance: 0,
+        },
       ]);
 
       const { result } = await renderDetails();
@@ -393,7 +403,7 @@ describe('useWorkoutDetails', () => {
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
 
-      const { fields } = mockGetActivities.mock.calls[0][2];
+      const fields = mockGetActivities.mock.calls[0][2]?.fields;
 
       expect(fields).toEqual(
         expect.arrayContaining(['id', 'start_date_local', 'paired_event_id']),
@@ -570,7 +580,12 @@ describe('useWorkoutDetails', () => {
         { ...planned, paired_activity_id: '20664018356' },
       ]);
       mockGetActivities.mockResolvedValue([
-        { id: '20664018356', start_date_local: '2026-10-16T15:05:00' },
+        {
+          id: '20664018356',
+          start_date_local: '2026-10-16T15:05:00',
+          moving_time: 0,
+          distance: 0,
+        },
       ]);
 
       const { result } = await renderDetails();
@@ -645,7 +660,7 @@ describe('useWorkoutDetails', () => {
 
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
 
-      const { fields } = mockGetActivities.mock.calls[0][2];
+      const fields = mockGetActivities.mock.calls[0][2]?.fields;
 
       expect(fields).toEqual(expect.arrayContaining(['name', 'type']));
     });
@@ -744,7 +759,9 @@ describe('useWorkoutDetails', () => {
   });
 
   describe('completed mode: activity metrics', () => {
-    async function metricsFor(activityOverrides: Partial<IntervalsActivity>) {
+    async function metricsFor(
+      activityOverrides: Partial<IntervalsJson<IntervalsActivity>>,
+    ) {
       mockConnected();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockResolvedValue([
@@ -799,7 +816,7 @@ describe('useWorkoutDetails', () => {
         moving_time: 3500,
         distance: 32_000,
         icu_average_watts: 190,
-        average_heartrate: null as unknown as undefined,
+        average_heartrate: null,
       });
 
       expect(metrics).toEqual([
@@ -822,7 +839,7 @@ describe('useWorkoutDetails', () => {
     it('requests the summary metrics with the activities', async () => {
       await metricsFor({});
 
-      const { fields } = mockGetActivities.mock.calls[0][2];
+      const fields = mockGetActivities.mock.calls[0][2]?.fields;
 
       expect(fields).toEqual(
         expect.arrayContaining([
@@ -1017,7 +1034,7 @@ describe('useWorkoutDetails', () => {
     it('requests the stream types and trainer flag with the activities', async () => {
       await routeFor(null);
 
-      const { fields } = mockGetActivities.mock.calls[0][2];
+      const fields = mockGetActivities.mock.calls[0][2]?.fields;
 
       expect(fields).toEqual(
         expect.arrayContaining(['stream_types', 'trainer']),

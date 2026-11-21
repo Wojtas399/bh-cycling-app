@@ -45,6 +45,29 @@ describe('findBannedComments', () => {
     expect(bannedIn(`${directive}\nf();\n`)).toEqual([directive]);
   });
 
+  it('rejects a reasoned disable of consistent-type-assertions', () => {
+    const directive =
+      '// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the SDK types are wrong';
+
+    expect(bannedIn(`${directive}\nconst a = b as C;\n`)).toEqual([directive]);
+  });
+
+  it('rejects consistent-type-assertions named among other rules', () => {
+    const directive =
+      '// eslint-disable-next-line no-console, @typescript-eslint/consistent-type-assertions -- the fixture logs a cast';
+
+    expect(bannedIn(`${directive}\nconsole.log(b as C);\n`)).toEqual([
+      directive,
+    ]);
+  });
+
+  it('rejects an eslint-disable-line of consistent-type-assertions after the code', () => {
+    const directive =
+      '// eslint-disable-line @typescript-eslint/consistent-type-assertions -- the SDK types are wrong';
+
+    expect(bannedIn(`const a = b as C; ${directive}\n`)).toEqual([directive]);
+  });
+
   it('rejects eslint-disable-next-line without a reason', () => {
     expect(
       bannedIn('// eslint-disable-next-line react/no-array-index-key\nf();\n'),

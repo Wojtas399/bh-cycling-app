@@ -36,10 +36,10 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 
 const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetActivities = getActivities as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetActivities = jest.mocked(getActivities);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 describe('useWeeklyCalendar', () => {
   beforeEach(() => {
@@ -49,6 +49,7 @@ describe('useWeeklyCalendar', () => {
       athleteName: null,
       athleteId: 'athlete-1',
       accessToken: 'token-1',
+      scope: null,
       loading: false,
     });
     mockGetAthleteSettings.mockResolvedValue({});
@@ -122,8 +123,8 @@ describe('useWeeklyCalendar', () => {
 
   it("shows a Race in a week across two months once, though it falls in December's pairing window as well as in January, so both months' events calls return it", async () => {
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE'
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE'
           ? []
           : [
               {

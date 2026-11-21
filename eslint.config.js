@@ -29,6 +29,51 @@ const formFieldPaths = [
 const noEffectsMessage =
   'useEffect and useLayoutEffect are banned, with no exceptions (ADR 0012). Derive during render, act in the event handler, or see "Do this instead of an effect" in CODING_STANDARDS.md.';
 
+// The restricted selectors are listed once here too, for the same reason. The
+// lib/typed.ts override below drops only the assertion-function ban.
+// Forms (ADR 0006): watch() is incompatible with the React Compiler.
+// No effects (ADR 0012): scripts/check-no-effects.sh, chained into
+// `npm run lint`, also fails on these when a disable comment hides them.
+// No type assertions (ADR 0014): no written predicate where TypeScript infers
+// one, and no assertion functions.
+const restrictedSyntax = [
+  {
+    selector: 'CallExpression[callee.name=/^use(Layout)?Effect$/]',
+    message: noEffectsMessage,
+  },
+  {
+    selector:
+      "CallExpression[callee.object.name='React'][callee.property.name=/^use(Layout)?Effect$/]",
+    message: noEffectsMessage,
+  },
+  {
+    selector: "CallExpression[callee.property.name='watch']",
+    message: 'Use useWatch or useFormState instead of watch() (ADR 0006).',
+  },
+  {
+    selector:
+      "VariableDeclarator[init.callee.name=/^use(App)?Form$/] > ObjectPattern > Property[key.name='watch']",
+    message: 'Use useWatch or useFormState instead of watch() (ADR 0006).',
+  },
+  {
+    selector:
+      "CallExpression[callee.property.name=/^(filter|find)$/] > :matches(ArrowFunctionExpression, FunctionExpression)[returnType.typeAnnotation.type='TSTypePredicate']",
+    message:
+      'Drop the written type predicate: TypeScript infers it for a function passed straight to .filter or .find (ADR 0014).',
+  },
+  {
+    selector:
+      "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression[params.length=0][body.type='BlockStatement'][body.body.length=0]",
+    message:
+      "Use ignoreFailure(() => work()) from '@/lib/ignoreFailure' instead of .catch(() => {}). To start a mutation whose error shows on mutation.error, call mutate.",
+  },
+];
+const assertsFunctionSyntax = {
+  selector: 'TSTypePredicate[asserts=true]',
+  message:
+    'Assertion functions are banned outside lib/typed.ts (ADR 0014). Use a named `x is T` predicate that checks everything it claims.',
+};
+
 module.exports = defineConfig([
   expoConfig,
   eslintPluginPrettierRecommended,
@@ -39,38 +84,15 @@ module.exports = defineConfig([
     plugins: { 'eslint-comments': eslintComments },
     rules: {
       'eslint-comments/require-description': ['error', { ignore: [] }],
+      'eslint-comments/no-restricted-disable': [
+        'error',
+        '@typescript-eslint/consistent-type-assertions',
+      ],
       'no-empty': ['error', { allowEmptyCatch: false }],
-      // Forms (ADR 0006): watch() is incompatible with the React Compiler.
-      // No effects (ADR 0012): scripts/check-no-effects.sh, chained into
-      // `npm run lint`, also fails on these when a disable comment hides them.
       'no-restricted-syntax': [
         'error',
-        {
-          selector: 'CallExpression[callee.name=/^use(Layout)?Effect$/]',
-          message: noEffectsMessage,
-        },
-        {
-          selector:
-            "CallExpression[callee.object.name='React'][callee.property.name=/^use(Layout)?Effect$/]",
-          message: noEffectsMessage,
-        },
-        {
-          selector: "CallExpression[callee.property.name='watch']",
-          message:
-            'Use useWatch or useFormState instead of watch() (ADR 0006).',
-        },
-        {
-          selector:
-            "VariableDeclarator[init.callee.name=/^use(App)?Form$/] > ObjectPattern > Property[key.name='watch']",
-          message:
-            'Use useWatch or useFormState instead of watch() (ADR 0006).',
-        },
-        {
-          selector:
-            "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression[params.length=0][body.type='BlockStatement'][body.body.length=0]",
-          message:
-            "Use ignoreFailure(() => work()) from '@/lib/ignoreFailure' instead of .catch(() => {}). To start a mutation whose error shows on mutation.error, call mutate.",
-        },
+        ...restrictedSyntax,
+        assertsFunctionSyntax,
       ],
     },
   },
@@ -80,6 +102,12 @@ module.exports = defineConfig([
       // TypeScript
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
+      // No type assertions (ADR 0014). scripts/check-no-comments.js, chained
+      // into `npm run lint`, fails on any directive that disables this rule.
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'never' },
+      ],
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
@@ -160,6 +188,19 @@ module.exports = defineConfig([
     files: ['hooks/useForm*Field.ts'],
     rules: {
       'no-restricted-imports': ['error', { paths: [sonnerPath] }],
+    },
+  },
+  {
+    // The only modules allowed to assert (ADR 0014). A new entry needs an ADR.
+    files: ['lib/typed.ts', 'test-utils/**'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': 'off',
+    },
+  },
+  {
+    files: ['lib/typed.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...restrictedSyntax],
     },
   },
   {

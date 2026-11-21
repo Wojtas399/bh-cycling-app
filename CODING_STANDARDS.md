@@ -70,6 +70,35 @@ For reviewers:
 - Report a new path in the check's exclusion list that holds hand-written code or whose PR doesn't name its generator.
 - Report a workaround with no test named after its constraint.
 
+## Write no type assertions
+
+`x as T`, `as unknown as T` and `<T>x` are banned in all linted code, tests and `e2e/` included ([ADR 0014](docs/adr/0014-no-type-assertions.md)). Only `lib/typed.ts` and `test-utils/**` may assert. `as const` and `satisfies` stay allowed. No disable comment can hide an assertion: the comment check fails on any directive that names `@typescript-eslint/consistent-type-assertions`, even with a reason. `npm run lint` fails on all of them, in CI too.
+
+| You want to…                                       | Do this                                                                                                                                       | Example                                                                                             |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Check a value against a type                       | `satisfies`.                                                                                                                                  | `constants/ofmDarkStyle.ts`, `constants/theme.ts`                                                   |
+| Read a field from an `unknown` value               | Narrow with `typeof`, `!== null` and `in`.                                                                                                    | `lib/getErrorCode.ts`, `hooks/useFormTextField.ts`                                                  |
+| Keep the items of one type in `.filter` or `.find` | Write the arrow with no predicate annotation, and TypeScript infers it. When it can't, call a named predicate, or `flatMap` to `[x]` or `[]`. | `toTimedIntervalIfTimesUsable` in `lib/activityDetails.ts`                                          |
+| Reuse a type check                                 | A named `x is T` predicate whose body checks everything its type claims.                                                                      | `lib/isFiniteNumber.ts`, `isZone` in `lib/powerZones.ts`, `isTranslationKey` in `lib/validation.ts` |
+| Read a Firestore document                          | Parse it with valibot, and map a failed parse to a state the screen already handles.                                                          | `hooks/useIntervalsConnection.ts`                                                                   |
+| Read an Intervals.icu response                     | `readJson<T>` from `lib/typed.ts`, the one trusted boundary.                                                                                  | `lib/intervalsApi.ts`                                                                               |
+| Iterate, build or pick an object's keys            | `entries`, `fromEntries` and `pick` from `lib/typed.ts`.                                                                                      | `lib/intervalsApi.ts`, `lib/workoutDetails.ts`, `lib/activityDetails.ts`                            |
+| Type a mock                                        | `jest.mocked(fn)`.                                                                                                                            |                                                                                                     |
+| Build a test fixture                               | A builder in `test-utils/` that fills every field from defaults and takes overrides.                                                          | `test-utils/calendarItems.ts`                                                                       |
+| Fake a library type in a test                      | A fake in `test-utils/`.                                                                                                                      | `syntheticEvent`, `scrollEvent` and `emitterSubscription` in `test-utils/reactNative.ts`            |
+| Feed a test raw Intervals.icu JSON                 | `fromIntervalsJson` for `null` fields, `readIntervalsBody` for a partial payload, with any field outside the type in its second argument.     | `test-utils/intervalsJson.ts`                                                                       |
+| Get past a library type that falls short           | Restructure so the types line up, then a named predicate, then, last, a named wrapper in `lib/typed.ts` with its own ADR.                     |                                                                                                     |
+
+- **A predicate is a claim too.** A named `x is T` function is allowed anywhere, but lint can't see whether its body checks what the type says. A written predicate on an arrow or function expression passed straight to `.filter` or `.find` fails lint, and so does an `asserts` function outside `lib/typed.ts`.
+- **The allowlist is closed.** Adding a file to it, or a new wrapper to `lib/typed.ts`, needs a new ADR.
+- **`x!` isn't covered here.** Its own rule still fails app code through `--max-warnings 0` and stays off in `__tests__/`.
+
+For reviewers:
+
+- `npm run lint` catches every assertion, every directive that disables the rule, written predicates on functions passed to `.filter` and `.find`, and `asserts` functions, so don't report those.
+- Report a named `x is T` predicate whose body checks less than its type claims, such as one that checks a single field of a type with several.
+- Report a new path in the assertion allowlist in `eslint.config.js`, a new wrapper in `lib/typed.ts`, or a rule dropped from the comment check's never-disabled list, unless the same PR adds an ADR for it.
+
 ## ADRs are binding
 
 - `docs/adr/` records accepted decisions, and code must follow them.

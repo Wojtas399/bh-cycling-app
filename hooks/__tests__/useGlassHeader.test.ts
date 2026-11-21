@@ -1,6 +1,7 @@
 import { type LayoutChangeEvent, Platform } from 'react-native';
 
 import { useGlassHeader } from '../useGlassHeader';
+import { layoutEvent } from '@/test-utils/reactNative';
 import { act, renderHook } from '@testing-library/react-native';
 
 const STATUS_BAR = 59;
@@ -10,9 +11,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 function layoutWithHeight(height: number): LayoutChangeEvent {
-  return {
-    nativeEvent: { layout: { x: 0, y: 0, width: 390, height } },
-  } as LayoutChangeEvent;
+  return layoutEvent({ x: 0, y: 0, width: 390, height });
 }
 
 describe('useGlassHeader', () => {

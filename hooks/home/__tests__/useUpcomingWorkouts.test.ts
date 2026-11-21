@@ -26,10 +26,10 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
-const mockGetActivities = getActivities as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
+const mockGetActivities = jest.mocked(getActivities);
 
 function mockConnection(
   overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
@@ -39,6 +39,7 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });
@@ -164,8 +165,8 @@ describe('useUpcomingWorkouts', () => {
     };
 
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE' ? [] : [workoutScheduledToday(), race],
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE' ? [] : [workoutScheduledToday(), race],
     );
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -191,8 +192,8 @@ describe('useUpcomingWorkouts', () => {
     };
 
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE' ? [note] : [workoutScheduledToday()],
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE' ? [note] : [workoutScheduledToday()],
     );
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -215,7 +216,12 @@ describe('useUpcomingWorkouts', () => {
 
     mockGetCalendarEvents.mockResolvedValue([workoutScheduledToday()]);
     mockGetActivities.mockResolvedValue([
-      { id: '20679555658', start_date_local: `${today}T18:00:00` },
+      {
+        id: '20679555658',
+        start_date_local: `${today}T18:00:00`,
+        moving_time: 0,
+        distance: 0,
+      },
     ]);
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -246,8 +252,8 @@ describe('useUpcomingWorkouts', () => {
   it('fails when the Notes call fails', async () => {
     mockConnected();
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) => {
-        if (params.category === 'NOTE') throw new Error('notes down');
+      async (_token, _athlete, params) => {
+        if (params?.category === 'NOTE') throw new Error('notes down');
 
         return [workoutScheduledToday()];
       },
@@ -277,8 +283,8 @@ describe('useUpcomingWorkouts', () => {
     const otherUpdatedAt = client.getQueryState(otherKey)?.dataUpdatedAt;
 
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE' ? [] : [workoutScheduledToday()],
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE' ? [] : [workoutScheduledToday()],
     );
     await act(() => result.current.refetch());
 

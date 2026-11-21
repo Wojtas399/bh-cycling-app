@@ -114,4 +114,34 @@ describe('buildActivityDetails', () => {
       },
     });
   });
+
+  it('draws an interval with no intensity or no zone as a gap in the Activity Profile', () => {
+    const details = buildActivityDetails({
+      isStravaActivity: false,
+      activity: {
+        id: 'i42',
+        type: 'Ride',
+        start_date_local: '2026-10-23T16:42:00',
+        moving_time: 1800,
+        distance: 0,
+        icu_intervals: [
+          { start_time: 0, end_time: 600, intensity: 80, zone: 3 },
+          { start_time: 600, end_time: 1200, intensity: null, zone: 4 },
+          { start_time: 1200, end_time: 1800, intensity: 90, zone: null },
+        ],
+      },
+    });
+
+    expect(details).toMatchObject({
+      blocks: [
+        { widthFraction: 1 / 3, minPct: 80, maxPct: 80, zone: 3 },
+        { widthFraction: 2 / 3, minPct: 0, maxPct: 0, zone: 1 },
+      ],
+      profileSummary: {
+        durationSeconds: 1800,
+        segmentCount: 1,
+        peakFtpPct: 80,
+      },
+    });
+  });
 });
