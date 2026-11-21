@@ -80,7 +80,7 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: identity.name,
   slug: 'black-horse-cycling-app',
-  version: '0.1.0',
+  version: '0.2.0',
   orientation: 'portrait',
   // Here and below, icons and Firebase files are named after the env.
   icon: `./assets/images/icon-${APP_ENV}.png`,
