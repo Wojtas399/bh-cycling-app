@@ -4,9 +4,17 @@ on:
   workflow_call:
   pull_request:
 
+# A new push to a PR cancels its older run. Calls from release.yml get their
+# own group, so a release never cancels its checks.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
-    name: Lint
+  # One job, so `npm ci` runs once per run. GitHub bills each job rounded up
+  # to the minute.
+  checks:
+    name: Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,34 +28,11 @@ jobs:
 
       - run: npm run lint
 
-      - run: npx prettier --check .
+      - if: ${{ !cancelled() }}
+        run: npx prettier --check .
 
-  typecheck:
-    name: Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - if: ${{ !cancelled() }}
+        run: npx tsc --noEmit
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - run: npm ci
-
-      - run: npx tsc --noEmit
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm test -- --ci
+      - if: ${{ !cancelled() }}
+        run: npm test -- --ci

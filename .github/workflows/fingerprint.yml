@@ -7,6 +7,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
+# Opening a PR with its labels fires one event per label. Only the newest run
+# finishes, and its payload carries the final label set.
+concurrency:
+  group: fingerprint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   fingerprint:
     name: Native fingerprint
