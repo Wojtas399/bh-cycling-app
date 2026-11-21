@@ -54,7 +54,7 @@ describe('revokeIntervalsToken', () => {
     );
   });
 
-  it('logs an error and skips the revoke call when the integration doc is malformed', async () => {
+  it('logs an error and skips the revoke call when the stored token is malformed', async () => {
     getMock.mockResolvedValue({
       exists: true,
       data: () => ({ accessToken: 42 }),
@@ -64,6 +64,20 @@ describe('revokeIntervalsToken', () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(console.error).toHaveBeenCalled();
+  });
+
+  it('still revokes when only fields other than the token are malformed', async () => {
+    getMock.mockResolvedValue({
+      exists: true,
+      data: () => ({ accessToken: 'token-1', connectedAt: 'not-a-timestamp' }),
+    });
+
+    await revokeIntervalsToken('user-1');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://intervals.icu/api/v1/disconnect-app',
+      { method: 'DELETE', headers: { Authorization: 'Bearer token-1' } },
+    );
   });
 
   it('does nothing when there is no integration doc', async () => {

@@ -3,6 +3,8 @@ import { intervalsIntegrationSchema } from './types';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as v from 'valibot';
 
+const storedTokenSchema = v.pick(intervalsIntegrationSchema, ['accessToken']);
+
 const DISCONNECT_APP_URL = 'https://intervals.icu/api/v1/disconnect-app';
 
 export async function revokeIntervalsToken(uid: string): Promise<void> {
@@ -13,20 +15,17 @@ export async function revokeIntervalsToken(uid: string): Promise<void> {
 
     if (!snapshot.exists) return;
 
-    const integrationParse = v.safeParse(
-      intervalsIntegrationSchema,
-      snapshot.data(),
-    );
+    const tokenParse = v.safeParse(storedTokenSchema, snapshot.data());
 
-    if (!integrationParse.success) {
+    if (!tokenParse.success) {
       console.error(
-        'Intervals.icu token revocation skipped: the integration document is malformed.',
+        'Intervals.icu token revocation skipped: the integration document has no valid access token.',
       );
 
       return;
     }
 
-    const { accessToken } = integrationParse.output;
+    const { accessToken } = tokenParse.output;
     const response = await fetch(DISCONNECT_APP_URL, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
