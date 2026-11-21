@@ -7,33 +7,19 @@ import { type Note, notesOn } from '@/lib/notes';
 
 export interface DaySheetController {
   visible: boolean;
-  /** The last day opened; stays set after closing so the sheet can slide out. */
   day: CalendarDay | null;
   items: CalendarItem[];
-  /** The Notes covering the day, in `id` order. */
   notes: Note[];
-  /** The day has neither items nor Notes. */
   isEmpty: boolean;
   open: (day: CalendarDay) => void;
   close: () => void;
-  /**
-   * Closes the sheet and runs `action` once it has dismissed. If several tiles
-   * are tapped during the slide-out, only the last action runs. Reopening the
-   * sheet before it has dismissed drops the action.
-   */
   closeThen: (action: () => void) => void;
-  /** Tells the hook the sheet has fully left the screen. */
   onDismissed: () => void;
 }
 
 const NO_ITEMS: CalendarItem[] = [];
 const NO_NOTES: Note[] = [];
 
-/**
- * Which day's sheet is open. The items and Notes are read from `data` on
- * every render rather than copied, and the sheet is closed whenever it is
- * `undefined` (a range reload, a disconnect).
- */
 export function useDaySheet(
   data: CalendarData | undefined,
 ): DaySheetController {
@@ -41,8 +27,6 @@ export function useDaySheet(
   const [isOpen, setIsOpen] = useState(false);
   const afterDismiss = useRef<(() => void) | null>(null);
 
-  // A reload or disconnect hides the sheet; it must not pop back open when
-  // the data returns.
   if (data === undefined && isOpen) {
     setIsOpen(false);
   }

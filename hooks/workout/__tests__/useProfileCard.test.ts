@@ -30,7 +30,6 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 const mockGetActivity = getActivity as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
-/** The athlete's current Ride FTP. */
 const CURRENT_FTP = 250;
 
 const ACTIVITY_ID = 'i196064284';
@@ -46,7 +45,6 @@ const PLAN_SUMMARY: WorkoutProfileSummary = {
   peakFtpPct: 100,
 };
 
-/** The plan's time in zone, as its steps ask for it. */
 const PLAN_ZONE_TIMES: ZoneTimes = {
   1: 0,
   2: 600,
@@ -57,7 +55,6 @@ const PLAN_ZONE_TIMES: ZoneTimes = {
   7: 0,
 };
 
-/** A ride whose intervals draw a 600 s Activity Profile. */
 const RIDE: IntervalsActivity = {
   id: ACTIVITY_ID,
   name: 'Popołudniowa jazda',
@@ -71,7 +68,6 @@ const RIDE: IntervalsActivity = {
   ],
 };
 
-/** Renders the card of a Workout read with the athlete's Ride settings. */
 function renderCard(recordedActivityId: string | null) {
   return renderHookWithClient(() =>
     useProfileCard({
@@ -84,7 +80,6 @@ function renderCard(recordedActivityId: string | null) {
   );
 }
 
-/** The plan alone, at the current FTP. */
 const PLAN_ALONE = {
   card: {
     durationSeconds: 1200,
@@ -141,7 +136,6 @@ describe('useProfileCard', () => {
       expect.anything(),
     );
     expect(result.current?.card.durationSeconds).toBe(1200);
-    // The ride kept no FTP of its own, so it's drawn at the current one.
     expect(result.current?.card.recorded).toMatchObject({
       ftp: CURRENT_FTP,
       blocks: [

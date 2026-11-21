@@ -49,7 +49,6 @@ function mockConnected() {
   });
 }
 
-// Shaped like the live Race bodies in #280.
 function raceEvent(
   overrides: Partial<IntervalsCalendarEvent>,
 ): IntervalsCalendarEvent {

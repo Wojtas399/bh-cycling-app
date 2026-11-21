@@ -233,8 +233,6 @@ describe('useWorkoutDetails', () => {
       );
     });
 
-    // The single read lacks `paired_activity_id` (#191), so the event is
-    // read from its day's events list.
     it('is completed by a Strava Activity the event names, read from the events list', async () => {
       mockConnected();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
@@ -483,7 +481,6 @@ describe('useWorkoutDetails', () => {
         event({
           workout_doc: {
             duration: 600,
-            // 80% FTP sits in Coggan's zone 3 (75–90%).
             steps: [{ duration: 600, power: { units: '%ftp', value: 80 } }],
           },
         }),
@@ -495,7 +492,6 @@ describe('useWorkoutDetails', () => {
       expect(result.current.query.data?.blocks).toEqual([
         { widthFraction: 1, minPct: 80, maxPct: 80, zone: 3 },
       ]);
-      // So its profile card is drawn in %FTP, and never waits on them.
       expect(result.current.query.data?.rideSettings).toEqual(
         resolveRideSettings(null),
       );
@@ -1099,7 +1095,6 @@ describe('useWorkoutDetails', () => {
 
     it('lists a %FTP step with its label, duration, zone and target', async () => {
       const steps = await stepsOf([
-        // 80% FTP sits in Coggan's zone 3 (75–90%).
         { text: 'Tempo', duration: 600, power: { units: '%ftp', value: 80 } },
       ]);
 
@@ -1121,7 +1116,6 @@ describe('useWorkoutDetails', () => {
         { duration: 1200, power: { units: 'power_zone', value: 2 } },
       ]);
 
-      // Coggan's zone 2 runs from 55% to 75% FTP.
       expect(steps?.[0]).toMatchObject({
         zone: 2,
         ftpPct: { start: 55, end: 75 },
@@ -1151,7 +1145,6 @@ describe('useWorkoutDetails', () => {
         },
       ]);
 
-      // Coloured by its middle, 60% FTP: Coggan's zone 2.
       expect(steps?.[0]).toMatchObject({
         zone: 2,
         ftpPct: { start: 75, end: 45 },
@@ -1164,7 +1157,6 @@ describe('useWorkoutDetails', () => {
         { duration: 600, power: { units: '%ftp', start: 88, end: 94 } },
       ]);
 
-      // Coloured by its middle, 91% FTP: Coggan's zone 4 (90–105%).
       expect(steps?.[0]).toMatchObject({
         zone: 4,
         ftpPct: { start: 88, end: 94 },

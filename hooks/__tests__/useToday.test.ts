@@ -55,7 +55,6 @@ describe('useToday', () => {
 
     const { result } = await renderHook(() => useToday());
 
-    // Suspended through midnight: the clock moves on, but no timer fires.
     jest.setSystemTime(new Date(2026, 9, 6, 8));
     await act(async () => {
       appStateChanged('active');

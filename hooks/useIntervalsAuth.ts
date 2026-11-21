@@ -5,7 +5,7 @@ import {
   type IntervalsAuthMutation,
   mapIntervalsAuthError,
 } from './intervalsAuthErrors';
-import { CONSENT_SCOPES } from './intervalsScopes';
+import { COMMA_SEPARATED_CONSENT_SCOPES } from './intervalsScopes';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
@@ -46,7 +46,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
-        scopes: CONSENT_SCOPES,
+        scopes: COMMA_SEPARATED_CONSENT_SCOPES,
         redirectUri: REDIRECT_URI,
         responseType: AuthSession.ResponseType.Code,
         usePKCE: false,

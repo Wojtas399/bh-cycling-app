@@ -3,12 +3,9 @@ import { AccessibilityInfo, AppState, Platform } from 'react-native';
 
 export interface SurfaceContrast {
   reduceTransparency: boolean;
-  /** Increase Contrast on iOS, high text contrast on Android. */
   increaseContrast: boolean;
 }
 
-// One store for every surface, so a card mounting mid-scroll paints with the
-// settings already known instead of reading them again.
 let snapshot: SurfaceContrast = {
   reduceTransparency: false,
   increaseContrast: false,
@@ -23,7 +20,6 @@ function update(key: keyof SurfaceContrast, value: boolean) {
   listeners.forEach(listener => listener());
 }
 
-/** A setting that can't be read (a missing native module) keeps its value. */
 function read(setting: () => Promise<boolean>, key: keyof SurfaceContrast) {
   setting().then(
     value => update(key, value),
@@ -77,13 +73,6 @@ function subscribe(listener: () => void) {
   };
 }
 
-/**
- * The accessibility settings that change how surfaces paint: Reduce
- * Transparency (followed live) and Increase Contrast or high text contrast
- * (read again when the app returns to the foreground). Only
- * `useSurfaceTreatment` calls it; screens and controls never read these
- * settings.
- */
 export function useSurfaceContrast(): SurfaceContrast {
   return useSyncExternalStore(subscribe, () => snapshot);
 }

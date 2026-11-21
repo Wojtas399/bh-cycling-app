@@ -50,7 +50,6 @@ function mockConnected() {
   });
 }
 
-/** An Activity as `GET /activity/{id}?intervals=true` returns it. */
 function activity(
   overrides: Partial<IntervalsActivity> = {},
 ): IntervalsActivity {
@@ -65,7 +64,6 @@ function activity(
   };
 }
 
-/** The fields set to `null`, as intervals.icu sends a value it doesn't have. */
 function nulls(
   ...fields: (keyof IntervalsActivity)[]
 ): Partial<IntervalsActivity> {
@@ -113,7 +111,6 @@ describe('useActivityDetails', () => {
     });
   });
 
-  /** Renders the details of `body` and waits for the view model. */
   async function detailsOf(body: IntervalsActivity) {
     mockConnected();
     mockGetActivity.mockResolvedValue(body);
@@ -125,7 +122,6 @@ describe('useActivityDetails', () => {
     return result.current.query.data;
   }
 
-  /** As `detailsOf`, for an Activity the screen can show. */
   async function shownDetailsOf(body: IntervalsActivity) {
     const details = await detailsOf(body);
 
@@ -347,8 +343,6 @@ describe('useActivityDetails', () => {
     });
 
     it('shows only the times for a strength session', async () => {
-      // A WeightTraining Activity as intervals.icu returns it: every other
-      // summary metric is null.
       const details = await shownDetailsOf(
         activity({
           name: 'Siłownia',
@@ -511,7 +505,6 @@ describe('useActivityDetails', () => {
 
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
-      // The body intervals.icu returns for a Strava Activity, as verified.
       const strava = {
         id: '20679555658',
         icu_athlete_id: 'athlete-1',
@@ -540,8 +533,6 @@ describe('useActivityDetails', () => {
     const activityKey = ['intervals', 'athlete-1', 'activity', ACTIVITY_ID];
 
     it('keeps only the agreed fields of the body, and of each interval', async () => {
-      // A slice of the ~71 KB body: the fields Activity Details needs, plus
-      // a sample of the ones it doesn't.
       const body = {
         id: ACTIVITY_ID,
         name: 'Popołudniowa jazda',

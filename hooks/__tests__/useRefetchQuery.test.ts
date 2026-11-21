@@ -1,5 +1,6 @@
 import { useRefetchQuery } from '../useRefetchQuery';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { type QueryKey, useQuery } from '@tanstack/react-query';
 import { act } from '@testing-library/react-native';
 
@@ -18,7 +19,9 @@ describe('useRefetchQuery', () => {
       return useRefetchQuery(['note', 1]);
     });
 
+    await settleQueries();
     await act(() => result.current());
+    await settleQueries();
 
     expect(fetchExact).toHaveBeenCalledTimes(2);
     expect(fetchLonger).toHaveBeenCalledTimes(1);

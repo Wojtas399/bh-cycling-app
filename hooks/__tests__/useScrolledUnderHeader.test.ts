@@ -29,7 +29,6 @@ describe('useScrolledUnderHeader', () => {
   it('is not under the header before any scroll', async () => {
     const { result } = await renderScrolled();
 
-    // The block spans 116..236 in the scroll content.
     await act(() => result.current.onLayout(layout(116, 120)));
 
     expect(result.current.scrolledUnder).toBe(false);
@@ -71,7 +70,6 @@ describe('useScrolledUnderHeader', () => {
 
     await act(() => result.current.onLayout(layout(116, 120)));
     await act(() => result.current.onScroll(scroll(200)));
-    // A refresh brings a longer title, pushing the block's bottom down.
     await act(() => result.current.onLayout(layout(116, 220)));
 
     expect(result.current.scrolledUnder).toBe(false);

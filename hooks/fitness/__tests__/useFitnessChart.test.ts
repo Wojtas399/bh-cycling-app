@@ -35,10 +35,8 @@ const mockGetWellnessRange = getWellnessRange as jest.Mock;
 
 const TODAY = '2026-11-06';
 
-/** Everything the app asks for at consent. */
 const FULL_SCOPE = 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
 
-/** What a connection made before Wellness was asked for holds. */
 const SCOPE_WITHOUT_WELLNESS = 'ACTIVITY:READ,CALENDAR:READ';
 
 function mockConnection(
@@ -64,7 +62,6 @@ function mockConnected(scope: string = FULL_SCOPE) {
   });
 }
 
-/** Three weeks of a new athlete's history, ending today. */
 const NEW_ATHLETE_ROWS = [
   { id: '2026-10-17', ctl: 0, atl: 0, ctlLoad: 0 },
   { id: '2026-11-05', ctl: 9.6, atl: 31.2, ctlLoad: 64 },

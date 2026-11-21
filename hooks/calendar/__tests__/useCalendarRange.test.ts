@@ -82,12 +82,6 @@ function event(
   };
 }
 
-/**
- * `useCalendarRange` is range-shape agnostic; exercising it through the
- * month config is enough to cover its own logic (states, navigation,
- * refresh). `useMonthlyCalendar`/`useWeeklyCalendar` each get their own thin
- * test verifying only how they wire their config.
- */
 const monthConfig: UseCalendarRangeConfig = {
   startOf: startOfMonth,
   endOf: endOfMonth,
@@ -105,14 +99,12 @@ const visibleMonthKey = intervalsKeys.month(
 
 const EMPTY_MONTH = { itemsByDate: {}, completedEventIds: [], notes: [] };
 
-/** Marks the visible month as last fetched `ageMs` ago. */
 function ageVisibleMonth(client: QueryClient, ageMs: number) {
   client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
     updatedAt: Date.now() - ageMs,
   });
 }
 
-/** A client whose visible month was last fetched `ageMs` ago. */
 function clientWithMonthFetched(ageMs: number) {
   const client = createTestQueryClient();
 
@@ -123,10 +115,6 @@ function clientWithMonthFetched(ageMs: number) {
 
 const SIX_MINUTES = 6 * 60_000;
 
-/**
- * How many times a month was fetched: each fetch makes one events call for
- * its items and one for its Notes, so only the former are counted.
- */
 function monthFetches(): number {
   return mockGetCalendarEvents.mock.calls.filter(
     ([, , params]) => params.category === undefined,
@@ -143,7 +131,6 @@ describe('useCalendarRange', () => {
   });
 
   afterEach(() => {
-    // Hands focus back to the default listener for the next test.
     focusManager.setFocused(undefined);
     jest.useRealTimers();
   });
@@ -428,7 +415,6 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.goToPrevious());
 
-    // Back to the loaded month: its data is there at once, with no new fetch.
     expect(result.current.query.data).toBeDefined();
     expect(monthFetches()).toBe(2);
   });
@@ -509,7 +495,6 @@ describe('useCalendarRange', () => {
     await act(async () => result.current.goToPrevious());
 
     await waitFor(() => expect(monthFetches()).toBe(4));
-    // A background refetch shows the old data meanwhile.
     expect(result.current.query.data).toBeDefined();
   });
 
@@ -523,7 +508,6 @@ describe('useCalendarRange', () => {
       client,
     });
 
-    // Aged after mounting, so only the return to the foreground can refetch.
     await act(async () => ageVisibleMonth(client, SIX_MINUTES));
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
 
@@ -574,7 +558,6 @@ describe('useCalendarRange', () => {
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
     await act(async () => result.current.refresh());
 
-    // A retry with no data is a first load again, not a refresh.
     await waitFor(() => expect(result.current.query.isError).toBe(false));
     expect(result.current.query.isPending).toBe(true);
     expect(result.current.query.isFetching).toBe(true);
@@ -613,8 +596,6 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.refresh());
 
-    // Off screen, Home's workouts are only marked stale. The refetched month
-    // reads the settings, so they're fetched again at once.
     expect(client.getQueryState(upcomingKey)?.isInvalidated).toBe(true);
     await waitFor(() =>
       expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1),

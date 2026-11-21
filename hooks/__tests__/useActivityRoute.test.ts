@@ -198,7 +198,6 @@ describe('useActivityRoute', () => {
       settled = true;
     });
 
-    // Resolves immediately: by the next microtask, with no request in flight.
     await Promise.resolve();
     expect(settled).toBe(true);
     await act(() => pending);

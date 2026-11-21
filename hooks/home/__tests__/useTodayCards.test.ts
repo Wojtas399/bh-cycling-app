@@ -49,10 +49,8 @@ function mockConnection(
   });
 }
 
-/** Everything the app asks for at consent. */
 const FULL_SCOPE = 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
 
-/** What a connection made before Wellness was asked for holds. */
 const SCOPE_WITHOUT_WELLNESS = 'ACTIVITY:READ,CALENDAR:READ';
 
 function mockConnected(scope: string = FULL_SCOPE) {
@@ -64,7 +62,6 @@ function mockConnected(scope: string = FULL_SCOPE) {
   });
 }
 
-/** What intervals.icu returns on a day without data: every metric `null`. */
 const NO_DATA = {
   ctl: null,
   atl: null,
@@ -76,7 +73,6 @@ const NO_DATA = {
   restingHR: null,
 };
 
-/** A WHOOP morning after a block of riding: every metric is filled. */
 const FULL_ENTRY = {
   ...NO_DATA,
   id: '2026-11-02',
@@ -89,7 +85,6 @@ const FULL_ENTRY = {
   restingHR: 48,
 };
 
-/** `FULL_ENTRY`'s Wellness card rows. */
 const FULL_ROWS = [
   { key: 'readiness', value: '63' },
   { key: 'sleep', value: '7h 57m' },
@@ -98,7 +93,6 @@ const FULL_ROWS = [
   { key: 'restingHr', value: '48 bpm' },
 ];
 
-/** `FULL_ENTRY` on both cards. */
 const FULL_CARDS = {
   status: 'ready',
   fitness: { fitness: 43, fatigue: 50, form: -7 },

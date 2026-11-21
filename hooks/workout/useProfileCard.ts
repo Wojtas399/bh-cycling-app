@@ -5,12 +5,6 @@ import { type ProfileCardSource, profileCardSource } from '@/lib/profileCard';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useQuery } from '@tanstack/react-query';
 
-/**
- * A loaded Workout's profile card (see `profileCardSource`), drawn by the Ride
- * settings the Workout was read with. The paired Activity's intervals come
- * from Activity Details' own query, so the two screens share its cache. Until
- * it loads, and if it fails, the card shows the plan alone.
- */
 export function useProfileCard(
   workout: Pick<
     WorkoutDetails,

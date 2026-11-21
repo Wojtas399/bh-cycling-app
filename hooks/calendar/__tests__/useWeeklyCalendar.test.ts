@@ -41,11 +41,6 @@ const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
 const mockGetActivities = getActivities as jest.Mock;
 const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
 
-/**
- * The shared loading/refresh behavior is covered once, generically, in
- * useCalendarRange.test.ts. This suite only checks that useWeeklyCalendar
- * wires the week-shaped config (range, the months it touches, nav step).
- */
 describe('useWeeklyCalendar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -94,7 +89,6 @@ describe('useWeeklyCalendar', () => {
   });
 
   it('opens on the week containing a starting date, fetching the months it touches', async () => {
-    // Wed 30 Dec 2020, in the week of Mon 28 Dec 2020 – Sun 3 Jan 2021.
     const { result } = await renderHookWithClient(() =>
       useWeeklyCalendar(new Date(2020, 11, 30)),
     );
@@ -126,7 +120,6 @@ describe('useWeeklyCalendar', () => {
   });
 
   it("shows a Race in a week across two months once, though both months' events calls return it", async () => {
-    // Sat 2 Jan 2021 is in December's pairing window as well as in January.
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params: { category?: string }) =>
         params.category === 'NOTE'
@@ -183,7 +176,6 @@ describe('useWeeklyCalendar', () => {
   });
 
   it('shows today in a week that crosses into the next month, on one of its later days', async () => {
-    // Sun 1 Nov 2026, in the week of Mon 26 Oct – Sun 1 Nov 2026.
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2026, 10, 1, 12));
 
@@ -213,7 +205,6 @@ describe('useWeeklyCalendar', () => {
     const now = new Date();
     const client = createQueryClient();
 
-    // As if the monthly view had loaded the month(s) this week falls in.
     for (const day of [startOfWeek(now), endOfWeek(now)]) {
       await client.fetchQuery(
         monthQueryOptions(

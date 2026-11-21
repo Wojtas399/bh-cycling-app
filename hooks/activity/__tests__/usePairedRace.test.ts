@@ -36,7 +36,6 @@ function mockConnected() {
   });
 }
 
-/** The paired event as `GET /events/{id}` returns it, shaped like #280's. */
 function pairedEvent(
   overrides: Partial<IntervalsCalendarEvent> = {},
 ): IntervalsCalendarEvent {

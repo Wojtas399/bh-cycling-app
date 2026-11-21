@@ -52,7 +52,6 @@ function mockConnected() {
   });
 }
 
-/** A workout scheduled for today, whichever day the suite happens to run on. */
 function todayEvent(): IntervalsCalendarEvent {
   return {
     id: 1,
@@ -177,7 +176,6 @@ describe('useUpcomingWorkouts', () => {
         { kind: 'workout', dayLabel: 'today', workout: { id: 1 } },
       ]),
     );
-    // The events call and the Notes call, as before Races.
     expect(mockGetCalendarEvents).toHaveBeenCalledTimes(2);
   });
 

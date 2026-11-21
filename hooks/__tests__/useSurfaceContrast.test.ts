@@ -158,7 +158,6 @@ describe('useSurfaceContrast', () => {
   });
 });
 
-/** Records the listeners a module subscribes and fires them by event name. */
 function captureListener(emitter: {
   addEventListener: (...args: never[]) => unknown;
 }) {

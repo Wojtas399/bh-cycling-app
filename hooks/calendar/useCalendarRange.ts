@@ -21,21 +21,16 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
   availability: IntervalsAvailability;
-  /** The visible range's months combined into one query-shaped result. */
   query: CombinedMonthResult;
   anchor: Date;
   goToPrevious: () => void;
   goToNext: () => void;
-  /** Moves to the range containing today. */
   goToToday: () => void;
-  /** Today falls within the visible range. Kept current across midnight. */
   showsToday: boolean;
   refresh: () => void;
-  /** Shown data is being fetched again, by a refresh or in the background. */
   refreshing: boolean;
 }
 
-/** What the Calendar screen renders from, whichever view is active. */
 export type CalendarRangeView = Pick<
   UseCalendarRangeResult,
   | 'availability'
@@ -46,13 +41,6 @@ export type CalendarRangeView = Pick<
   | 'refreshing'
 >;
 
-/**
- * Configures `useCalendarRange` for a specific range shape (month, week, ...).
- * It opens on the range containing `startDate`, or today's without one.
- * `step` receives `-1`/`1` and is expected to move `anchor` by one unit of
- * that range in the given direction. `monthsFor` lists the months the range
- * touches, each cached as its own query.
- */
 export interface UseCalendarRangeConfig {
   startDate?: Date;
   startOf: (anchor: Date) => Date;
@@ -95,8 +83,6 @@ export function useCalendarRange({
 
   const athleteId = credentials?.athleteId;
 
-  // Marks everything for the athlete stale: what's on screen fetches again
-  // now, the rest when it's next shown. A failed fetch keeps the old data.
   const refresh = useCallback(() => {
     if (!athleteId) return;
 

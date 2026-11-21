@@ -26,7 +26,6 @@ const DATA: CalendarData = {
   notes: [],
 };
 
-/** The Calendar's day sheet and Race sheet, wired as the screen wires them. */
 async function renderSheets() {
   return renderHook(() => {
     const daySheet = useDaySheet(DATA);

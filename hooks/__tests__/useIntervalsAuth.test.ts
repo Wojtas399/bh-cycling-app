@@ -83,7 +83,7 @@ describe('useIntervalsAuth', () => {
   });
 
   describe('handleConnect', () => {
-    it('asks for all four scopes as one comma-separated item', async () => {
+    it('asks for all four scopes as one comma-separated item, since expo-auth-session joins items with spaces and Intervals.icu wants commas', async () => {
       mockPromptAsync.mockResolvedValue({ type: 'cancel' });
 
       const { result } = await renderAuth();
@@ -139,7 +139,7 @@ describe('useIntervalsAuth', () => {
       expect(getNeedsReconnect()).toBe(false);
     });
 
-    it("invalidates the athlete's Intervals data, settings included, on a successful authorization", async () => {
+    it("invalidates the athlete's Intervals data on a successful authorization, settings included, which never go stale on their own", async () => {
       mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
       mockPromptAsync.mockResolvedValue({
         type: 'success',
