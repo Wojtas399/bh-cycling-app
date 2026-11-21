@@ -1,13 +1,12 @@
 import type * as VerificationEmailModule from '../verificationEmail';
+import { loadFreshModule } from '@/test-utils/loadFreshModule';
 
 let verificationEmail: typeof VerificationEmailModule;
 
 function loadVerificationEmailNeverSentBefore() {
-  jest.isolateModules(() => {
-    verificationEmail = jest.requireActual<typeof VerificationEmailModule>(
-      '../verificationEmail',
-    );
-  });
+  verificationEmail = loadFreshModule(() =>
+    jest.requireActual<typeof VerificationEmailModule>('../verificationEmail'),
+  );
 }
 
 describe('verificationEmail', () => {
