@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Routes the ref that triggered .github/workflows/release.yml, passed in as
 # REF_TYPE and REF_NAME, to a build or an OTA update for one platform. See
-# "Releasing" in README.md.
+# "Releasing" in docs/development.md.
 set -euo pipefail
 
 platform="$1"
