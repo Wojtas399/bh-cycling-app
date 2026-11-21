@@ -1,4 +1,5 @@
 import { handleIntervalsAuthError } from '../handleIntervalsAuthError';
+import { ignoreFailure } from '../ignoreFailure';
 import { IntervalsAuthError } from '../intervalsApi';
 import { removeIntervalsQueries } from '../intervalsQueries';
 import { createQueryClient } from '../queryClient';
@@ -87,8 +88,8 @@ describe('removeIntervalsQueries', () => {
 
     client.setQueryData(otherKey, 'kept');
 
-    const pending = client
-      .fetchQuery({
+    const pending = ignoreFailure(
+      client.fetchQuery({
         queryKey: intervalsKey,
         queryFn: ({ signal }) => {
           requestSignal = signal;
@@ -97,8 +98,8 @@ describe('removeIntervalsQueries', () => {
             resolveLate = resolve;
           });
         },
-      })
-      .catch(() => {});
+      }),
+    );
 
     await removeIntervalsQueries(client);
 

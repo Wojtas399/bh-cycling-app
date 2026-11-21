@@ -4,8 +4,6 @@ import { Stack } from 'expo-router';
 export default function AuthLayout() {
   const authState = useAuthState();
 
-  // The first reachable screen is where the user lands: sign-in when signed
-  // out, verify-email when the email is unverified.
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={authState === 'signedOut'}>

@@ -139,6 +139,12 @@ module.exports = defineConfig([
           message:
             'Use useWatch or useFormState instead of watch() (ADR 0006).',
         },
+        {
+          selector:
+            "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression[params.length=0][body.type='BlockStatement'][body.body.length=0]",
+          message:
+            "Use ignoreFailure(promise) from '@/lib/ignoreFailure' instead of .catch(() => {}). To start a mutation whose error shows on mutation.error, call mutate.",
+        },
       ],
     },
   },

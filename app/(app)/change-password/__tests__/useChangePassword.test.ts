@@ -5,12 +5,14 @@ import { useChangePassword } from '../useChangePassword';
 import { toast } from '@/lib/toast';
 import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 const mockBack = jest.fn();
 const mockReauthenticate = jest.fn();
 const mockUpdatePassword = jest.fn();
 const mockSendPasswordResetEmail = jest.fn();
+let mockEmail: string | null = 'rider@example.com';
 const mockCredential = jest.fn((email: string, password: string) => ({
   email,
   password,
@@ -30,7 +32,7 @@ jest.mock('react-i18next', () => ({
 jest.mock('@/lib/firebase', () => {
   const auth = () => ({
     currentUser: {
-      email: 'rider@example.com',
+      email: mockEmail,
       reauthenticateWithCredential: mockReauthenticate,
       updatePassword: mockUpdatePassword,
     },
@@ -90,8 +92,7 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.submit();
   });
-  // React Query hands the settled state to the hook on a later tick.
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  await settleQueries();
 }
 
 async function fillValid(hook: Hook) {
@@ -115,13 +116,13 @@ function pressAlertButton(callIndex: number, style: AlertButton['style']) {
 describe('useChangePassword', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockEmail = 'rider@example.com';
     mockReauthenticate.mockResolvedValue(undefined);
     mockUpdatePassword.mockResolvedValue(undefined);
     mockSendPasswordResetEmail.mockResolvedValue(undefined);
   });
 
-  // Per-field rules live in changePasswordSchema.test.ts; these cover timing.
-  describe('validation', () => {
+  describe('when schema errors show', () => {
     it('shows no errors before the first submit', async () => {
       const hook = await setup();
 
@@ -329,6 +330,20 @@ describe('useChangePassword', () => {
       expect(mockAlert).not.toHaveBeenCalled();
       expect(mockToast.success).not.toHaveBeenCalled();
       expect(mockBack).not.toHaveBeenCalled();
+      expect(hook.result.current.busy).toBe(false);
+    });
+
+    it('shows the generic form error when the signed-in user has no email', async () => {
+      mockEmail = null;
+      const hook = await setup();
+
+      await fillValid(hook);
+      await submit(hook);
+
+      expect(hook.result.current.formError).toBe(
+        'changePassword.errors.generic',
+      );
+      expect(mockReauthenticate).not.toHaveBeenCalled();
       expect(hook.result.current.busy).toBe(false);
     });
 

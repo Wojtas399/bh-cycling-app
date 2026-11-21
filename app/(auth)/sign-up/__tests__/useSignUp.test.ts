@@ -1,6 +1,7 @@
 import { useSignUp } from '../useSignUp';
 import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 const mockCreateUser = jest.fn();
@@ -53,11 +54,6 @@ async function setup() {
 
 type Hook = Awaited<ReturnType<typeof setup>>;
 
-// React Query hands the settled state to the hook on a later tick.
-async function settle() {
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-}
-
 async function fill(
   hook: Hook,
   values: { email?: string; password?: string; confirm?: string },
@@ -89,14 +85,14 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.submit();
   });
-  await settle();
+  await settleQueries();
 }
 
 async function signUpWithGoogle(hook: Hook) {
   await act(async () => {
     await hook.result.current.signUpWithGoogle();
   });
-  await settle();
+  await settleQueries();
 }
 
 function errorOf(hook: Hook, name: (typeof FIELDS)[number]) {
@@ -110,8 +106,7 @@ describe('useSignUp', () => {
     mockNewUser.sendEmailVerification.mockResolvedValue(undefined);
   });
 
-  // Per-field rules live in signUpSchema.test.ts; these cover timing.
-  describe('validation', () => {
+  describe('when schema errors show', () => {
     it('shows no errors before the first submit', async () => {
       const hook = await setup();
 
@@ -146,6 +141,17 @@ describe('useSignUp', () => {
 
       expect(errorOf(hook, 'email')).toBe('');
       expect(errorOf(hook, 'password')).not.toBe('');
+    });
+
+    it('shows only the empty confirmation error, not the mismatch it also has', async () => {
+      const hook = await setup();
+
+      await fill(hook, { email: 'rider@example.com', password: 'password-1' });
+      await submit(hook);
+
+      expect(errorOf(hook, 'confirmPassword')).toBe(
+        'signUp.validation.confirmPasswordRequired',
+      );
     });
 
     it('re-validates the confirmation when the password changes after a submit', async () => {

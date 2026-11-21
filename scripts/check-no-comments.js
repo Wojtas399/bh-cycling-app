@@ -4,12 +4,15 @@ const path = require('node:path');
 const ts = require('typescript');
 
 const ENFORCED_PATHS = [
+  'app/',
   'components/',
   'hooks/',
   'lib/',
   'test-utils/__tests__/focus.test.ts',
+  'test-utils/__tests__/schemaIssues.test.ts',
   'test-utils/__tests__/settle.test.ts',
   'test-utils/focus.ts',
+  'test-utils/schemaIssues.ts',
   'test-utils/settle.ts',
 ];
 

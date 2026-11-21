@@ -22,10 +22,11 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
-// The app is dark only, so system glass, sheets and alerts never turn light.
-// `userInterfaceStyle: 'dark'` in the app config does the same from launch,
-// once a store build carries it.
-Appearance.setColorScheme('dark');
+function keepSystemGlassSheetsAndAlertsDark() {
+  Appearance.setColorScheme('dark');
+}
+
+keepSystemGlassSheetsAndAlertsDark();
 SplashScreen.preventAutoHideAsync();
 setupAppFocus();
 
@@ -33,11 +34,8 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({ ...Ionicons.font });
   const authState = useAuthState();
 
-  // Shift+M in `expo start`; a no-op in production builds.
   useReactQueryDevTools(queryClient);
 
-  // The splash stays up until the root view has laid out with fonts loaded,
-  // so the app never shows a blank frame.
   if (!fontsLoaded) return null;
 
   return (
@@ -45,11 +43,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <NavThemeProvider value={DarkTheme}>
-            {/* The guards decide where the user may be. When one turns off,
-                the router leaves its screens for the first reachable one, so
-                signing in, out or verifying needs no redirect. */}
             <Stack screenOptions={{ headerShown: false }}>
-              {/* Blank until Firebase first reports the user. */}
               <Stack.Protected guard={authState === 'unknown'}>
                 <Stack.Screen name="index" />
               </Stack.Protected>
@@ -63,7 +57,6 @@ export default function RootLayout() {
               </Stack.Protected>
             </Stack>
             <StatusBar style="light" />
-            {/* Outside the navigator, so toasts survive navigation. */}
             <ToastHost />
           </NavThemeProvider>
         </ThemeProvider>

@@ -25,13 +25,6 @@ import { formatNoteDates } from '@/lib/noteDates';
 import { type Note, noteText } from '@/lib/notes';
 import { useLocalSearchParams } from 'expo-router';
 
-/**
- * Note Details: one Note, pushed over the tabs from its card. Mirrors Workout
- * Details and branches on the raw query (ADR 0005): data wins over an error,
- * so a failed pull-to-refresh keeps the Note on screen. The glass header has
- * no title until the Note's top block has scrolled under it, then carries
- * the Note's title.
- */
 export default function NoteDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useNoteDetails(Number(id));
@@ -52,16 +45,16 @@ export default function NoteDetailsScreen() {
     }
   }
 
-  function body() {
+  function bodyPreferringDataOverError() {
     if (availability === 'loading') return <NoteDetailsSkeleton />;
 
     if (availability === 'unavailable') return <IntervalsConnectPrompt />;
 
     if (query.data) {
       return (
-        <NoteDetailsContent
+        <NoteDetailsScrollChildren
           note={query.data}
-          onTopBlockLayout={topBlock.onLayout}
+          onTopBlockLayoutInScrollContent={topBlock.onLayout}
         />
       );
     }
@@ -101,7 +94,7 @@ export default function NoteDetailsScreen() {
           ) : undefined
         }
       >
-        {body()}
+        {bodyPreferringDataOverError()}
       </ScrollView>
       <ScreenHeader
         title={
@@ -113,18 +106,12 @@ export default function NoteDetailsScreen() {
   );
 }
 
-/**
- * The loaded Note: the top block (title, a dot in the Note's colour with its
- * dates, a divider), then the text. Both are direct children of the scroll
- * content, so the top block's layout is where it sits in it. The text is
- * Note Markdown in its own box, so no parent gap spreads its blocks.
- */
-function NoteDetailsContent({
+function NoteDetailsScrollChildren({
   note,
-  onTopBlockLayout,
+  onTopBlockLayoutInScrollContent,
 }: {
   note: Note;
-  onTopBlockLayout: (event: LayoutChangeEvent) => void;
+  onTopBlockLayoutInScrollContent: (event: LayoutChangeEvent) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'note' });
   const noteTitle = useNoteTitle();
@@ -133,7 +120,11 @@ function NoteDetailsContent({
 
   return (
     <>
-      <Box paddingHorizontal="md" gap="base" onLayout={onTopBlockLayout}>
+      <Box
+        paddingHorizontal="md"
+        gap="base"
+        onLayout={onTopBlockLayoutInScrollContent}
+      >
         <Text variant="h1">{noteTitle(note)}</Text>
         <Box flexDirection="row" alignItems="center" gap="sm">
           <Box

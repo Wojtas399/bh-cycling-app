@@ -1,18 +1,12 @@
 import { changePasswordSchema } from '../changePasswordSchema';
+import {
+  firstIssuePerField,
+  issueMessagesByField,
+} from '@/test-utils/schemaIssues';
 import * as v from 'valibot';
 
-/** The first issue key per field, as the resolver reports it. */
 function errors(input: Record<string, string>) {
-  const result = v.safeParse(changePasswordSchema, input);
-  const byField: Record<string, string> = {};
-
-  for (const issue of result.issues ?? []) {
-    const field = v.getDotPath(issue) ?? 'root';
-
-    byField[field] ??= issue.message;
-  }
-
-  return byField;
+  return firstIssuePerField(changePasswordSchema, input);
 }
 
 describe('changePasswordSchema', () => {
@@ -71,7 +65,6 @@ describe('changePasswordSchema', () => {
     });
   });
 
-  // Matches the hand-written validation this schema replaced.
   it('shows the mismatch even while the new password has its own error', () => {
     expect(
       errors({
@@ -82,6 +75,25 @@ describe('changePasswordSchema', () => {
     ).toEqual({
       newPassword: 'validation.passwordTooShort',
       confirmPassword: 'validation.passwordsMismatch',
+    });
+  });
+
+  it("reports each field's own issue before the cross-field ones, so the first-issue resolver shows one error per field", () => {
+    expect(
+      issueMessagesByField(changePasswordSchema, {
+        currentPassword: 'short',
+        newPassword: 'short',
+        confirmPassword: '',
+      }),
+    ).toEqual({
+      newPassword: [
+        'validation.passwordTooShort',
+        'changePassword.validation.newPasswordSameAsCurrent',
+      ],
+      confirmPassword: [
+        'changePassword.validation.confirmPasswordRequired',
+        'validation.passwordsMismatch',
+      ],
     });
   });
 
