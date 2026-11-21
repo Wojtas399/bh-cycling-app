@@ -6,7 +6,7 @@ import {
   type ForgotPasswordInput,
   forgotPasswordSchema,
 } from './forgotPasswordSchema';
-import { type FormBinding, formErrorsOnly } from '@/hooks/formBinding';
+import { type FormBinding, noServerErrorOnAnyField } from '@/hooks/formBinding';
 import { useAppForm } from '@/hooks/useAppForm';
 import { useCooldown } from '@/hooks/useCooldown';
 import { auth } from '@/lib/firebase';
@@ -45,7 +45,7 @@ export function useForgotPassword() {
     setFocus,
     busy,
     onFieldChange: () => sendOrResendResetEmail.reset(),
-    serverError: formErrorsOnly,
+    serverError: noServerErrorOnAnyField,
   };
 
   async function submit() {

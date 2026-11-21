@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export const ANDROID_SHEET_TOAST_HOST = Platform.OS === 'android';
+export const SHEET_HOSTS_ITS_OWN_TOASTS = Platform.OS === 'android';
 
 export interface SheetSurface {
   paintsBackground: boolean;

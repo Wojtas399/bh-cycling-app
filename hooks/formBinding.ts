@@ -14,6 +14,6 @@ export interface FormBinding<T extends FieldValues> {
   deps?: Partial<Record<Path<T>, Path<T>[]>>;
 }
 
-export function formErrorsOnly(): string {
+export function noServerErrorOnAnyField(): string {
   return '';
 }
