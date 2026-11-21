@@ -1,4 +1,5 @@
 import type * as SplashScreenModule from '../splashScreen';
+import { loadFreshModule } from '@/test-utils/loadFreshModule';
 
 const mockHideAsync = jest.fn<Promise<void>, []>();
 
@@ -9,10 +10,9 @@ jest.mock('expo-splash-screen', () => ({
 let hideSplashScreen: typeof SplashScreenModule.hideSplashScreen;
 
 function loadSplashScreenNeverHiddenBefore() {
-  jest.isolateModules(() => {
-    ({ hideSplashScreen } =
-      jest.requireActual<typeof SplashScreenModule>('../splashScreen'));
-  });
+  ({ hideSplashScreen } = loadFreshModule(() =>
+    jest.requireActual<typeof SplashScreenModule>('../splashScreen'),
+  ));
 }
 
 function letTheHideSettleSoAnUnhandledRejectionFails() {
