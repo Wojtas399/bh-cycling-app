@@ -13,26 +13,17 @@ const DURATION_MS = 3000;
 
 let lastId = 0;
 
-/** Open sheet-level hosts, oldest first; the last one is on top. */
-const sheetHosts: string[] = [];
+const openSheetHostsOldestFirst: string[] = [];
 
-/**
- * Marks the sheet-level host `id` as open. Toasts go to the most recently
- * registered open host, so a toast shows above the top-most sheet.
- */
 export function registerSheetHost(id: string) {
-  sheetHosts.push(id);
+  openSheetHostsOldestFirst.push(id);
 }
 
-/**
- * Marks the sheet-level host `id` as closed. Toasts fall back to the previous
- * open host, or to the root host. Unregistering a closed host does nothing.
- */
 export function unregisterSheetHost(id: string) {
-  const index = sheetHosts.lastIndexOf(id);
+  const index = openSheetHostsOldestFirst.lastIndexOf(id);
 
   if (index !== -1) {
-    sheetHosts.splice(index, 1);
+    openSheetHostsOldestFirst.splice(index, 1);
   }
 }
 
@@ -42,8 +33,7 @@ function show(variant: ToastVariant, message: string) {
   sonner[variant](message, {
     id,
     duration: DURATION_MS,
-    toasterId: sheetHosts.at(-1),
-    // Tap-to-dismiss is the toast's only interaction.
+    toasterId: openSheetHostsOldestFirst.at(-1),
     onPress: () => sonner.dismiss(id),
   });
   Haptics.notificationAsync(HAPTIC[variant]);

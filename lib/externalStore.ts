@@ -1,27 +1,22 @@
 type Listener = () => void;
+type StopSource = () => void;
 
-/**
- * The listeners of a store read through `useSyncExternalStore`. `start`, when
- * given, starts the store's source as the first listener subscribes and
- * returns how to stop it, which runs once the last listener has left.
- */
-export function createListeners(start?: () => () => void) {
+export function createListeners(startSource?: () => StopSource) {
   const listeners = new Set<Listener>();
-  let stop: (() => void) | undefined;
+  let stopSource: StopSource | undefined;
 
-  // Arrow functions, so a store can export `subscribe` on its own.
   return {
     subscribe: (listener: Listener): (() => void) => {
       listeners.add(listener);
-      stop ??= start?.();
+      stopSource ??= startSource?.();
 
       return () => {
         listeners.delete(listener);
 
         if (listeners.size > 0) return;
 
-        stop?.();
-        stop = undefined;
+        stopSource?.();
+        stopSource = undefined;
       };
     },
     notify: (): void => {
@@ -30,7 +25,6 @@ export function createListeners(start?: () => () => void) {
   };
 }
 
-/** The subscribe of a store whose value never changes. */
 export function subscribeToNothing(): () => void {
   return () => {};
 }

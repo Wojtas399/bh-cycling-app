@@ -157,8 +157,7 @@ describe('resolveSurfaceTreatment', () => {
         });
       });
 
-      // Its 50% white edge is already brighter than `hairlineStrong`.
-      it('leaves prominent Frost alone under Increase Contrast', () => {
+      it('leaves prominent Frost alone under Increase Contrast, since its 50% white edge is already brighter than hairlineStrong', () => {
         expect(resolve(true, { increaseContrast: true })).toEqual(
           FROST_PROMINENT,
         );
@@ -182,10 +181,8 @@ describe('resolveSurfaceTreatment', () => {
         },
       );
 
-      // Its label is near-black `textInverse`, which can't be read on
-      // `bgTertiary`, so it turns solid white instead.
       it.each([false, true])(
-        'turns prominent Frost solid white under Reduce Transparency (Increase Contrast %s)',
+        "turns prominent Frost solid white under Reduce Transparency, since its near-black label can't be read on bgTertiary, with no stronger edge (Increase Contrast %s)",
         increaseContrast => {
           expect(
             resolve(true, { reduceTransparency: true, increaseContrast }),

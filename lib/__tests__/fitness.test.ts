@@ -1,24 +1,27 @@
 import {
+  FITNESS_HISTORY_DAYS,
   type FitnessDay,
+  fitnessHistoryWindow,
   fitnessReadoutDay,
   formatFitnessCard,
   formatFitnessReadout,
   formatForm,
+  hasFitnessValues,
   sliceFitnessRange,
   toFitnessDays,
+  toFitnessValues,
 } from '../fitness';
 import type { IntervalsWellnessDay } from '../intervalsApi';
 import { addDays, fromLocalDateString, toLocalDateString } from '../localDate';
 
 const TODAY = '2026-11-06';
 
-/** The local date `offset` days from `TODAY`. */
-function dayFrom(offset: number): string {
+function localDateDaysFromToday(offset: number): string {
   return toLocalDateString(addDays(fromLocalDateString(TODAY), offset));
 }
 
 describe('formatForm', () => {
-  it('signs a fresh Form with a plus', () => {
+  it('signs a fresh Form with a plus, as a number, never a percentage', () => {
     expect(formatForm(5)).toBe('+5');
   });
 
@@ -31,12 +34,55 @@ describe('formatForm', () => {
   });
 });
 
+describe('toFitnessValues', () => {
+  it('rounds Fitness and Fatigue and takes Form from the rounded values, as intervals.icu does', () => {
+    expect(toFitnessValues({ ctl: 40.6, atl: 44.4 })).toEqual({
+      fitness: 41,
+      fatigue: 44,
+      form: -3,
+    });
+  });
+
+  it.each([
+    ['Fitness', { ctl: null, atl: 44.4 }],
+    ['Fatigue', { ctl: 40.6, atl: undefined }],
+  ])('is null, never 0, without %s', (_name, metrics) => {
+    expect(toFitnessValues(metrics)).toBeNull();
+  });
+});
+
+describe('hasFitnessValues', () => {
+  const day = (fitness: number | null, fatigue: number | null): FitnessDay => ({
+    date: TODAY,
+    fitness,
+    fatigue,
+    form: null,
+    load: null,
+  });
+
+  it('is true only with both Fitness and Fatigue', () => {
+    expect(hasFitnessValues(day(40, 38))).toBe(true);
+    expect(hasFitnessValues(day(40, null))).toBe(false);
+    expect(hasFitnessValues(day(null, 38))).toBe(false);
+  });
+});
+
+describe('fitnessHistoryWindow', () => {
+  it('spans the year the chart reads, ending today', () => {
+    expect(fitnessHistoryWindow(TODAY)).toEqual({
+      oldest: localDateDaysFromToday(1 - FITNESS_HISTORY_DAYS),
+      newest: TODAY,
+    });
+    expect(FITNESS_HISTORY_DAYS).toBe(365);
+  });
+});
+
 describe('toFitnessDays', () => {
   it('gives a year of days, oldest first, ending today, from a row for every day', () => {
     const rows: IntervalsWellnessDay[] = Array.from(
       { length: 365 },
       (_, index) => ({
-        id: dayFrom(index - 364),
+        id: localDateDaysFromToday(index - 364),
         ctl: 40,
         atl: 45,
         ctlLoad: 60,
@@ -66,27 +112,26 @@ describe('toFitnessDays', () => {
     });
   });
 
-  /** A day without values: no data, never `0`. */
-  function noValues(date: string) {
+  function dayWithoutValues(date: string) {
     return { date, fitness: null, fatigue: null, form: null, load: null };
   }
 
-  it('gives a day without values for each day with no row', () => {
+  it('gives a day without values, every field null and never 0, for each day with no row', () => {
     const days = toFitnessDays(
-      [{ id: dayFrom(-1), ctl: 41, atl: 44, ctlLoad: 0 }],
+      [{ id: localDateDaysFromToday(-1), ctl: 41, atl: 44, ctlLoad: 0 }],
       TODAY,
     );
 
     expect(days).toHaveLength(365);
-    expect(days[0]).toEqual(noValues('2025-11-07'));
+    expect(days[0]).toEqual(dayWithoutValues('2025-11-07'));
     expect(days[363]).toEqual({
-      date: dayFrom(-1),
+      date: localDateDaysFromToday(-1),
       fitness: 41,
       fatigue: 44,
       form: -3,
       load: 0,
     });
-    expect(days[364]).toEqual(noValues(TODAY));
+    expect(days[364]).toEqual(dayWithoutValues(TODAY));
   });
 
   it('gives a day without values for a row whose metrics are all null', () => {
@@ -95,7 +140,7 @@ describe('toFitnessDays', () => {
       TODAY,
     );
 
-    expect(days[364]).toEqual(noValues(TODAY));
+    expect(days[364]).toEqual(dayWithoutValues(TODAY));
   });
 
   it.each([
@@ -104,13 +149,13 @@ describe('toFitnessDays', () => {
   ])('gives a day without values for a row without %s', (_name, metrics) => {
     const days = toFitnessDays([{ id: TODAY, ctlLoad: 90, ...metrics }], TODAY);
 
-    expect(days[364]).toEqual(noValues(TODAY));
+    expect(days[364]).toEqual(dayWithoutValues(TODAY));
   });
 
   it('gives a rest day load 0 when a day with values has no load', () => {
     const days = toFitnessDays(
       [
-        { id: dayFrom(-1), ctl: 40, atl: 38, ctlLoad: null },
+        { id: localDateDaysFromToday(-1), ctl: 40, atl: 38, ctlLoad: null },
         { id: TODAY, ctl: 39.8, atl: 33.2 },
       ],
       TODAY,
@@ -123,21 +168,21 @@ describe('toFitnessDays', () => {
   it('keeps the real zeros intervals.icu returns before the history builds', () => {
     const days = toFitnessDays(
       [
-        { id: dayFrom(-2), ctl: 0, atl: 0, ctlLoad: 0 },
-        { id: dayFrom(-1), ctl: 0.4, atl: 2.6, ctlLoad: 18 },
+        { id: localDateDaysFromToday(-2), ctl: 0, atl: 0, ctlLoad: 0 },
+        { id: localDateDaysFromToday(-1), ctl: 0.4, atl: 2.6, ctlLoad: 18 },
       ],
       TODAY,
     );
 
     expect(days[362]).toEqual({
-      date: dayFrom(-2),
+      date: localDateDaysFromToday(-2),
       fitness: 0,
       fatigue: 0,
       form: 0,
       load: 0,
     });
     expect(days[363]).toEqual({
-      date: dayFrom(-1),
+      date: localDateDaysFromToday(-1),
       fitness: 0,
       fatigue: 3,
       form: -3,
@@ -148,24 +193,23 @@ describe('toFitnessDays', () => {
   it('ignores rows outside the year ending today', () => {
     const days = toFitnessDays(
       [
-        { id: dayFrom(-365), ctl: 50, atl: 50, ctlLoad: 50 },
-        { id: dayFrom(1), ctl: 60, atl: 70, ctlLoad: 0 },
+        { id: localDateDaysFromToday(-365), ctl: 50, atl: 50, ctlLoad: 50 },
+        { id: localDateDaysFromToday(1), ctl: 60, atl: 70, ctlLoad: 0 },
       ],
       TODAY,
     );
 
     expect(days).toHaveLength(365);
-    expect(days[0].date).toBe(dayFrom(-364));
+    expect(days[0].date).toBe(localDateDaysFromToday(-364));
     expect(days[364].date).toBe(TODAY);
     expect(days.every(day => day.fitness === null)).toBe(true);
   });
 });
 
 describe('sliceFitnessRange', () => {
-  /** A full year of rows with values. */
-  const YEAR = toFitnessDays(
+  const FULL_YEAR_WITH_VALUES = toFitnessDays(
     Array.from({ length: 365 }, (_, index) => ({
-      id: dayFrom(index - 364),
+      id: localDateDaysFromToday(index - 364),
       ctl: 40,
       atl: 40,
       ctlLoad: 50,
@@ -180,7 +224,7 @@ describe('sliceFitnessRange', () => {
   ] as const)(
     'gives the %s range its last %i days, ending today',
     (range, length, first) => {
-      const slice = sliceFitnessRange(YEAR, range);
+      const slice = sliceFitnessRange(FULL_YEAR_WITH_VALUES, range);
 
       expect(slice).toHaveLength(length);
       expect(slice[0].date).toBe(first);
@@ -191,7 +235,7 @@ describe('sliceFitnessRange', () => {
   it('spans the whole range for a history shorter than it', () => {
     const days = toFitnessDays(
       Array.from({ length: 24 }, (_, index) => ({
-        id: dayFrom(index - 23),
+        id: localDateDaysFromToday(index - 23),
         ctl: 3,
         atl: 8,
         ctlLoad: 40,
@@ -298,29 +342,35 @@ describe('formatFitnessReadout', () => {
 });
 
 describe('fitnessReadoutDay', () => {
-  /** A 42-day range ending today, each day's Fitness its index. */
-  const SHOWN = Array.from(
+  const SHOWN_42_DAYS_EACH_FITNESS_ITS_INDEX = Array.from(
     { length: 42 },
     (_, index): FitnessDay => ({
-      date: dayFrom(index - 41),
+      date: localDateDaysFromToday(index - 41),
       fitness: index,
       fatigue: 40,
       form: index - 40,
       load: 60,
     }),
   );
-  const TODAY_DAY = SHOWN[41];
+  const TODAY_DAY = SHOWN_42_DAYS_EACH_FITNESS_ITS_INDEX[41];
 
   it('shows today while nothing is touched', () => {
-    expect(fitnessReadoutDay(SHOWN, null, TODAY_DAY)).toBe(TODAY_DAY);
+    expect(
+      fitnessReadoutDay(SHOWN_42_DAYS_EACH_FITNESS_ITS_INDEX, null, TODAY_DAY),
+    ).toBe(TODAY_DAY);
   });
 
   it('shows the day under the cursor', () => {
-    expect(fitnessReadoutDay(SHOWN, 3, TODAY_DAY).date).toBe('2026-09-29');
+    expect(
+      fitnessReadoutDay(SHOWN_42_DAYS_EACH_FITNESS_ITS_INDEX, 3, TODAY_DAY)
+        .date,
+    ).toBe('2026-09-29');
   });
 
   it('falls back to today for a touched day past the range', () => {
-    expect(fitnessReadoutDay(SHOWN, 90, TODAY_DAY)).toBe(TODAY_DAY);
+    expect(
+      fitnessReadoutDay(SHOWN_42_DAYS_EACH_FITNESS_ITS_INDEX, 90, TODAY_DAY),
+    ).toBe(TODAY_DAY);
   });
 });
 

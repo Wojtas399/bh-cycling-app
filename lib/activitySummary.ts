@@ -1,13 +1,6 @@
 import type { IntervalsActivity } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 
-/**
- * A summary metric of an Activity, shown in Workout Details' Wykonanie card
- * and Activity Details' Podsumowanie card. Units as intervals.icu sends them:
- * times in s, distance and elevation in m, intensity in % (IF × 100), power
- * in W, heart rate in bpm, cadence in rpm, calories in kcal, speed in m/s and
- * the variability index as a ratio.
- */
 export type ActivityMetricKey =
   | 'movingTime'
   | 'distance'
@@ -29,7 +22,6 @@ export interface ActivityMetric {
   value: number;
 }
 
-/** Where each Activity metric comes from, in display order. */
 const ACTIVITY_METRIC_FIELDS = [
   ['movingTime', 'moving_time'],
   ['distance', 'distance'],
@@ -50,14 +42,11 @@ const ACTIVITY_METRIC_FIELDS = [
   keyof IntervalsActivity,
 ])[];
 
-/** An Activity field a summary metric is read from. */
 export type ActivityMetricField = (typeof ACTIVITY_METRIC_FIELDS)[number][1];
 
-/** Every Activity field a summary metric is read from, in display order. */
 export const ACTIVITY_METRIC_FIELD_NAMES: readonly ActivityMetricField[] =
   ACTIVITY_METRIC_FIELDS.map(([, field]) => field);
 
-/** The Activity's summary metrics it actually has; absent ones are dropped. */
 export function summariseActivity(
   activity: Pick<IntervalsActivity, ActivityMetricField>,
 ): ActivityMetric[] {

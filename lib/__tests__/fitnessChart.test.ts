@@ -2,8 +2,8 @@ import type { FitnessDay } from '../fitness';
 import { fitnessChartGeometry, fitnessDayIndexAt } from '../fitnessChart';
 import { addDays, fromLocalDateString, toLocalDateString } from '../localDate';
 
-// A Friday.
-const TODAY = '2026-11-06';
+const FRIDAY_6_NOV_2026 = '2026-11-06';
+const TODAY = FRIDAY_6_NOV_2026;
 
 const MONTHS_SHORT = [
   'sty',
@@ -22,30 +22,44 @@ const MONTHS_SHORT = [
 
 const LABELS = { today: 'Dziś', monthsShort: MONTHS_SHORT };
 
-// A 28 pt label gutter leaves a 420 pt plot: 10 pt a slot over 42 days. The
-// height leaves 100 pt for the panels once the room for the top label (6 pt),
-// the gap between the panels (16 pt) and the x axis (20 pt) are out.
-const SIZE = { width: 448, height: 142 };
+const Y_LABEL_GUTTER_PT = 28;
+const PLOT_WIDTH_PT = 420;
+const ROOM_FOR_TOP_LABEL_PT = 6;
+const PANELS_HEIGHT_PT = 100;
+const PANEL_GAP_PT = 16;
+const X_LABEL_STRIP_PT = 20;
+const SIZE = {
+  width: Y_LABEL_GUTTER_PT + PLOT_WIDTH_PT,
+  height:
+    ROOM_FOR_TOP_LABEL_PT + PANELS_HEIGHT_PT + PANEL_GAP_PT + X_LABEL_STRIP_PT,
+};
+const TOP_PANEL_HEIGHT_PT = 64;
+const TOP_PANEL_BOTTOM_Y = 70;
 
-/** The local date `offset` days from `TODAY`. */
-function dayFrom(offset: number): string {
+function localDateDaysFromToday(offset: number): string {
   return toLocalDateString(addDays(fromLocalDateString(TODAY), offset));
 }
 
 type Values = Partial<Omit<FitnessDay, 'date'>>;
 
-/**
- * `count` days ending today, oldest first, each with `values(index)` over a
- * steady day (Fitness 40, Fatigue 45, Form -5, load 60).
- */
-function slice(count: number, values: (index: number) => Values = () => ({})) {
+const STEADY_DAY = { fitness: 40, fatigue: 45, load: 60 };
+
+function daysEndingTodayOverASteadyDay(
+  count: number,
+  values: (index: number) => Values = () => ({}),
+) {
   return Array.from({ length: count }, (_, index): FitnessDay => {
-    const { fitness = 40, fatigue = 45, load = 60, ...rest } = values(index);
+    const {
+      fitness = STEADY_DAY.fitness,
+      fatigue = STEADY_DAY.fatigue,
+      load = STEADY_DAY.load,
+      ...rest
+    } = values(index);
     const form =
       fitness === null || fatigue === null ? null : fitness - fatigue;
 
     return {
-      date: dayFrom(index + 1 - count),
+      date: localDateDaysFromToday(index + 1 - count),
       fitness,
       fatigue,
       form,
@@ -55,8 +69,7 @@ function slice(count: number, values: (index: number) => Values = () => ({})) {
   });
 }
 
-/** The separate runs of points a path draws, from its M, L and Z commands. */
-function runs(d: string): { x: number; y: number }[][] {
+function separateRunsOfPoints(d: string): { x: number; y: number }[][] {
   const result: { x: number; y: number }[][] = [];
 
   for (const [, command, args] of d.matchAll(/([MLZ])([^MLZ]*)/g)) {
@@ -77,9 +90,14 @@ function runs(d: string): { x: number; y: number }[][] {
 
 describe('fitnessChartGeometry', () => {
   it('gives each day one slot across the plot, its point at the centre', () => {
-    const geometry = fitnessChartGeometry(slice(42), '6w', SIZE, LABELS);
+    const geometry = fitnessChartGeometry(
+      daysEndingTodayOverASteadyDay(42),
+      '6w',
+      SIZE,
+      LABELS,
+    );
 
-    const [fitness] = runs(geometry.top.fitness);
+    const [fitness] = separateRunsOfPoints(geometry.top.fitness);
 
     expect(geometry.plotWidth).toBe(420);
     expect(fitness).toHaveLength(42);
@@ -88,21 +106,25 @@ describe('fitnessChartGeometry', () => {
     expect(fitness[41].x).toBeCloseTo(415);
   });
 
-  /** A day without values: no data, never `0`. */
   const NO_VALUES: Values = { fitness: null, fatigue: null, load: null };
 
   it('breaks every line at days without values', () => {
-    // Days 10–12 have no values.
-    const days = slice(42, index =>
-      index >= 10 && index <= 12 ? NO_VALUES : {},
+    const daysTenToTwelveWithoutValues = daysEndingTodayOverASteadyDay(
+      42,
+      index => (index >= 10 && index <= 12 ? NO_VALUES : {}),
     );
 
-    const { top, bottom } = fitnessChartGeometry(days, '6w', SIZE, LABELS);
+    const { top, bottom } = fitnessChartGeometry(
+      daysTenToTwelveWithoutValues,
+      '6w',
+      SIZE,
+      LABELS,
+    );
 
     for (const line of [top.fitness, top.fatigue, bottom.form]) {
-      const [before, after] = runs(line);
+      const [before, after] = separateRunsOfPoints(line);
 
-      expect(runs(line)).toHaveLength(2);
+      expect(separateRunsOfPoints(line)).toHaveLength(2);
       expect(before).toHaveLength(10);
       expect(before[9].x).toBeCloseTo(95);
       expect(after).toHaveLength(29);
@@ -111,11 +133,18 @@ describe('fitnessChartGeometry', () => {
   });
 
   it('draws nothing for days before the history', () => {
-    // A new athlete: values only on the last 5 days.
-    const days = slice(42, index => (index < 37 ? NO_VALUES : {}));
+    const newAthleteWithValuesOnTheLast5Days = daysEndingTodayOverASteadyDay(
+      42,
+      index => (index < 37 ? NO_VALUES : {}),
+    );
 
-    const [fitness, ...rest] = runs(
-      fitnessChartGeometry(days, '6w', SIZE, LABELS).top.fitness,
+    const [fitness, ...rest] = separateRunsOfPoints(
+      fitnessChartGeometry(
+        newAthleteWithValuesOnTheLast5Days,
+        '6w',
+        SIZE,
+        LABELS,
+      ).top.fitness,
     );
 
     expect(rest).toEqual([]);
@@ -123,19 +152,22 @@ describe('fitnessChartGeometry', () => {
     expect(fitness[0].x).toBeCloseTo(375);
   });
 
-  /** The labels of a panel's ticks, top down, and the y of each by label. */
-  function ticksOf(ticks: { y: number; label: string }[]) {
+  function labelsTopDownAndYByLabel(ticks: { y: number; label: string }[]) {
     return {
       labels: ticks.map(tick => tick.label),
       y: Object.fromEntries(ticks.map(tick => [tick.label, tick.y])),
     };
   }
 
-  it('scales Form from at least -10 to +10 around a zero line', () => {
-    const geometry = fitnessChartGeometry(slice(42), '6w', SIZE, LABELS);
-    const { labels, y } = ticksOf(geometry.bottom.ticks);
+  it("scales Form from at least -10 to +10 around a zero line, in the 36 pt under the top panel's 64 pt and the gap", () => {
+    const geometry = fitnessChartGeometry(
+      daysEndingTodayOverASteadyDay(42),
+      '6w',
+      SIZE,
+      LABELS,
+    );
+    const { labels, y } = labelsTopDownAndYByLabel(geometry.bottom.ticks);
 
-    // The bottom panel's 36 pt sit under the top one's 64 pt and the gap.
     expect(labels).toEqual(['+10', '0', '-10']);
     expect(y['+10']).toBeCloseTo(86);
     expect(y['-10']).toBeCloseTo(122);
@@ -143,17 +175,19 @@ describe('fitnessChartGeometry', () => {
   });
 
   it('widens the Form scale in steps of 10 to cover the slice', () => {
-    const days = slice(42, index => {
-      if (index === 5) return { fitness: 40, fatigue: 63 }; // Form -23
+    const formMinus23 = { fitness: 40, fatigue: 63 };
+    const formPlus7 = { fitness: 50, fatigue: 43 };
+    const days = daysEndingTodayOverASteadyDay(42, index => {
+      if (index === 5) return formMinus23;
 
-      if (index === 6) return { fitness: 50, fatigue: 43 }; // Form +7
+      if (index === 6) return formPlus7;
 
       return {};
     });
 
     const geometry = fitnessChartGeometry(days, '6w', SIZE, LABELS);
-    const { labels, y } = ticksOf(geometry.bottom.ticks);
-    const form = runs(geometry.bottom.form)[0];
+    const { labels, y } = labelsTopDownAndYByLabel(geometry.bottom.ticks);
+    const form = separateRunsOfPoints(geometry.bottom.form)[0];
 
     expect(labels).toEqual(['+10', '0', '-30']);
     expect(geometry.bottom.zeroY).toBeCloseTo(y['0']);
@@ -163,35 +197,37 @@ describe('fitnessChartGeometry', () => {
     expect(form[6].y).toBeGreaterThanOrEqual(y['+10']);
   });
 
-  it('scales the top panel from 0 past the highest value, in steps of 25', () => {
-    // Fatigue 120 on one day; with headroom over it, the scale tops at 150.
-    const days = slice(42, index => (index === 30 ? { fatigue: 120 } : {}));
+  it('scales the top panel from 0 past the highest value, in steps of 25: Fatigue 120 with headroom over it tops the scale at 150', () => {
+    const days = daysEndingTodayOverASteadyDay(42, index =>
+      index === 30 ? { fatigue: 120 } : {},
+    );
 
     const geometry = fitnessChartGeometry(days, '6w', SIZE, LABELS);
-    const { labels, y } = ticksOf(geometry.top.ticks);
-    const fatigue = runs(geometry.top.fatigue)[0];
+    const { labels, y } = labelsTopDownAndYByLabel(geometry.top.ticks);
+    const fatigue = separateRunsOfPoints(geometry.top.fatigue)[0];
 
-    // The top panel's 64 pt start under room for the top label.
     expect(labels).toEqual(['150', '75', '0']);
-    expect(y['150']).toBeCloseTo(6);
-    expect(y['0']).toBeCloseTo(70);
+    expect(y['150']).toBeCloseTo(ROOM_FOR_TOP_LABEL_PT);
+    expect(y['0']).toBeCloseTo(TOP_PANEL_BOTTOM_Y);
     expect(fatigue[30].y).toBeGreaterThan(y['150']);
     expect(fatigue[30].y).toBeLessThan(y['75']);
   });
 
-  it('keeps the top scale at least 25 for low values', () => {
-    const days = slice(42, () => ({ fitness: 3, fatigue: 8 }));
+  it('keeps the top scale at least 25 for low values, its half tick rounded to a whole label', () => {
+    const days = daysEndingTodayOverASteadyDay(42, () => ({
+      fitness: 3,
+      fatigue: 8,
+    }));
 
-    const { labels } = ticksOf(
+    const { labels } = labelsTopDownAndYByLabel(
       fitnessChartGeometry(days, '6w', SIZE, LABELS).top.ticks,
     );
 
     expect(labels).toEqual(['25', '13', '0']);
   });
 
-  /** Each bar a path draws: its centre, top, bottom and width. */
-  function bars(d: string) {
-    return runs(d).map(points => {
+  function eachBarCentreTopBottomAndWidth(d: string) {
+    return separateRunsOfPoints(d).map(points => {
       const xs = points.map(p => p.x);
       const ys = points.map(p => p.y);
 
@@ -204,27 +240,29 @@ describe('fitnessChartGeometry', () => {
     });
   }
 
-  it('draws a load bar for each day with load, none for a rest day or no data', () => {
-    // Day 3 is a rest day, day 4 has no values.
-    const days = slice(42, index => {
-      if (index === 3) return { load: 0 };
+  it('draws a load bar about 60% of its slot wide for each day with load, none for a rest day or no data', () => {
+    const restDayIndex = 3;
+    const dayWithoutValuesIndex = 4;
+    const days = daysEndingTodayOverASteadyDay(42, index => {
+      if (index === restDayIndex) return { load: 0 };
 
-      if (index === 4) return NO_VALUES;
+      if (index === dayWithoutValuesIndex) return NO_VALUES;
 
       return {};
     });
 
-    const drawn = bars(fitnessChartGeometry(days, '6w', SIZE, LABELS).top.bars);
+    const drawn = eachBarCentreTopBottomAndWidth(
+      fitnessChartGeometry(days, '6w', SIZE, LABELS).top.bars,
+    );
 
     expect(drawn).toHaveLength(40);
     expect(drawn[2].centre).toBeCloseTo(25);
     expect(drawn[3].centre).toBeCloseTo(55);
-    // About 60% of the 10 pt slot.
     expect(drawn[0].width).toBeCloseTo(6);
   });
 
   it('scales load bars on their own, in the lower 55% of the top panel', () => {
-    const days = slice(42, index => {
+    const days = daysEndingTodayOverASteadyDay(42, index => {
       if (index === 10) return { load: 300 };
 
       if (index === 11) return { load: 150 };
@@ -232,29 +270,43 @@ describe('fitnessChartGeometry', () => {
       return {};
     });
 
-    const drawn = bars(fitnessChartGeometry(days, '6w', SIZE, LABELS).top.bars);
+    const drawn = eachBarCentreTopBottomAndWidth(
+      fitnessChartGeometry(days, '6w', SIZE, LABELS).top.bars,
+    );
     const tallest = drawn[10];
     const half = drawn[11];
 
-    // The top panel's 64 pt end at 70: the tallest bar takes 55% of them.
-    expect(tallest.bottom).toBeCloseTo(70);
-    expect(tallest.top).toBeCloseTo(70 - 0.55 * 64);
-    expect(half.bottom).toBeCloseTo(70);
-    expect(half.top).toBeCloseTo(70 - 0.55 * 32);
+    expect(tallest.bottom).toBeCloseTo(TOP_PANEL_BOTTOM_Y);
+    expect(tallest.top).toBeCloseTo(
+      TOP_PANEL_BOTTOM_Y - 0.55 * TOP_PANEL_HEIGHT_PT,
+    );
+    expect(half.bottom).toBeCloseTo(TOP_PANEL_BOTTOM_Y);
+    expect(half.top).toBeCloseTo(
+      TOP_PANEL_BOTTOM_Y - 0.55 * (TOP_PANEL_HEIGHT_PT / 2),
+    );
   });
 
-  it('keeps a load bar at least 1 pt wide on a year', () => {
-    // A year's slots on 420 pt are about 1.15 pt each.
-    const drawn = bars(
-      fitnessChartGeometry(slice(365), '1y', SIZE, LABELS).top.bars,
+  it('keeps a load bar at least 1 pt wide on a year, whose slots on 420 pt are about 1.15 pt', () => {
+    const drawn = eachBarCentreTopBottomAndWidth(
+      fitnessChartGeometry(
+        daysEndingTodayOverASteadyDay(365),
+        '1y',
+        SIZE,
+        LABELS,
+      ).top.bars,
     );
 
     expect(drawn[0].width).toBeCloseTo(1);
   });
 
   it("dots today's end of each line at the right edge", () => {
-    const geometry = fitnessChartGeometry(slice(42), '6w', SIZE, LABELS);
-    const lastPoint = (d: string) => runs(d)[0][41];
+    const geometry = fitnessChartGeometry(
+      daysEndingTodayOverASteadyDay(42),
+      '6w',
+      SIZE,
+      LABELS,
+    );
+    const lastPoint = (d: string) => separateRunsOfPoints(d)[0][41];
 
     expect(geometry.dots).toEqual([
       { series: 'fitness', ...lastPoint(geometry.top.fitness) },
@@ -265,7 +317,7 @@ describe('fitnessChartGeometry', () => {
   });
 
   it('dots only the series that have a value today', () => {
-    const days = slice(42, index =>
+    const days = daysEndingTodayOverASteadyDay(42, index =>
       index === 41 ? { fatigue: null, load: null } : {},
     );
 
@@ -274,9 +326,13 @@ describe('fitnessChartGeometry', () => {
     expect(geometry.dots.map(dot => dot.series)).toEqual(['fitness']);
   });
 
-  it('marks each Monday as day.month on 6 tygodni', () => {
-    // 26 Sep (a Saturday) to 6 Nov.
-    const { xTicks } = fitnessChartGeometry(slice(42), '6w', SIZE, LABELS);
+  it('marks each Monday as day.month on 6 tygodni: from Saturday 26 Sep, the first is 28 Sep, the third day', () => {
+    const { xTicks } = fitnessChartGeometry(
+      daysEndingTodayOverASteadyDay(42),
+      '6w',
+      SIZE,
+      LABELS,
+    );
 
     expect(xTicks.map(tick => tick.label)).toEqual([
       '28.9',
@@ -286,13 +342,11 @@ describe('fitnessChartGeometry', () => {
       '26.10',
       '2.11',
     ]);
-    // 28 Sep is the third day.
     expect(xTicks[0].x).toBeCloseTo(25);
   });
 
-  it('marks each month start by its short name on 3 miesiące', () => {
-    // 8 Aug to 6 Nov.
-    const days = slice(91);
+  it('marks each month start by its short name on 3 miesiące, 8 Aug to 6 Nov', () => {
+    const days = daysEndingTodayOverASteadyDay(91);
 
     const { xTicks } = fitnessChartGeometry(days, '3m', SIZE, LABELS);
     const september = days.findIndex(day => day.date === '2026-09-01');
@@ -301,9 +355,13 @@ describe('fitnessChartGeometry', () => {
     expect(xTicks[0].x).toBeCloseTo((420 / 91) * (september + 0.5));
   });
 
-  it('marks every other month start on rok', () => {
-    // 7 Nov 2025 to 6 Nov 2026: the same months stay marked as days pass.
-    const { xTicks } = fitnessChartGeometry(slice(365), '1y', SIZE, LABELS);
+  it('marks every other month start from January on rok, 7 Nov 2025 to 6 Nov 2026', () => {
+    const { xTicks } = fitnessChartGeometry(
+      daysEndingTodayOverASteadyDay(365),
+      '1y',
+      SIZE,
+      LABELS,
+    );
 
     expect(xTicks.map(tick => tick.label)).toEqual([
       'sty',
@@ -317,33 +375,33 @@ describe('fitnessChartGeometry', () => {
 });
 
 describe('fitnessDayIndexAt', () => {
-  const days = slice(42);
+  const days = daysEndingTodayOverASteadyDay(42);
   const { slotWidth } = fitnessChartGeometry(days, '6w', SIZE, LABELS);
 
-  /** The day under a touch at `x` on the 10 pt slots. */
-  const dayAt = (x: number) => fitnessDayIndexAt(x, slotWidth, days.length);
+  const dayUnderTouchAt = (x: number) =>
+    fitnessDayIndexAt(x, slotWidth, days.length);
 
   it('finds the first day across its whole slot', () => {
-    expect(dayAt(0)).toBe(0);
-    expect(dayAt(9.9)).toBe(0);
-    expect(dayAt(10)).toBe(1);
+    expect(dayUnderTouchAt(0)).toBe(0);
+    expect(dayUnderTouchAt(9.9)).toBe(0);
+    expect(dayUnderTouchAt(10)).toBe(1);
   });
 
   it('finds today in the last slot', () => {
-    expect(dayAt(415)).toBe(41);
+    expect(dayUnderTouchAt(415)).toBe(41);
   });
 
   it('holds to the first day left of the plot', () => {
-    expect(dayAt(-20)).toBe(0);
+    expect(dayUnderTouchAt(-20)).toBe(0);
   });
 
   it('holds to today right of the plot, over the labels', () => {
-    expect(dayAt(430)).toBe(41);
-    expect(dayAt(1000)).toBe(41);
+    expect(dayUnderTouchAt(430)).toBe(41);
+    expect(dayUnderTouchAt(1000)).toBe(41);
   });
 
   it('finds a day before the history, which has no values', () => {
-    const newAthlete = slice(42, index =>
+    const newAthlete = daysEndingTodayOverASteadyDay(42, index =>
       index < 37 ? { fitness: null, fatigue: null, load: null } : {},
     );
 
@@ -351,7 +409,7 @@ describe('fitnessDayIndexAt', () => {
 
     expect(index).toBe(5);
     expect(newAthlete[index]).toMatchObject({
-      date: dayFrom(-36),
+      date: localDateDaysFromToday(-36),
       fitness: null,
     });
   });

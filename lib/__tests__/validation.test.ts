@@ -6,8 +6,7 @@ import {
 } from '../validation';
 import * as v from 'valibot';
 
-/** The first issue message, as the resolver reports it, or null if valid. */
-function firstError(schema: v.GenericSchema, input: unknown) {
+function firstIssueMessageOrNull(schema: v.GenericSchema, input: unknown) {
   const result = v.safeParse(schema, input);
 
   return result.issues?.[0].message ?? null;
@@ -19,7 +18,7 @@ describe('requiredString', () => {
   );
 
   it('rejects an empty string with the given key', () => {
-    expect(firstError(schema, '')).toBe(
+    expect(firstIssueMessageOrNull(schema, '')).toBe(
       'changePassword.validation.currentPasswordRequired',
     );
   });
@@ -33,13 +32,17 @@ describe('emailField', () => {
   const schema = emailField();
 
   it.each(['', '   '])('requires an email (%j)', input => {
-    expect(firstError(schema, input)).toBe('validation.emailRequired');
+    expect(firstIssueMessageOrNull(schema, input)).toBe(
+      'validation.emailRequired',
+    );
   });
 
   it.each(['rider', 'rider@', 'rider@example', 'ri der@example.com'])(
     'rejects a malformed email (%j)',
     input => {
-      expect(firstError(schema, input)).toBe('validation.emailInvalid');
+      expect(firstIssueMessageOrNull(schema, input)).toBe(
+        'validation.emailInvalid',
+      );
     },
   );
 
@@ -50,14 +53,14 @@ describe('emailField', () => {
 
 describe('newPasswordField', () => {
   it('requires a password with the shared key by default', () => {
-    expect(firstError(newPasswordField(), '')).toBe(
+    expect(firstIssueMessageOrNull(newPasswordField(), '')).toBe(
       'validation.passwordRequired',
     );
   });
 
   it('requires a password with a form-specific key', () => {
     expect(
-      firstError(
+      firstIssueMessageOrNull(
         newPasswordField('changePassword.validation.newPasswordRequired'),
         '',
       ),
@@ -65,7 +68,7 @@ describe('newPasswordField', () => {
   });
 
   it('rejects a password shorter than 8 characters', () => {
-    expect(firstError(newPasswordField(), '1234567')).toBe(
+    expect(firstIssueMessageOrNull(newPasswordField(), '1234567')).toBe(
       'validation.passwordTooShort',
     );
   });
@@ -75,7 +78,7 @@ describe('newPasswordField', () => {
   });
 
   it('counts spaces towards the minimum length', () => {
-    expect(firstError(newPasswordField(), '       ')).toBe(
+    expect(firstIssueMessageOrNull(newPasswordField(), '       ')).toBe(
       'validation.passwordTooShort',
     );
   });

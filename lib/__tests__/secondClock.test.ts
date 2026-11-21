@@ -1,13 +1,11 @@
-import { getClockNow, subscribeToClock as subscribe } from '../secondClock';
+import { getClockNow, subscribeToClock } from '../secondClock';
 
-// The clock is module state shared by every test, so each test's listeners
-// leave before the next test, even when an assertion fails first.
-let subscriptions: (() => void)[] = [];
+let unsubscribesRunAfterEachTest: (() => void)[] = [];
 
-function subscribeToClock(listener: () => void) {
-  const unsubscribe = subscribe(listener);
+function subscribeUntilTestEnds(listener: () => void) {
+  const unsubscribe = subscribeToClock(listener);
 
-  subscriptions.push(unsubscribe);
+  unsubscribesRunAfterEachTest.push(unsubscribe);
 
   return unsubscribe;
 }
@@ -18,15 +16,15 @@ describe('secondClock', () => {
   });
 
   afterEach(() => {
-    subscriptions.forEach(unsubscribe => unsubscribe());
-    subscriptions = [];
+    unsubscribesRunAfterEachTest.forEach(unsubscribe => unsubscribe());
+    unsubscribesRunAfterEachTest = [];
     jest.useRealTimers();
   });
 
   it('ticks once a second while something listens', () => {
     const listener = jest.fn();
 
-    subscribeToClock(listener);
+    subscribeUntilTestEnds(listener);
     const startedAt = Date.now();
 
     jest.advanceTimersByTime(3_000);
@@ -38,7 +36,7 @@ describe('secondClock', () => {
   it('reads the time afresh when it starts ticking', () => {
     jest.setSystemTime(new Date(2026, 9, 5, 12));
 
-    subscribeToClock(jest.fn());
+    subscribeUntilTestEnds(jest.fn());
 
     expect(getClockNow()).toBe(new Date(2026, 9, 5, 12).getTime());
   });
@@ -46,9 +44,9 @@ describe('secondClock', () => {
   it('keeps ticking for the listeners that stay', () => {
     const leaving = jest.fn();
     const staying = jest.fn();
-    const unsubscribeLeaving = subscribeToClock(leaving);
+    const unsubscribeLeaving = subscribeUntilTestEnds(leaving);
 
-    subscribeToClock(staying);
+    subscribeUntilTestEnds(staying);
 
     unsubscribeLeaving();
     jest.advanceTimersByTime(2_000);
@@ -58,7 +56,7 @@ describe('secondClock', () => {
   });
 
   it('stops ticking once the last listener leaves', () => {
-    const unsubscribe = subscribeToClock(jest.fn());
+    const unsubscribe = subscribeUntilTestEnds(jest.fn());
     const stoppedAt = Date.now();
 
     unsubscribe();

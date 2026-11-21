@@ -1,5 +1,8 @@
 import { addSecondsToLocalDateTime, formatLocalTime } from '../localDateTime';
 
+const BEFORE_EUROPEAN_DST_END_2026 = '2026-10-25T01:30:00';
+const BEFORE_US_DST_END_2026 = '2026-11-01T00:30:00';
+
 describe('addSecondsToLocalDateTime', () => {
   const originalTz = process.env.TZ;
 
@@ -36,11 +39,10 @@ describe('addSecondsToLocalDateTime', () => {
     tz => {
       process.env.TZ = tz;
 
-      // 25 Oct 2026 is the end of DST in Europe; 1 Nov 2026 in the US.
-      expect(addSecondsToLocalDateTime('2026-10-25T01:30:00', 7200)).toBe(
-        '2026-10-25T03:30:00',
-      );
-      expect(addSecondsToLocalDateTime('2026-11-01T00:30:00', 7200)).toBe(
+      expect(
+        addSecondsToLocalDateTime(BEFORE_EUROPEAN_DST_END_2026, 7200),
+      ).toBe('2026-10-25T03:30:00');
+      expect(addSecondsToLocalDateTime(BEFORE_US_DST_END_2026, 7200)).toBe(
         '2026-11-01T02:30:00',
       );
     },

@@ -67,3 +67,11 @@ The Glass and Sheen restyle (#330) turns floating chrome into glass, and toasts 
 - On iOS 26 the pill is native Liquid Glass: a `GlassView` passed as sonner's `backgroundComponent`, with the toast's own background transparent and no ring, because the glass draws its own edge. The system adapts it to Reduce Transparency and Increase Contrast.
 - On Android and iOS below 26 the look above is unchanged: `bgTertiary` with a 1 px `borderStrong` ring.
 - Position, size, text, icons and behaviour are unchanged on every platform.
+
+## Amendment: sonner overrides without code comments
+
+ADR 0013 bans comments in code, so the reasons behind `toasterConfig`'s overrides of sonner's defaults live here.
+
+- The title's `fontWeight` is the label's own `500`. sonner's default `600` makes Android fake-bold Inter-Medium.
+- A sheet-level host's wrapper view fills the sheet, as the host's own absolute layer did, and lets touches through to the sheet (`pointerEvents="box-none"`).
+- `enableStacking: false` is explained under Behaviour above.
