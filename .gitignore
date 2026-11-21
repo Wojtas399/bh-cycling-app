@@ -51,9 +51,6 @@ app-example
 # Claude Code
 .claude/settings.local.json
 
-# Agent probes of lint and type rules (CLAUDE.md, Probes)
-/.scratch/
-
 # e2e output: traces, results and run logs (traces hold the test email). The
 # replay cache is committed for CI; `npm run e2e:check-cache` keeps secrets out.
 /.e2e/*

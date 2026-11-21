@@ -26,7 +26,7 @@ Before you delegate a spec's tickets to implementer subagents, read `docs/agents
 
 ## Probes
 
-Probe a lint rule without a file: `npx eslint --stdin --stdin-filename lib/probe.ts`. Put a type-check probe in the gitignored `.scratch/` folder, which `tsc` still checks, never in `lib/` or another source folder.
+Probe a lint rule without a file: `npx eslint --stdin --stdin-filename lib/probe.ts`. Put a type-check probe in `.scratch/`, which git ignores and `tsc` still checks. Never put one in `lib/` or another source folder.
 
 ## Pull requests
 
