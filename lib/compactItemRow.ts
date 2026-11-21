@@ -5,52 +5,37 @@ import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
 
 interface CompactItemRowBase {
   title: string;
-  /** Left out when the item has none. */
   durationSeconds?: number;
 }
 
-/** What a week-view row draws for one Calendar item. */
 export type CompactItemRow =
   | (CompactItemRowBase & {
       kind: 'workout';
       status: WorkoutStatus;
-      /** The Workout Profile to draw small; empty when there is none. */
       blocks: WorkoutBlock[];
     })
   | (CompactItemRowBase & {
       kind: 'activity';
-      /** Rounded to a whole point; left out when the Activity has none. */
       load?: number;
     })
   | (CompactItemRowBase & {
       kind: 'race';
       priority: RacePriority;
-      /**
-       * Paired to an Activity, which completes it and gives the row its
-       * duration and load.
-       */
       paired: boolean;
-      /** The paired Activity's, rounded; never an unpaired Race's. */
       load?: number;
     });
 
-/**
- * The week view's one-line row for `item`. `stravaTitle` is what a Strava
- * Activity, which has no name, is called. A paired Race shows its Activity's
- * duration and load, an unpaired one its planned duration. Only Activities and
- * paired Races carry a load: a Workout has no planned load to show.
- */
 export function compactItemRow(
   item: CalendarItem,
-  stravaTitle: string,
+  stravaActivityTitle: string,
 ): CompactItemRow {
   if (item.kind === 'activity') {
     const { activity } = item;
 
     return {
       kind: 'activity',
-      title: activity.isStravaActivity ? stravaTitle : activity.name,
-      ...figures(activity.durationSeconds, activity.load),
+      title: activity.isStravaActivity ? stravaActivityTitle : activity.name,
+      ...durationAndRoundedLoad(activity.durationSeconds, activity.load),
     };
   }
 
@@ -63,8 +48,8 @@ export function compactItemRow(
       paired: activity !== undefined,
       title: race.name,
       ...(activity
-        ? figures(activity.durationSeconds, activity.load)
-        : figures(race.durationSeconds)),
+        ? durationAndRoundedLoad(activity.durationSeconds, activity.load)
+        : durationAndRoundedLoad(race.durationSeconds)),
     };
   }
 
@@ -74,13 +59,12 @@ export function compactItemRow(
     kind: 'workout',
     status: workout.status,
     title: workout.name,
-    ...figures(workout.durationSeconds),
+    ...durationAndRoundedLoad(workout.durationSeconds),
     blocks: workout.blocks,
   };
 }
 
-/** The duration and rounded load, each only when set. */
-function figures(
+function durationAndRoundedLoad(
   durationSeconds: number | undefined,
   load?: number,
 ): Pick<CompactItemRowBase, 'durationSeconds'> & { load?: number } {
@@ -90,18 +74,12 @@ function figures(
   };
 }
 
-/** What a compact row opens, one handler per thing it can open. */
 export interface ItemPressHandlers {
   onWorkoutPress: (workout: CalendarWorkout) => void;
   onActivityPress: (activity: UnplannedActivity) => void;
   onRacePress: (race: Race) => void;
 }
 
-/**
- * What tapping `item`'s compact row opens, like the cards do: a paired Race
- * opens its Activity, and a Strava Activity's row opens nothing, so a tap on
- * it reaches the day.
- */
 export function compactItemRowPress(
   item: CalendarItem,
   { onWorkoutPress, onActivityPress, onRacePress }: ItemPressHandlers,
@@ -126,15 +104,11 @@ export function compactItemRowPress(
   }
 }
 
-/** How a compact row's figures are worded, on screen or aloud. */
 export interface RowFigureWords {
-  /** A duration: "1h 15m", or as spoken "1 godz. 15 min". */
   duration: (seconds: number) => string;
-  /** A load: "Obc. 26", or as spoken "obciążenie 26". */
   load: (load: number) => string;
 }
 
-/** The row's duration then its load, as `words` put them, each only when set. */
 export function rowFigures(
   row: CompactItemRow,
   words: RowFigureWords,
@@ -149,21 +123,12 @@ export function rowFigures(
   ];
 }
 
-/** The words a compact row's screen-reader label is built from. */
 export interface CompactItemRowWords extends RowFigureWords {
-  /** A Workout with its status: "Trening wykonany". */
   workout: (status: WorkoutStatus) => string;
-  /** An Unplanned Activity: "Aktywność". */
   activity: string;
-  /** A Race with its priority, done when paired: "Wyścig A wykonany". */
   race: (priority: RacePriority, paired: boolean) => string;
 }
 
-/**
- * A compact row's screen-reader label: what it is and its status, then its
- * title, duration and load, each left out when missing ("Trening wykonany,
- * Sweet spot 3×12, 1 godz. 15 min").
- */
 export function compactItemRowLabel(
   row: CompactItemRow,
   words: CompactItemRowWords,
