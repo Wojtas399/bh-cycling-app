@@ -2,7 +2,6 @@ import type {
   ActivityDetails,
   ActivityProfileSummary,
 } from './activityDetails';
-import type { Watts } from './intervalsApi';
 import { type RideSettings, resolveRideSettings } from './rideSettings';
 import { NO_ZONE_TIMES, type ZoneTimes } from './timeInZone';
 import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
@@ -13,7 +12,7 @@ export type StripSide = 'planned' | 'recorded';
 export interface ProfileStrip<Summary> {
   blocks: WorkoutBlock[];
   summary: Summary;
-  ftp: Watts | null;
+  ftp: number | null;
   zoneTimes: ZoneTimes | null;
 }
 
@@ -36,7 +35,7 @@ export const NO_WORKOUT_PROFILE: Pick<
 export function buildProfileCard(
   workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
   activity: ActivityDetails | undefined,
-  currentFtp: Watts | null,
+  currentFtp: number | null,
 ): ProfileCard | null {
   const recorded =
     activity && !activity.isStravaActivity && activity.profileSummary

@@ -4,8 +4,6 @@ import type {
   IntervalsActivity,
   IntervalsCalendarEvent,
   IntervalsField,
-  Joules,
-  Percent,
 } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
@@ -157,7 +155,7 @@ export function buildWorkoutDetails(
   };
 }
 
-function toKj(joules: Joules | undefined): number | undefined {
+function toKj(joules: number | undefined): number | undefined {
   return isFiniteNumber(joules) ? joules / 1000 : undefined;
 }
 
@@ -191,8 +189,8 @@ function compareWithPlan(
 }
 
 function complianceUnlessUncalculatedOrIgnored(
-  compliance: Percent | null | undefined,
-): Percent | null {
+  compliance: IntervalsActivity['compliance'],
+): number | null {
   return isFiniteNumber(compliance) && compliance >= 0 ? compliance : null;
 }
 

@@ -60,6 +60,10 @@ _Avoid_: Target power, intensity target
 A run of Workout steps ridden a number of times in a row, such as 6 × (3 min on, 2 min off). Its length is the total of all its reps. The step list keeps it nested; the Workout Profile draws every rep.
 _Avoid_: Loop, set
 
+**Workout Doc**:
+Intervals.icu's parse of a Workout's plan into ordered steps, each with a length and its power, heart-rate or cadence targets, a Repeat arriving as one step with its reps and the steps of a single rep. Only a Cycling Workout's Workout Doc describes the session: on any other Workout the parser has taken lines of the plan for steps, so they mean nothing.
+_Avoid_: Step parse, workout structure
+
 **FTP**:
 The athlete's functional threshold power, in watts, from their Ride settings on Intervals.icu. Power zones and %FTP targets are fractions of it. A Workout's planned watts come from the current FTP; an Activity carries the FTP Intervals.icu used when it was ridden, and its recorded watts come from that one.
 _Avoid_: Threshold (alone)
@@ -78,6 +82,10 @@ _Avoid_: Weighted average power
 
 **Variability Index**:
 How evenly an Activity was paced: Normalized Power divided by average power, so 1 is perfectly steady. Shown as VI.
+
+**Compliance**:
+How closely an Activity followed its paired Workout, as Intervals.icu's percentage. Workout Details shows it beside Plan vs wykonanie. An Activity has none until Intervals.icu calculates it, or when the athlete asked Intervals.icu to ignore it.
+_Avoid_: Adherence, match
 
 **Elapsed Time**:
 An Activity's time from start to finish, stops included. Moving time leaves the stops out.

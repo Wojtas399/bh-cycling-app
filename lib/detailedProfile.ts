@@ -1,5 +1,4 @@
 import type { ActivityProfileSummary } from './activityDetails';
-import type { Watts } from './intervalsApi';
 import type { ProfileCard, ProfileStrip } from './profileCard';
 import { type RideSettings, ftpPctToWatts } from './rideSettings';
 import { roundToMillionth } from './roundToMillionth';
@@ -24,7 +23,7 @@ export interface StripPower {
 
 export interface DetailedStrip<Summary> {
   summary: Summary;
-  ftp: Watts | null;
+  ftp: number | null;
   segments: StripSegment[];
   power: StripPower;
   zoneTimes: ZoneTimes;
@@ -107,7 +106,7 @@ export function buildDetailedProfile(
 
 function scaleUnit(
   { planned, recorded }: ProfileCard,
-  currentFtp: Watts | null,
+  currentFtp: number | null,
 ): ScaleUnit {
   const strips = [planned, recorded].filter(strip => strip !== null);
 
@@ -151,7 +150,7 @@ function detailedStrip<Summary>(
   };
 }
 
-function stripPower(segments: StripSegment[], ftp: Watts | null): StripPower {
+function stripPower(segments: StripSegment[], ftp: number | null): StripPower {
   const unit: ScaleUnit = ftp === null ? 'ftpPct' : 'watts';
   let seconds = 0;
   let pctSeconds = 0;
@@ -175,7 +174,7 @@ function stripPower(segments: StripSegment[], ftp: Watts | null): StripPower {
 function toSegments(
   blocks: WorkoutBlock[],
   durationSeconds: number,
-  ftp: Watts | null,
+  ftp: number | null,
   unit: ScaleUnit,
 ): StripSegment[] {
   const watts = (pct: number) =>
@@ -223,7 +222,7 @@ function toSegments(
   });
 }
 
-function inUnit(pct: number, unit: ScaleUnit, ftp: Watts | null): number {
+function inUnit(pct: number, unit: ScaleUnit, ftp: number | null): number {
   return unit === 'watts' && ftp !== null ? ftpPctToWatts(pct, ftp) : pct;
 }
 

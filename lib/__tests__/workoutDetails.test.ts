@@ -242,4 +242,24 @@ describe('buildWorkoutDetails', () => {
       ).toBe(5);
     });
   });
+
+  describe('comparison compliance', () => {
+    const rideActivity = { ...pairedActivity, type: 'Ride' };
+
+    it("is intervals.icu's percentage, 0 included", () => {
+      expect(
+        details(ride, { ...rideActivity, compliance: 0 }).comparison
+          ?.compliance,
+      ).toBe(0);
+    });
+
+    it.each([
+      ["intervals.icu hasn't calculated it, sending null", null],
+      ['the athlete asked intervals.icu to ignore it, sending a negative', -1],
+    ])('is null when %s', (_, compliance) => {
+      expect(
+        details(ride, { ...rideActivity, compliance }).comparison?.compliance,
+      ).toBeNull();
+    });
+  });
 });
