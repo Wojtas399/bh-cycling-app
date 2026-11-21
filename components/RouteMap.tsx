@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
 
-import ofmDark from '@/assets/map/ofm-dark.json';
+import { ofmDarkStyle } from '@/constants/ofmDarkStyle';
 import { useAppTheme } from '@/constants/theme';
 import type { Route } from '@/lib/route';
 import { routeMapData } from '@/lib/routeMapData';
@@ -14,11 +14,8 @@ import {
   Map,
   type MapProps,
   type MapRef,
-  type StyleSpecification,
   type ViewPadding,
 } from '@maplibre/maplibre-react-native';
-
-const bundledOpenFreeMapDarkStyle = ofmDark as unknown as StyleSpecification;
 
 const LINE_LAYOUT = { 'line-cap': 'round', 'line-join': 'round' } as const;
 
@@ -53,7 +50,7 @@ export default function RouteMap({
         <Map
           ref={mapRef}
           style={{ flex: 1 }}
-          mapStyle={bundledOpenFreeMapDarkStyle}
+          mapStyle={ofmDarkStyle}
           dragPan={interactive}
           touchZoom={interactive}
           doubleTapZoom={interactive}
