@@ -23,32 +23,6 @@ export function newPasswordField(
   );
 }
 
-type ForwardPath<
-  T extends Record<string, unknown>,
-  K extends keyof T & string,
-> = Parameters<typeof v.forward<T, v.CheckIssue<T>, [K]>>[1];
-
-function keyOfInputAsForwardPath<
-  T extends Record<string, unknown>,
-  K extends keyof T & string,
->(key: K): ForwardPath<T, K> {
-  return [key] as ForwardPath<T, K>;
-}
-
-export function passwordsMatch<
-  T extends Record<string, unknown>,
-  P extends keyof T & string = keyof T & string,
-  C extends keyof T & string = keyof T & string,
->(password: P, confirm: C) {
-  return v.forward<T, v.CheckIssue<T>, [C]>(
-    v.check(
-      input => (input[confirm] as unknown) === input[password],
-      msg('validation.passwordsMismatch'),
-    ),
-    keyOfInputAsForwardPath<T, C>(confirm),
-  );
-}
-
 export function emailField() {
   return v.pipe(
     v.string(),

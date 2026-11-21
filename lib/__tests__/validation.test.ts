@@ -1,9 +1,4 @@
-import {
-  emailField,
-  newPasswordField,
-  passwordsMatch,
-  requiredString,
-} from '../validation';
+import { emailField, newPasswordField, requiredString } from '../validation';
 import * as v from 'valibot';
 
 function firstIssueMessageOrNull(schema: v.GenericSchema, input: unknown) {
@@ -81,56 +76,5 @@ describe('newPasswordField', () => {
     expect(firstIssueMessageOrNull(newPasswordField(), '       ')).toBe(
       'validation.passwordTooShort',
     );
-  });
-});
-
-describe('passwordsMatch', () => {
-  const schema = v.pipe(
-    v.object({
-      password: newPasswordField(),
-      confirm: requiredString('validation.passwordRequired'),
-    }),
-    passwordsMatch('password', 'confirm'),
-  );
-
-  function errorsByField(input: Record<string, string>) {
-    const byField: Record<string, string> = {};
-
-    for (const issue of v.safeParse(schema, input).issues ?? []) {
-      byField[v.getDotPath(issue) ?? 'root'] ??= issue.message;
-    }
-
-    return byField;
-  }
-
-  it('reports a mismatch on the confirmation field', () => {
-    expect(
-      errorsByField({ password: 'password-1', confirm: 'password-2' }),
-    ).toEqual({ confirm: 'validation.passwordsMismatch' });
-  });
-
-  it('accepts matching passwords', () => {
-    expect(
-      errorsByField({ password: 'password-1', confirm: 'password-1' }),
-    ).toEqual({});
-  });
-
-  it('compares passwords exactly, without trimming', () => {
-    expect(
-      errorsByField({ password: 'password-1', confirm: 'password-1 ' }),
-    ).toEqual({ confirm: 'validation.passwordsMismatch' });
-  });
-
-  it('still reports a mismatch while the password is too short', () => {
-    expect(errorsByField({ password: 'short', confirm: 'other' })).toEqual({
-      password: 'validation.passwordTooShort',
-      confirm: 'validation.passwordsMismatch',
-    });
-  });
-
-  it('leaves an empty confirmation to its own required error', () => {
-    expect(errorsByField({ password: 'password-1', confirm: '' })).toEqual({
-      confirm: 'validation.passwordRequired',
-    });
   });
 });
