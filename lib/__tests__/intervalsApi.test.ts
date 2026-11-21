@@ -12,14 +12,12 @@ import {
   isNotFoundError,
 } from '../intervalsApi';
 
-function mockFetchOnce(response: {
-  ok: boolean;
-  status: number;
-  json?: () => Promise<unknown>;
-}) {
-  global.fetch = jest
-    .fn()
-    .mockResolvedValue(response) as unknown as typeof fetch;
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body));
+}
+
+function mockFetchOnce(response: Response) {
+  jest.spyOn(global, 'fetch').mockResolvedValue(response);
 }
 
 describe('intervalsApi', () => {
@@ -32,7 +30,7 @@ describe('intervalsApi', () => {
   it('getActivities constructs the correct URL and returns typed data on 200', async () => {
     const activities = [{ id: '1', name: 'Ride' }];
 
-    mockFetchOnce({ ok: true, status: 200, json: async () => activities });
+    mockFetchOnce(jsonResponse(activities));
 
     const result = await getActivities('token-1', 'athlete-1', {
       oldest: '2026-01-01',
@@ -49,7 +47,7 @@ describe('intervalsApi', () => {
   it('getCalendarEvents constructs the correct URL and returns typed data on 200', async () => {
     const events = [{ id: 1, name: 'Planned ride' }];
 
-    mockFetchOnce({ ok: true, status: 200, json: async () => events });
+    mockFetchOnce(jsonResponse(events));
 
     const result = await getCalendarEvents('token-1', 'athlete-1', {
       oldest: '2026-01-01',
@@ -63,7 +61,7 @@ describe('intervalsApi', () => {
   });
 
   it('getCalendarEvents sends the category as a query param', async () => {
-    mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+    mockFetchOnce(jsonResponse([]));
 
     await getCalendarEvents('token-1', 'athlete-1', {
       oldest: '2026-09-22',
@@ -78,7 +76,7 @@ describe('intervalsApi', () => {
   });
 
   it('sends a multi-value param as one comma-joined value, the only form intervals.icu reads', async () => {
-    mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+    mockFetchOnce(jsonResponse([]));
 
     await getCalendarEvents('token-1', 'athlete-1', {
       oldest: '2026-11-08',
@@ -86,7 +84,7 @@ describe('intervalsApi', () => {
       category: ['RACE_A', 'RACE_B', 'RACE_C'],
     });
 
-    const url = new URL((global.fetch as jest.Mock).mock.calls[0][0]);
+    const url = new URL(String(jest.mocked(global.fetch).mock.calls[0][0]));
 
     expect(Object.fromEntries(url.searchParams)).toEqual({
       oldest: '2026-11-08',
@@ -107,7 +105,7 @@ describe('intervalsApi', () => {
       ],
     };
 
-    mockFetchOnce({ ok: true, status: 200, json: async () => athlete });
+    mockFetchOnce(jsonResponse(athlete));
 
     const result = await getAthleteSettings('token-1');
 
@@ -130,7 +128,7 @@ describe('intervalsApi', () => {
   ])(
     'getAthleteSettings returns no power zones or FTP when the athlete has %s',
     async (_, athlete) => {
-      mockFetchOnce({ ok: true, status: 200, json: async () => athlete });
+      mockFetchOnce(jsonResponse(athlete));
 
       expect(await getAthleteSettings('token-1')).toEqual({
         powerZones: undefined,
@@ -176,7 +174,7 @@ describe('intervalsApi', () => {
   ])('%s passes the abort signal through to fetch', async (_name, call) => {
     const controller = new AbortController();
 
-    mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+    mockFetchOnce(jsonResponse([]));
 
     await call(controller.signal);
 
@@ -187,7 +185,7 @@ describe('intervalsApi', () => {
   });
 
   it('throws IntervalsAuthError on a 401 response', async () => {
-    mockFetchOnce({ ok: false, status: 401 });
+    mockFetchOnce(new Response(null, { status: 401 }));
 
     await expect(
       getActivities('bad-token', 'athlete-1'),
@@ -195,7 +193,7 @@ describe('intervalsApi', () => {
   });
 
   it('throws IntervalsApiError on any other non-2xx response', async () => {
-    mockFetchOnce({ ok: false, status: 500 });
+    mockFetchOnce(new Response(null, { status: 500 }));
 
     await expect(getActivities('token-1', 'athlete-1')).rejects.toBeInstanceOf(
       IntervalsApiError,
@@ -206,7 +204,7 @@ describe('intervalsApi', () => {
     it('reads a single event by id with the bearer token', async () => {
       const event = { id: 42, name: 'Sweet spot' };
 
-      mockFetchOnce({ ok: true, status: 200, json: async () => event });
+      mockFetchOnce(jsonResponse(event));
 
       const result = await getCalendarEvent('token-1', 'athlete-1', 42);
 
@@ -218,7 +216,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsAuthError on a 401 response', async () => {
-      mockFetchOnce({ ok: false, status: 401 });
+      mockFetchOnce(new Response(null, { status: 401 }));
 
       await expect(
         getCalendarEvent('bad-token', 'athlete-1', 42),
@@ -226,7 +224,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsApiError carrying the status of a 404', async () => {
-      mockFetchOnce({ ok: false, status: 404 });
+      mockFetchOnce(new Response(null, { status: 404 }));
 
       await expect(
         getCalendarEvent('token-1', 'athlete-1', 42),
@@ -238,7 +236,7 @@ describe('intervalsApi', () => {
     it('reads one Activity with its intervals and the bearer token', async () => {
       const activity = { id: 'i42', name: 'Morning ride', type: 'Ride' };
 
-      mockFetchOnce({ ok: true, status: 200, json: async () => activity });
+      mockFetchOnce(jsonResponse(activity));
 
       const result = await getActivity('token-1', 'i42', { intervals: true });
 
@@ -250,7 +248,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsAuthError on a 401 response', async () => {
-      mockFetchOnce({ ok: false, status: 401 });
+      mockFetchOnce(new Response(null, { status: 401 }));
 
       await expect(getActivity('bad-token', 'i42')).rejects.toBeInstanceOf(
         IntervalsAuthError,
@@ -258,7 +256,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsApiError carrying the status of a 404', async () => {
-      mockFetchOnce({ ok: false, status: 404 });
+      mockFetchOnce(new Response(null, { status: 404 }));
 
       await expect(getActivity('token-1', 'i1')).rejects.toMatchObject({
         name: 'IntervalsApiError',
@@ -280,7 +278,7 @@ describe('intervalsApi', () => {
         ],
       };
 
-      mockFetchOnce({ ok: true, status: 200, json: async () => map });
+      mockFetchOnce(jsonResponse(map));
 
       const result = await getActivityMap('token-1', 'i42');
 
@@ -292,7 +290,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsAuthError on a 401 response', async () => {
-      mockFetchOnce({ ok: false, status: 401 });
+      mockFetchOnce(new Response(null, { status: 401 }));
 
       await expect(getActivityMap('bad-token', 'i42')).rejects.toBeInstanceOf(
         IntervalsAuthError,
@@ -300,7 +298,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsApiError carrying the status of a 404', async () => {
-      mockFetchOnce({ ok: false, status: 404 });
+      mockFetchOnce(new Response(null, { status: 404 }));
 
       await expect(getActivityMap('token-1', 'i42')).rejects.toMatchObject({
         name: 'IntervalsApiError',
@@ -313,7 +311,7 @@ describe('intervalsApi', () => {
     it("reads one day's Wellness Entry with the bearer token", async () => {
       const entry = { id: '2026-11-02', sleepSecs: 28620, hrv: 52 };
 
-      mockFetchOnce({ ok: true, status: 200, json: async () => entry });
+      mockFetchOnce(jsonResponse(entry));
 
       const result = await getWellness('token-1', 'athlete-1', '2026-11-02');
 
@@ -325,7 +323,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsAuthError on a 401 response', async () => {
-      mockFetchOnce({ ok: false, status: 401 });
+      mockFetchOnce(new Response(null, { status: 401 }));
 
       await expect(
         getWellness('bad-token', 'athlete-1', '2026-11-02'),
@@ -333,7 +331,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsApiError carrying the status of a missing-scope 403', async () => {
-      mockFetchOnce({ ok: false, status: 403 });
+      mockFetchOnce(new Response(null, { status: 403 }));
 
       await expect(
         getWellness('token-1', 'athlete-1', '2026-11-02'),
@@ -351,7 +349,7 @@ describe('intervalsApi', () => {
     it('reads the Wellness rows of a date range, projected to the fields asked for', async () => {
       const rows = [{ id: '2026-11-06', ctl: 42.6, atl: 50.4, ctlLoad: 85 }];
 
-      mockFetchOnce({ ok: true, status: 200, json: async () => rows });
+      mockFetchOnce(jsonResponse(rows));
 
       const result = await getWellnessRange('token-1', 'athlete-1', RANGE);
 
@@ -363,7 +361,7 @@ describe('intervalsApi', () => {
         }),
       );
 
-      const url = new URL((global.fetch as jest.Mock).mock.calls[0][0]);
+      const url = new URL(String(jest.mocked(global.fetch).mock.calls[0][0]));
 
       expect(`${url.origin}${url.pathname}`).toBe(
         'https://intervals.icu/api/v1/athlete/athlete-1/wellness',
@@ -378,7 +376,7 @@ describe('intervalsApi', () => {
     it('passes the abort signal through to fetch', async () => {
       const controller = new AbortController();
 
-      mockFetchOnce({ ok: true, status: 200, json: async () => [] });
+      mockFetchOnce(jsonResponse([]));
 
       await getWellnessRange('token-1', 'athlete-1', RANGE, {
         signal: controller.signal,
@@ -391,7 +389,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsAuthError on a 401 response', async () => {
-      mockFetchOnce({ ok: false, status: 401 });
+      mockFetchOnce(new Response(null, { status: 401 }));
 
       await expect(
         getWellnessRange('bad-token', 'athlete-1', RANGE),
@@ -399,7 +397,7 @@ describe('intervalsApi', () => {
     });
 
     it('throws IntervalsApiError carrying the status of a missing-scope 403', async () => {
-      mockFetchOnce({ ok: false, status: 403 });
+      mockFetchOnce(new Response(null, { status: 403 }));
 
       await expect(
         getWellnessRange('token-1', 'athlete-1', RANGE),

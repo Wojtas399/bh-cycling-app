@@ -31,11 +31,11 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockUseToday = useToday as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetActivities = getActivities as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseToday = jest.mocked(useToday);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetActivities = jest.mocked(getActivities);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 const TODAY = '2026-11-08';
 
@@ -45,6 +45,7 @@ function mockConnected() {
     athleteName: null,
     athleteId: 'athlete-1',
     accessToken: 'token-1',
+    scope: null,
     loading: false,
   });
 }
@@ -125,8 +126,8 @@ describe('useNextRace', () => {
     mockGetActivities.mockResolvedValue([]);
     mockGetAthleteSettings.mockResolvedValue({});
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: unknown }) => {
-        if (Array.isArray(params.category)) throw new Error('races down');
+      async (_token, _athlete, params) => {
+        if (Array.isArray(params?.category)) throw new Error('races down');
 
         return [liveRaceBody({ start_date_local: `${TODAY}T00:00:00` })];
       },

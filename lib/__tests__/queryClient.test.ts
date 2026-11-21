@@ -8,7 +8,7 @@ jest.mock('../handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockHandleIntervalsAuthError = handleIntervalsAuthError as jest.Mock;
+const mockHandleIntervalsAuthError = jest.mocked(handleIntervalsAuthError);
 
 describe('createQueryClient', () => {
   beforeEach(() => {
