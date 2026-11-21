@@ -8,15 +8,18 @@
 import { athleteFromEnv, intervalsFromEnv } from './support/athlete.ts';
 import { loadLocalEnv } from './support/env.ts';
 import { planSeed } from './support/seedPlan.ts';
+import * as v from 'valibot';
 
 const BASE_URL = 'https://intervals.icu/api/v1';
 
 loadLocalEnv();
 
-interface ExistingItem {
-  id: number | string;
-  external_id?: string | null;
-}
+const existingItemsSchema = v.array(
+  v.object({
+    id: v.union([v.number(), v.string()]),
+    external_id: v.nullish(v.string()),
+  }),
+);
 
 try {
   // The suite refuses to start without the test user's credentials, but its
@@ -32,7 +35,11 @@ try {
   const { oldest, newest } = plan.deleteWindow;
 
   // A `FormData` body goes as multipart, with the boundary `fetch` sets.
-  const call = async (method: string, path: string, body?: unknown) => {
+  const call = async (
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<unknown> => {
     const name = `${method} ${path.split('?')[0]}`;
     const isJson = body !== undefined && !(body instanceof FormData);
     let response: Response;
@@ -44,7 +51,7 @@ try {
           Authorization: authorization,
           ...(isJson ? { 'Content-Type': 'application/json' } : {}),
         },
-        body: isJson ? JSON.stringify(body) : (body as FormData | undefined),
+        body: isJson ? JSON.stringify(body) : body,
       });
     } catch (error) {
       throw new Error(`${name} failed: ${String(error)}`);
@@ -58,23 +65,26 @@ try {
       );
     }
 
-    return text ? (JSON.parse(text) as unknown) : undefined;
+    return text ? JSON.parse(text) : undefined;
   };
 
-  const existing = (await call(
-    'GET',
-    `${eventsPath}?oldest=${oldest}&newest=${newest}`,
-  )) as ExistingItem[];
+  const existing = v.parse(
+    existingItemsSchema,
+    await call('GET', `${eventsPath}?oldest=${oldest}&newest=${newest}`),
+  );
   const owned = existing.filter(plan.isSeedOwned);
 
   for (const event of owned) {
     await call('DELETE', `${eventsPath}/${event.id}`);
   }
 
-  const activities = (await call(
-    'GET',
-    `${activitiesPath}?oldest=${oldest}&newest=${newest}T23:59:59&fields=id,external_id`,
-  )) as ExistingItem[];
+  const activities = v.parse(
+    existingItemsSchema,
+    await call(
+      'GET',
+      `${activitiesPath}?oldest=${oldest}&newest=${newest}T23:59:59&fields=id,external_id`,
+    ),
+  );
   const ownedActivities = activities.filter(plan.isSeedOwned);
 
   for (const activity of ownedActivities) {

@@ -15,13 +15,24 @@ export function requireEnv<const Name extends string>(
   names: readonly Name[],
   purpose: string,
 ): Record<Name, string> {
-  const missing = names.filter(name => !process.env[name]);
+  const values: Partial<Record<Name, string>> = {};
 
-  if (missing.length > 0) {
+  for (const name of names) {
+    if (process.env[name]) values[name] = process.env[name];
+  }
+
+  if (!hasEvery(values, names)) {
+    const missing = names.filter(name => values[name] === undefined);
+
     throw new Error(`Set ${missing.join(' and ')} in .env.local: ${purpose}.`);
   }
 
-  return Object.fromEntries(
-    names.map(name => [name, process.env[name] as string]),
-  ) as Record<Name, string>;
+  return values;
+}
+
+function hasEvery<Name extends string>(
+  values: Partial<Record<Name, string>>,
+  names: readonly Name[],
+): values is Record<Name, string> {
+  return names.every(name => values[name] !== undefined);
 }

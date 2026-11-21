@@ -7,11 +7,15 @@ import {
   toRace,
   toRaces,
 } from '../races';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+} from '@/test-utils/intervalsJson';
 
 function liveShapedRaceEvent(
-  overrides: Partial<IntervalsCalendarEvent>,
+  overrides: Partial<IntervalsJson<IntervalsCalendarEvent>>,
 ): IntervalsCalendarEvent {
-  return {
+  return fromIntervalsJson<IntervalsCalendarEvent>({
     id: 1,
     category: 'RACE_B',
     name: 'Gravel Race',
@@ -20,7 +24,7 @@ function liveShapedRaceEvent(
     type: 'Ride',
     color: '#ff2a0e',
     ...overrides,
-  };
+  });
 }
 
 describe('toRaces', () => {
@@ -75,7 +79,7 @@ describe('toRace', () => {
         liveShapedRaceEvent({
           moving_time: undefined,
           distance: 0,
-          description: null as unknown as undefined,
+          description: null,
         }),
       ),
     ).toEqual({
