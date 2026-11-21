@@ -54,12 +54,13 @@ export function summariseRoute(
 }
 
 export function toRoute(map: IntervalsActivityMap): Route | null {
-  const valid = (map.latlngs ?? []).filter(
-    (pair): pair is [number, number] =>
-      Array.isArray(pair) &&
-      Number.isFinite(pair[0]) &&
-      Number.isFinite(pair[1]),
-  );
+  const valid = (map.latlngs ?? []).flatMap((pair): Route['points'] => {
+    if (!Array.isArray(pair)) return [];
+
+    const [lat, lng] = pair;
+
+    return Number.isFinite(lat) && Number.isFinite(lng) ? [[lat, lng]] : [];
+  });
 
   if (valid.length < 2) return null;
 

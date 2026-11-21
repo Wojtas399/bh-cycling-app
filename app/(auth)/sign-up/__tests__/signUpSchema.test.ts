@@ -58,6 +58,26 @@ describe('signUpSchema', () => {
     ).toEqual({ confirmPassword: 'validation.passwordsMismatch' });
   });
 
+  it('compares the passwords exactly, without trimming', () => {
+    expect(
+      errors({
+        email: 'rider@example.com',
+        password: 'password-1',
+        confirmPassword: 'password-1 ',
+      }),
+    ).toEqual({ confirmPassword: 'validation.passwordsMismatch' });
+  });
+
+  it('leaves an empty confirmation to its own required error', () => {
+    expect(
+      errors({
+        email: 'rider@example.com',
+        password: 'password-1',
+        confirmPassword: '',
+      }),
+    ).toEqual({ confirmPassword: 'signUp.validation.confirmPasswordRequired' });
+  });
+
   it('still checks the confirmation when the email is invalid', () => {
     expect(
       errors({

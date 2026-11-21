@@ -1,9 +1,11 @@
 import type { Percent } from './intervalsApi';
 
-export type Zone = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+const ZONES = [1, 2, 3, 4, 5, 6, 7] as const;
+
+export type Zone = (typeof ZONES)[number];
 
 export function isZone(zone: number | null | undefined): zone is Zone {
-  return zone != null && Number.isInteger(zone) && zone >= 1 && zone <= 7;
+  return ZONES.some(candidate => candidate === zone);
 }
 
 export interface ZoneBand {
@@ -18,7 +20,7 @@ export interface AthleteZoneSettings {
   powerZones?: Percent[] | null;
 }
 
-const MAX_ZONES = 7;
+const MAX_ZONES = ZONES.length;
 
 const COGGAN_ZONE_CEILINGS = [55, 75, 90, 105, 120, 150, 200];
 
@@ -40,7 +42,7 @@ function areUsableCeilings(
 
 function toZoneConfig(ceilings: number[]): ZoneConfig {
   return ceilings.map((maxPct, index) => ({
-    zone: (index + 1) as Zone,
+    zone: ZONES[index],
     minPct: index === 0 ? 0 : ceilings[index - 1],
     maxPct,
   }));

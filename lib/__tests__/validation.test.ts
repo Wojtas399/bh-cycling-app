@@ -1,9 +1,10 @@
 import {
   emailField,
+  isTranslationKey,
   newPasswordField,
-  passwordsMatch,
   requiredString,
 } from '../validation';
+import '@/i18n';
 import * as v from 'valibot';
 
 function firstIssueMessageOrNull(schema: v.GenericSchema, input: unknown) {
@@ -84,53 +85,20 @@ describe('newPasswordField', () => {
   });
 });
 
-describe('passwordsMatch', () => {
-  const schema = v.pipe(
-    v.object({
-      password: newPasswordField(),
-      confirm: requiredString('validation.passwordRequired'),
-    }),
-    passwordsMatch('password', 'confirm'),
-  );
-
-  function errorsByField(input: Record<string, string>) {
-    const byField: Record<string, string> = {};
-
-    for (const issue of v.safeParse(schema, input).issues ?? []) {
-      byField[v.getDotPath(issue) ?? 'root'] ??= issue.message;
-    }
-
-    return byField;
-  }
-
-  it('reports a mismatch on the confirmation field', () => {
-    expect(
-      errorsByField({ password: 'password-1', confirm: 'password-2' }),
-    ).toEqual({ confirm: 'validation.passwordsMismatch' });
+describe('isTranslationKey', () => {
+  it('recognises a key the translations define', () => {
+    expect(isTranslationKey('validation.passwordsMismatch')).toBe(true);
   });
 
-  it('accepts matching passwords', () => {
-    expect(
-      errorsByField({ password: 'password-1', confirm: 'password-1' }),
-    ).toEqual({});
+  it('rejects a message that is not a key', () => {
+    expect(isTranslationKey('Passwords do not match')).toBe(false);
   });
 
-  it('compares passwords exactly, without trimming', () => {
-    expect(
-      errorsByField({ password: 'password-1', confirm: 'password-1 ' }),
-    ).toEqual({ confirm: 'validation.passwordsMismatch' });
+  it('rejects an unknown key under a known section', () => {
+    expect(isTranslationKey('validation.noSuchMessage')).toBe(false);
   });
 
-  it('still reports a mismatch while the password is too short', () => {
-    expect(errorsByField({ password: 'short', confirm: 'other' })).toEqual({
-      password: 'validation.passwordTooShort',
-      confirm: 'validation.passwordsMismatch',
-    });
-  });
-
-  it('leaves an empty confirmation to its own required error', () => {
-    expect(errorsByField({ password: 'password-1', confirm: '' })).toEqual({
-      confirm: 'validation.passwordRequired',
-    });
+  it('rejects a section that only groups other keys', () => {
+    expect(isTranslationKey('validation')).toBe(false);
   });
 });

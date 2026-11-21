@@ -8,11 +8,13 @@ import type {
   IntervalsActivityInterval,
   Watts,
 } from './intervalsApi';
+import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateTimeString } from './localDateTime';
 import { type Zone, isZone } from './powerZones';
 import { resolveFtp } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
 import { type ZoneTimes, zoneTimesFromIcu } from './timeInZone';
+import { pick } from './typed';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 const STORED_ACTIVITY_FIELDS = [
@@ -87,11 +89,11 @@ export function toStoredActivityDetails(
   return {
     isStravaActivity: false,
     activity: {
-      ...pickPresentKeys(body, STORED_ACTIVITY_FIELDS),
+      ...pick(body, STORED_ACTIVITY_FIELDS),
       type,
       ...(icu_intervals != null && {
         icu_intervals: icu_intervals.map(interval =>
-          pickPresentKeys(interval, STORED_INTERVAL_FIELDS),
+          pick(interval, STORED_INTERVAL_FIELDS),
         ),
       }),
     },
@@ -204,20 +206,20 @@ function toTimedIntervalIfTimesUsable({
   zone,
 }: StoredActivityInterval): TimedInterval[] {
   if (
-    !Number.isFinite(start_time) ||
-    !Number.isFinite(end_time) ||
-    (end_time as number) <= (start_time as number)
+    !isFiniteNumber(start_time) ||
+    !isFiniteNumber(end_time) ||
+    end_time <= start_time
   ) {
     return [];
   }
 
-  const hasPower = Number.isFinite(intensity) && isZone(zone);
+  const hasPower = isFiniteNumber(intensity) && isZone(zone);
 
   return [
     {
-      start: start_time as number,
-      end: end_time as number,
-      intensity: hasPower ? (intensity as number) : null,
+      start: start_time,
+      end: end_time,
+      intensity: hasPower ? intensity : null,
       zone: hasPower ? zone : null,
     },
   ];
@@ -233,13 +235,4 @@ function descriptionOf({ description }: StoredActivity): {
   const trimmed = description?.trim();
 
   return trimmed ? { description: trimmed } : {};
-}
-
-function pickPresentKeys<T extends object, K extends keyof T>(
-  source: T,
-  keys: readonly K[],
-): Pick<T, K> {
-  return Object.fromEntries(
-    keys.filter(key => key in source).map(key => [key, source[key]]),
-  ) as Pick<T, K>;
 }
