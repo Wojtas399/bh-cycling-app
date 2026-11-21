@@ -5,7 +5,7 @@ export function plannedDurationSeconds({
   moving_time,
   workout_doc,
 }: IntervalsCalendarEvent): number | undefined {
-  return [moving_time, workout_doc?.duration].find(
-    (seconds): seconds is number => isFiniteNumber(seconds) && seconds > 0,
-  );
+  return [moving_time, workout_doc?.duration]
+    .filter(isFiniteNumber)
+    .find(seconds => seconds > 0);
 }

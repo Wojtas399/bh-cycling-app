@@ -48,7 +48,7 @@ export function dayMarkers(items: CalendarItem[]): DayMarkers {
 
   return {
     races,
-    markers: items.filter((item): item is NonRaceItem => !isRaceItem(item)),
+    markers: items.filter(item => !isRaceItem(item)),
     hasARace: races.some(item => item.race.priority === 'A'),
   };
 }
