@@ -1,18 +1,9 @@
 import { forgotPasswordSchema } from '../forgotPasswordSchema';
+import { firstIssuePerField } from '@/test-utils/schemaIssues';
 import * as v from 'valibot';
 
-/** The first issue key per field, as the resolver reports it. */
 function errors(input: Record<string, string>) {
-  const result = v.safeParse(forgotPasswordSchema, input);
-  const byField: Record<string, string> = {};
-
-  for (const issue of result.issues ?? []) {
-    const field = v.getDotPath(issue) ?? 'root';
-
-    byField[field] ??= issue.message;
-  }
-
-  return byField;
+  return firstIssuePerField(forgotPasswordSchema, input);
 }
 
 describe('forgotPasswordSchema', () => {

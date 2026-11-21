@@ -3,6 +3,7 @@ import { signOutAndClear } from '@/lib/signOutAndClear';
 import { toast } from '@/lib/toast';
 import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 const callOrder: string[] = [];
@@ -100,12 +101,14 @@ jest.mock('@/lib/firebase', () => {
 });
 
 const PASSWORD_FIELDS = ['password'] as const;
+const NO_FIELDS_FOR_GOOGLE_ONLY = [] as const;
 
 async function setup(providerIds: string[]) {
   mockProviderIds = providerIds;
 
-  // Google-only accounts render no field.
-  const fields = providerIds.includes('password') ? PASSWORD_FIELDS : [];
+  const fields = providerIds.includes('password')
+    ? PASSWORD_FIELDS
+    : NO_FIELDS_FOR_GOOGLE_ONLY;
 
   return renderHookWithClient(() => {
     const hook = useDeleteAccount();
@@ -130,17 +133,10 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.submit();
   });
-  // React Query hands the settled state to the hook on a later tick.
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  await settleQueries();
 }
 
-/**
- * Tries to remove the screen with a dispatched action, the way React
- * Navigation's `usePreventRemove` handles it: while prevented, the action is
- * stopped and handed to the callback, which lets it through by dispatching it
- * again. True when the screen would be removed.
- */
-function removes(type: string): boolean {
+function dispatchRemovesScreen(type: string): boolean {
   expect(mockPreventRemove).not.toBeNull();
 
   if (!mockPreventRemove?.prevent) return true;
@@ -153,7 +149,6 @@ function removes(type: string): boolean {
   return mockDispatch.mock.calls.some(([dispatched]) => dispatched === action);
 }
 
-/** Starts a deletion whose callable hangs; returns a function finishing it. */
 async function startHangingDelete(hook: Hook) {
   let release: () => void = () => {};
 
@@ -246,7 +241,7 @@ describe('useDeleteAccount', () => {
       expect(passwordError(hook)).toBe('validation.passwordRequired');
     });
 
-    it('re-authenticates with the password as typed, force-refreshes the token, deletes, then signs out', async () => {
+    it('re-authenticates with the password as typed, force-refreshes the token, deletes, then toasts before signing out', async () => {
       const hook = await setup(['password']);
 
       await enterPassword(hook, ' secret-password ');
@@ -377,7 +372,7 @@ describe('useDeleteAccount', () => {
       expect(hook.result.current.busy).toBe(false);
     });
 
-    it('shows a form error then signs out of Google on user-mismatch', async () => {
+    it('shows a form error then signs out of Google on user-mismatch, so the next attempt shows the account picker', async () => {
       mockReauthenticate.mockRejectedValue({ code: 'auth/user-mismatch' });
       const hook = await setup(['google.com']);
 
@@ -388,6 +383,20 @@ describe('useDeleteAccount', () => {
       );
       expect(mockGoogleSignOut).toHaveBeenCalledTimes(1);
       expect(mockDeleteAccountCallable).not.toHaveBeenCalled();
+    });
+
+    it('keeps the wrong-account error when signing out of Google fails', async () => {
+      mockReauthenticate.mockRejectedValue({ code: 'auth/user-mismatch' });
+      mockGoogleSignOut.mockRejectedValue(new Error('sign-out failed'));
+      const hook = await setup(['google.com']);
+
+      await submit(hook);
+
+      expect(mockGoogleSignOut).toHaveBeenCalledTimes(1);
+      expect(hook.result.current.formError).toBe(
+        'deleteAccount.errors.wrongGoogleAccount',
+      );
+      expect(hook.result.current.busy).toBe(false);
     });
 
     it('shows a generic error when Google returns no id token', async () => {
@@ -477,10 +486,10 @@ describe('useDeleteAccount', () => {
       const finish = await startHangingDelete(hook);
 
       expect(hook.result.current.busy).toBe(true);
-      expect(removes('GO_BACK')).toBe(false);
-      expect(removes('POP')).toBe(false);
-      expect(removes('REPLACE')).toBe(true);
-      expect(removes('RESET')).toBe(true);
+      expect(dispatchRemovesScreen('GO_BACK')).toBe(false);
+      expect(dispatchRemovesScreen('POP')).toBe(false);
+      expect(dispatchRemovesScreen('REPLACE')).toBe(true);
+      expect(dispatchRemovesScreen('RESET')).toBe(true);
 
       await finish();
     });
@@ -490,8 +499,8 @@ describe('useDeleteAccount', () => {
     const hook = await setup(['password']);
 
     expect(hook.result.current.busy).toBe(false);
-    expect(removes('GO_BACK')).toBe(true);
-    expect(removes('POP')).toBe(true);
+    expect(dispatchRemovesScreen('GO_BACK')).toBe(true);
+    expect(dispatchRemovesScreen('POP')).toBe(true);
   });
 
   it('allows going back after a failed deletion', async () => {
@@ -505,7 +514,7 @@ describe('useDeleteAccount', () => {
 
     expect(hook.result.current.formError).toBe('deleteAccount.errors.generic');
     expect(hook.result.current.busy).toBe(false);
-    expect(removes('GO_BACK')).toBe(true);
-    expect(removes('POP')).toBe(true);
+    expect(dispatchRemovesScreen('GO_BACK')).toBe(true);
+    expect(dispatchRemovesScreen('POP')).toBe(true);
   });
 });

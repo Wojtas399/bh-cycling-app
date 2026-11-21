@@ -1,24 +1,20 @@
 import { requiredString } from '@/lib/validation';
 import * as v from 'valibot';
 
-/** Accounts with an email sign-in method confirm with their password. */
-const passwordSchema = v.object({
-  // Never trimmed: a password is checked exactly as typed.
+const confirmWithPasswordSchema = v.object({
   password: requiredString('validation.passwordRequired'),
 });
 
-/**
- * Google-only accounts have no field and confirm through Google, so nothing
- * is validated. Same shape as `passwordSchema`, because a form binding needs
- * one value type.
- */
-// Not `v.object({})`: one `FormBinding<DeleteAccountInput>` needs both schemas to share a value type.
-const googleSchema = v.object({ password: v.string() });
+export type DeleteAccountInput = v.InferInput<typeof confirmWithPasswordSchema>;
+export type DeleteAccountValues = v.InferOutput<
+  typeof confirmWithPasswordSchema
+>;
+
+const confirmWithGoogleSchema: v.GenericSchema<
+  DeleteAccountInput,
+  DeleteAccountValues
+> = v.object({ password: v.string() });
 
 export function deleteAccountSchema(requiresPassword: boolean) {
-  return requiresPassword ? passwordSchema : googleSchema;
+  return requiresPassword ? confirmWithPasswordSchema : confirmWithGoogleSchema;
 }
-
-/** The form always holds a password value; Google-only users never see it. */
-export type DeleteAccountInput = v.InferInput<typeof passwordSchema>;
-export type DeleteAccountValues = v.InferOutput<typeof passwordSchema>;

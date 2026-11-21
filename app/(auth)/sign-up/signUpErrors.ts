@@ -1,11 +1,9 @@
 import type { ParseKeys } from 'i18next';
 
-/** An i18n key under `signUp.errors`. */
 type SignUpErrorKey = Extract<ParseKeys, `signUp.errors.${string}`>;
 
 export type SignUpMutation = 'emailSignUp' | 'googleSignUp';
 
-/** Sign-up errors are all form errors; none shows under a field. */
 export interface SignUpErrorMapping {
   key: SignUpErrorKey;
 }
