@@ -145,6 +145,7 @@ The JS is bundled into the build, so reuse one only when the app code hasn't cha
 - Put it in `e2e/tests/` as `<flow>.e2e.ts`. Jest ignores `*.e2e.ts` files, and e2e runs only `e2e/tests/**/*.e2e.ts`.
 - Import `test` from `../support/fixtures`, not from `@e2e-dev/mobile`, so the test starts signed out. Sign in with `signIn(screen)` from `../support/signIn`.
 - Follow the locator rules in `CODING_STANDARDS.md`. Match visible text with a regex, reach fields by placeholder, and add a `testID` only when text is ambiguous or missing.
+- Reach what iOS's accessibility tree merges or hides through the helpers in `e2e/support/locators.ts`. "iOS accessibility facts" in `docs/agents/e2e-tests.md` lists each fact and its helper.
 - Assert only on the seeded Workouts, Race, Note and ride, by name.
 - Confirm a React Native `Alert` by locator on its button text, with `/i`, because Android may report the button in capitals. Don't use `device.alert('accept')`, which matches only English labels on iOS. A locator reaches the alert on both platforms.
 - On iOS, an accessible element hides the elements inside it. A `testID` inside a button, such as `calendar-today` inside a Calendar day, isn't in the tree, so reach the button instead.
