@@ -49,4 +49,14 @@ describe('verificationEmail', () => {
       new Date(2026, 10, 20, 9).getTime(),
     );
   });
+
+  it('swallows a send that throws before it returns a promise, since Resend covers it', async () => {
+    await expect(
+      verificationEmail.sendVerificationEmail({
+        sendEmailVerification: () => {
+          throw new Error('no current user');
+        },
+      }),
+    ).resolves.toBeUndefined();
+  });
 });

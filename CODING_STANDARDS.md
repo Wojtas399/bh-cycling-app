@@ -51,6 +51,8 @@ For reviewers:
 
 Linted TS and JS has no comments ([ADR 0013](docs/adr/0013-no-comments.md)). That rules out JSDoc, TODO, links, issue numbers and commented-out code. Two forms are allowed, and only with a reason: `// eslint-disable-next-line <rule> -- <reason>` and `// @ts-expect-error: <reason>`. `npm run lint` fails on everything else, in CI too.
 
+A swallowed error fails lint too: an empty `catch {}` (`no-empty`) and, in TS, `.catch(() => {})`. Drop a best-effort failure with `ignoreFailure(() => work())` from `lib/ignoreFailure.ts`, and start a mutation whose error shows on `mutation.error` with `mutate`.
+
 | You want to say…                  | Put it in                                                  |
 | --------------------------------- | ---------------------------------------------------------- |
 | What it does                      | The name of the function, variable or type                 |
