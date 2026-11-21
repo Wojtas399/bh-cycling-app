@@ -23,11 +23,13 @@ export function combineMonthResults(
   end: Date,
 ): (results: MonthResult[]) => CombinedMonthResult {
   return results => {
-    const isPending = results.some(result => result.data === undefined);
+    const months = results
+      .map(result => result.data)
+      .filter(month => month !== undefined);
+    const isPending = months.length < results.length;
     let data: CalendarData | undefined;
 
     if (!isPending) {
-      const months = results.map(result => result.data as CalendarData);
       const merged: CalendarItemsByDate = Object.assign(
         {},
         ...months.map(month => month.itemsByDate),
