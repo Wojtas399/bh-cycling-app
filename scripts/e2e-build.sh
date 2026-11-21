@@ -9,6 +9,9 @@ platform="${1:-}"
 # The e2e config runs against the staging bundle id, whatever .env.local says.
 export APP_ENV=staging
 
+# Stamped before the build, so an edit made while it runs still counts as unbuilt.
+stamp="$(node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON e2e/buildStamp.ts print)"
+
 case "$platform" in
   ios)
     # CocoaPods 1.16 on Ruby 4 crashes in its error reporter without it.
@@ -27,3 +30,5 @@ case "$platform" in
     exit 1
     ;;
 esac
+
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON e2e/buildStamp.ts write "$platform" "$stamp"

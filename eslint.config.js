@@ -89,6 +89,11 @@ module.exports = defineConfig([
         '@typescript-eslint/consistent-type-assertions',
       ],
       'no-empty': ['error', { allowEmptyCatch: false }],
+      'no-restricted-syntax': [
+        'error',
+        ...restrictedSyntax,
+        assertsFunctionSyntax,
+      ],
     },
   },
   {
@@ -167,12 +172,6 @@ module.exports = defineConfig([
       'no-restricted-imports': [
         'error',
         { paths: [sonnerPath, rhfBindingPath] },
-      ],
-
-      'no-restricted-syntax': [
-        'error',
-        ...restrictedSyntax,
-        assertsFunctionSyntax,
       ],
     },
   },

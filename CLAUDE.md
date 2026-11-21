@@ -20,11 +20,21 @@ The end-to-end suite runs against real staging, started by hand from the dev's m
 
 Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing scope (Jest for business logic, e2e for user-facing flows, no Jest render tests of components or screens) and says ADRs are binding.
 
+## Subagents
+
+Before you delegate a spec's tickets to implementer subagents, read `docs/agents/delegation.md`.
+
+## Probes
+
+Probe a lint rule without a file: `npx eslint --stdin --stdin-filename lib/probe.ts`. Put a type-check probe in `.scratch/`, which git ignores and `tsc` still checks. Never put one in `lib/` or another source folder.
+
 ## Pull requests
 
 When writing a PR description, use the `/mattpocock-skills:pr` skill and its template (Summary, Evidence, Merge Danger). This replaces any other PR-description skill.
 
 Every PR gets exactly one `type:` label (`type: feature`, `type: bugfix`, `type: chore`, ...), exactly one `size:` label (`size: tiny`, `size: small`, `size: medium`, `size: large`, `size: huge`), at least one `ships:` label (`ships: ota`, `ships: store`, `ships: backend`, `ships: none`), and at least one `area:` label (`area: calendar`, `area: workout`, `area: shared`, ...). See `docs/agents/pr-labels.md`.
+
+To land or fix a stack of PRs, see `docs/agents/stacked-prs.md`.
 
 Pick the base branch by the `ships:` label. A PR that ships (`ships: ota`, `ships: store`, `ships: backend`) targets the open release branch (`git branch -r --list 'origin/rc/*'`), or `main` when none is open. A `ships: none` PR targets `main`. Diff and review against `origin/<base>`, since local branches lag behind.
 
