@@ -1,18 +1,13 @@
+import type { HexColorString } from './intervalsApi';
 import theme from '@/constants/theme';
 
 const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
-/**
- * What a Note is filled with: its intervals.icu colour, or the theme's
- * `neutral` gray when it has none (or one that isn't a `#rgb`/`#rrggbb` hex).
- * Shared by the month grid and the week view.
- */
-export function noteFill(color: string | null): string {
+export function noteFill(color: HexColorString | null): HexColorString {
   return color && HEX_COLOR.test(color) ? color : theme.colors.neutral;
 }
 
-/** WCAG relative luminance of a `#rgb`/`#rrggbb` colour. */
-function luminance(hex: string): number {
+function wcagRelativeLuminance(hex: HexColorString): number {
   const digits =
     hex.length === 4
       ? [...hex.slice(1)].map(digit => digit + digit)
@@ -28,22 +23,21 @@ function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-function contrast(a: string, b: string): number {
-  const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+function wcagContrastRatio(a: HexColorString, b: HexColorString): number {
+  const [light, dark] = [
+    wcagRelativeLuminance(a),
+    wcagRelativeLuminance(b),
+  ].sort((x, y) => y - x);
 
   return (light + 0.05) / (dark + 0.05);
 }
 
-/**
- * The text colour for a label on a Note's fill: the theme's black or white,
- * whichever has the higher WCAG contrast against it. `null` resolves to the
- * `neutral` fallback, as in `noteFill`.
- */
-export function noteLabelColor(fill: string | null): string {
+export function noteLabelColor(fill: HexColorString | null): HexColorString {
   const background = noteFill(fill);
   const { black, white } = theme.colors;
 
-  return contrast(background, black) >= contrast(background, white)
+  return wcagContrastRatio(background, black) >=
+    wcagContrastRatio(background, white)
     ? black
     : white;
 }

@@ -4,7 +4,7 @@ import {
   toStoredActivityDetails,
 } from './activityDetails';
 import {
-  ACTIVITY_FIELDS,
+  CALENDAR_ITEM_ACTIVITY_FIELDS,
   type CalendarData,
   type StoredMonth,
   type YearMonth,
@@ -465,7 +465,7 @@ async function fetchCalendarRange(
     getActivities(
       accessToken,
       athleteId,
-      { ...window, fields: ACTIVITY_FIELDS },
+      { ...window, fields: CALENDAR_ITEM_ACTIVITY_FIELDS },
       { signal },
     ),
     fetchZoneConfigOrCoggan(client, credentials),

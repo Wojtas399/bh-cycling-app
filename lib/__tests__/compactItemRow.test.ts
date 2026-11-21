@@ -371,7 +371,7 @@ describe('compactItemRowPress', () => {
     expect(onRacePress).not.toHaveBeenCalled();
   });
 
-  it('does nothing for a Strava Activity, which has no details to open', () => {
+  it('opens nothing for a Strava Activity, which has no details, so the tap reaches its day', () => {
     expect(
       compactItemRowPress(strava(), {
         onWorkoutPress: jest.fn(),

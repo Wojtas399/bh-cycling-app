@@ -78,7 +78,7 @@ describe('toNotes', () => {
     ]);
   });
 
-  it('normalises an empty, whitespace-only or missing text to null', () => {
+  it('normalises a name, text or colour that intervals.icu sends empty, whitespace-only, null or not at all to null', () => {
     const empty = {
       name: '',
       description: '  \n ',
@@ -90,11 +90,20 @@ describe('toNotes', () => {
       color: null,
     } as unknown as Partial<IntervalsCalendarEvent>;
 
+    const absent = {
+      name: undefined,
+      description: undefined,
+      color: undefined,
+    } as unknown as Partial<IntervalsCalendarEvent>;
+
     expect(
-      toNotes([event({ id: 1, ...empty }), event({ id: 2, ...missing })]).map(
-        ({ name, description, color }) => [name, description, color],
-      ),
+      toNotes([
+        event({ id: 1, ...empty }),
+        event({ id: 2, ...missing }),
+        event({ id: 3, ...absent }),
+      ]).map(({ name, description, color }) => [name, description, color]),
     ).toEqual([
+      [null, null, null],
       [null, null, null],
       [null, null, null],
     ]);
@@ -112,21 +121,42 @@ describe('toNotes', () => {
 describe('notesOverlapping', () => {
   const ids = (notes: Note[]) => notes.map(({ id }) => id);
 
-  it('keeps the Notes covering any day of the range, in order', () => {
+  it('keeps the Notes covering any day of the range, its first and last day included, in order', () => {
+    const endedExclusivelyOnTheFirstDay = note({
+      id: 1,
+      start: '2026-10-15',
+      end: '2026-10-20',
+    });
+    const startedEarlierStillRunningOnTheFirstDay = note({
+      id: 2,
+      start: '2026-10-15',
+      end: '2026-10-21',
+    });
+    const insideTheRange = note({
+      id: 3,
+      start: '2026-10-21',
+      end: '2026-10-22',
+    });
+    const startsOnTheLastDay = note({
+      id: 4,
+      start: '2026-10-22',
+      end: '2026-10-23',
+    });
+    const startsAfterTheLastDay = note({
+      id: 5,
+      start: '2026-10-23',
+      end: '2026-10-24',
+    });
+
     expect(
       ids(
         notesOverlapping(
           [
-            // Ended (exclusively) on the first day: out.
-            note({ id: 1, start: '2026-10-15', end: '2026-10-20' }),
-            // Started earlier, still running on the first day: in.
-            note({ id: 2, start: '2026-10-15', end: '2026-10-21' }),
-            // Inside the range: in.
-            note({ id: 3, start: '2026-10-21', end: '2026-10-22' }),
-            // Starts on the last day: in.
-            note({ id: 4, start: '2026-10-22', end: '2026-10-23' }),
-            // Starts after the last day: out.
-            note({ id: 5, start: '2026-10-23', end: '2026-10-24' }),
+            endedExclusivelyOnTheFirstDay,
+            startedEarlierStillRunningOnTheFirstDay,
+            insideTheRange,
+            startsOnTheLastDay,
+            startsAfterTheLastDay,
           ],
           '2026-10-20',
           '2026-10-22',
@@ -169,7 +199,7 @@ describe('noteLastDay and isMultiDay', () => {
 });
 
 describe('noteWindow', () => {
-  it('reaches 31 days back from the first day, to the last day', () => {
+  it('reaches 31 days back from the first day, as intervals.icu filters Notes by start date, so a Note started up to then still shows, to the last day', () => {
     expect(NOTE_LOOK_BACK_DAYS).toBe(31);
     expect(noteWindow(new Date(2026, 9, 23), new Date(2026, 9, 24))).toEqual({
       oldest: '2026-09-22',
