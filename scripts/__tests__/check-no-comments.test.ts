@@ -190,6 +190,7 @@ describe('filesToCheck', () => {
     'e2e/tests/sign-in.e2e.ts',
     'functions/src/index.ts',
     'functions/src/account/__tests__/deleteAccount.test.ts',
+    'functions/test-utils/callableRequest.ts',
     'functions/jest.config.js',
     'functions/package.json',
     'app.config.ts',
@@ -201,7 +202,7 @@ describe('filesToCheck', () => {
     'README.md',
   ];
 
-  it('checks every tracked TS and JS file in root and functions/src, tests included', () => {
+  it('checks every tracked TS and JS file in root, functions/src and functions/test-utils, tests included', () => {
     expect(filesToCheck(tracked)).toEqual([
       'lib/notes.ts',
       'lib/__tests__/notes.test.ts',
@@ -211,6 +212,7 @@ describe('filesToCheck', () => {
       'e2e/tests/sign-in.e2e.ts',
       'functions/src/index.ts',
       'functions/src/account/__tests__/deleteAccount.test.ts',
+      'functions/test-utils/callableRequest.ts',
       'scripts/generate-icons.js',
     ]);
   });

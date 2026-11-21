@@ -4,7 +4,6 @@ import type * as firestore from 'firebase-admin/firestore';
 
 const getMock = jest.fn();
 const docMock = jest.fn(() => ({ get: getMock }));
-const fetchMock = jest.fn();
 
 jest.mock('firebase-admin/firestore', () => ({
   getFirestore: () => ({ doc: docMock }),
@@ -28,12 +27,19 @@ function mockIntegration(accessToken: string | undefined) {
 }
 
 describe('revokeIntervalsToken', () => {
+  let fetchMock: jest.SpiedFunction<typeof fetch>;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = fetchMock as unknown as typeof fetch;
-    fetchMock.mockResolvedValue({ ok: true, status: 200 });
+    fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }));
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('calls disconnect-app with the stored token as bearer', async () => {
@@ -70,14 +76,14 @@ describe('revokeIntervalsToken', () => {
 
   it('treats 401 as already disconnected', async () => {
     mockIntegration('token-1');
-    fetchMock.mockResolvedValue({ ok: false, status: 401 });
+    fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
 
     await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
   });
 
   it('does not throw on other HTTP failures, so callers can always proceed', async () => {
     mockIntegration('token-1');
-    fetchMock.mockResolvedValue({ ok: false, status: 500 });
+    fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
 
     await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
   });

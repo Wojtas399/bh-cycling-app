@@ -1,6 +1,6 @@
+import { callableRequest } from '../../../test-utils/callableRequest';
 import { revokeIntervalsToken } from '../../intervals/revokeToken';
 import { deleteAccountHandler } from '../deleteAccount';
-import type { CallableRequest } from 'firebase-functions/v2/https';
 
 const callOrder: string[] = [];
 const userRef = { path: 'users/user-1' };
@@ -31,21 +31,18 @@ const nowSeconds = NOW_MS / 1000;
 
 function buildRequest(
   options: { uid?: string; authTimeSecondsAgo?: number | null } = {},
-): CallableRequest<unknown> {
+) {
   const { uid = 'user-1', authTimeSecondsAgo = 10 } = options;
 
-  if (!uid) return { data: undefined } as CallableRequest<unknown>;
+  if (!uid) return callableRequest(undefined);
 
-  return {
-    data: undefined,
-    auth: {
-      uid,
-      token:
-        authTimeSecondsAgo === null
-          ? {}
-          : { auth_time: nowSeconds - authTimeSecondsAgo },
-    },
-  } as unknown as CallableRequest<unknown>;
+  return callableRequest(undefined, {
+    uid,
+    claims:
+      authTimeSecondsAgo === null
+        ? {}
+        : { auth_time: nowSeconds - authTimeSecondsAgo },
+  });
 }
 
 describe('deleteAccountHandler', () => {

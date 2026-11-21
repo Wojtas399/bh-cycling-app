@@ -103,8 +103,7 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ['src/**/*.ts'],
-    ignores: ['**/__tests__/**'],
+    files: ['**/*.ts'],
     rules: {
       // No type assertions (ADR 0014). scripts/check-no-comments.js, chained
       // into root `npm run lint`, fails on any directive that disables this rule.
@@ -112,6 +111,13 @@ module.exports = defineConfig([
         'error',
         { assertionStyle: 'never' },
       ],
+    },
+  },
+  {
+    // The only folder allowed to assert (ADR 0014). A new entry needs an ADR.
+    files: ['test-utils/**'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': 'off',
     },
   },
   {
