@@ -23,8 +23,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
 
       - run: npm ci
+
+      - run: npm ci
+        working-directory: functions
 
       - run: npm run lint
 
@@ -36,3 +42,11 @@ jobs:
 
       - if: ${{ !cancelled() }}
         run: npm test -- --ci
+
+      - if: ${{ !cancelled() }}
+        run: npx tsc --noEmit
+        working-directory: functions
+
+      - if: ${{ !cancelled() }}
+        run: npx jest --ci
+        working-directory: functions

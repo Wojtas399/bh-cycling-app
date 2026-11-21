@@ -1,6 +1,6 @@
+import { callableRequest } from '../../../test-utils/callableRequest';
 import { disconnectIntervalsHandler } from '../disconnect';
 import { revokeIntervalsToken } from '../revokeToken';
-import type { CallableRequest } from 'firebase-functions/v2/https';
 
 const callOrder: string[] = [];
 const deleteMock = jest.fn(async () => {
@@ -18,13 +18,6 @@ jest.mock('../revokeToken', () => ({
   }),
 }));
 
-function buildRequest(uid: string): CallableRequest<unknown> {
-  return {
-    data: undefined,
-    auth: uid ? { uid, token: {} as never } : undefined,
-  } as CallableRequest<unknown>;
-}
-
 describe('disconnectIntervalsHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -32,7 +25,9 @@ describe('disconnectIntervalsHandler', () => {
   });
 
   it('deletes the calling user integration document', async () => {
-    const result = await disconnectIntervalsHandler(buildRequest('user-1'));
+    const result = await disconnectIntervalsHandler(
+      callableRequest(undefined, { uid: 'user-1' }),
+    );
 
     expect(docMock).toHaveBeenCalledWith('users/user-1/integrations/intervals');
     expect(deleteMock).toHaveBeenCalled();
@@ -40,7 +35,9 @@ describe('disconnectIntervalsHandler', () => {
   });
 
   it('revokes the Intervals.icu token before deleting the document', async () => {
-    await disconnectIntervalsHandler(buildRequest('user-1'));
+    await disconnectIntervalsHandler(
+      callableRequest(undefined, { uid: 'user-1' }),
+    );
 
     expect(revokeIntervalsToken).toHaveBeenCalledWith('user-1');
     expect(callOrder).toEqual(['revoke', 'delete']);
@@ -48,7 +45,7 @@ describe('disconnectIntervalsHandler', () => {
 
   it('rejects an unauthenticated call', async () => {
     await expect(
-      disconnectIntervalsHandler(buildRequest('')),
+      disconnectIntervalsHandler(callableRequest(undefined)),
     ).rejects.toMatchObject({ code: 'unauthenticated' });
 
     expect(revokeIntervalsToken).not.toHaveBeenCalled();

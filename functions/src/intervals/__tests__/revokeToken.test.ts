@@ -1,32 +1,79 @@
 import { revokeIntervalsToken } from '../revokeToken';
+import { Timestamp } from 'firebase-admin/firestore';
+import type * as firestore from 'firebase-admin/firestore';
 
 const getMock = jest.fn();
 const docMock = jest.fn(() => ({ get: getMock }));
-const fetchMock = jest.fn();
 
 jest.mock('firebase-admin/firestore', () => ({
   getFirestore: () => ({ doc: docMock }),
+  Timestamp: jest.requireActual<typeof firestore>('firebase-admin/firestore')
+    .Timestamp,
 }));
 
-function mockIntegration(data: { accessToken: string } | undefined) {
+function mockIntegration(accessToken: string | undefined) {
+  const data =
+    accessToken === undefined
+      ? undefined
+      : {
+          accessToken,
+          athleteId: 'athlete-1',
+          athleteName: 'Jane Rider',
+          scope: 'ACTIVITY:READ,CALENDAR:READ',
+          connectedAt: Timestamp.now(),
+        };
+
   getMock.mockResolvedValue({ exists: data !== undefined, data: () => data });
 }
 
 describe('revokeIntervalsToken', () => {
+  let fetchMock: jest.SpiedFunction<typeof fetch>;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = fetchMock as unknown as typeof fetch;
-    fetchMock.mockResolvedValue({ ok: true, status: 200 });
+    fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }));
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('calls disconnect-app with the stored token as bearer', async () => {
-    mockIntegration({ accessToken: 'token-1' });
+    mockIntegration('token-1');
 
     await revokeIntervalsToken('user-1');
 
     expect(docMock).toHaveBeenCalledWith('users/user-1/integrations/intervals');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://intervals.icu/api/v1/disconnect-app',
+      { method: 'DELETE', headers: { Authorization: 'Bearer token-1' } },
+    );
+  });
+
+  it('logs an error and skips the revoke call when the stored token is malformed', async () => {
+    getMock.mockResolvedValue({
+      exists: true,
+      data: () => ({ accessToken: 42 }),
+    });
+
+    await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it('still revokes when only fields other than the token are malformed', async () => {
+    getMock.mockResolvedValue({
+      exists: true,
+      data: () => ({ accessToken: 'token-1', connectedAt: 'not-a-timestamp' }),
+    });
+
+    await revokeIntervalsToken('user-1');
+
     expect(fetchMock).toHaveBeenCalledWith(
       'https://intervals.icu/api/v1/disconnect-app',
       { method: 'DELETE', headers: { Authorization: 'Bearer token-1' } },
@@ -42,21 +89,21 @@ describe('revokeIntervalsToken', () => {
   });
 
   it('treats 401 as already disconnected', async () => {
-    mockIntegration({ accessToken: 'token-1' });
-    fetchMock.mockResolvedValue({ ok: false, status: 401 });
+    mockIntegration('token-1');
+    fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
 
     await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
   });
 
   it('does not throw on other HTTP failures, so callers can always proceed', async () => {
-    mockIntegration({ accessToken: 'token-1' });
-    fetchMock.mockResolvedValue({ ok: false, status: 500 });
+    mockIntegration('token-1');
+    fetchMock.mockResolvedValue(new Response(null, { status: 500 }));
 
     await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
   });
 
   it('does not throw on network failure', async () => {
-    mockIntegration({ accessToken: 'token-1' });
+    mockIntegration('token-1');
     fetchMock.mockRejectedValue(new Error('offline'));
 
     await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
