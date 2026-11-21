@@ -1,3 +1,5 @@
+import type { TextStyle } from 'react-native';
+
 import { createTheme, useTheme } from '@shopify/restyle';
 
 const palette = {
@@ -226,7 +228,7 @@ const theme = createTheme({
       lineHeight: 24,
       color: 'textPrimary',
     },
-  },
+  } satisfies Record<string, TextStyle>,
 
   breakpoints: {},
 });
