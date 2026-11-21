@@ -12,6 +12,7 @@ import {
 import type { LocalDateString } from './localDate';
 import type { LocalDateTimeString } from './localDateTime';
 import type { AthleteZoneSettings, Zone } from './powerZones';
+import { entries, readJson } from './typed';
 import type { WorkoutStep } from './workoutProfile';
 
 export type Watts = number;
@@ -201,10 +202,7 @@ async function request<T>(
   const url = new URL(`${INTERVALS_API_BASE_URL}${path}`);
 
   if (params) {
-    for (const [key, value] of Object.entries(params) as [
-      string,
-      IntervalsParamValue | undefined,
-    ][]) {
+    for (const [key, value] of entries(params)) {
       if (value === undefined) continue;
 
       url.searchParams.set(key, commaJoinedParamValue(value));
@@ -224,7 +222,7 @@ async function request<T>(
     throw new IntervalsApiError(response.status);
   }
 
-  return (await response.json()) as T;
+  return readJson<T>(response);
 }
 
 export function getActivities(
