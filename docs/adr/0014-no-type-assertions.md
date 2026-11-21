@@ -28,5 +28,5 @@ Agents write much of this app, and agents reach for `as` whenever the types push
 ## Consequences
 
 - `functions/` is out of scope because nothing lints it yet. Linting it is a follow-up, and this ban extends there when it lands.
-- The bundled OpenFreeMap style moves from `assets/map/ofm-dark.json` to `constants/ofmDarkStyle.ts`, typed with `satisfies StyleSpecification`. Re-vendoring the style means pasting its JSON into that file. ADR 0008 still names the JSON asset, and its decision is unchanged.
+- The bundled OpenFreeMap style moves from `assets/map/ofm-dark.json` to `constants/ofmDarkStyle.ts`, typed with `satisfies StyleSpecification`. Re-vendoring the style means pasting its JSON into that file. ADR 0008 now names that file, and its decision is unchanged.
 - `getErrorCode` narrows with `in` and returns `''` for a code that isn't a string.
