@@ -40,6 +40,38 @@ module.exports = defineConfig([
     rules: {
       'eslint-comments/require-description': ['error', { ignore: [] }],
       'no-empty': ['error', { allowEmptyCatch: false }],
+      // Forms (ADR 0006): watch() is incompatible with the React Compiler.
+      // No effects (ADR 0012): scripts/check-no-effects.sh, chained into
+      // `npm run lint`, also fails on these when a disable comment hides them.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.name=/^use(Layout)?Effect$/]',
+          message: noEffectsMessage,
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='React'][callee.property.name=/^use(Layout)?Effect$/]",
+          message: noEffectsMessage,
+        },
+        {
+          selector: "CallExpression[callee.property.name='watch']",
+          message:
+            'Use useWatch or useFormState instead of watch() (ADR 0006).',
+        },
+        {
+          selector:
+            "VariableDeclarator[init.callee.name=/^use(App)?Form$/] > ObjectPattern > Property[key.name='watch']",
+          message:
+            'Use useWatch or useFormState instead of watch() (ADR 0006).',
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression[params.length=0][body.type='BlockStatement'][body.body.length=0]",
+          message:
+            "Use ignoreFailure(() => work()) from '@/lib/ignoreFailure' instead of .catch(() => {}). To start a mutation whose error shows on mutation.error, call mutate.",
+        },
+      ],
     },
   },
   {
@@ -112,39 +144,6 @@ module.exports = defineConfig([
       'no-restricted-imports': [
         'error',
         { paths: [sonnerPath, rhfBindingPath] },
-      ],
-
-      // Forms (ADR 0006): watch() is incompatible with the React Compiler.
-      // No effects (ADR 0012): scripts/check-no-effects.sh, chained into
-      // `npm run lint`, also fails on these when a disable comment hides them.
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector: 'CallExpression[callee.name=/^use(Layout)?Effect$/]',
-          message: noEffectsMessage,
-        },
-        {
-          selector:
-            "CallExpression[callee.object.name='React'][callee.property.name=/^use(Layout)?Effect$/]",
-          message: noEffectsMessage,
-        },
-        {
-          selector: "CallExpression[callee.property.name='watch']",
-          message:
-            'Use useWatch or useFormState instead of watch() (ADR 0006).',
-        },
-        {
-          selector:
-            "VariableDeclarator[init.callee.name=/^use(App)?Form$/] > ObjectPattern > Property[key.name='watch']",
-          message:
-            'Use useWatch or useFormState instead of watch() (ADR 0006).',
-        },
-        {
-          selector:
-            "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression[params.length=0][body.type='BlockStatement'][body.body.length=0]",
-          message:
-            "Use ignoreFailure(() => work()) from '@/lib/ignoreFailure' instead of .catch(() => {}). To start a mutation whose error shows on mutation.error, call mutate.",
-        },
       ],
     },
   },

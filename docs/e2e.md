@@ -83,7 +83,7 @@ npm run e2e:build:android
 
 Each runs `scripts/e2e-build.sh`. It sets `APP_ENV=staging`, runs a clean `expo prebuild` for the platform, then builds the Release variant with the JS bundled in and installs it on the dedicated device. On Android, boot the emulator first (`$ANDROID_HOME/emulator/emulator -avd BH_e2e_Pixel`), because the install can fail while the emulator is still cold-booting.
 
-The JS is bundled into the build, so the suite tests the code you last built. Rebuild after you pull or change app code. Test files and `e2e/support/` need no rebuild.
+The JS is bundled into the build, so the suite tests the code you last built. Rebuild after you pull or change app code. Test files, `e2e/support/`, docs and other files outside the bundle need no rebuild. On success the script writes a stamp of the app code it built to `.e2e/build-stamp-<platform>.txt`.
 
 ## Run
 
@@ -92,9 +92,10 @@ npm run e2e:ios
 npm run e2e:android
 ```
 
-Both scripts run the cache leak check (`npm run e2e:check-cache`), the seed (`npm run e2e:seed`) and then the suite. A plain `npx e2e run` skips the seed, so run `npm run e2e:seed` first when you run one file, or the tests whose title matches a pattern:
+Both scripts run the build check (`npm run e2e:check-build -- ios|android`), the cache leak check (`npm run e2e:check-cache`), the seed (`npm run e2e:seed`) and then the suite. The build check fails when app code changed since the last local build, so the suite never tests an old bundle. A plain `npx e2e run` skips all three, so run the build check and the seed first when you run one file, or the tests whose title matches a pattern:
 
 ```sh
+npm run e2e:check-build -- ios
 npm run e2e:seed
 npx e2e run --target ios e2e/tests/sign-in.e2e.ts
 npx e2e run --target android --grep "sign in"
