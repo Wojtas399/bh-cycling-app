@@ -46,8 +46,17 @@ async function deleteAuthUserUnlessGone(uid: string) {
   try {
     await getAuth().deleteUser(uid);
   } catch (error) {
-    if ((error as { code?: string }).code !== 'auth/user-not-found') {
+    if (!isUserNotFound(error)) {
       throw error;
     }
   }
+}
+
+function isUserNotFound(error: unknown) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'auth/user-not-found'
+  );
 }

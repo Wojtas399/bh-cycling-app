@@ -73,6 +73,24 @@ describe('exchangeIntervalsTokenHandler', () => {
     );
   });
 
+  it('fails with internal and writes nothing when the token response is malformed', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'token-abc',
+          scope: 'ACTIVITY:READ,CALENDAR:READ',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      exchangeIntervalsTokenHandler(buildRequest({ code: 'valid-code' })),
+    ).rejects.toMatchObject({ code: 'internal' });
+
+    expect(setMock).not.toHaveBeenCalled();
+  });
+
   it('returns a structured error and writes nothing for an expired/invalid code', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,

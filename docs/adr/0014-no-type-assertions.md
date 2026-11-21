@@ -16,7 +16,7 @@ Agents write much of this app, and agents reach for `as` whenever the types push
 - **No disable comments.** ADR 0013 allows `eslint-disable-next-line <rule> -- <reason>`, but not for this rule. `scripts/check-no-comments.js`, chained into `npm run lint`, fails on any disable directive that names `@typescript-eslint/consistent-type-assertions`, whatever the reason. ESLint's `eslint-comments/no-restricted-disable` reports it in the editor too, but a directive can switch that rule off, so the check is what holds.
 - **Type predicates.** A named `x is T` function is allowed anywhere, but its body must check at runtime everything its type claims. Lint can't see that, so reviewers report it. A written predicate on an arrow or function expression passed straight to `.filter` or `.find` is banned, since TypeScript infers those. `asserts x is T` functions are banned outside `lib/typed.ts`. Both are `no-restricted-syntax` selectors in `eslint.config.js`.
 - **When a library's types fall short,** try these in order: restructure so the types line up (`satisfies`, a concrete type, narrowing), then a named predicate that checks what it claims, then, last, a named wrapper in `lib/typed.ts` with its own ADR.
-- **Untyped data from outside.** Intervals.icu JSON goes through `readJson<T>` and isn't parsed at runtime. Firestore documents are parsed with valibot.
+- **Untyped data from outside.** In the app, Intervals.icu JSON goes through `readJson<T>` and isn't parsed at runtime. In `functions/`, Intervals.icu responses are parsed with valibot too, because the token response becomes a stored credential. Firestore documents are parsed with valibot.
 
 ## Considered Options
 

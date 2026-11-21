@@ -3,12 +3,13 @@ import type {
   ExchangeIntervalsTokenData,
   ExchangeIntervalsTokenResult,
   IntervalsIntegration,
-  IntervalsTokenResponse,
 } from './types';
+import { intervalsTokenResponseSchema } from './types';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { HttpsError } from 'firebase-functions/v2/https';
 import type { CallableRequest } from 'firebase-functions/v2/https';
+import * as v from 'valibot';
 
 export const intervalsClientId = defineSecret('INTERVALS_CLIENT_ID');
 export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
@@ -51,7 +52,19 @@ export async function exchangeIntervalsTokenHandler(
     );
   }
 
-  const tokenResponse = (await response.json()) as IntervalsTokenResponse;
+  const parsed = v.safeParse(
+    intervalsTokenResponseSchema,
+    await response.json(),
+  );
+
+  if (!parsed.success) {
+    throw new HttpsError(
+      'internal',
+      'Intervals.icu returned an unexpected token response.',
+    );
+  }
+
+  const tokenResponse = parsed.output;
 
   const integration: IntervalsIntegration = {
     accessToken: tokenResponse.access_token,

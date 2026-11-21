@@ -103,6 +103,18 @@ module.exports = defineConfig([
     },
   },
   {
+    files: ['src/**/*.ts'],
+    ignores: ['**/__tests__/**'],
+    rules: {
+      // No type assertions (ADR 0014). scripts/check-no-comments.js, chained
+      // into root `npm run lint`, fails on any directive that disables this rule.
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'never' },
+      ],
+    },
+  },
+  {
     files: ['**/__tests__/**'],
     rules: {
       // A test fails loudly on a missing value, which is the check `!` skips.

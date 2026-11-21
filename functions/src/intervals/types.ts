@@ -1,21 +1,26 @@
-import type { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
+import * as v from 'valibot';
 
-export interface IntervalsIntegration {
-  accessToken: string;
-  athleteId: string;
-  athleteName: string;
-  scope: string;
-  connectedAt: Timestamp;
-}
+export const intervalsIntegrationSchema = v.object({
+  accessToken: v.string(),
+  athleteId: v.string(),
+  athleteName: v.string(),
+  scope: v.string(),
+  connectedAt: v.instance(Timestamp),
+});
 
-export interface IntervalsTokenResponse {
-  access_token: string;
-  scope: string;
-  athlete: {
-    id: string;
-    name: string;
-  };
-}
+export type IntervalsIntegration = v.InferOutput<
+  typeof intervalsIntegrationSchema
+>;
+
+export const intervalsTokenResponseSchema = v.object({
+  access_token: v.string(),
+  scope: v.string(),
+  athlete: v.object({
+    id: v.string(),
+    name: v.string(),
+  }),
+});
 
 export interface ExchangeIntervalsTokenData {
   code: string;
