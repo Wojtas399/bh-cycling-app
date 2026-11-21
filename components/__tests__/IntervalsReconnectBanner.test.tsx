@@ -26,7 +26,7 @@ jest.mock('@/hooks/useNeedsReconnect', () => ({
   useNeedsReconnect: jest.fn(),
 }));
 
-const mockUseNeedsReconnect = useNeedsReconnect as jest.Mock;
+const mockUseNeedsReconnect = jest.mocked(useNeedsReconnect);
 
 function renderBanner() {
   return render(

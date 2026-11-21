@@ -74,8 +74,8 @@ jest.mock('@/hooks/useIntervalsAuth', () => ({
   useIntervalsAuth: jest.fn(),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockUseIntervalsAuth = useIntervalsAuth as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseIntervalsAuth = jest.mocked(useIntervalsAuth);
 
 function renderScreen() {
   return render(
@@ -102,6 +102,7 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });

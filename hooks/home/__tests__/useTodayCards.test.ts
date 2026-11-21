@@ -28,9 +28,9 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockUseToday = useToday as jest.Mock;
-const mockGetWellness = getWellness as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseToday = jest.mocked(useToday);
+const mockGetWellness = jest.mocked(getWellness);
 
 const TODAY = '2026-11-02';
 
@@ -300,7 +300,7 @@ describe('useTodayCards', () => {
 
   it('shows neither values nor rows on a day without data, when every metric is null', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue({ ...NO_DATA, id: '2026-11-02' });
+    mockGetWellness.mockResolvedValue(NO_DATA);
 
     const { result } = await renderSettled();
 
