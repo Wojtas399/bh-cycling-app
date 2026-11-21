@@ -10,39 +10,39 @@ import type { ZoneTimes } from '../timeInZone';
 import type { WorkoutProfileSummary } from '../workoutDetails';
 import type { WorkoutBlock } from '../workoutProfile';
 
-/** Coggan zone edges at a 250 W FTP. */
-const EDGES_250 = [137.5, 187.5, 225, 262.5, 300, 375];
+const COGGAN_EDGES_AT_250_W_FTP = [137.5, 187.5, 225, 262.5, 300, 375];
 
 describe('niceCeiling', () => {
   it('tops out at the first zone edge above the peak, so the next zone shows as headroom', () => {
-    expect(niceCeiling(280, EDGES_250)).toBe(300);
+    expect(niceCeiling(280, COGGAN_EDGES_AT_250_W_FTP)).toBe(300);
   });
 
   it('skips past an edge the peak sits on', () => {
-    expect(niceCeiling(300, EDGES_250)).toBe(375);
+    expect(niceCeiling(300, COGGAN_EDGES_AT_250_W_FTP)).toBe(375);
   });
 
-  it('rounds 5% above the peak up to the next 10 when the next edge is more than 1.5× away', () => {
-    // A 100 W ride under a 137.5 W edge fits; under one twice as far it doesn't.
+  it('rounds 5% above the peak up to the next 10 when the next edge is more than 1.5× away, as 210 W is from 100 W', () => {
     expect(niceCeiling(100, [210, 300])).toBe(110);
     expect(niceCeiling(123, [210, 300])).toBe(130);
   });
 
   it('rounds 5% above the peak up to the next 10 past the last edge', () => {
-    expect(niceCeiling(620, EDGES_250)).toBe(660);
+    expect(niceCeiling(620, COGGAN_EDGES_AT_250_W_FTP)).toBe(660);
   });
 
   it('lands exactly on a multiple of 10 without overshooting it', () => {
-    // 200 × 1.05 is 210.00000000000003 in floating point.
     expect(niceCeiling(200, [])).toBe(210);
   });
 
+  it('ignores floating-point noise in the headroom, so a 333⅓ peak tops out at 350, not 360', () => {
+    expect(niceCeiling((340 / 102) * 100, [])).toBe(350);
+  });
+
   it('never collapses to zero, so the scale stays drawable', () => {
-    expect(niceCeiling(0, EDGES_250)).toBe(10);
+    expect(niceCeiling(0, COGGAN_EDGES_AT_250_W_FTP)).toBe(10);
   });
 });
 
-/** Coggan zones: edges at 55, 75, 90, 105, 120 and 150% FTP. */
 const COGGAN = resolveZoneConfig(null);
 
 const GAP = { minPct: 0, maxPct: 0, zone: 1 } as const;
@@ -98,25 +98,25 @@ describe('buildDetailedProfile', () => {
 
     expect(profile.planned?.segments).toEqual([
       {
-        start: 0,
-        end: 1800,
+        startSeconds: 0,
+        endSeconds: 1800,
         minPct: 60,
         maxPct: 60,
         minWatts: 150,
         maxWatts: 150,
-        low: 150,
-        high: 150,
+        lowOnScale: 150,
+        highOnScale: 150,
         zone: 2,
       },
       {
-        start: 1800,
-        end: 3600,
+        startSeconds: 1800,
+        endSeconds: 3600,
         minPct: 100,
         maxPct: 110,
         minWatts: 250,
         maxWatts: 275,
-        low: 250,
-        high: 275,
+        lowOnScale: 250,
+        highOnScale: 275,
         zone: 4,
       },
     ]);
@@ -140,25 +140,25 @@ describe('buildDetailedProfile', () => {
 
     expect(profile.recorded?.segments).toEqual([
       {
-        start: 0,
-        end: 900,
+        startSeconds: 0,
+        endSeconds: 900,
         minPct: 55,
         maxPct: 55,
         minWatts: null,
         maxWatts: null,
-        low: 55,
-        high: 55,
+        lowOnScale: 55,
+        highOnScale: 55,
         zone: 2,
       },
       {
-        start: 1800,
-        end: 2700,
+        startSeconds: 1800,
+        endSeconds: 2700,
         minPct: 98,
         maxPct: 98,
         minWatts: null,
         maxWatts: null,
-        low: 98,
-        high: 98,
+        lowOnScale: 98,
+        highOnScale: 98,
         zone: 4,
       },
     ]);
@@ -270,8 +270,7 @@ describe('buildDetailedProfile', () => {
       { widthFraction: 0.5, minPct: 100, maxPct: 110, zone: 4 },
     ] satisfies WorkoutBlock[];
 
-    it('is in watts, with dashed zone edges at the current FTP up to the first edge above the peak', () => {
-      // 110% of 250 W peaks at 275 W, under the 300 W Z5 edge.
+    it('is in watts, with dashed zone edges at the current FTP up to the first edge above the peak, the 300 W Z5 edge over a 275 W peak', () => {
       const profile = buildDetailedProfile(
         card({ planned: planned(PLAN_TO_110, 250) }),
         { zoneConfig: COGGAN, ftp: 250 },
@@ -284,8 +283,7 @@ describe('buildDetailedProfile', () => {
       });
     });
 
-    it("is shared by both strips, topped by the higher one's peak", () => {
-      // The ride peaks at 130% of its own 240 W FTP: 312 W, past the plan's 275 W.
+    it("is shared by both strips, topped by the higher one's peak: the ride's 312 W, 130% of its own 240 W FTP, past the plan's 275 W", () => {
       const profile = buildDetailedProfile(
         card({
           planned: planned(PLAN_TO_110, 250),
@@ -324,16 +322,16 @@ describe('buildDetailedProfile', () => {
         ceiling: 120,
         gridlines: [55, 75, 90, 105],
       });
-      // The ride keeps its watts, but sits on the scale in %FTP.
-      expect(profile.recorded?.segments[0]).toMatchObject({
+      const rideKeepingItsWattsOnAPctScale = profile.recorded?.segments[0];
+
+      expect(rideKeepingItsWattsOnAPctScale).toMatchObject({
         maxWatts: 228,
-        low: 95,
-        high: 95,
+        lowOnScale: 95,
+        highOnScale: 95,
       });
     });
 
-    it("draws no line at the top of the last zone, which isn't an edge between zones", () => {
-      // Coggan's Z7 runs from 150% to 200%; a 210% sprint sits in it all the same.
+    it("draws no line at the top of the last zone, which isn't an edge between zones, so a 210% sprint still sits in Coggan's Z7", () => {
       const profile = buildDetailedProfile(
         card({
           recorded: recorded(
@@ -351,8 +349,7 @@ describe('buildDetailedProfile', () => {
       });
     });
 
-    it('is in %FTP when there is no current FTP to draw the zone edges at', () => {
-      // Activity Details: the ride kept its FTP, but the athlete has none today.
+    it('is in %FTP when there is no current FTP to draw the zone edges at, as for a ride that kept its FTP on Activity Details', () => {
       const profile = buildDetailedProfile(
         card({
           recorded: recorded(
@@ -368,8 +365,7 @@ describe('buildDetailedProfile', () => {
   });
 
   describe('power', () => {
-    it("is each strip's peak and time-weighted average watts, rounded", () => {
-      // 1800 s at 150 W, then 1800 s at 250–275 W, read at its 262.5 W middle.
+    it("is each strip's peak and time-weighted average watts, rounded, a range read at its middle", () => {
       const profile = buildDetailedProfile(
         card({
           planned: planned(
@@ -532,13 +528,15 @@ describe('buildDetailedProfile time in zone', () => {
 });
 
 describe('axisLabels', () => {
-  it('labels zero, the ceiling and every gridline far enough from its neighbours', () => {
-    // 100 px for 375 W: 225 W and 300 W sit under 12 px from the labels below.
+  it('labels zero, the ceiling and every gridline far enough from its neighbours, dropping 225 W and 300 W, under 12 px from the labels below', () => {
+    const plotHeightPx = 100;
+    const minSpacingPx = 12;
+
     expect(
       axisLabels(
         { unit: 'watts', ceiling: 375, gridlines: [138, 188, 225, 263, 300] },
-        100,
-        12,
+        plotHeightPx,
+        minSpacingPx,
       ),
     ).toEqual([0, 138, 188, 263, 375]);
   });

@@ -32,6 +32,10 @@ _Avoid_: Unpaired workout details, activity mode
 The screen for one Note: its title, colour and dates, then its text as Note Markdown. A sibling of Workout Details and Activity Details, pushed from a Note's card on Home, the Calendar and the Calendar day sheet. It replaced the Note sheet, so a Note never opens in a sheet.
 _Avoid_: Note view, note page, Note sheet, Note Detail Sheet
 
+**Workout Profile**:
+The planned shape of a Cycling Workout's effort, drawn from its steps: a block for each step ridden, every rep of a Repeat included, as wide as its share of the Workout's time and as tall as its Power Target in %FTP, coloured by Power Zone. When the steps it can draw cover less than half the Workout's time, there is no Workout Profile, and the Workout shows its title and duration alone.
+_Avoid_: Workout graph, workout chart
+
 **Activity Profile**:
 The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.
 _Avoid_: Workout Profile, which is the planned shape
@@ -48,9 +52,25 @@ _Avoid_: Tooltip, crosshair
 A step whose power climbs or falls steadily from a start power to an end power. A Workout Profile draws it as a slope from start to end in the order it's ridden, the Scrub Readout reads its power along that slope, and it's coloured by the zone at its midpoint.
 _Avoid_: Range, which holds one band of power throughout
 
+**Power Target**:
+The power a Workout step asks for: a %FTP value, a %FTP range, a Ramp, or a whole Power Zone. A step with no %FTP reading, such as one targeted by heart rate, has no place in the Workout Profile.
+_Avoid_: Target power, intensity target
+
+**Repeat**:
+A run of Workout steps ridden a number of times in a row, such as 6 × (3 min on, 2 min off). Its length is the total of all its reps. The step list keeps it nested; the Workout Profile draws every rep.
+_Avoid_: Loop, set
+
+**Workout Doc**:
+Intervals.icu's parse of a Workout's plan into ordered steps, each with a length and its power, heart-rate or cadence targets, a Repeat arriving as one step with its reps and the steps of a single rep. Only a Cycling Workout's Workout Doc describes the session: on any other Workout the parser has taken lines of the plan for steps, so they mean nothing.
+_Avoid_: Step parse, workout structure
+
 **FTP**:
 The athlete's functional threshold power, in watts, from their Ride settings on Intervals.icu. Power zones and %FTP targets are fractions of it. A Workout's planned watts come from the current FTP; an Activity carries the FTP Intervals.icu used when it was ridden, and its recorded watts come from that one.
 _Avoid_: Threshold (alone)
+
+**Power Zone**:
+One of Z1 to Z7: a band of %FTP above the ceiling of the zone below, up to and including its own. The athlete's ceilings come from their Ride settings on Intervals.icu, or are Coggan's when they have no usable ones: 55, 75, 90, 105, 120, 150 and 200% FTP. Sweet Spot overlaps Z3 and Z4, so it is never a zone of its own.
+_Avoid_: Training zone, Sweet Spot zone
 
 **Intensity**:
 How hard a session is relative to FTP: Intervals.icu's intensity factor as a percentage (IF × 100). A Workout carries its planned Intensity, an Activity its recorded one, and each detected interval its average power as %FTP.
@@ -62,6 +82,10 @@ _Avoid_: Weighted average power
 
 **Variability Index**:
 How evenly an Activity was paced: Normalized Power divided by average power, so 1 is perfectly steady. Shown as VI.
+
+**Compliance**:
+How closely an Activity followed its paired Workout, as Intervals.icu's percentage. Workout Details shows it beside Plan vs wykonanie. An Activity has none until Intervals.icu calculates it, or when the athlete asked Intervals.icu to ignore it.
+_Avoid_: Adherence, match
 
 **Elapsed Time**:
 An Activity's time from start to finish, stops included. Moving time leaves the stops out.
