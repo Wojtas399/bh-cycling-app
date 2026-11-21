@@ -16,4 +16,9 @@ describe('getErrorCode', () => {
     expect(getErrorCode(undefined)).toBe('');
     expect(getErrorCode('boom')).toBe('');
   });
+
+  it('returns an empty string when the code is not a string', () => {
+    expect(getErrorCode({ code: 404 })).toBe('');
+    expect(getErrorCode({ code: null })).toBe('');
+  });
 });
