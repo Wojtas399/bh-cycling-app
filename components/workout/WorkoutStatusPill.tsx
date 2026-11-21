@@ -9,10 +9,6 @@ export interface WorkoutStatusPillProps {
   status: WorkoutStatus;
 }
 
-/**
- * The Workout Status as a pill: the same coloured dot as on Home and
- * Calendar, plus a label. A missed Workout's pill is tinted red.
- */
 export default function WorkoutStatusPill({ status }: WorkoutStatusPillProps) {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.status',

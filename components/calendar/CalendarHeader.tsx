@@ -17,33 +17,22 @@ const REFRESH_ICON_SIZE = 22;
 const NAV_BUTTON_SIZE = 36;
 const NAV_ICON_SIZE = 20;
 
-/** Groups the header's native glass controls; a plain view elsewhere. */
-const GlassGroup = liquidGlassAvailable ? GlassContainer : View;
+const NativeGlassGroupOrPlainView = liquidGlassAvailable
+  ? GlassContainer
+  : View;
 
 export interface CalendarHeaderProps {
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
-  /** The visible range, e.g. "Październik 2026". */
   title: string;
   onPrevious: () => void;
   onNext: () => void;
-  /** Shows the "Dziś" pill: the visible range doesn't contain today. */
   showTodayPill: boolean;
-  /** Goes back to the range containing today. */
   onToday: () => void;
   onRefresh: () => void;
-  /**
-   * `refreshing` swaps the button for a spinner; `disabled` is the first load,
-   * which a refresh would only duplicate.
-   */
   refreshStatus: CalendarRefreshStatus;
 }
 
-/**
- * The Calendar's two header rows: view toggle, "Dziś" pill + refresh, then
- * range navigation. The toggle, the pill and the nav buttons are chrome glass
- * in one glass group.
- */
 export default function CalendarHeader({
   view,
   onViewChange,
@@ -59,7 +48,7 @@ export default function CalendarHeader({
   const theme = useAppTheme();
 
   return (
-    <GlassGroup>
+    <NativeGlassGroupOrPlainView>
       <Box
         flexDirection="row"
         alignItems="center"
@@ -75,7 +64,7 @@ export default function CalendarHeader({
               onPress={onToday}
               hitSlop={{ top: 8, bottom: 8 }}
               accessibilityLabel={t('today')}
-              style={{
+              surfaceStyle={{
                 paddingHorizontal: theme.spacing.base,
                 paddingVertical: theme.spacing.sm,
               }}
@@ -130,7 +119,7 @@ export default function CalendarHeader({
         <Text variant="h3">{title}</Text>
         <NavButton icon="chevron-forward" label={t('next')} onPress={onNext} />
       </Box>
-    </GlassGroup>
+    </NativeGlassGroupOrPlainView>
   );
 }
 
@@ -149,7 +138,7 @@ function NavButton({ icon, label, onPress }: NavButtonProps) {
       onPress={onPress}
       hitSlop={4}
       accessibilityLabel={label}
-      style={{
+      surfaceStyle={{
         width: NAV_BUTTON_SIZE,
         height: NAV_BUTTON_SIZE,
         alignItems: 'center',

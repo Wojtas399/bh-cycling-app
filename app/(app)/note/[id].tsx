@@ -150,7 +150,7 @@ function NoteDetailsContent({
       </Box>
       <Box paddingHorizontal="md" marginTop="lg">
         {text ? (
-          <NoteMarkdown text={text} />
+          <NoteMarkdown textWithHtmlStripped={text} />
         ) : (
           <Text variant="body-l-regular" color="textSecondary">
             {t('empty')}

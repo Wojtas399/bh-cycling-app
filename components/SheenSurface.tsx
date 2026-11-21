@@ -9,13 +9,6 @@ type SheenSurfaceProps = Omit<
   'backgroundColor' | 'bg' | 'borderRadius'
 >;
 
-/**
- * A content card: a monochrome gradient from the top-left that melts into the
- * page at the bottom-right, with a hairline edge. Under Increase Contrast it
- * turns flat with a stronger edge. Takes Box layout props; the radius is
- * fixed. A data colour may replace the hairline (`borderColor`), as on an A
- * Race. Never nest one Sheen inside another.
- */
 export default function SheenSurface({ style, ...props }: SheenSurfaceProps) {
   const { colors } = useAppTheme();
   const { paint, hairlineStrong } = useSurfaceTreatment({ kind: 'sheen' });

@@ -13,10 +13,6 @@ export interface WorkoutComparisonCardProps {
   comparison: WorkoutComparison;
 }
 
-/**
- * Plan vs wykonanie: like-for-like rows with Plan, Wykonanie and Różnica
- * columns, and intervals.icu's compliance in the header when it has one.
- */
 export default function WorkoutComparisonCard({
   comparison,
 }: WorkoutComparisonCardProps) {

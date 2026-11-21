@@ -4,6 +4,7 @@ const path = require('node:path');
 const ts = require('typescript');
 
 const ENFORCED_PATHS = [
+  'components/',
   'hooks/',
   'lib/',
   'test-utils/__tests__/focus.test.ts',

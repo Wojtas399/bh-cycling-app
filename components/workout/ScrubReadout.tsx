@@ -7,29 +7,20 @@ import { ZONE_COLORS } from '@/components/WorkoutProfile';
 import { useAppTheme } from '@/constants/theme';
 import type { ProfileReadout } from '@/lib/profileReadout';
 
-/** Room for the strip's caption, so every reading starts in line. */
-const CAPTION_WIDTH = 80;
+const CAPTION_WIDTH_ALIGNING_READINGS = 80;
 
-/** Where a strip draws nothing at the pointer. */
-const NO_READING = '—';
+const NOTHING_DRAWN_AT_POINTER = '—';
 
 export interface ScrubReadoutProps {
   readout: ProfileReadout;
-  /** Hides the pointer, and with it the readout. */
-  onHide: () => void;
-  /** The card's: the readout is `{testID}-readout`. */
-  testID: string;
+  onHidePointer: () => void;
+  plotTestID: string;
 }
 
-/**
- * The scrub readout under the profile card: the pointer's time, then each
- * strip's zone and power there, or a dash where it draws nothing, captioned
- * when the card has more than one strip. "✕ Ukryj" hides it.
- */
 export default function ScrubReadout({
   readout: { time, strips },
-  onHide,
-  testID,
+  onHidePointer,
+  plotTestID,
 }: ScrubReadoutProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -40,7 +31,7 @@ export default function ScrubReadout({
       borderRadius="md"
       padding="sm"
       gap="xs"
-      testID={`${testID}-readout`}
+      testID={`${plotTestID}-readout`}
     >
       <Box
         flexDirection="row"
@@ -55,7 +46,7 @@ export default function ScrubReadout({
           {time}
         </Text>
         <Pressable
-          onPress={onHide}
+          onPress={onHidePointer}
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel={t('workoutDetails.readout.hide')}
@@ -71,7 +62,7 @@ export default function ScrubReadout({
             <Text
               variant="body-xs-medium"
               color="textSecondary"
-              style={{ width: CAPTION_WIDTH }}
+              style={{ width: CAPTION_WIDTH_ALIGNING_READINGS }}
             >
               {t(`workoutDetails.strip.${side}`)}
             </Text>
@@ -88,7 +79,7 @@ export default function ScrubReadout({
             </Text>
           ) : (
             <Text variant="body-xs-regular" color="textTertiary">
-              {NO_READING}
+              {NOTHING_DRAWN_AT_POINTER}
             </Text>
           )}
         </Box>

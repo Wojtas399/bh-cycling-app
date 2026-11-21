@@ -12,24 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 export interface ActivityTileProps {
   activity: UnplannedActivity;
-  /** Omitted where the surrounding screen already shows the day. */
   dayLabel?: string;
-  /**
-   * Opens the Activity's details. Ignored for a Strava Activity, which has
-   * none, so its tile is never a button.
-   */
   onPress?: () => void;
 }
 
-/**
- * Presentational card for an Unplanned Activity, styled like `WorkoutTile`:
- * a sport icon where a Workout has its status dot, the title and day label,
- * and a metrics line — e.g. `27m · 14,0 km · Obciążenie 26` — of whichever
- * metrics the Activity has. A Strava Activity has no name or sport, so it
- * reads "Aktywność ze Stravy" with a generic glyph. With `onPress` it's a
- * button, read by its content like a Workout tile; a Strava Activity's never
- * is.
- */
 export default function ActivityTile({
   activity,
   dayLabel,
@@ -80,7 +66,9 @@ export default function ActivityTile({
     </SheenSurface>
   );
 
-  if (!onPress || activity.isStravaActivity) return card;
+  const opensDetails = onPress && !activity.isStravaActivity;
+
+  if (!opensDetails) return card;
 
   return (
     <Pressable

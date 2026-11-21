@@ -18,38 +18,19 @@ import type { Race } from '@/lib/races';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarDaySheetProps {
-  /** Whether the sheet is open. */
   visible: boolean;
-  /**
-   * The day to draw. Kept after the sheet closes so the content stays put
-   * while it slides out; `null` only before the first open.
-   */
   day: CalendarDay | null;
   items: CalendarItem[];
-  /** The Notes covering the day, in `id` order. */
   notes: Note[];
-  /** The day has neither items nor Notes. */
   isEmpty: boolean;
   onClose: () => void;
-  /** Called once the sheet has fully left the screen. */
   onDismissed: () => void;
-  /** Opens a Workout's details; the caller dismisses the sheet. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
-  /** Opens an Activity's details; the caller dismisses the sheet. */
   onActivityPress: (activity: UnplannedActivity) => void;
-  /** Opens a Race; the caller swaps this sheet for the Race's. */
   onRacePress: (race: Race) => void;
-  /** Opens a Note; the caller swaps this sheet for the Note's. */
   onNotePress: (note: Note) => void;
 }
 
-/**
- * Bottom sheet with one day's items — its Races first, then its Workouts and
- * Unplanned Activities in one list — then a "Notatki" section of Note cards, scrollable when there
- * are several, or an empty-state message on a day with neither. Shows only
- * what it's given — the caller reads the day straight from data already on
- * screen.
- */
 export default function CalendarDaySheet({
   visible,
   day,
@@ -115,7 +96,7 @@ export default function CalendarDaySheet({
                 key={note.id}
                 note={note}
                 when={when}
-                showWhen={false}
+                showWhenBesideTitle={false}
                 subtitle={subtitle}
                 onPress={() => onNotePress(note)}
               />

@@ -35,7 +35,7 @@ export default function ActivityRouteMapScreen() {
           />
         ) : null
       }
-      missingMessage={t('routeMissing')}
+      missingRouteMessage={t('routeMissing')}
     />
   );
 }

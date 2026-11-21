@@ -5,20 +5,15 @@ import Text from '@/components/Text';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import WorkoutStatusPill from '@/components/workout/WorkoutStatusPill';
 import { daysSinceMonday } from '@/lib/calendarWorkouts';
-import { fromLocalDateString } from '@/lib/localDate';
+import { type LocalDateString, fromLocalDateString } from '@/lib/localDate';
 import type { WorkoutStatus } from '@/lib/workoutStatus';
 
 export interface WorkoutDetailsHeroProps {
   status: WorkoutStatus;
   title: string;
-  /** Local `YYYY-MM-DD` the Workout is scheduled on. */
-  date: string;
+  date: LocalDateString;
 }
 
-/**
- * The top of Workout Details, outside any card: status pill, title and date,
- * then the red "not done" banner when the Workout was missed.
- */
 export default function WorkoutDetailsHero({
   status,
   title,
