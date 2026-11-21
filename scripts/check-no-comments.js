@@ -3,19 +3,6 @@ const { existsSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
 
-const ENFORCED_PATHS = [
-  'app/',
-  'components/',
-  'hooks/',
-  'lib/',
-  'test-utils/__tests__/focus.test.ts',
-  'test-utils/__tests__/schemaIssues.test.ts',
-  'test-utils/__tests__/settle.test.ts',
-  'test-utils/focus.ts',
-  'test-utils/schemaIssues.ts',
-  'test-utils/settle.ts',
-];
-
 const EXCLUDED_GENERATED_PATHS = ['dist/', 'expo-env.d.ts'];
 
 const SCRIPT_KINDS = {
@@ -62,11 +49,9 @@ function commentRangesIn(fileName, text) {
   const collect = ranges =>
     ranges?.forEach(range => rangesByStart.set(range.pos, range));
   const visit = node => {
-    if (isJsDocNode(node)) {
-      return;
-    }
-
-    const children = node.getChildren(sourceFile);
+    const children = node
+      .getChildren(sourceFile)
+      .filter(child => !isJsDocNode(child));
 
     if (children.length > 0) {
       children.forEach(visit);
@@ -113,12 +98,8 @@ function isLintedSource(file) {
   );
 }
 
-function filesToCheck(trackedFiles, enforcedPaths) {
-  return trackedFiles.filter(
-    file =>
-      isLintedSource(file) &&
-      enforcedPaths.some(enforced => isUnder(file, enforced)),
-  );
+function filesToCheck(trackedFiles) {
+  return trackedFiles.filter(isLintedSource);
 }
 
 function main() {
@@ -129,7 +110,7 @@ function main() {
   })
     .split('\0')
     .filter(file => file && existsSync(path.join(repoRoot, file)));
-  const findings = filesToCheck(trackedFiles, ENFORCED_PATHS).flatMap(file =>
+  const findings = filesToCheck(trackedFiles).flatMap(file =>
     findBannedComments(
       file,
       readFileSync(path.join(repoRoot, file), 'utf8'),

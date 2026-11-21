@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (Spec: Ban explanatory comments from code)
+Accepted (Spec #422)
 
 ## Context
 
@@ -22,7 +22,7 @@ Agents write much of this app. When code feels odd, an agent tends to explain it
 - **A comment that won't refactor away is a design problem.** It never gets deleted with its reason moved into the commit. The PR lists it under Merge Danger, and the owner decides before merge.
 - **Generated and vendored files are excluded by path, never by a header.** The check script keeps one path exclusion list, mirrored in ESLint's `ignores`. Adding a path is an ordinary PR, which names the generator or upstream the file comes from. Excluded paths never hold hand-written code. A repo LICENSE file isn't TS/JS and isn't affected.
 - **Enforcement.**
-  - `scripts/check-no-comments.js` reads every leading and trailing comment range with TypeScript's scanner, skipping JSX text. It fails on any comment that isn't one of the two directive forms. It runs once, from root's `npm run lint`, over the root and `functions/src`, so CI runs it. It reads tracked files only and has no off switch.
+  - `scripts/check-no-comments.js` reads every leading and trailing comment range with TypeScript's scanner, skipping JSX text. It fails on any comment that isn't one of the two directive forms. It runs once, from root's `npm run lint`, over every tracked TS and JS file in the root and `functions/src`, minus `*.config.*` files and the exclusion list, so CI runs it. There is no list of enforced paths and no off switch.
   - ESLint backs it in the editor: `eslint-comments/require-description` with `ignore: []`, and `@typescript-eslint/ban-ts-comment` with `ts-expect-error: 'allow-with-description'` and the other directives `true`.
 
 ### Considered and rejected
@@ -35,6 +35,6 @@ Agents write much of this app. When code feels odd, an agent tends to explain it
 
 ## Consequences
 
-- Removing comments is refactoring, one directory per PR, never a bulk delete.
+- Removing the comments was refactoring, one directory per slice, never a bulk delete.
 - Reading old reasoning now means `git blame` → PR, an ADR or a test name.
 - A comment-shaped need that none of the above fits takes an ADR amendment, never a disable.
