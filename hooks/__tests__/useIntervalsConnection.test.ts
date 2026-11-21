@@ -1,7 +1,12 @@
 import { useIntervalsConnection } from '../useIntervalsConnection';
 import { act, renderHook } from '@testing-library/react-native';
 
-const mockOnSnapshot = jest.fn();
+type SnapshotListener = (
+  snapshot: { data: () => Record<string, unknown> | undefined } | null,
+  error?: Error,
+) => void;
+
+const mockOnSnapshot = jest.fn<() => void, [onNext: SnapshotListener]>();
 const mockDoc = jest.fn(() => ({ onSnapshot: mockOnSnapshot }));
 let mockCurrentUser: { uid: string } | null = { uid: 'user-1' };
 
@@ -11,9 +16,7 @@ jest.mock('@/lib/firebase', () => ({
 }));
 
 async function emitSnapshot(data: Record<string, unknown> | undefined) {
-  const onNext = mockOnSnapshot.mock.calls[0][0] as (snapshot: {
-    data: () => Record<string, unknown> | undefined;
-  }) => void;
+  const onNext = mockOnSnapshot.mock.calls[0][0];
 
   await act(() => {
     onNext({ data: () => data });
@@ -116,10 +119,7 @@ describe('useIntervalsConnection', () => {
   it('does not crash and reports not connected when the snapshot listener errors', async () => {
     const { result } = await renderHook(() => useIntervalsConnection());
 
-    const onNext = mockOnSnapshot.mock.calls[0][0] as (
-      snapshot: null,
-      error: Error,
-    ) => void;
+    const onNext = mockOnSnapshot.mock.calls[0][0];
 
     await act(() => {
       onNext(null, new Error('permission-denied'));

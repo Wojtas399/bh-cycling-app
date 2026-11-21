@@ -10,6 +10,10 @@ import { formatDuration, formatSpokenDuration } from '../formatDuration';
 import type { Race } from '../races';
 import type { WorkoutBlock } from '../workoutProfile';
 import type { CalendarWorkout } from '../workoutStatus';
+import {
+  unplannedActivity,
+  unplannedStravaActivity,
+} from '@/test-utils/calendarItems';
 
 const STRAVA_TITLE = 'Aktywność ze Stravy';
 
@@ -18,29 +22,16 @@ const BLOCKS: WorkoutBlock[] = [
   { widthFraction: 0.5, minPct: 90, maxPct: 90, zone: 3 },
 ];
 
-function activity(overrides: Partial<UnplannedActivity> = {}): CalendarItem {
-  return {
-    kind: 'activity',
-    activity: {
-      id: 'a1',
-      date: '2026-11-14',
-      name: 'Dojazd do pracy',
-      type: 'Ride',
-      ...overrides,
-    } as UnplannedActivity,
-  };
+function activity(
+  overrides: Parameters<typeof unplannedActivity>[0] = {},
+): CalendarItem {
+  return { kind: 'activity', activity: unplannedActivity(overrides) };
 }
 
-function strava(overrides: Partial<UnplannedActivity> = {}): CalendarItem {
-  return {
-    kind: 'activity',
-    activity: {
-      id: 'a2',
-      date: '2026-11-14',
-      isStravaActivity: true,
-      ...overrides,
-    } as UnplannedActivity,
-  };
+function strava(
+  overrides: Parameters<typeof unplannedStravaActivity>[0] = {},
+): CalendarItem {
+  return { kind: 'activity', activity: unplannedStravaActivity(overrides) };
 }
 
 function race(
@@ -70,19 +61,22 @@ const RACED: UnplannedActivity = {
   load: 209.7,
 };
 
-function workout(overrides: Partial<CalendarWorkout> = {}): CalendarItem {
+function calendarWorkout(
+  overrides: Partial<CalendarWorkout> = {},
+): CalendarWorkout {
   return {
-    kind: 'workout',
-    workout: {
-      id: 1,
-      name: 'Sweet spot 3×12',
-      date: '2026-11-14',
-      status: 'planned',
-      blocks: [],
-      completedWithStravaActivity: false,
-      ...overrides,
-    },
+    id: 1,
+    name: 'Sweet spot 3×12',
+    date: '2026-11-14',
+    status: 'planned',
+    blocks: [],
+    completedWithStravaActivity: false,
+    ...overrides,
   };
+}
+
+function workout(overrides: Partial<CalendarWorkout> = {}): CalendarItem {
+  return { kind: 'workout', workout: calendarWorkout(overrides) };
 }
 
 describe('compactItemRow', () => {
@@ -120,12 +114,10 @@ describe('compactItemRow', () => {
 
     it('never gets a load, even from a completed Workout carrying one', () => {
       const withLoad = {
-        ...workout({ status: 'completed', durationSeconds: 3600 }),
-      } as CalendarItem & { kind: 'workout' };
-      const item = {
-        ...withLoad,
-        workout: { ...withLoad.workout, load: 80 },
-      } as CalendarItem;
+        ...calendarWorkout({ status: 'completed', durationSeconds: 3600 }),
+        load: 80,
+      };
+      const item: CalendarItem = { kind: 'workout', workout: withLoad };
 
       expect(compactItemRow(item, STRAVA_TITLE)).not.toHaveProperty('load');
     });

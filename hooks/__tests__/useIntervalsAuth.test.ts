@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Alert, type AlertButton } from 'react-native';
 
 import { useIntervalsAuth } from '../useIntervalsAuth';
 import { useIntervalsConnection } from '../useIntervalsConnection';
@@ -60,9 +60,7 @@ async function confirmDisconnect(
     result.current.handleDisconnect();
   });
 
-  const buttons = mockAlert.mock.calls[0][2] as {
-    onPress?: () => void | Promise<void>;
-  }[];
+  const buttons = alertButtons();
 
   await act(async () => {
     await buttons[1].onPress?.();
@@ -74,6 +72,14 @@ async function confirmDisconnect(
 const mockToast = jest.mocked(toast);
 const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+function alertButtons(): AlertButton[] {
+  const buttons = mockAlert.mock.calls[0][2];
+
+  if (!buttons) throw new Error('The alert was shown without buttons.');
+
+  return buttons;
+}
 
 describe('useIntervalsAuth', () => {
   beforeEach(() => {
@@ -305,10 +311,7 @@ describe('useIntervalsAuth', () => {
 
       expect(mockAlert).toHaveBeenCalledTimes(1);
 
-      const buttons = mockAlert.mock.calls[0][2] as {
-        text: string;
-        onPress?: () => void | Promise<void>;
-      }[];
+      const buttons = alertButtons();
       const confirmButton = buttons[1];
 
       await act(async () => {
@@ -360,10 +363,7 @@ describe('useIntervalsAuth', () => {
         result.current.handleDisconnect();
       });
 
-      const buttons = mockAlert.mock.calls[0][2] as {
-        text: string;
-        onPress?: () => void | Promise<void>;
-      }[];
+      const buttons = alertButtons();
       const cancelButton = buttons[0];
 
       expect(cancelButton.onPress).toBeUndefined();

@@ -1,10 +1,11 @@
-import type { IntervalsActivity } from '../intervalsApi';
+import type { IntervalsActivity, IntervalsActivityMap } from '../intervalsApi';
 import {
   activityHasRoute,
   simplifyRoutePoints,
   summariseRoute,
   toRoute,
 } from '../route';
+import { readIntervalsBody } from '@/test-utils/intervalsJson';
 
 function activity(
   overrides: Partial<IntervalsActivity> = {},
@@ -204,16 +205,15 @@ describe('toRoute', () => {
   });
 
   it('computes the bounds when the response bounds are malformed', () => {
-    const route = toRoute({
-      latlngs: [
-        [LAT, 21.0],
-        [LAT + 0.001, 21.002],
-      ],
-      bounds: [[LAT, Number.NaN]] as unknown as [
-        [number, number],
-        [number, number],
-      ],
-    });
+    const route = toRoute(
+      readIntervalsBody<IntervalsActivityMap>({
+        latlngs: [
+          [LAT, 21.0],
+          [LAT + 0.001, 21.002],
+        ],
+        bounds: [[LAT, null]],
+      }),
+    );
 
     expect(route?.bounds).toEqual([
       [LAT, 21.0],
