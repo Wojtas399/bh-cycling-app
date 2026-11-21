@@ -10,6 +10,10 @@ import type {
   IntervalsCalendarEvent,
 } from '../intervalsApi';
 import { resolveZoneConfig } from '../powerZones';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+} from '@/test-utils/intervalsJson';
 
 function event(
   overrides: Partial<IntervalsCalendarEvent>,
@@ -23,8 +27,10 @@ function event(
   };
 }
 
-function activity(overrides: Partial<IntervalsActivity>): IntervalsActivity {
-  return {
+function activity(
+  overrides: Partial<IntervalsJson<IntervalsActivity>>,
+): IntervalsActivity {
+  return fromIntervalsJson<IntervalsActivity>({
     id: 'a1',
     name: 'Zwift',
     type: 'VirtualRide',
@@ -33,7 +39,7 @@ function activity(overrides: Partial<IntervalsActivity>): IntervalsActivity {
     distance: 14000,
     icu_training_load: 26,
     ...overrides,
-  };
+  });
 }
 
 const ZONE_CONFIG = resolveZoneConfig();
@@ -644,8 +650,8 @@ describe('joinCalendarItems', () => {
   it.each([
     ['type', { type: undefined }],
     ['name', { name: undefined }],
-    ['type (null)', { type: null as unknown as undefined }],
-    ['name (null)', { name: null as unknown as undefined }],
+    ['type (null)', { type: null }],
+    ['name (null)', { name: null }],
   ])(
     'lists an Activity missing only its %s as a Strava Activity',
     (_field, overrides) => {

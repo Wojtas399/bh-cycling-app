@@ -10,18 +10,22 @@ import {
   notesOverlapping,
   toNotes,
 } from '../notes';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+} from '@/test-utils/intervalsJson';
 
 function event(
-  overrides: Partial<IntervalsCalendarEvent>,
+  overrides: Partial<IntervalsJson<IntervalsCalendarEvent>>,
 ): IntervalsCalendarEvent {
-  return {
+  return fromIntervalsJson<IntervalsCalendarEvent>({
     id: 1,
     category: 'NOTE',
     name: 'Wolne',
     start_date_local: '2026-10-20T00:00:00',
     end_date_local: '2026-10-21T00:00:00',
     ...overrides,
-  };
+  });
 }
 
 function note(overrides: Partial<Note>): Note {
@@ -83,18 +87,18 @@ describe('toNotes', () => {
       name: '',
       description: '  \n ',
       color: '',
-    } as unknown as Partial<IntervalsCalendarEvent>;
+    } satisfies Partial<IntervalsCalendarEvent>;
     const missing = {
       name: null,
       description: null,
       color: null,
-    } as unknown as Partial<IntervalsCalendarEvent>;
+    } satisfies Partial<IntervalsJson<IntervalsCalendarEvent>>;
 
     const absent = {
       name: undefined,
       description: undefined,
       color: undefined,
-    } as unknown as Partial<IntervalsCalendarEvent>;
+    } satisfies Partial<IntervalsCalendarEvent>;
 
     expect(
       toNotes([

@@ -5,20 +5,17 @@ import type {
 } from 'react-native';
 
 import { useScrolledUnderHeader } from '../useScrolledUnderHeader';
+import { layoutEvent, scrollEvent } from '@/test-utils/reactNative';
 import { act, renderHook } from '@testing-library/react-native';
 
 const HEADER_HEIGHT = 100;
 
 function layout(y: number, height: number): LayoutChangeEvent {
-  return {
-    nativeEvent: { layout: { x: 0, y, width: 320, height } },
-  } as LayoutChangeEvent;
+  return layoutEvent({ x: 0, y, width: 320, height });
 }
 
 function scroll(y: number): NativeSyntheticEvent<NativeScrollEvent> {
-  return {
-    nativeEvent: { contentOffset: { x: 0, y } },
-  } as NativeSyntheticEvent<NativeScrollEvent>;
+  return scrollEvent({ x: 0, y });
 }
 
 async function renderScrolled() {

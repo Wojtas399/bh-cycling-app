@@ -7,6 +7,11 @@ import {
 } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+  readIntervalsBody,
+} from '@/test-utils/intervalsJson';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -52,9 +57,9 @@ function mockConnected() {
 
 /** An Activity as `GET /activity/{id}?intervals=true` returns it. */
 function activity(
-  overrides: Partial<IntervalsActivity> = {},
+  overrides: Partial<IntervalsJson<IntervalsActivity>> = {},
 ): IntervalsActivity {
-  return {
+  return fromIntervalsJson<IntervalsActivity>({
     id: ACTIVITY_ID,
     name: 'Popołudniowa jazda',
     type: 'Ride',
@@ -62,13 +67,13 @@ function activity(
     moving_time: 5520,
     distance: 48_200,
     ...overrides,
-  };
+  });
 }
 
 /** The fields set to `null`, as intervals.icu sends a value it doesn't have. */
 function nulls(
   ...fields: (keyof IntervalsActivity)[]
-): Partial<IntervalsActivity> {
+): Partial<IntervalsJson<IntervalsActivity>> {
   return Object.fromEntries(fields.map(field => [field, null]));
 }
 
@@ -158,7 +163,7 @@ describe('useActivityDetails', () => {
       ['blank', ' \n '],
       ['empty', ''],
       ['missing', undefined],
-      ['null', null as unknown as undefined],
+      ['null', null],
     ])(
       'has no title when the name is %s, so the screen can fall back to the sport',
       async (_, name) => {
@@ -332,7 +337,7 @@ describe('useActivityDetails', () => {
         activity({
           moving_time: 2400,
           distance: 7100,
-          icu_average_watts: null as unknown as undefined,
+          icu_average_watts: null,
           average_heartrate: 152,
           elapsed_time: 2460,
         }),
@@ -452,7 +457,7 @@ describe('useActivityDetails', () => {
 
     it.each([
       ['missing', undefined],
-      ['null', null as unknown as undefined],
+      ['null', null],
     ])('is null when the paired event id is %s', async (_, paired_event_id) => {
       const details = await shownDetailsOf(activity({ paired_event_id }));
 
@@ -469,7 +474,7 @@ describe('useActivityDetails', () => {
 
     it.each([
       ['missing', undefined],
-      ['null', null as unknown as undefined],
+      ['null', null],
       ['zero', 0],
     ])('is null when it is %s', async (_, icu_ftp) => {
       const details = await shownDetailsOf(activity({ icu_ftp }));
@@ -512,13 +517,13 @@ describe('useActivityDetails', () => {
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
       // The body intervals.icu returns for a Strava Activity, as verified.
-      const strava = {
+      const strava = readIntervalsBody<IntervalsActivity>({
         id: '20679555658',
         icu_athlete_id: 'athlete-1',
         start_date_local: '2026-10-14T18:00:00',
         source: 'STRAVA',
         _note: 'STRAVA activities are not available via the API',
-      } as unknown as IntervalsActivity;
+      });
 
       expect(await detailsOf(strava)).toEqual({ isStravaActivity: true });
     });
@@ -542,7 +547,7 @@ describe('useActivityDetails', () => {
     it('keeps only the agreed fields of the body, and of each interval', async () => {
       // A slice of the ~71 KB body: the fields Activity Details needs, plus
       // a sample of the ones it doesn't.
-      const body = {
+      const body = readIntervalsBody<IntervalsActivity>({
         id: ACTIVITY_ID,
         name: 'Popołudniowa jazda',
         type: 'Ride',
@@ -594,7 +599,7 @@ describe('useActivityDetails', () => {
         icu_zone_times: [{ id: 'Z1', secs: 900 }],
         interval_summary: ['1x 1h28m 279w'],
         icu_power_hr_z2: 1.4,
-      } as unknown as IntervalsActivity;
+      });
 
       mockConnected();
       mockGetActivity.mockResolvedValue(body);
@@ -639,13 +644,15 @@ describe('useActivityDetails', () => {
 
     it('keeps no field the body leaves out', async () => {
       mockConnected();
-      mockGetActivity.mockResolvedValue({
-        id: ACTIVITY_ID,
-        type: 'WeightTraining',
-        start_date_local: '2026-10-21T07:30:00',
-        moving_time: 3480,
-        icu_intervals: [],
-      } as unknown as IntervalsActivity);
+      mockGetActivity.mockResolvedValue(
+        readIntervalsBody<IntervalsActivity>({
+          id: ACTIVITY_ID,
+          type: 'WeightTraining',
+          start_date_local: '2026-10-21T07:30:00',
+          moving_time: 3480,
+          icu_intervals: [],
+        }),
+      );
 
       const { result, client } = await renderDetails();
 
@@ -664,13 +671,15 @@ describe('useActivityDetails', () => {
 
     it('stores a Strava Activity as an explicit marker, with nothing of its body', async () => {
       mockConnected();
-      mockGetActivity.mockResolvedValue({
-        id: '20679555658',
-        icu_athlete_id: 'athlete-1',
-        start_date_local: '2026-10-14T18:00:00',
-        source: 'STRAVA',
-        _note: 'STRAVA activities are not available via the API',
-      } as unknown as IntervalsActivity);
+      mockGetActivity.mockResolvedValue(
+        readIntervalsBody<IntervalsActivity>({
+          id: '20679555658',
+          icu_athlete_id: 'athlete-1',
+          start_date_local: '2026-10-14T18:00:00',
+          source: 'STRAVA',
+          _note: 'STRAVA activities are not available via the API',
+        }),
+      );
 
       const { result, client } = await renderDetails();
 

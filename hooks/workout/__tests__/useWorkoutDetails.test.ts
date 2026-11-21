@@ -14,6 +14,10 @@ import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { resolveRideSettings } from '@/lib/rideSettings';
 import type { WorkoutStep } from '@/lib/workoutProfile';
+import {
+  type IntervalsJson,
+  fromIntervalsJson,
+} from '@/test-utils/intervalsJson';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -82,9 +86,9 @@ function event(
 }
 
 function activity(
-  overrides: Partial<IntervalsActivity> = {},
+  overrides: Partial<IntervalsJson<IntervalsActivity>> = {},
 ): IntervalsActivity {
-  return {
+  return fromIntervalsJson<IntervalsActivity>({
     id: 'i1',
     name: 'Morning ride',
     type: 'Ride',
@@ -92,7 +96,7 @@ function activity(
     moving_time: 3600,
     distance: 30_000,
     ...overrides,
-  };
+  });
 }
 
 function renderDetails() {
@@ -758,7 +762,9 @@ describe('useWorkoutDetails', () => {
   });
 
   describe('completed mode: activity metrics', () => {
-    async function metricsFor(activityOverrides: Partial<IntervalsActivity>) {
+    async function metricsFor(
+      activityOverrides: Partial<IntervalsJson<IntervalsActivity>>,
+    ) {
       mockConnected();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockResolvedValue([
@@ -813,7 +819,7 @@ describe('useWorkoutDetails', () => {
         moving_time: 3500,
         distance: 32_000,
         icu_average_watts: 190,
-        average_heartrate: null as unknown as undefined,
+        average_heartrate: null,
       });
 
       expect(metrics).toEqual([
