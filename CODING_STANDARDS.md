@@ -72,7 +72,7 @@ For reviewers:
 
 ## Write no type assertions
 
-`x as T`, `as unknown as T` and `<T>x` are banned in all linted code, tests and `e2e/` included ([ADR 0014](docs/adr/0014-no-type-assertions.md)). Only `lib/typed.ts`, `test-utils/**` and `functions/test-utils/**` may assert. `as const` and `satisfies` stay allowed. No disable comment can hide an assertion: the comment check fails on any directive that names `@typescript-eslint/consistent-type-assertions`, even with a reason. `npm run lint` fails on all of them, in CI too.
+`x as T`, `as unknown as T` and `<T>x` are banned in all linted code, tests and `e2e/` included ([ADR 0014](docs/adr/0014-no-type-assertions.md)). Only `lib/typed.ts`, `test-utils/**` and `functions/test-utils/**` ([ADR 0015](docs/adr/0015-functions-test-utils-may-assert.md)) may assert. `as const` and `satisfies` stay allowed. No disable comment can hide an assertion: the comment check fails on any directive that names `@typescript-eslint/consistent-type-assertions`, even with a reason. `npm run lint` fails on all of them, in CI too.
 
 | You want to…                                       | Do this                                                                                                                                       | Example                                                                                                                                                  |
 | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
