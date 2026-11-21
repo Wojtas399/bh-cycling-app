@@ -1,15 +1,12 @@
 const pl = {
   common: {
     back: 'Wstecz',
-    /** The button out of a screen with nothing to show. */
     goBack: 'Wróć',
     close: 'Zamknij',
     showPassword: 'Pokaż hasło',
     hidePassword: 'Ukryj hasło',
-    /** A Strava Activity's label: intervals.icu doesn't share its name. */
     stravaActivity: 'Aktywność ze Stravy',
   },
-  // Validation messages shared across forms (ADR 0006).
   validation: {
     emailRequired: 'Podaj adres e-mail.',
     emailInvalid: 'Podaj prawidłowy adres e-mail.',
@@ -117,7 +114,6 @@ const pl = {
     about: {
       title: 'O aplikacji',
       version: 'Wersja',
-      /** The Version row's subtitle on a downloaded OTA update. */
       update: 'Aktualizacja {{id}} · {{date}}',
       privacyPolicy: 'Polityka prywatności',
       termsOfService: 'Regulamin',
@@ -186,37 +182,27 @@ const pl = {
       generic: 'Nie udało się usunąć konta. Spróbuj ponownie.',
     },
   },
-  /** Fitness, Fatigue and Form: Home's Fitness card and the chart share these. */
   fitness: {
-    /** Labels, by `FitnessDay` key. */
     labels: {
       fitness: 'Fitness',
       fatigue: 'Zmęczenie',
       form: 'Forma',
       load: 'Obciążenie',
     },
-    /** The screen-reader label while the values load. */
     loading: 'Wczytywanie Fitness',
-    /** The Home card on a day without values. */
     noValueToday: 'Brak danych na dziś.',
-    /** The Home card's link to the chart screen. */
     seeMore: 'Zobacz więcej',
-    /** The Home card's screen-reader button label: its values and where it leads. */
     cardLabel:
       'Fitness {{fitness}}, Zmęczenie {{fatigue}}, Forma {{form}}. Otwiera ekran Fitness i zmęczenie',
-    /** The same on a day without values. */
     cardLabelNoValue: 'Brak danych na dziś. Otwiera ekran Fitness i zmęczenie',
     chart: {
       title: 'Fitness i zmęczenie',
-      /** The readout's date for today. */
       today: 'Dziś',
-      /** By `FitnessRange`. */
       ranges: {
         '6w': '6 tygodni',
         '3m': '3 miesiące',
         '1y': 'rok',
       },
-      /** No day in the year has values. */
       empty: 'Brak danych Fitness z Intervals.icu.',
       error: 'Nie udało się wczytać danych Fitness.',
       retry: 'Spróbuj ponownie',
@@ -225,10 +211,8 @@ const pl = {
   home: {
     wellness: {
       title: 'Wellness',
-      /** The loading card's screen-reader label. */
       loading: 'Wczytywanie Wellness',
       empty: 'Brak danych na dziś.',
-      /** Row labels, by `WellnessRow` key. */
       rows: {
         readiness: 'Gotowość',
         sleep: 'Sen',
@@ -238,20 +222,16 @@ const pl = {
         restingHr: 'Tętno spocz.',
       },
     },
-    /** The next-race card at the top of Home. */
     nextRace: {
       eyebrow: 'Następny wyścig',
-      /** The countdown as drawn: "Dziś", "Jutro", else the number over "dni". */
       today: 'Dziś',
       tomorrow: 'Jutro',
       days: 'dni',
-      /** The card's screen-reader label; `when` is one of `when.*`. */
       accessibilityLabel:
         'Najbliższy wyścig: {{priority}}, {{name}}, {{when}}. Otwiera szczegóły wyścigu',
       when: {
         today: 'dziś',
         tomorrow: 'jutro',
-        /** Every count but 1 takes "dni", and 1 is "jutro". */
         days: 'za {{days}} dni',
       },
     },
@@ -263,12 +243,9 @@ const pl = {
     },
   },
   note: {
-    /** The title of a Note without a name. */
     untitled: 'Notatka',
     empty: 'Brak treści',
-    /** A Note button's screen-reader label. */
     accessibilityLabel: 'Notatka: {{title}}, {{when}}',
-    /** Monday first, like the Calendar's weekdays. */
     weekdaysShort: ['pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.', 'niedz.'],
     monthsShort: [
       'sty',
@@ -295,17 +272,13 @@ const pl = {
     loading: 'Wczytywanie notatki',
   },
   race: {
-    /** A Race Priority as shown and spoken: "Wyścig A". */
     priority: 'Wyścig {{priority}}',
-    /** Read on a paired Race's tile: "Wyścig A: {name}, {sport}, ukończony, …". */
     completed: 'ukończony',
-    /** The Race Detail Sheet's rows. */
     sport: 'Sport',
     date: 'Termin',
     duration: 'Planowany czas',
     distance: 'Planowany dystans',
   },
-  /** An Activity's sport, by `sportLabel(type)`. */
   sport: {
     ride: 'Jazda rowerem',
     run: 'Bieg',
@@ -315,7 +288,6 @@ const pl = {
     rowing: 'Wiosłowanie',
     winter: 'Sporty zimowe',
     yoga: 'Joga i pilates',
-    /** A sport `sportLabel` doesn't know. */
     other: 'Aktywność',
   },
   activityTile: {
@@ -326,16 +298,12 @@ const pl = {
     weekly: 'Tygodniowy',
     previous: 'Poprzedni',
     next: 'Następny',
-    /** The header pill that goes back to today's month or week. */
     today: 'Dziś',
     refresh: 'Odśwież',
     error: 'Nie udało się wczytać kalendarza.',
     emptyDay: 'Brak treningów w tym dniu.',
-    /** The day sheet's section of Note cards. */
     notes: 'Notatki',
-    /** A month-grid day's screen-reader summary, after the day's label. */
     dayCounts: {
-      /** A lone Race; several read as `races`, never "1 wyścig: A". */
       race: 'wyścig {{priority}}',
       races_few: '{{count}} wyścigi: {{priorities}}',
       races_many: '{{count}} wyścigów: {{priorities}}',
@@ -353,27 +321,19 @@ const pl = {
       notes_many: '{{count}} notatek',
       notes_other: '{{count}} notatki',
     },
-    /** The week view's date rail and its compact item rows. */
     week: {
-      /** Today's rail as a screen reader reads it: "Sobota, 14 listopada, dziś". */
       today: '{{day}}, dziś',
-      /** What double-tapping a rail does. */
       opensDay: 'Otwiera dzień',
-      /** A day with no Workouts, Activities or Races. */
       rest: 'Odpoczynek',
-      /** A day's Note rows past the first 2, as the row shows them. */
       moreNotes_one: '+{{count}} notatka',
       moreNotes_few: '+{{count}} notatki',
       moreNotes_many: '+{{count}} notatek',
       moreNotes_other: '+{{count}} notatki',
-      /** The same row as a screen reader reads it. */
       moreNotesLabel_one: 'Jeszcze {{count}} notatka',
       moreNotesLabel_few: 'Jeszcze {{count}} notatki',
       moreNotesLabel_many: 'Jeszcze {{count}} notatek',
       moreNotesLabel_other: 'Jeszcze {{count}} notatki',
-      /** An Activity's or paired Race's load, as a row shows it. */
       load: 'Obc. {{load}}',
-      /** A row's screen-reader label opens with what it is and its status. */
       workout: {
         completed: 'Trening wykonany',
         planned: 'Trening zaplanowany',
@@ -382,10 +342,8 @@ const pl = {
       activity: 'Aktywność',
       race: 'Wyścig {{priority}}',
       racePaired: 'Wyścig {{priority}} wykonany',
-      /** A duration as spoken in a row's label: "1 godz. 15 min". */
       hours: '{{hours}} godz.',
       minutes: '{{minutes}} min',
-      /** A load as spoken in a row's label. */
       loadSpoken: 'obciążenie {{load}}',
     },
     monthNames: [
@@ -402,7 +360,6 @@ const pl = {
       'Listopad',
       'Grudzień',
     ],
-    /** Month names as they read after a day number: "5 października". */
     monthNamesGenitive: [
       'stycznia',
       'lutego',
@@ -417,7 +374,6 @@ const pl = {
       'listopada',
       'grudnia',
     ],
-    /** Monday first, matching the grid's columns. */
     weekdays: [
       'Poniedziałek',
       'Wtorek',
@@ -440,33 +396,21 @@ const pl = {
       'Ten trening nie został wykonany — brak sparowanej aktywności.',
     profileLabel:
       'Profil treningu: {{duration}}, {{steps}}, maks. {{peak}}% FTP. {{power}}',
-    /**
-     * A profile strip's power, the last sentence of its label: in watts, or
-     * in %FTP when the strip has no FTP.
-     */
     profilePower: {
       watts: 'Moc szczytowa {{peak}} W, średnia {{average}} W',
       ftpPct: 'Moc szczytowa {{peak}}% FTP, średnia {{average}}% FTP',
     },
-    /** The plan above the recorded Activity Profile, in one card. */
     comparedProfilesLabel: 'Plan i wykonanie. {{planned}}. {{recorded}}',
-    /** Captions over the two strips of a completed Workout's profile card. */
     strip: {
       planned: 'Plan',
       recorded: 'Wykonanie',
     },
-    /** The scrub readout under the profile card. */
     readout: {
-      /** Hides the scrub pointer and the readout. */
       hide: 'Ukryj',
     },
-    /** The time-in-zone rows under the profile card. */
     timeInZone: {
-      /** A row as a screen reader reads it, on a card with one strip. */
       row: 'Strefa {{zone}}: {{time}}',
-      /** A row with the plan's time and the ride's. */
       comparedRow: 'Strefa {{zone}}: plan {{planned}}, wykonanie {{recorded}}',
-      /** Says which bar and time is which when a row has both, as "40m / 38m". */
       legend: 'Plan (blady pasek) / wykonanie',
     },
     steps_one: '{{count}} krok',
@@ -488,7 +432,6 @@ const pl = {
     error: 'Nie udało się wczytać treningu.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie treningu',
-    /** The full-screen map of a Workout with no Route. */
     routeMissing: 'Ten trening nie ma zapisanej trasy.',
     comparison: {
       title: 'Plan vs wykonanie',
@@ -522,7 +465,6 @@ const pl = {
         variabilityIndex: 'VI',
       },
     },
-    /** Wykonanie for a Workout completed by a Strava Activity. */
     stravaActivity: {
       title: 'Wykonanie',
       startTime: 'Rozpoczęta o {{time}}',
@@ -540,9 +482,7 @@ const pl = {
     },
     description: 'Opis',
   },
-  /** An Activity's Route, shared by Workout Details and Activity Details. */
   route: {
-    /** The banner at the top of a details screen. */
     title: 'Trasa',
     titleWithDistance: 'Trasa, {{distance}}',
     showMap: 'Pokaż mapę',
@@ -551,7 +491,6 @@ const pl = {
     error: 'Nie udało się wczytać trasy.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie trasy',
-    /** The full-screen Route map. */
     map: {
       label: 'Mapa trasy',
       labelWithDistance: 'Mapa trasy, {{distance}}',
@@ -564,9 +503,7 @@ const pl = {
   },
   activityDetails: {
     title: 'Aktywność',
-    /** The Race header's screen-reader label: "Wyścig A: {name}. Otwiera …". */
     raceHeader: '{{priority}}: {{name}}. Otwiera szczegóły wyścigu',
-    /** The card of the Activity's summary metrics. */
     summary: 'Podsumowanie',
     profileLabel:
       'Profil aktywności: {{duration}}, {{segments}}, maks. {{peak}}% FTP. {{power}}',
@@ -578,7 +515,6 @@ const pl = {
       title: 'Aktywność nie istnieje',
       body: 'Ta aktywność mogła zostać usunięta z Intervals.icu.',
     },
-    /** A Strava Activity, which intervals.icu can't share. */
     unavailable: {
       title: 'Aktywność niedostępna',
       body: 'To aktywność ze Stravy. Intervals.icu nie udostępnia jej szczegółów innym aplikacjom.',
@@ -586,7 +522,6 @@ const pl = {
     error: 'Nie udało się wczytać aktywności.',
     retry: 'Spróbuj ponownie',
     loading: 'Wczytywanie aktywności',
-    /** The full-screen map of an Activity with no Route. */
     routeMissing: 'Ta aktywność nie ma zapisanej trasy.',
   },
   intervals: {
@@ -614,7 +549,6 @@ const pl = {
       message: 'Połączenie z Intervals.icu wygasło.',
       action: 'Połącz ponownie',
     },
-    /** Asks once for the Wellness scope that Fitness and Wellness are read with. */
     wellnessScopePrompt: {
       message:
         'Połącz ponownie Intervals.icu i zezwól na dostęp do Wellness, aby zobaczyć Fitness i Wellness.',

@@ -13,17 +13,18 @@ const CYAN = '#64D2FF';
 const NEAR_BLACK_SRGB = 'srgb:0.03922,0.03922,0.03922,1.00000';
 const ANDROID_SAFE_ZONE_SCALE = 72 / 108;
 const PNG_COLOR_TYPE_RGB = 2;
-const RIBBON_LENGTH = 2.4;
+const RIBBON_LENGTH_PAST_SCALED_EDGES = 2.4;
 const RIBBON_CENTER_X = 0.8;
-// Text, because the .icon SVGs commit this spelling byte for byte.
-const RIBBON_PIVOT = '.78';
+const RIBBON_PIVOT_AS_COMMITTED_SVG_TEXT = '.78';
 const GAP_STRIP = { y: 0.665, height: 0.23 };
 const RIBBON_STRIP = { y: 0.69, height: 0.18 };
 const GAP_MASK_ID = 'g';
 const LABEL_MASK_ID = 't';
 const VARIANTS = ['production', 'staging', 'dev'];
-// The Dev build is internal distribution only, so it has no Play listing.
-const STORE_VARIANTS = ['production', 'staging'];
+const INTERNAL_DISTRIBUTION_ONLY_VARIANTS = ['dev'];
+const PLAY_LISTED_VARIANTS = VARIANTS.filter(
+  variant => !INTERNAL_DISTRIBUTION_ONLY_VARIANTS.includes(variant),
+);
 
 const stripOuterSvg = svg =>
   svg.replace(/^[\s\S]*?<svg[^>]*>|<\/svg>\s*$/g, '');
@@ -38,9 +39,7 @@ const readLabel = file =>
     fs.readFileSync(path.join(ROOT, `assets/icon-source/${file}`), 'utf8'),
   ).replace(/<defs\/>/g, '');
 
-// Non-production variants carry a corner ribbon. Dev differs from staging by
-// colour as well as by label, so the two read apart at home-screen size.
-const RIBBONS = {
+const CORNER_RIBBONS = {
   staging: { label: readLabel('stg-label.svg'), fill: YELLOW },
   dev: { label: readLabel('dev-label.svg'), fill: CYAN },
 };
@@ -60,15 +59,17 @@ const inAndroidSafeZone = contents => {
   return `<g transform="translate(${center} ${center}) scale(${ANDROID_SAFE_ZONE_SCALE}) translate(-${center} -${center})">${contents}</g>`;
 };
 
-// Long enough to pass every edge even after the Android layer scales it down.
 const diagonalStrip = (fill, { y, height }) =>
-  `<g transform="scale(${CANVAS_SIZE})"><rect transform="rotate(-45 ${RIBBON_PIVOT} ${RIBBON_PIVOT})" x="${RIBBON_CENTER_X - RIBBON_LENGTH / 2}" y="${y}" width="${RIBBON_LENGTH}" height="${height}" fill="${fill}"/></g>`;
+  `<g transform="scale(${CANVAS_SIZE})"><rect transform="rotate(-45 ${RIBBON_PIVOT_AS_COMMITTED_SVG_TEXT} ${RIBBON_PIVOT_AS_COMMITTED_SVG_TEXT})" x="${RIBBON_CENTER_X - RIBBON_LENGTH_PAST_SCALED_EDGES / 2}" y="${y}" width="${RIBBON_LENGTH_PAST_SCALED_EDGES}" height="${height}" fill="${fill}"/></g>`;
 
 const gap = fill => diagonalStrip(fill, GAP_STRIP);
 const ribbon = fill => diagonalStrip(fill, RIBBON_STRIP);
 
 const withCutOut = (id, contents, cutOut) =>
   `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}"><rect width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" fill="#fff"/>${cutOut}</mask></defs><g mask="url(#${id})">${contents}</g>`;
+
+const withCutOutBleedingPastSafeZone = (id, contents, cutOut) =>
+  withCutOut(id, inAndroidSafeZone(contents), inAndroidSafeZone(cutOut));
 
 const markClearOfRibbon = withCutOut(GAP_MASK_ID, mark, gap('#000'));
 
@@ -78,20 +79,13 @@ const ribbonedTile = ({ label, fill }) =>
   ribbon(fill) +
   label.replace(/fill="#000"/g, `fill="${NEAR_BLACK}"`);
 
-// Themed icons drop colour, so a ribboned variant has to differ by shape. The
-// ribbon mask sits outside the safe-zone scale: inside it, the mask region
-// would crop the ribbon at the safe zone instead of letting it bleed.
-const ribbonedSilhouette = ({ label }) =>
+const ribbonedSilhouetteWithLabelCutOut = ({ label }) =>
   inAndroidSafeZone(markClearOfRibbon) +
-  withCutOut(
-    LABEL_MASK_ID,
-    inAndroidSafeZone(ribbon('#FFF')),
-    inAndroidSafeZone(label),
-  );
+  withCutOutBleedingPastSafeZone(LABEL_MASK_ID, ribbon('#FFF'), label);
 
 const mapRibbons = f =>
   Object.fromEntries(
-    Object.entries(RIBBONS).map(([variant, spec]) => [variant, f(spec)]),
+    Object.entries(CORNER_RIBBONS).map(([variant, spec]) => [variant, f(spec)]),
   );
 
 const TILE = {
@@ -101,7 +95,7 @@ const TILE = {
 
 const ANDROID_SILHOUETTE = {
   production: inAndroidSafeZone(mark),
-  ...mapRibbons(ribbonedSilhouette),
+  ...mapRibbons(ribbonedSilhouetteWithLabelCutOut),
 };
 
 const opaqueTile = variant => canvas(onNearBlack(TILE[variant]));
@@ -127,7 +121,7 @@ const PNG_OUTPUTS = [
       opaque: false,
     },
   ]),
-  ...STORE_VARIANTS.map(variant => ({
+  ...PLAY_LISTED_VARIANTS.map(variant => ({
     path: `assets/store/play-icon-${variant}.png`,
     svg: opaqueTile(variant),
     width: 512,
@@ -204,22 +198,20 @@ const writeOutput = (relativePath, contents) => {
   fs.writeFileSync(target, contents);
 };
 
-const renderPng = async ({ svg, width, opaque }) => {
-  const png = new Resvg(svg, { fitTo: { mode: 'width', value: width } })
-    .render()
-    .asPng();
-
-  if (!opaque) {
-    return png;
-  }
-
-  // rgba(false) writes an RGB header over RGBA data. sips accepts that PNG, but
-  // it decodes as garbage.
+const reencodeAsRgbPng = async png => {
   const image = await Jimp.read(png);
 
   image.colorType(PNG_COLOR_TYPE_RGB);
 
   return image.getBufferAsync('image/png');
+};
+
+const renderPng = async ({ svg, width, opaque }) => {
+  const png = new Resvg(svg, { fitTo: { mode: 'width', value: width } })
+    .render()
+    .asPng();
+
+  return opaque ? reencodeAsRgbPng(png) : png;
 };
 
 const generate = async () => {
@@ -239,4 +231,8 @@ const generate = async () => {
   }
 };
 
-generate();
+if (require.main === module) {
+  generate();
+}
+
+module.exports = { renderPng };

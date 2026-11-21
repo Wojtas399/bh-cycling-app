@@ -35,41 +35,35 @@ const palette = {
   transparent: 'transparent' as const,
 };
 
+const pageColor = palette.black;
+
 const theme = createTheme({
   colors: {
     ...palette,
 
-    // Semantic — backgrounds
-    bgPrimary: palette.black,
+    bgPrimary: pageColor,
     bgTertiary: palette.gray900,
 
-    // Semantic — text
     textPrimary: palette.gray100,
     textSecondary: palette.gray500,
     textTertiary: palette.gray700,
     textInverse: palette.black,
 
-    // Semantic — borders
     borderDefault: '#2C2C2E',
     borderStrong: palette.gray800,
 
-    // Semantic — overlays
     overlay: 'rgba(0, 0, 0, 0.6)',
 
-    // Semantic — surfaces. Sheen ends on the page colour so cards melt into it.
     sheenFrom: '#1E1E20',
-    sheenTo: palette.black,
+    sheenTo: pageColor,
     hairline: 'rgba(255, 255, 255, 0.08)',
     hairlineStrong: 'rgba(255, 255, 255, 0.30)',
     glassTint: 'rgba(18, 18, 20, 0.85)',
-    // Placeholders and code inside a Sheen card: fainter than any control.
     insetFill: 'rgba(255, 255, 255, 0.04)',
 
-    // Semantic — interactive
     interactiveDefault: palette.white,
     interactiveHover: palette.gray100,
 
-    // Status
     success: palette.green,
     successDim: palette.greenDim,
     warning: palette.orange,
@@ -78,15 +72,12 @@ const theme = createTheme({
     accent: palette.blue,
     neutral: palette.gray600,
 
-    // Workout states
     workoutPlanned: palette.zone1,
     workoutDone: palette.green,
     workoutMissed: palette.red,
 
-    // Races: one fixed red, never the Race's own Intervals.icu colour
     race: palette.raceRed,
 
-    // Fitness chart series, in intervals.icu's colours
     chartFitness: palette.blue,
     chartFatigue: palette.purple,
     chartForm: palette.yellow,
@@ -147,7 +138,6 @@ const theme = createTheme({
   },
 
   textVariants: {
-    // Headings
     display: {
       fontFamily: 'Inter-Bold',
       fontSize: 40,
@@ -177,7 +167,6 @@ const theme = createTheme({
       color: 'textPrimary',
     },
 
-    // Body — extra-large
     'body-xl-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 18,
@@ -186,7 +175,6 @@ const theme = createTheme({
       color: 'textPrimary',
     },
 
-    // Body — large (16px)
     'body-l-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 16,
@@ -202,7 +190,6 @@ const theme = createTheme({
       color: 'textPrimary',
     },
 
-    // Body — small (14px)
     'body-s-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 14,
@@ -218,7 +205,6 @@ const theme = createTheme({
       color: 'textPrimary',
     },
 
-    // Body — extra-small (12px)
     'body-xs-regular': {
       fontFamily: 'Inter-Regular',
       fontSize: 12,

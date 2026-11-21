@@ -1,6 +1,6 @@
 import {
   FROST_PLAIN,
-  FROST_PLAIN_STRONG_FILL,
+  FROST_PLAIN_INCREASE_CONTRAST_FILL,
   FROST_PROMINENT,
 } from '@/constants/surfaces';
 import theme from '@/constants/theme';
@@ -104,7 +104,7 @@ export function resolveSurfaceTreatment(
   if (increaseContrast) {
     return {
       paint: 'frost',
-      fill: FROST_PLAIN_STRONG_FILL,
+      fill: FROST_PLAIN_INCREASE_CONTRAST_FILL,
       hairline: colors.hairlineStrong,
       topEdge: FROST_PLAIN.topEdge,
     };

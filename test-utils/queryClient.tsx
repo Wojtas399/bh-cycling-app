@@ -4,10 +4,6 @@ import { createQueryClient } from '@/lib/queryClient';
 import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react-native';
 
-/**
- * The app-configured client, minus mutation garbage collection: its 5-minute
- * timers would otherwise keep Jest from exiting.
- */
 export function createTestQueryClient(): QueryClient {
   const client = createQueryClient();
   const defaults = client.getDefaultOptions();
@@ -20,11 +16,6 @@ export function createTestQueryClient(): QueryClient {
   return client;
 }
 
-/**
- * RNTL's `renderHook` inside a `QueryClientProvider`. Each call gets a fresh
- * test client unless one is passed; it's returned so tests can seed or inspect
- * the cache.
- */
 export async function renderHookWithClient<Result>(
   callback: () => Result,
   { client = createTestQueryClient() }: { client?: QueryClient } = {},
