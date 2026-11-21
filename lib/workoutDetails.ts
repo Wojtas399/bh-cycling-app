@@ -15,6 +15,7 @@ import { type RouteSummary, summariseRoute } from './route';
 import { isStravaActivity, stravaActivityUrl } from './stravaActivity';
 import { stripNoteHtml } from './stripNoteHtml';
 import { type ZoneTimes, planZoneTimes } from './timeInZone';
+import { entries, fromEntries } from './typed';
 import {
   type WorkoutBlock,
   type WorkoutStep,
@@ -244,7 +245,9 @@ function buildPlanMetrics(event: IntervalsCalendarEvent): WorkoutPlanMetrics {
 function withoutAbsentMetrics<
   T extends Record<string, number | null | undefined>,
 >(metrics: T): { [K in keyof T]?: number } {
-  return Object.fromEntries(
-    Object.entries(metrics).filter(([, value]) => isFiniteNumber(value)),
-  ) as { [K in keyof T]?: number };
+  return fromEntries(
+    entries(metrics).flatMap(([key, value]) =>
+      isFiniteNumber(value) ? [[key, value] as const] : [],
+    ),
+  );
 }
