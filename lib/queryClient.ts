@@ -15,7 +15,7 @@ export function createQueryClient(): QueryClient {
     queryCache: new QueryCache({
       onError: error => {
         if (error instanceof IntervalsAuthError) {
-          ignoreFailure(handleIntervalsAuthError(client));
+          ignoreFailure(() => handleIntervalsAuthError(client));
         }
       },
     }),

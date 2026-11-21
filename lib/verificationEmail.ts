@@ -16,5 +16,5 @@ export async function sendVerificationEmail(
 ): Promise<void> {
   sentAt = Date.now();
   listeners.notify();
-  await ignoreFailure(user.sendEmailVerification());
+  await ignoreFailure(() => user.sendEmailVerification());
 }

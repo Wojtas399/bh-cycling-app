@@ -35,7 +35,7 @@ function refreshIdTokenToCarryNewAuthTime() {
 }
 
 function signOutOfGoogleSoThePickerShowsAgain() {
-  return ignoreFailure(GoogleSignin.signOut());
+  return ignoreFailure(() => GoogleSignin.signOut());
 }
 
 export function useDeleteAccount() {

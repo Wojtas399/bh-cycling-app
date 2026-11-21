@@ -161,4 +161,13 @@ describe('useVerifyEmail', () => {
 
     await expect(hook.result.current.handleSignOut()).resolves.toBeUndefined();
   });
+
+  it('resolves when signing out throws before returning a promise, since the user has nothing to act on', async () => {
+    mockSignOut.mockImplementation(() => {
+      throw new Error('sign-out failed');
+    });
+    const hook = await openWithNoRecentSend();
+
+    await expect(hook.result.current.handleSignOut()).resolves.toBeUndefined();
+  });
 });
