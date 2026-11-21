@@ -6,6 +6,8 @@ import { useAppTheme } from '@/constants/theme';
 import type { AppTheme } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
+export const ICON_TILE_SIZE = 28;
+
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type IconColor = Extract<
   keyof AppTheme['colors'],
@@ -88,8 +90,8 @@ export default function SettingsRow({
         style={{ minHeight: 44 }}
       >
         <Box
-          width={28}
-          height={28}
+          width={ICON_TILE_SIZE}
+          height={ICON_TILE_SIZE}
           borderRadius="md"
           alignItems="center"
           justifyContent="center"

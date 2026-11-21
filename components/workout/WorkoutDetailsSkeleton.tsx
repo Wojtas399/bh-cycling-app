@@ -5,16 +5,10 @@ import SkeletonBar from '@/components/SkeletonBar';
 import ProfileCardSkeleton from '@/components/workout/ProfileCardSkeleton';
 import WorkoutDetailsCard from '@/components/workout/WorkoutDetailsCard';
 
-/**
- * Placeholder of the Workout Details layout while the Workout loads. Activity
- * Details shares the layout and passes its own `label`. The header bars sit on
- * the page; the cards are Sheen, with their bars on `insetFill`.
- */
 export default function WorkoutDetailsSkeleton({
-  label,
+  loadingLabel,
 }: {
-  /** The screen reader's loading label, the Workout's by default. */
-  label?: string;
+  loadingLabel?: string;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
 
@@ -22,7 +16,7 @@ export default function WorkoutDetailsSkeleton({
     <Box
       gap="md"
       accessible
-      accessibilityLabel={label ?? t('loading')}
+      accessibilityLabel={loadingLabel ?? t('loading')}
       accessibilityState={{ busy: true }}
       testID="workout-details-skeleton"
     >

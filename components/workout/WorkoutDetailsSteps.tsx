@@ -15,10 +15,6 @@ export interface WorkoutDetailsStepsProps {
   steps: WorkoutDetailsStep[];
 }
 
-/**
- * The Kroki list: every step of the Workout in order, repeats as bordered
- * groups with their steps indented. Read-only; rows aren't interactive.
- */
 export default function WorkoutDetailsSteps({
   steps,
 }: WorkoutDetailsStepsProps) {

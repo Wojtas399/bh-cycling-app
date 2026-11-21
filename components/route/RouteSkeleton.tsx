@@ -3,10 +3,6 @@ import type { StyleProp, ViewStyle } from 'react-native';
 
 import Box from '@/components/Box';
 
-/**
- * The placeholder a Route map holds while the Route loads, announced as
- * loading. The caller sizes it.
- */
 export default function RouteSkeleton({
   style,
 }: {

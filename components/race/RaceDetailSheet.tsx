@@ -17,11 +17,6 @@ export interface RaceDetailSheetProps {
   sheet: RaceSheetController;
 }
 
-/**
- * The sheet showing one Race, read-only: its name, its priority drawn as on
- * the tile, the sport, when it is, the planned duration and distance, and
- * the description as Note Markdown. A field the Race lacks isn't shown.
- */
 export default function RaceDetailSheet({ sheet }: RaceDetailSheetProps) {
   const { t } = useTranslation();
   const dateLabels = useNoteDateLabels();
@@ -60,7 +55,7 @@ export default function RaceDetailSheet({ sheet }: RaceDetailSheetProps) {
 
           {description ? (
             <Box marginTop="base">
-              <NoteMarkdown text={description} />
+              <NoteMarkdown textWithHtmlStripped={description} />
             </Box>
           ) : null}
         </>
@@ -69,7 +64,6 @@ export default function RaceDetailSheet({ sheet }: RaceDetailSheetProps) {
   );
 }
 
-/** A label-left, value-right row, with a hairline above all but the first. */
 function Row({
   label,
   first = false,

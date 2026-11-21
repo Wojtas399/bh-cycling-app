@@ -12,12 +12,6 @@ import { raceTileMeta } from '@/lib/raceLabels';
 import type { Race } from '@/lib/races';
 import { sportLabel } from '@/lib/sportIcon';
 
-/**
- * The countdown to the next Race at the top of Home: a big red "Dziś",
- * "Jutro" or number over "dni" on the left; the eyebrow, the name, and the
- * rank icon with "Wyścig X", the date and the meta on the right. It looks the
- * same for every priority but the icon. One button opening the Race.
- */
 export default function NextRaceCard({
   next: { race, countdown },
   onPress,

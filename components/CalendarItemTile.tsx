@@ -7,24 +7,12 @@ import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 export interface CalendarItemTileProps {
   item: CalendarItem;
-  /** Omitted where the surrounding screen already shows the day. */
   dayLabel?: string;
-  /** Opens a Workout's details. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
-  /**
-   * Opens an Activity's details, including a paired Race's Activity. A Strava
-   * Activity's tile isn't tappable.
-   */
   onActivityPress: (activity: UnplannedActivity) => void;
-  /** Opens an unpaired Race's sheet. */
   onRacePress: (race: Race) => void;
 }
 
-/**
- * The tile for one day item: a Workout with its status, a Race ranked by its
- * priority, or an Activity. A paired Race opens its Activity, an unpaired one
- * its sheet.
- */
 export default function CalendarItemTile({
   item,
   dayLabel,

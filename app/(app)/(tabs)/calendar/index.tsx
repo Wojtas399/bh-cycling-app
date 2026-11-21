@@ -192,7 +192,11 @@ function CalendarLayout({
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <CalendarBody state={bodyState(query)} fill={fill} header={header}>
+      <CalendarBody
+        state={bodyState(query)}
+        fillWithoutScrollOrPadding={fill}
+        header={header}
+      >
         {({ itemsByDate, notes }) =>
           children({
             itemsByDate,

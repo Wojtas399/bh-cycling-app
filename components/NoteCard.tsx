@@ -11,27 +11,16 @@ import { Ionicons } from '@expo/vector-icons';
 
 export interface NoteCardProps {
   note: Note;
-  /** When the Note applies, e.g. "Dziś", as the card shows and announces it. */
   when: string;
-  /**
-   * Whether `when` shows beside the title. Off where the day is already on
-   * screen (the day sheet), which still announces it.
-   */
-  showWhen?: boolean;
-  /** A muted line under the title, e.g. a multi-day Note's range. */
+  showWhenBesideTitle?: boolean;
   subtitle?: string;
   onPress: () => void;
 }
 
-/**
- * A title-only card for one Note, in `WorkoutTile`'s card language: the title
- * (or "Notatka"), an optional subtitle, when it applies and a chevron.
- * Tapping it opens the Note.
- */
 export default function NoteCard({
   note,
   when,
-  showWhen = true,
+  showWhenBesideTitle = true,
   subtitle,
   onPress,
 }: NoteCardProps) {
@@ -63,7 +52,7 @@ export default function NoteCard({
             </Text>
           ) : null}
         </Box>
-        {showWhen ? (
+        {showWhenBesideTitle ? (
           <Text variant="body-s-regular" color="textSecondary" marginLeft="sm">
             {when}
           </Text>

@@ -72,7 +72,7 @@ export default function ActivityDetailsScreen() {
   }
 
   function body() {
-    const skeleton = <WorkoutDetailsSkeleton label={t('loading')} />;
+    const skeleton = <WorkoutDetailsSkeleton loadingLabel={t('loading')} />;
 
     if (availability === 'loading') return skeleton;
 
@@ -169,7 +169,7 @@ function ActivityDetailsContent({
 
       <ActivityDetailsHero
         title={details.title}
-        type={details.type}
+        sportType={details.type}
         startLocal={details.startLocal}
       />
 
@@ -181,7 +181,7 @@ function ActivityDetailsContent({
           <WorkoutDetailsCard>
             <DetailedProfileCard
               source={profile}
-              testID="activity-details-profile"
+              plotTestID="activity-details-profile"
             />
           </WorkoutDetailsCard>
         )

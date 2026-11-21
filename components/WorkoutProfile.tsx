@@ -12,20 +12,12 @@ import {
 } from '@/lib/profileBars';
 import type { WorkoutBlock } from '@/lib/workoutProfile';
 
-/** Default height of the plot area. Tall enough to read a shape, short enough for a tile. */
-const DEFAULT_PROFILE_HEIGHT = 48;
+const TILE_PROFILE_HEIGHT = 48;
 
-/** Hairline between neighbouring blocks, so repeated efforts stay countable. */
-const BLOCK_GAP = 2;
+const BLOCK_GAP_KEEPING_REPEATS_COUNTABLE = 2;
 
-/**
- * How visible the cap is against its solid fill. Enough to read the range as
- * part of the same effort, faint enough that the eye still lands on `minPct` —
- * the power the athlete is actually asked to hold.
- */
-const CAP_OPACITY = 0.4;
+export const RANGE_CAP_OPACITY = 0.4;
 
-/** Theme colour of each zone, shared with anything else coloured by zone. */
 export const ZONE_COLORS: Record<Zone, keyof AppTheme['colors']> = {
   1: 'zone1',
   2: 'zone2',
@@ -37,34 +29,23 @@ export const ZONE_COLORS: Record<Zone, keyof AppTheme['colors']> = {
 };
 
 export interface WorkoutProfileProps {
-  /** The profile's blocks, in time order. */
   blocks: WorkoutBlock[];
-  /** Height of the plot area in points. Defaults to the tile's 48. */
   height?: number;
 }
 
-/**
- * Draws a Workout Profile: one bar per block, in time order, its width its
- * share of the session and its height the power it asks for. A block with a
- * range is drawn solid up to `minPct` and capped to `maxPct`, so the bar states
- * the floor of the effort and hints at its ceiling. A ramp is a solid slope
- * from the power it starts at to the power it ends at, in ridden order.
- *
- * Purely presentational — it knows the block model and the theme, and nothing
- * about intervals.icu, FTP watts, or how the blocks were parsed. It fills the
- * width it's given, and draws once that width is laid out.
- */
 export default function WorkoutProfile({
   blocks,
-  height = DEFAULT_PROFILE_HEIGHT,
+  height = TILE_PROFILE_HEIGHT,
 }: WorkoutProfileProps) {
   const { colors, borderRadii } = useAppTheme();
   const [width, setWidth] = useState(0);
 
-  const bars = profileBars(blocks, { width, height, gap: BLOCK_GAP });
+  const bars = profileBars(blocks, {
+    width,
+    height,
+    gap: BLOCK_GAP_KEEPING_REPEATS_COUNTABLE,
+  });
 
-  // Nothing to scale against, and nothing to draw: an empty profile, or one
-  // whose every block sits on the floor.
   if (bars.length === 0) return null;
 
   return (
@@ -92,7 +73,6 @@ export default function WorkoutProfile({
   );
 }
 
-/** One bar of the profile, drawn by its shape. */
 function BarShape({
   bar,
   bottom,
@@ -104,7 +84,6 @@ function BarShape({
   color: string;
   radius: number;
 }) {
-  // A slope has no flat top to round, so a ramp is drawn square.
   if (bar.shape === 'ramp' && bar.ramp) {
     const points = rampPolygonPoints({
       x: bar.x,
@@ -124,11 +103,15 @@ function BarShape({
     return <Path d={top(bar.floorY)} fill={color} />;
   }
 
-  // The rounded cap runs to the floor beneath the solid fill, which covers its
-  // lower part, so only the range above shows faintly.
+  const capDownToFloorUnderSolidFill = top(bar.capY);
+
   return (
     <>
-      <Path d={top(bar.capY)} fill={color} opacity={CAP_OPACITY} />
+      <Path
+        d={capDownToFloorUnderSolidFill}
+        fill={color}
+        opacity={RANGE_CAP_OPACITY}
+      />
       <Rect
         x={bar.x}
         y={bar.floorY}

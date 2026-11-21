@@ -27,7 +27,7 @@ export default function WorkoutRouteMapScreen() {
           />
         ) : null
       }
-      missingMessage={t('routeMissing')}
+      missingRouteMessage={t('routeMissing')}
     />
   );
 }

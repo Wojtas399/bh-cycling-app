@@ -33,8 +33,8 @@ The screen for one Note: its title, colour and dates, then its text as Note Mark
 _Avoid_: Note view, note page, Note sheet, Note Detail Sheet
 
 **Workout Profile**:
-The planned shape of a Cycling Workout's effort, drawn from its steps: a block for each step ridden, every rep of a Repeat included, as wide as its share of the Workout's time and as tall as its Power Target in %FTP, coloured by Power Zone. When the steps it can draw cover less than half the Workout's time, there is no Workout Profile, and the Workout shows its title and duration alone.
-_Avoid_: Workout graph, workout chart
+The planned shape of a Cycling Workout's effort, drawn from its steps: a block for each step ridden, every rep of a Repeat included, as wide as its share of the Workout's time and as tall as its Power Target in %FTP, coloured by Power Zone. A step with a power range is solid up to its floor, the power the athlete is asked to hold, and faint up to its ceiling. A Ramp is a slope. When the steps it can draw cover less than half the Workout's time, there is no Workout Profile, and the Workout shows its title and duration alone.
+_Avoid_: Workout graph, workout chart, Activity Profile, which is the recorded shape
 
 **Activity Profile**:
 The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.

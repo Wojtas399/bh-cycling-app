@@ -8,24 +8,13 @@ import type { SurfacePlacement } from '@/lib/surfaceTreatment';
 const HEIGHT = 56;
 
 interface ButtonProps {
-  /**
-   * `primary` is the screen's main action: near-white glass, so its label
-   * uses `textInverse`. `secondary` is clear glass with a light label.
-   */
   variant: 'primary' | 'secondary';
-  /**
-   * `content` when the button scrolls with content; `chrome` when it stays
-   * put in the chrome layer.
-   */
   placement: SurfacePlacement;
   onPress: () => void;
-  /** Fades the button and ignores presses, e.g. while its action runs. */
   disabled?: boolean;
-  /** The label, an icon and a label, or a spinner, in a centred row. */
   children: ReactNode;
 }
 
-/** A full-width glass pill button. */
 export default function Button({
   variant,
   placement,
@@ -42,7 +31,7 @@ export default function Button({
         prominent={variant === 'primary'}
         disabled={disabled}
         onPress={onPress}
-        style={{
+        surfaceStyle={{
           height: HEIGHT,
           flexDirection: 'row',
           alignItems: 'center',

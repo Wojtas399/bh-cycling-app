@@ -19,12 +19,7 @@ import { useSurfaceTreatment } from '@/hooks/useSurfaceTreatment';
 import { DarkGlassView } from '@/lib/liquidGlass';
 import type { SurfacePlacement } from '@/lib/surfaceTreatment';
 
-/**
- * Every paint keeps a 1px edge (transparent on native glass), so a control
- * measures the same on every platform. A bare segment next to a glass one
- * takes the same transparent edge to line up with it.
- */
-export const GLASS_EDGE: ViewStyle = {
+export const EDGE_MEASURING_ALIKE_ON_EVERY_PAINT: ViewStyle = {
   borderWidth: 1,
   borderColor: 'transparent',
 };
@@ -33,37 +28,20 @@ type GlassControlProps = Omit<
   PressableProps,
   'style' | 'children' | 'disabled'
 > & {
-  /**
-   * `content` for a control that scrolls with content, which is Frost on
-   * every platform; `chrome` for one that stays put in the chrome layer, such
-   * as in a sticky header or over the map.
-   */
   placement: SurfacePlacement;
-  /** The main action or the selected segment: near-white, for `textInverse`. */
   prominent?: boolean;
-  /** Fades the control to 40% and ignores presses. */
   disabled?: boolean;
   borderRadius?: keyof AppTheme['borderRadii'];
-  /**
-   * Shapes the surface: its size, padding and content layout. A pressable
-   * control sits inside a plain `Pressable`, so position it from outside.
-   */
-  style?: StyleProp<ViewStyle>;
+  surfaceStyle?: StyleProp<ViewStyle>;
   children?: ReactNode;
 };
 
-/**
- * The surface under every glassy control: native Liquid Glass in the chrome
- * on iOS 26, Frost elsewhere, solid under Reduce Transparency. With `onPress`
- * it is a button that brightens while pressed; without, a glass shell that
- * takes view props, such as a segmented track or a stat chip.
- */
 export default function GlassControl({
   placement,
   prominent = false,
   disabled = false,
   borderRadius = 'full',
-  style,
+  surfaceStyle,
   children,
   ...props
 }: GlassControlProps) {
@@ -102,7 +80,7 @@ export default function GlassControl({
           isInteractive={pressable}
           tintColor={treatment.prominent ? NATIVE_PROMINENT_TINT : undefined}
           {...viewProps}
-          style={[shape, GLASS_EDGE, style]}
+          style={[shape, EDGE_MEASURING_ALIKE_ON_EVERY_PAINT, surfaceStyle]}
         >
           {content}
         </DarkGlassView>
@@ -114,13 +92,13 @@ export default function GlassControl({
         {...viewProps}
         style={[
           shape,
-          GLASS_EDGE,
+          EDGE_MEASURING_ALIKE_ON_EVERY_PAINT,
           {
             backgroundColor: treatment.fill,
             borderColor: treatment.hairline,
             borderTopColor: treatment.topEdge,
           },
-          style,
+          surfaceStyle,
         ]}
       >
         {content}

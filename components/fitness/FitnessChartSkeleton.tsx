@@ -5,10 +5,6 @@ import SkeletonBar from '@/components/SkeletonBar';
 
 const COLUMNS = ['fitness', 'fatigue', 'form', 'load'] as const;
 
-/**
- * Grey blocks where the readout and the chart will be, announced as busy.
- * Sized to the readout's lines, so it fills in without a jump.
- */
 export default function FitnessChartSkeleton() {
   const { t } = useTranslation(undefined, { keyPrefix: 'fitness' });
 
