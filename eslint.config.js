@@ -57,9 +57,9 @@ const restrictedSyntax = [
   },
   {
     selector:
-      "CallExpression[callee.property.name=/^(filter|find)$/] > ArrowFunctionExpression[returnType.typeAnnotation.type='TSTypePredicate']",
+      "CallExpression[callee.property.name=/^(filter|find)$/] > :matches(ArrowFunctionExpression, FunctionExpression)[returnType.typeAnnotation.type='TSTypePredicate']",
     message:
-      'Drop the written type predicate: TypeScript infers it for an arrow passed straight to .filter or .find (ADR 0014).',
+      'Drop the written type predicate: TypeScript infers it for a function passed straight to .filter or .find (ADR 0014).',
   },
   {
     selector:
