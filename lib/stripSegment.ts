@@ -2,18 +2,14 @@ import type { Zone } from './powerZones';
 import type { RampEnds } from './workoutProfile';
 
 export interface StripSegment {
-  /** Where it starts on the card's time scale, in s. */
-  start: number;
-  /** Where it ends on the card's time scale, in s. */
-  end: number;
+  startSeconds: number;
+  endSeconds: number;
   minPct: number;
   maxPct: number;
   minWatts: number | null;
   maxWatts: number | null;
-  /** `minPct` on the card's scale, in its unit: where the solid bar ends. */
-  low: number;
-  /** `maxPct` on the card's scale, in its unit: the top of the bar. */
-  high: number;
+  lowOnScale: number;
+  highOnScale: number;
   zone: Zone;
   ramp?: SegmentRamp;
 }

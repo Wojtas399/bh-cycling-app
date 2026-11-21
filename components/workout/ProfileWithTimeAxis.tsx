@@ -289,11 +289,19 @@ function StripPlot({
           {label(value)}
         </SvgText>
       ))}
-      {segments.map(({ start, end, low, high, zone, ramp }) => {
-        const fullWidth = xOf(end) - xOf(start);
+      {segments.map(segment => {
+        const {
+          startSeconds,
+          endSeconds,
+          lowOnScale,
+          highOnScale,
+          zone,
+          ramp,
+        } = segment;
+        const fullWidth = xOf(endSeconds) - xOf(startSeconds);
         // A bar too narrow to spare the hairline is drawn whole.
         const inset = fullWidth > 4 * BAR_INSET ? BAR_INSET : 0;
-        const x = xOf(start) + inset;
+        const x = xOf(startSeconds) + inset;
         const barWidth = fullWidth - 2 * inset;
         const color = colors[ZONE_COLORS[zone]];
 
@@ -308,24 +316,24 @@ function StripPlot({
             endY: yOf(ramp.endOnScale),
           });
 
-          return <Polygon key={start} points={points} fill={color} />;
+          return <Polygon key={startSeconds} points={points} fill={color} />;
         }
 
         return (
-          <G key={start}>
+          <G key={startSeconds}>
             <Rect
               x={x}
               width={barWidth}
-              y={yOf(high)}
-              height={yOf(low) - yOf(high)}
+              y={yOf(highOnScale)}
+              height={yOf(lowOnScale) - yOf(highOnScale)}
               fill={color}
               opacity={CAP_OPACITY}
             />
             <Rect
               x={x}
               width={barWidth}
-              y={yOf(low)}
-              height={yOf(0) - yOf(low)}
+              y={yOf(lowOnScale)}
+              height={yOf(0) - yOf(lowOnScale)}
               fill={color}
             />
           </G>

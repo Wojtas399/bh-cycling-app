@@ -9,22 +9,22 @@ import type { StripSegment } from '../stripSegment';
 import { NO_ZONE_TIMES } from '../timeInZone';
 
 function flatAt250WFtpOnWattsScale(
-  start: number,
-  end: number,
+  startSeconds: number,
+  endSeconds: number,
   pct: number,
   zone: Zone,
 ) {
   const watts = (pct * 250) / 100;
 
   return {
-    start,
-    end,
+    startSeconds,
+    endSeconds,
     minPct: pct,
     maxPct: pct,
     minWatts: watts,
     maxWatts: watts,
-    low: watts,
-    high: watts,
+    lowOnScale: watts,
+    highOnScale: watts,
     zone,
   } satisfies StripSegment;
 }
@@ -138,14 +138,14 @@ const sweetSpotFrom88To93PctAt250WFtp = {
   ...flatAt250WFtpOnWattsScale(600, 2400, 88, 3),
   maxPct: 93,
   maxWatts: 232.5,
-  high: 232.5,
+  highOnScale: 232.5,
 } satisfies StripSegment;
 
 const rampUpFrom50To100PctOverFirst600Seconds = {
   ...flatAt250WFtpOnWattsScale(0, 600, 50, 2),
   maxPct: 100,
   maxWatts: 250,
-  high: 250,
+  highOnScale: 250,
   ramp: {
     startPct: 50,
     endPct: 100,
@@ -158,8 +158,8 @@ const rampUpFrom50To100PctOverFirst600Seconds = {
 
 const rampDownFrom100To50PctOver600To1200Seconds = {
   ...rampUpFrom50To100PctOverFirst600Seconds,
-  start: 600,
-  end: 1200,
+  startSeconds: 600,
+  endSeconds: 1200,
   ramp: {
     startPct: 100,
     endPct: 50,

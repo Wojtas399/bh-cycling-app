@@ -98,25 +98,25 @@ describe('buildDetailedProfile', () => {
 
     expect(profile.planned?.segments).toEqual([
       {
-        start: 0,
-        end: 1800,
+        startSeconds: 0,
+        endSeconds: 1800,
         minPct: 60,
         maxPct: 60,
         minWatts: 150,
         maxWatts: 150,
-        low: 150,
-        high: 150,
+        lowOnScale: 150,
+        highOnScale: 150,
         zone: 2,
       },
       {
-        start: 1800,
-        end: 3600,
+        startSeconds: 1800,
+        endSeconds: 3600,
         minPct: 100,
         maxPct: 110,
         minWatts: 250,
         maxWatts: 275,
-        low: 250,
-        high: 275,
+        lowOnScale: 250,
+        highOnScale: 275,
         zone: 4,
       },
     ]);
@@ -140,25 +140,25 @@ describe('buildDetailedProfile', () => {
 
     expect(profile.recorded?.segments).toEqual([
       {
-        start: 0,
-        end: 900,
+        startSeconds: 0,
+        endSeconds: 900,
         minPct: 55,
         maxPct: 55,
         minWatts: null,
         maxWatts: null,
-        low: 55,
-        high: 55,
+        lowOnScale: 55,
+        highOnScale: 55,
         zone: 2,
       },
       {
-        start: 1800,
-        end: 2700,
+        startSeconds: 1800,
+        endSeconds: 2700,
         minPct: 98,
         maxPct: 98,
         minWatts: null,
         maxWatts: null,
-        low: 98,
-        high: 98,
+        lowOnScale: 98,
+        highOnScale: 98,
         zone: 4,
       },
     ]);
@@ -326,8 +326,8 @@ describe('buildDetailedProfile', () => {
 
       expect(rideKeepingItsWattsOnAPctScale).toMatchObject({
         maxWatts: 228,
-        low: 95,
-        high: 95,
+        lowOnScale: 95,
+        highOnScale: 95,
       });
     });
 

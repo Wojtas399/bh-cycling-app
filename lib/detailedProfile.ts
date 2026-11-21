@@ -129,7 +129,9 @@ function sharedScale(
   });
   const peak = Math.max(
     0,
-    ...strips.flatMap(({ segments }) => segments.map(({ high }) => high)),
+    ...strips.flatMap(({ segments }) =>
+      segments.map(({ highOnScale }) => highOnScale),
+    ),
   );
   const ceiling = niceCeiling(peak, edges);
 
@@ -154,9 +156,9 @@ function stripPower(segments: StripSegment[], ftp: Watts | null): StripPower {
   let seconds = 0;
   let pctSeconds = 0;
 
-  for (const { start, end, minPct, maxPct } of segments) {
-    seconds += end - start;
-    pctSeconds += ((minPct + maxPct) / 2) * (end - start);
+  for (const { startSeconds, endSeconds, minPct, maxPct } of segments) {
+    seconds += endSeconds - startSeconds;
+    pctSeconds += ((minPct + maxPct) / 2) * (endSeconds - startSeconds);
   }
 
   const peakPct = Math.max(0, ...segments.map(({ maxPct }) => maxPct));
@@ -178,26 +180,26 @@ function toSegments(
 ): StripSegment[] {
   const watts = (pct: number) =>
     ftp === null ? null : ftpPctToWatts(pct, ftp);
-  let end = 0;
+  let endSeconds = 0;
 
   return blocks.flatMap(({ widthFraction, minPct, maxPct, zone, ramp }) => {
-    const start = end;
+    const startSeconds = endSeconds;
 
-    end += widthFraction * durationSeconds;
+    endSeconds += widthFraction * durationSeconds;
 
     const drawsNothing = maxPct <= 0;
 
     if (drawsNothing) return [];
 
     const segment: StripSegment = {
-      start,
-      end,
+      startSeconds,
+      endSeconds,
       minPct,
       maxPct,
       minWatts: watts(minPct),
       maxWatts: watts(maxPct),
-      low: inUnit(minPct, unit, ftp),
-      high: inUnit(maxPct, unit, ftp),
+      lowOnScale: inUnit(minPct, unit, ftp),
+      highOnScale: inUnit(maxPct, unit, ftp),
       zone,
     };
 

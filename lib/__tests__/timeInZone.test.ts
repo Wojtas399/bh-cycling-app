@@ -9,16 +9,20 @@ import {
 } from '../timeInZone';
 import type { WorkoutStep } from '../workoutProfile';
 
-function segment(start: number, end: number, zone: Zone): StripSegment {
+function segment(
+  startSeconds: number,
+  endSeconds: number,
+  zone: Zone,
+): StripSegment {
   return {
-    start,
-    end,
+    startSeconds,
+    endSeconds,
     minPct: 0,
     maxPct: 0,
     minWatts: null,
     maxWatts: null,
-    low: 0,
-    high: 0,
+    lowOnScale: 0,
+    highOnScale: 0,
     zone,
   };
 }

@@ -42,6 +42,7 @@ const ENFORCED_PATHS = [
   'lib/profileReadout.ts',
   'lib/rideSettings.ts',
   'lib/roundToMillionth.ts',
+  'lib/stripSegment.ts',
   'lib/workoutDetails.ts',
   'lib/workoutProfile.ts',
   'lib/workoutStatus.ts',

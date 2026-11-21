@@ -15,7 +15,7 @@ function lastSegmentStartingBy(
   while (low <= high) {
     const middle = Math.floor((low + high) / 2);
 
-    if (timeOrderedSegments[middle].start <= seconds) {
+    if (timeOrderedSegments[middle].startSeconds <= seconds) {
       found = timeOrderedSegments[middle];
       low = middle + 1;
     } else {
@@ -32,7 +32,7 @@ export function segmentAt(
 ): StripSegment | null {
   const found = lastSegmentStartingBy(segments, seconds);
 
-  return found !== null && seconds <= found.end ? found : null;
+  return found !== null && seconds <= found.endSeconds ? found : null;
 }
 
 export function pointerSeconds(
@@ -95,11 +95,14 @@ type PowerSpan = Pick<
 >;
 
 function powerAt(segment: StripSegment, seconds: number): PowerSpan {
-  const { ramp, start, end } = segment;
+  const { ramp, startSeconds, endSeconds } = segment;
 
   if (!ramp) return segment;
 
-  const share = end > start ? (seconds - start) / (end - start) : 0;
+  const share =
+    endSeconds > startSeconds
+      ? (seconds - startSeconds) / (endSeconds - startSeconds)
+      : 0;
   const along = (from: number, to: number) => from + (to - from) * share;
   const pct = along(ramp.startPct, ramp.endPct);
   const watts =
