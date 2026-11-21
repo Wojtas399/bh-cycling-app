@@ -1,6 +1,7 @@
 import { isFiniteNumber } from './isFiniteNumber';
 import { type StepSpan, resolvePowerTarget, toSpan } from './powerTarget';
 import type { Zone, ZoneConfig } from './powerZones';
+import { fromEntries } from './typed';
 import { type WorkoutStep, isRepeat } from './workoutProfile';
 
 export interface WorkoutDetailsPlainStep {
@@ -98,7 +99,7 @@ function propertyIfDefined<K extends string, V>(
   key: K,
   value: V | undefined,
 ): Partial<Record<K, V>> {
-  return value === undefined ? {} : ({ [key]: value } as Record<K, V>);
+  return value === undefined ? {} : fromEntries([[key, value] as const]);
 }
 
 export function buildWorkoutSteps(
