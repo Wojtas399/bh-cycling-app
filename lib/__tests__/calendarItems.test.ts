@@ -91,9 +91,7 @@ describe('joinCalendarItems', () => {
     expect(completedEventIds).toEqual([7]);
   });
 
-  describe('pairing read from both sides (ADR 0009)', () => {
-    // Shaped like #184: intervals.icu blanks a Strava Activity's own
-    // `paired_event_id` but keeps the event's `paired_activity_id`.
+  describe("pairing read from both sides, as intervals.icu blanks a Strava Activity's own paired_event_id but keeps the event's paired_activity_id (ADR 0009)", () => {
     const stravaActivity = (
       overrides: Partial<IntervalsActivity> = {},
     ): IntervalsActivity =>
@@ -761,6 +759,60 @@ describe('joinCalendarItems', () => {
       completedEventIds: [],
     });
   });
+
+  it('keeps the joined items and completed event IDs plain JSON, so the query cache can store them', () => {
+    const joined = joinCalendarItems(
+      [
+        event({ id: 1, start_date_local: '2026-10-14T08:00:00' }),
+        event({
+          id: 2,
+          category: 'RACE_A',
+          name: 'Gran Fondo',
+          start_date_local: '2026-10-18T09:00:00',
+        }),
+      ],
+      [
+        activity({ id: 'paired', paired_event_id: 1 }),
+        activity({ id: 'race', paired_event_id: 2 }),
+        activity({ id: 'unplanned' }),
+      ],
+      ZONE_CONFIG,
+    );
+
+    expect(JSON.parse(JSON.stringify(joined))).toEqual(joined);
+    expect(joined.completedEventIds).toEqual([1, 2]);
+  });
+});
+
+describe('calendarItemKey', () => {
+  it('keeps a Workout, a Race and an Activity apart even when their ids collide', () => {
+    expect([
+      calendarItemKey({
+        kind: 'workout',
+        workout: {
+          id: 7,
+          name: 'Ride',
+          date: '2026-10-14',
+          blocks: [],
+          completedWithStravaActivity: false,
+        },
+      }),
+      calendarItemKey({
+        kind: 'race',
+        race: {
+          id: 7,
+          name: 'Race',
+          priority: 'A',
+          date: '2026-10-14',
+          sport: 'Ride',
+        },
+      }),
+      calendarItemKey({
+        kind: 'activity',
+        activity: { id: '7', name: 'Zwift', type: 'Ride', date: '2026-10-14' },
+      }),
+    ]).toEqual(['workout-7', 'race-7', 'activity-7']);
+  });
 });
 
 describe('withWorkoutStatus', () => {
@@ -812,7 +864,7 @@ describe('withWorkoutStatus', () => {
 });
 
 describe('activityMetrics', () => {
-  it('lists duration, distance and load in that order', () => {
+  it('lists duration in seconds, distance in meters and load, in that order', () => {
     expect(
       activityMetrics({
         id: 'a1',

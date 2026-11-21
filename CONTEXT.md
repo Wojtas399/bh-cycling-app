@@ -76,11 +76,11 @@ The tri-state of a planned workout: `completed` (the Workout is paired to an Act
 _Avoid_: Completion state, sync status
 
 **Race**:
-A competition on the athlete's Intervals.icu calendar, of any sport, with a Race Priority. It is not a Workout: it's the event the training builds toward. A Race paired to an Activity is completed and carries the same done marker as a completed Workout. An unpaired Race has no status: it's never planned or missed, because a Race paired to a Strava Activity can't be detected. Read-only in BH Cycling.
+A competition on the athlete's Intervals.icu calendar, of any sport, with a Race Priority. A Race is always one day. It is not a Workout: it's the event the training builds toward. A Race paired to an Activity is completed and carries the same done marker as a completed Workout. An unpaired Race has no status: it's never planned or missed, because a Race paired to a Strava Activity can't be detected. Read-only in BH Cycling.
 _Avoid_: Event, competition, race workout
 
 **Race Priority**:
-How much a Race matters to the athlete's season: `A` (a goal race), `B` (important) or `C` (a lower-key race, often ridden as training). Set by the athlete on Intervals.icu.
+How much a Race matters to the athlete's season: `A` (a goal race), `B` (important) or `C` (a lower-key race, often ridden as training). Set by the athlete on Intervals.icu. Every surface lists a day's Races in Race order: by priority, then by start time with an all-day Race first, then by name.
 _Avoid_: Race type, race category, race level
 
 **Note**:
@@ -88,7 +88,7 @@ A free-text entry on the athlete's Intervals.icu calendar, for a single day or a
 _Avoid_: Comment, Workout description
 
 **Note Markdown**:
-A Note's text, or a Workout's description on Workout Details, rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
+A Note's text, a Workout's description on Workout Details, or a Race's description, rendered for reading. Text structure renders (paragraphs, bullets, bold, italic, headings, rules, quotes); images degrade to their alt text, tables to stacked rows, links are styled but not tappable, and raw HTML tags are dropped while their text is kept, because a Note is a read-only briefing on a phone, not a document viewer.
 _Avoid_: Note HTML, Rich Text
 
 **Wellness**:

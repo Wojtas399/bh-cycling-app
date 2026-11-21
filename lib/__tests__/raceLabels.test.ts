@@ -177,7 +177,7 @@ describe('formatRaceDate', () => {
     ],
   };
 
-  it('reads the date and the start time', () => {
+  it('reads the date and the start time, its hour unpadded like every other time in the app', () => {
     expect(formatRaceDate(race({ startTime: '09:05' }), LABELS)).toBe(
       'pt., 13 lis 2026 · 9:05',
     );
