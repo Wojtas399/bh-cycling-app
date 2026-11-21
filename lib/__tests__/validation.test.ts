@@ -1,4 +1,10 @@
-import { emailField, newPasswordField, requiredString } from '../validation';
+import {
+  emailField,
+  isTranslationKey,
+  newPasswordField,
+  requiredString,
+} from '../validation';
+import '@/i18n';
 import * as v from 'valibot';
 
 function firstIssueMessageOrNull(schema: v.GenericSchema, input: unknown) {
@@ -76,5 +82,23 @@ describe('newPasswordField', () => {
     expect(firstIssueMessageOrNull(newPasswordField(), '       ')).toBe(
       'validation.passwordTooShort',
     );
+  });
+});
+
+describe('isTranslationKey', () => {
+  it('recognises a key the translations define', () => {
+    expect(isTranslationKey('validation.passwordsMismatch')).toBe(true);
+  });
+
+  it('rejects a message that is not a key', () => {
+    expect(isTranslationKey('Passwords do not match')).toBe(false);
+  });
+
+  it('rejects an unknown key under a known section', () => {
+    expect(isTranslationKey('validation.noSuchMessage')).toBe(false);
+  });
+
+  it('rejects a section that only groups other keys', () => {
+    expect(isTranslationKey('validation')).toBe(false);
   });
 });

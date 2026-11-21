@@ -2,7 +2,7 @@ import { type FieldValues, type Path, useController } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import type { FormBinding } from '@/hooks/formBinding';
-import type { ParseKeys } from 'i18next';
+import { isTranslationKey } from '@/lib/validation';
 
 export interface UseFormTextFieldOptions<T extends FieldValues> {
   form: FormBinding<T>;
@@ -27,14 +27,16 @@ export function useFormTextField<T extends FieldValues>({
 
   return {
     ref: field.ref,
-    value: field.value as string,
+    value: typeof field.value === 'string' ? field.value : '',
     onChangeText: (text: string) => {
       field.onChange(text);
       form.onFieldChange();
     },
     onBlur: field.onBlur,
     error: validationError
-      ? t(validationError as ParseKeys)
+      ? isTranslationKey(validationError)
+        ? t(validationError)
+        : validationError
       : form.serverError(name),
     editable: !form.busy,
     ...(next
