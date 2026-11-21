@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import {
 } from '@/hooks/fitness/useFitnessChart';
 import { useFitnessLabels } from '@/hooks/fitness/useFitnessLabels';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useStableSelect } from '@/hooks/useStableSelect';
 import {
   DEFAULT_FITNESS_RANGE,
   type FitnessDay,
@@ -30,13 +31,6 @@ import {
   sliceFitnessRange,
 } from '@/lib/fitness';
 
-/**
- * "Fitness i zmęczenie": the range selector, the readout row and the chart,
- * pushed over the tabs from Home's Fitness card. The content fills the
- * screen, so nothing scrolls; the ScrollView is there for pull-to-refresh.
- * It renders the state `useFitnessChart` hands it (ADR 0010). The range is
- * this visit's alone: every visit opens on 3 miesiące.
- */
 export default function FitnessChartScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'fitness.chart' });
   const { state, refetch } = useFitnessChart();
@@ -91,14 +85,12 @@ export default function FitnessChartScreen() {
         )}
       </ScrollView>
       <ScreenHeader title={t('title')} onLayout={header.onLayout}>
-        {/* Stacked over the tabs, so the tabs' banner for a 401 is hidden. */}
         <IntervalsReconnectBanner />
       </ScreenHeader>
     </Box>
   );
 }
 
-/** What sits under the range selector: the readout and the chart, or why not. */
 function FitnessChartBody({
   state,
   range,
@@ -139,10 +131,6 @@ function FitnessChartBody({
   }
 }
 
-/**
- * The loaded year's `range`: the readout over the chart. The readout shows
- * the day under the chart's cursor, and today when nothing is touched.
- */
 function FitnessChartContent({
   days,
   range,
@@ -152,13 +140,14 @@ function FitnessChartContent({
 }) {
   const labels = useFitnessLabels();
   const [touched, setTouched] = useState<number | null>(null);
-  // Its own memo, so a new touched day doesn't hand the chart a new slice and
-  // redraw it.
-  const shown = useMemo(() => sliceFitnessRange(days, range), [days, range]);
-  // The year ends today.
-  const today = days[days.length - 1];
-  const day = fitnessReadoutDay(shown, touched, today);
-  const readout = formatFitnessReadout(day, today.date, labels);
+  const shown = useStableSelect(sliceFitnessRange, days, range);
+  const todayAtEndOfLoadedYear = days[days.length - 1];
+  const day = fitnessReadoutDay(shown, touched, todayAtEndOfLoadedYear);
+  const readout = formatFitnessReadout(
+    day,
+    todayAtEndOfLoadedYear.date,
+    labels,
+  );
 
   return (
     <Box flex={1} gap="base">

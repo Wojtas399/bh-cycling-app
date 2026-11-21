@@ -6,15 +6,11 @@ import IntervalsReconnectBanner from '@/components/IntervalsReconnectBanner';
 import { useAppTheme } from '@/constants/theme';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
-/**
- * Native tabs. On iOS 26 the bar is the system's Liquid Glass, and the
- * selected tab is bold white with no accent colour; the glass bar ignores the
- * unselected colour, so those stay system white. On Android it is a dark
- * Material bar with a white selected tab and grey unselected ones.
- */
 export default function TabsLayout() {
   const { t } = useTranslation(undefined, { keyPrefix: 'tabs' });
   const { colors } = useAppTheme();
+  const barBackgroundOnAndroidOnly =
+    Platform.OS === 'android' ? colors.bgTertiary : undefined;
 
   return (
     <Box flex={1}>
@@ -26,10 +22,7 @@ export default function TabsLayout() {
           default: { color: colors.textSecondary },
           selected: { color: colors.white, fontWeight: '700' },
         }}
-        // Painting the iOS bar would cover its glass.
-        backgroundColor={
-          Platform.OS === 'android' ? colors.bgTertiary : undefined
-        }
+        backgroundColor={barBackgroundOnAndroidOnly}
         indicatorColor={colors.borderStrong}
       >
         <NativeTabs.Trigger name="home/index">

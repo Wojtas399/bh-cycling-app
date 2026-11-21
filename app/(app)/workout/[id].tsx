@@ -26,18 +26,11 @@ import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
 import { useLocalSearchParams } from 'expo-router';
 
-/**
- * Workout Details: one Workout, pushed over the tabs from any Workout tile.
- * Branches on the raw query (ADR 0005): data wins over an error, so a failed
- * pull-to-refresh keeps the Workout on screen.
- */
 export default function WorkoutDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useWorkoutDetails(Number(id));
-  // The same Route query the banner reads, so a refresh can retry it. The
-  // summary is `null` in planned mode, so this is skipped there.
-  const route = useActivityRoute(query.data?.route?.activityId ?? null);
+  const bannerRoute = useActivityRoute(query.data?.route?.activityId ?? null);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
@@ -47,14 +40,13 @@ export default function WorkoutDetailsScreen() {
     setRefreshing(true);
 
     try {
-      // A loaded Route is never fetched again; a failed one is retried.
-      await Promise.all([refetch(), route.refetchIfFailed()]);
+      await Promise.all([refetch(), bannerRoute.refetchIfFailed()]);
     } finally {
       setRefreshing(false);
     }
   }
 
-  function body() {
+  function bodyPreferringDataOverError() {
     if (availability === 'loading') return <WorkoutDetailsSkeleton />;
 
     if (availability === 'unavailable') return <IntervalsConnectPrompt />;
@@ -96,20 +88,13 @@ export default function WorkoutDetailsScreen() {
           ) : undefined
         }
       >
-        {body()}
+        {bodyPreferringDataOverError()}
       </ScrollView>
       <ScreenHeader title={t('title')} onLayout={header.onLayout} />
     </Box>
   );
 }
 
-/**
- * The loaded Workout, Variant A: hero, then stacked cards. A completed
- * Workout's profile card draws the ride below the plan. On a Cycling
- * Workout the mode-specific metrics, Kroki and Opis cards slot in below the
- * profile. A non-cycling Workout's description is its content, so Opis leads,
- * straight under the hero.
- */
 function WorkoutDetailsContent({
   eventId,
   details,
@@ -118,13 +103,13 @@ function WorkoutDetailsContent({
   details: WorkoutDetails;
 }) {
   const profile = useProfileCard(details);
+  const noActivityNumbersToCompare = details.comparison === null;
   const description = details.description !== undefined && (
     <WorkoutDescriptionCard description={details.description} asNoteMarkdown />
   );
 
   return (
     <Box gap="md">
-      {/* `route` is `null` in planned mode. */}
       {details.route && (
         <RouteBanner
           mapHref={{ pathname: '/workout/[id]/map', params: { id: eventId } }}
@@ -153,8 +138,7 @@ function WorkoutDetailsContent({
         <WorkoutStravaCard activity={details.stravaActivity} />
       )}
 
-      {/* With no Activity numbers to compare, the plan is shown on its own. */}
-      {details.comparison === null && (
+      {noActivityNumbersToCompare && (
         <WorkoutPlanCard metrics={details.planMetrics} />
       )}
 
