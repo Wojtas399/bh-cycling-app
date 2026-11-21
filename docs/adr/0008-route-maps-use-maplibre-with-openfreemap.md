@@ -11,7 +11,7 @@ Workout Details shows the Route of a completed outdoor ride on a map: a static b
 ## Decision
 
 - Route maps use `@maplibre/maplibre-react-native` (verified on 11.5.0) through its Expo config plugin. `expo-build-properties` is unchanged.
-- The basemap is OpenFreeMap's "Dark" style. Its style JSON is bundled in the app (`assets/map/ofm-dark.json`) and the map loads its style from that asset, not from a URL. Tiles, sprites and glyphs still come from OpenFreeMap.
+- The basemap is OpenFreeMap's "Dark" style. Its style JSON is bundled in the app (`constants/ofmDarkStyle.ts`) and the map loads its style from that file, not from a URL. Tiles, sprites and glyphs still come from OpenFreeMap.
 - One shared component, `components/RouteMap.tsx`, draws the Route on both maps. Turning a Route into GeoJSON and camera bounds is the pure `lib/routeMapData.ts`.
 
 ### Considered and rejected
