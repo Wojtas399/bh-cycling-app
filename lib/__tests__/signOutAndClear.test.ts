@@ -56,4 +56,14 @@ describe('signOutAndClear', () => {
 
     expect(mockAuthSignOut).toHaveBeenCalledTimes(1);
   });
+
+  it('still signs out of Firebase when Google sign-out throws before returning a promise', async () => {
+    mockGoogleSignOut.mockImplementationOnce(() => {
+      throw new Error('no google session');
+    });
+
+    await signOutAndClear();
+
+    expect(mockAuthSignOut).toHaveBeenCalledTimes(1);
+  });
 });

@@ -7,5 +7,5 @@ export function hideSplashScreen(): void {
   if (hidden) return;
 
   hidden = true;
-  ignoreFailure(SplashScreen.hideAsync());
+  ignoreFailure(() => SplashScreen.hideAsync());
 }

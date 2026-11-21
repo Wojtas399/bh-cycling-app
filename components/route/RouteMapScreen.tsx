@@ -10,6 +10,7 @@ import MessageWithBack from '@/components/MessageWithBack';
 import RouteMap from '@/components/RouteMap';
 import Text from '@/components/Text';
 import RouteLoadError from '@/components/route/RouteLoadError';
+import RouteMapReadingOrder from '@/components/route/RouteMapReadingOrder';
 import RouteSkeleton from '@/components/route/RouteSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useActivityRoute } from '@/hooks/useActivityRoute';
@@ -21,53 +22,32 @@ import { useRouter } from 'expo-router';
 
 const CLOSE_SIZE = 44;
 const CLOSE_ICON_SIZE = 20;
-/** The ✕'s distance below the safe area's top edge. */
-const CLOSE_OFFSET = 8;
-/** The chips' distance above the safe area's bottom edge. */
-const CHIPS_OFFSET = 24;
-/** Room the chips row takes: two lines of text plus padding. */
-const CHIPS_HEIGHT = 72;
+const CLOSE_TOP_BELOW_SAFE_AREA = 8;
+const CHIPS_BOTTOM_ABOVE_SAFE_AREA = 24;
+const CHIPS_ROW_HEIGHT_FOR_TWO_LINES = 72;
 const CHIPS_GAP = 8;
-/** The screen's horizontal margin for the ✕ and the chips. */
-const EDGE = 16;
-/** The gap between the map's accessibility image and the ✕ or the chips. */
-const IMAGE_GAP = 8;
-/** How far past the ✕ and the chips the camera keeps the Route. */
-const CAMERA_CLEARANCE = 24;
-/** The camera's room at the screen's sides. */
+const SCREEN_EDGE_MARGIN = 16;
+const MAP_IMAGE_GAP_TO_CONTROLS = 8;
+const CAMERA_CLEARANCE_PAST_CONTROLS = 24;
 const CAMERA_SIDE_PADDING = 32;
-/** The attribution ⓘ's distance from the screen's bottom-right corner. */
-const ATTRIBUTION_INSET = 8;
+const ATTRIBUTION_CORNER_INSET = 8;
+const DRAWN_ABOVE_MAP = 1;
 const SKELETON_STYLE = { flex: 1 };
 
 interface RouteMapScreenProps {
-  /** The host details screen's Intervals.icu gate. */
   availability: IntervalsAvailability;
-  /**
-   * The host's Route summary once its details have loaded, `null` when they
-   * have none. `undefined` while the details haven't loaded.
-   */
   summary: RouteSummary | null | undefined;
-  /** Shown when the details loaded with no Route summary. */
   noSummary: ReactNode;
-  /** Shown when the details failed with no data, `null` otherwise. */
   detailsError: ReactNode;
-  /** Said when the Activity turns out to have no Route. */
-  missingMessage: string;
+  missingRouteMessage: string;
 }
 
-/**
- * The full-screen Route map, slid up over a details screen as a headerless
- * modal. Opened from the banner, both queries are cache hits; opened cold
- * (a deep link), it shows its own skeleton and error states. The ✕, Android
- * back and the iOS two-finger escape gesture close it.
- */
 export default function RouteMapScreen({
   availability,
   summary,
   noSummary,
   detailsError,
-  missingMessage,
+  missingRouteMessage,
 }: RouteMapScreenProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -78,7 +58,7 @@ export default function RouteMapScreen({
     router.back();
   }
 
-  function body() {
+  function mapOrItsState() {
     if (availability === 'loading') {
       return <RouteSkeleton style={SKELETON_STYLE} />;
     }
@@ -93,7 +73,10 @@ export default function RouteMapScreen({
 
     if (summary !== undefined) {
       return summary ? (
-        <RouteBody summary={summary} missingMessage={missingMessage} />
+        <RouteBody
+          summary={summary}
+          missingRouteMessage={missingRouteMessage}
+        />
       ) : (
         <Centered>{noSummary}</Centered>
       );
@@ -110,47 +93,48 @@ export default function RouteMapScreen({
       onAccessibilityEscape={close}
       style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}
     >
-      {/* First in the tree, so focus starts on it; drawn above the map. */}
-      <View
-        style={{
-          position: 'absolute',
-          zIndex: 1,
-          top: insets.top + CLOSE_OFFSET,
-          left: EDGE,
-        }}
-      >
-        <GlassControl
-          placement="chrome"
-          accessibilityLabel={t('common.close')}
-          onPress={close}
-          hitSlop={8}
-          style={{
-            width: CLOSE_SIZE,
-            height: CLOSE_SIZE,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons
-            name="close"
-            size={CLOSE_ICON_SIZE}
-            color={theme.colors.textPrimary}
-          />
-        </GlassControl>
-      </View>
-
-      {body()}
+      <RouteMapReadingOrder
+        close={
+          <View
+            style={{
+              position: 'absolute',
+              zIndex: DRAWN_ABOVE_MAP,
+              top: insets.top + CLOSE_TOP_BELOW_SAFE_AREA,
+              left: SCREEN_EDGE_MARGIN,
+            }}
+          >
+            <GlassControl
+              placement="chrome"
+              accessibilityLabel={t('common.close')}
+              onPress={close}
+              hitSlop={8}
+              surfaceStyle={{
+                width: CLOSE_SIZE,
+                height: CLOSE_SIZE,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons
+                name="close"
+                size={CLOSE_ICON_SIZE}
+                color={theme.colors.textPrimary}
+              />
+            </GlassControl>
+          </View>
+        }
+        map={mapOrItsState()}
+      />
     </View>
   );
 }
 
-/** The Route's states, once the details have a route summary. */
 function RouteBody({
   summary,
-  missingMessage,
+  missingRouteMessage,
 }: {
   summary: RouteSummary;
-  missingMessage: string;
+  missingRouteMessage: string;
 }) {
   const { query, refetch } = useActivityRoute(summary.activityId);
 
@@ -167,10 +151,9 @@ function RouteBody({
     );
   }
 
-  // The details exist, but the Activity turned out to have no Route.
   return (
     <Centered>
-      <MessageWithBack message={missingMessage} />
+      <MessageWithBack message={missingRouteMessage} />
     </Centered>
   );
 }
@@ -187,86 +170,84 @@ function FullScreenRoute({
   const insets = useSafeAreaInsets();
   const distance = formatRouteDistance(summary);
   const chips = routeChips(summary);
-  const closeBottom = insets.top + CLOSE_OFFSET + CLOSE_SIZE;
-  // The room kept clear above the screen's bottom edge for the chips.
-  const chipsReserved = insets.bottom + CHIPS_OFFSET + CHIPS_HEIGHT;
+  const closeBottom = insets.top + CLOSE_TOP_BELOW_SAFE_AREA + CLOSE_SIZE;
+  const chipsClearanceAboveBottomEdge =
+    insets.bottom +
+    CHIPS_BOTTOM_ABOVE_SAFE_AREA +
+    CHIPS_ROW_HEIGHT_FOR_TWO_LINES;
 
   return (
-    <>
-      {/*
-        The map as one image for the screen reader. It's framed between the
-        ✕ and the chips, so focus moves ✕ → map → chips → ⓘ.
-      */}
-      <View
-        accessible
-        accessibilityRole="image"
-        accessibilityLabel={
-          distance ? t('labelWithDistance', { distance }) : t('label')
-        }
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          zIndex: 1,
-          top: closeBottom + IMAGE_GAP,
-          left: 0,
-          right: 0,
-          bottom: chipsReserved + IMAGE_GAP,
-        }}
-      />
-
-      {chips.length > 0 && (
+    <RouteMapReadingOrder
+      mapImage={
         <View
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={
+            distance ? t('labelWithDistance', { distance }) : t('label')
+          }
           pointerEvents="none"
           style={{
             position: 'absolute',
-            zIndex: 1,
-            left: EDGE,
-            right: EDGE,
-            bottom: insets.bottom + CHIPS_OFFSET,
-            flexDirection: 'row',
-            gap: CHIPS_GAP,
-          }}
-        >
-          {chips.map(({ chip, value }) => (
-            <GlassControl
-              key={chip}
-              placement="chrome"
-              borderRadius="lg"
-              accessible
-              accessibilityLabel={t('chip', { label: t(chip), value })}
-              style={{ flex: 1, padding: theme.spacing.md }}
-            >
-              <Text variant="body-xs-regular" color="textSecondary">
-                {t(chip)}
-              </Text>
-              <Text variant="body-l-semibold">{value}</Text>
-            </GlassControl>
-          ))}
-        </View>
-      )}
-
-      {/*
-        Last in the tree, so its attribution ⓘ (kept focusable while the
-        map's contents are hidden) comes after the chips; the other layers
-        are drawn above it.
-      */}
-      <View style={StyleSheet.absoluteFill}>
-        <RouteMap
-          route={route}
-          interactive
-          padding={{
-            top: closeBottom + CAMERA_CLEARANCE,
-            right: CAMERA_SIDE_PADDING,
-            bottom: chipsReserved + CAMERA_CLEARANCE,
-            left: CAMERA_SIDE_PADDING,
-          }}
-          attributionPosition={{
-            bottom: ATTRIBUTION_INSET,
-            right: ATTRIBUTION_INSET,
+            zIndex: DRAWN_ABOVE_MAP,
+            top: closeBottom + MAP_IMAGE_GAP_TO_CONTROLS,
+            left: 0,
+            right: 0,
+            bottom: chipsClearanceAboveBottomEdge + MAP_IMAGE_GAP_TO_CONTROLS,
           }}
         />
-      </View>
-    </>
+      }
+      chips={
+        chips.length > 0 && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              zIndex: DRAWN_ABOVE_MAP,
+              left: SCREEN_EDGE_MARGIN,
+              right: SCREEN_EDGE_MARGIN,
+              bottom: insets.bottom + CHIPS_BOTTOM_ABOVE_SAFE_AREA,
+              flexDirection: 'row',
+              gap: CHIPS_GAP,
+            }}
+          >
+            {chips.map(({ chip, value }) => (
+              <GlassControl
+                key={chip}
+                placement="chrome"
+                borderRadius="lg"
+                accessible
+                accessibilityLabel={t('chip', { label: t(chip), value })}
+                surfaceStyle={{ flex: 1, padding: theme.spacing.md }}
+              >
+                <Text variant="body-xs-regular" color="textSecondary">
+                  {t(chip)}
+                </Text>
+                <Text variant="body-l-semibold">{value}</Text>
+              </GlassControl>
+            ))}
+          </View>
+        )
+      }
+      map={
+        <View style={StyleSheet.absoluteFill}>
+          <RouteMap
+            route={route}
+            interactive
+            routeFitPadding={{
+              top: closeBottom + CAMERA_CLEARANCE_PAST_CONTROLS,
+              right: CAMERA_SIDE_PADDING,
+              bottom:
+                chipsClearanceAboveBottomEdge + CAMERA_CLEARANCE_PAST_CONTROLS,
+              left: CAMERA_SIDE_PADDING,
+            }}
+            attributionPosition={{
+              bottom: ATTRIBUTION_CORNER_INSET,
+              right: ATTRIBUTION_CORNER_INSET,
+            }}
+          />
+        </View>
+      }
+    />
   );
 }
 

@@ -22,14 +22,6 @@ import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
 
-/**
- * Home: the next-race card, then the Fitness and Wellness cards, above "Dziś
- * i jutro". Gates on availability like the other Intervals-backed screens.
- * "Dziś i jutro" branches on the raw query (ADR 0005); the cards render the
- * state `useTodayCards` hands them (ADR 0010). The next-race card shows only
- * once a Race has loaded, with no placeholder or error state. The title
- * stays in a sticky Glass header that the content scrolls under.
- */
 export default function HomeScreen() {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'home.upcomingWorkouts',
@@ -59,9 +51,9 @@ export default function HomeScreen() {
   function body() {
     if (availability === 'unavailable') return <IntervalsConnectPrompt />;
 
-    // Home has no error state: a failed fetch with nothing to show leaves it
-    // blank.
-    if (query.data === undefined && query.isError) return null;
+    const failedWithNothingToShow = query.data === undefined && query.isError;
+
+    if (failedWithNothingToShow) return null;
 
     return (
       <Box gap="xl">

@@ -17,8 +17,12 @@ import { type Href, useRouter } from 'expo-router';
 
 const BANNER_HEIGHT = 240;
 
-/** Keeps the Route clear of the banner's edges and of the pill below it. */
-const CAMERA_PADDING = { top: 28, right: 28, bottom: 48, left: 28 };
+const ROUTE_CLEAR_OF_EDGES_AND_PILL = {
+  top: 28,
+  right: 28,
+  bottom: 48,
+  left: 28,
+};
 
 const PILL_STYLE = {
   position: 'absolute',
@@ -33,21 +37,13 @@ const PILL_STYLE = {
 } as const;
 
 interface RouteBannerProps {
-  /** Where a tap goes: the host screen's own full-screen Route map. */
   mapHref: Href;
   summary: RouteSummary;
 }
 
-/**
- * The Route banner at the top of a details screen: a 240 px static map, edge
- * to edge, with a distance pill. A skeleton holds its place while the Route
- * loads; it disappears when there turns out to be no Route. A failure with no
- * data shows a retry of the Route alone, at the same height; data wins over an
- * error, so a failed refresh keeps the map on screen.
- */
 export default function RouteBanner({ mapHref, summary }: RouteBannerProps) {
   const { query, refetch } = useActivityRoute(summary.activityId);
-  const bleed = useBleedStyle();
+  const bleed = useBleedPastScrollPadding();
 
   if (query.data) {
     return <Banner mapHref={mapHref} route={query.data} summary={summary} />;
@@ -63,12 +59,10 @@ export default function RouteBanner({ mapHref, summary }: RouteBannerProps) {
 
   if (query.isPending) return <RouteSkeleton style={bleed} />;
 
-  // No Route (`null`): the banner steps aside.
   return null;
 }
 
-/** Cancels the scroll content's horizontal and top padding. */
-function useBleedStyle() {
+function useBleedPastScrollPadding() {
   const theme = useAppTheme();
 
   return {
@@ -85,7 +79,7 @@ function Banner({
 }: RouteBannerProps & { route: Route }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'route' });
   const theme = useAppTheme();
-  const bleed = useBleedStyle();
+  const bleed = useBleedPastScrollPadding();
   const router = useRouter();
   const distance = formatRouteDistance(summary);
 
@@ -105,7 +99,11 @@ function Banner({
         accessibilityElementsHidden
         style={{ flex: 1 }}
       >
-        <RouteMap route={route} padding={CAMERA_PADDING} interactive={false} />
+        <RouteMap
+          route={route}
+          routeFitPadding={ROUTE_CLEAR_OF_EDGES_AND_PILL}
+          interactive={false}
+        />
         <DistancePill>
           <Ionicons
             name="map-outline"
@@ -121,10 +119,6 @@ function Banner({
   );
 }
 
-/**
- * Native glass on iOS 26. Elsewhere a dark overlay, because Frost can't be
- * read over the map's lighter tiles.
- */
 function DistancePill({ children }: { children: ReactNode }) {
   const theme = useAppTheme();
 
@@ -132,9 +126,11 @@ function DistancePill({ children }: { children: ReactNode }) {
     return <DarkGlassView style={PILL_STYLE}>{children}</DarkGlassView>;
   }
 
+  const overlayReadableOverLightTiles = {
+    backgroundColor: theme.colors.overlay,
+  };
+
   return (
-    <View style={[PILL_STYLE, { backgroundColor: theme.colors.overlay }]}>
-      {children}
-    </View>
+    <View style={[PILL_STYLE, overlayReadableOverLightTiles]}>{children}</View>
   );
 }

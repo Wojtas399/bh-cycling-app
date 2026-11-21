@@ -1,12 +1,14 @@
-import { type QueryKey, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
-/**
- * Refetches the one query under exactly `queryKey`, for pull-to-refresh. Goes
- * through the client rather than `query.refetch`: reading a property off the
- * tracked query result would narrow which changes re-render.
- */
+import { type QueryKey, hashKey, useQueryClient } from '@tanstack/react-query';
+
 export function useRefetchQuery(queryKey: QueryKey): () => Promise<void> {
   const queryClient = useQueryClient();
+  const queryHash = hashKey(queryKey);
 
-  return () => queryClient.refetchQueries({ queryKey, exact: true });
+  return useMemo(
+    () => () => queryClient.refetchQueries({ queryKey, exact: true }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- callers build an equal key on every render, so the key's hash stands in for it
+    [queryClient, queryHash],
+  );
 }

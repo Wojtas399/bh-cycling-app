@@ -1,6 +1,7 @@
 import { useSignIn } from '../useSignIn';
 import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 const mockSignInWithEmail = jest.fn();
@@ -53,11 +54,6 @@ async function setup() {
 
 type Hook = Awaited<ReturnType<typeof setup>>;
 
-// React Query hands the settled state to the hook on a later tick.
-async function settle() {
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-}
-
 async function fill(hook: Hook, values: { email?: string; password?: string }) {
   await act(async () => {
     const { fields } = hook.result.current;
@@ -74,7 +70,7 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.submit();
   });
-  await settle();
+  await settleQueries();
 }
 
 async function fillValid(hook: Hook) {
@@ -85,7 +81,7 @@ async function signInWithGoogle(hook: Hook) {
   await act(async () => {
     await hook.result.current.signInWithGoogle();
   });
-  await settle();
+  await settleQueries();
 }
 
 function errorOf(hook: Hook, name: (typeof FIELDS)[number]) {
@@ -100,8 +96,7 @@ describe('useSignIn', () => {
     mockSignInWithEmail.mockResolvedValue({ user: mockUser });
   });
 
-  // Per-field rules live in signInSchema.test.ts; these cover timing.
-  describe('validation', () => {
+  describe('when schema errors show', () => {
     it('shows no errors before the first submit', async () => {
       const hook = await setup();
 

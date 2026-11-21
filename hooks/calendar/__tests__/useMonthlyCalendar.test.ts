@@ -34,11 +34,6 @@ const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
 const mockGetActivities = jest.mocked(getActivities);
 const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
-/**
- * The shared loading/refresh behavior is covered once, generically, in
- * useCalendarRange.test.ts. This suite only checks that useMonthlyCalendar
- * wires the month-shaped config (range, months, nav step) correctly.
- */
 describe('useMonthlyCalendar', () => {
   beforeEach(() => {
     jest.clearAllMocks();

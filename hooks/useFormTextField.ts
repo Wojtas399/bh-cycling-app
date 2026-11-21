@@ -7,7 +7,6 @@ import { isTranslationKey } from '@/lib/validation';
 export interface UseFormTextFieldOptions<T extends FieldValues> {
   form: FormBinding<T>;
   name: Path<T>;
-  /** Focus this field on the keyboard's `next` key. */
   next?: Path<T>;
 }
 
@@ -34,7 +33,6 @@ export function useFormTextField<T extends FieldValues>({
       form.onFieldChange();
     },
     onBlur: field.onBlur,
-    // A validation error wins over a server error on the same field.
     error: validationError
       ? isTranslationKey(validationError)
         ? t(validationError)

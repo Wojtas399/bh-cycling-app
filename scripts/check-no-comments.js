@@ -3,9 +3,9 @@ const { existsSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
 
-const ENFORCED_PATHS = ['lib/'];
-
 const EXCLUDED_GENERATED_PATHS = ['dist/', 'expo-env.d.ts'];
+
+const OUT_OF_SCOPE_CONFIG_BASENAME_PART = '.config.';
 
 const SCRIPT_KINDS = {
   '.ts': ts.ScriptKind.TS,
@@ -64,11 +64,9 @@ function commentRangesIn(fileName, text) {
   const collect = ranges =>
     ranges?.forEach(range => rangesByStart.set(range.pos, range));
   const visit = node => {
-    if (isJsDocNode(node)) {
-      return;
-    }
-
-    const children = node.getChildren(sourceFile);
+    const children = node
+      .getChildren(sourceFile)
+      .filter(child => !isJsDocNode(child));
 
     if (children.length > 0) {
       children.forEach(visit);
@@ -108,17 +106,13 @@ function isUnder(file, listedPath) {
 function isLintedSource(file) {
   return (
     path.extname(file) in SCRIPT_KINDS &&
-    !path.basename(file).includes('.config.') &&
+    !path.basename(file).includes(OUT_OF_SCOPE_CONFIG_BASENAME_PART) &&
     !EXCLUDED_GENERATED_PATHS.some(excluded => isUnder(file, excluded))
   );
 }
 
-function filesToCheck(trackedFiles, enforcedPaths) {
-  return trackedFiles.filter(
-    file =>
-      isLintedSource(file) &&
-      enforcedPaths.some(enforced => isUnder(file, enforced)),
-  );
+function filesToCheck(trackedFiles) {
+  return trackedFiles.filter(isLintedSource);
 }
 
 function main() {
@@ -129,7 +123,7 @@ function main() {
   })
     .split('\0')
     .filter(file => file && existsSync(path.join(repoRoot, file)));
-  const findings = filesToCheck(trackedFiles, ENFORCED_PATHS).flatMap(file =>
+  const findings = filesToCheck(trackedFiles).flatMap(file =>
     findBannedComments(
       file,
       readFileSync(path.join(repoRoot, file), 'utf8'),
@@ -156,6 +150,7 @@ if (require.main === module) {
 
 module.exports = {
   EXCLUDED_GENERATED_PATHS,
+  OUT_OF_SCOPE_CONFIG_BASENAME_PART,
   filesToCheck,
   findBannedComments,
 };

@@ -1,4 +1,5 @@
 import type * as LiquidGlassModule from '../liquidGlass';
+import { loadFreshModule } from '@/test-utils/loadFreshModule';
 
 const mockIsLiquidGlassAvailable = jest.fn<boolean, []>();
 const mockIsGlassEffectAPIAvailable = jest.fn<boolean, []>();
@@ -10,14 +11,9 @@ jest.mock('expo-glass-effect', () => ({
 }));
 
 function loadLiquidGlassAvailable(): boolean {
-  let available = false;
-
-  jest.isolateModules(() => {
-    ({ liquidGlassAvailable: available } =
-      jest.requireActual<typeof LiquidGlassModule>('../liquidGlass'));
-  });
-
-  return available;
+  return loadFreshModule(() =>
+    jest.requireActual<typeof LiquidGlassModule>('../liquidGlass'),
+  ).liquidGlassAvailable;
 }
 
 describe('liquidGlassAvailable', () => {

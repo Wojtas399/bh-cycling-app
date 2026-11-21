@@ -1,6 +1,7 @@
 import { useForgotPassword } from '../useForgotPassword';
 import { useBoundFields } from '@/test-utils/form';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 const mockSendPasswordResetEmail = jest.fn();
@@ -29,11 +30,6 @@ async function setup() {
 
 type Hook = Awaited<ReturnType<typeof setup>>;
 
-// React Query hands the settled state to the hook on a later tick.
-async function settle() {
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-}
-
 async function type(hook: Hook, email: string) {
   await act(async () => hook.result.current.fields.email.onChangeText(email));
 }
@@ -42,14 +38,14 @@ async function submit(hook: Hook) {
   await act(async () => {
     await hook.result.current.submit();
   });
-  await settle();
+  await settleQueries();
 }
 
 async function resend(hook: Hook) {
   await act(async () => {
     await hook.result.current.resend();
   });
-  await settle();
+  await settleQueries();
 }
 
 function emailError(hook: Hook) {
@@ -63,8 +59,7 @@ describe('useForgotPassword', () => {
     mockSendPasswordResetEmail.mockResolvedValue(undefined);
   });
 
-  // Per-field rules live in forgotPasswordSchema.test.ts; these cover timing.
-  describe('validation', () => {
+  describe('when schema errors show', () => {
     it('shows no error before the first submit', async () => {
       const hook = await setup();
 
@@ -187,16 +182,19 @@ describe('useForgotPassword', () => {
   });
 
   describe('resend', () => {
+    async function settleQueriesOnFakeTimers() {
+      await act(async () => {
+        jest.advanceTimersByTime(0);
+      });
+    }
+
     async function sendThenWaitOutCooldown(hook: Hook) {
       jest.useFakeTimers();
       await type(hook, ' rider@example.com ');
       await act(async () => {
         await hook.result.current.submit();
       });
-      await act(async () => {
-        // React Query hands the settled state to the hook on a later tick.
-        jest.advanceTimersByTime(0);
-      });
+      await settleQueriesOnFakeTimers();
       expect(hook.result.current.cooldown).toBe(60);
       await act(async () => {
         jest.advanceTimersByTime(60_000);
@@ -262,7 +260,7 @@ describe('useForgotPassword', () => {
       await act(async () => {
         void hook.result.current.submit();
       });
-      await settle();
+      await settleQueries();
 
       expect(hook.result.current.busy).toBe(true);
 

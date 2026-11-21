@@ -1,13 +1,11 @@
 import type { ParseKeys } from 'i18next';
 
-/** An i18n key under `deleteAccount.errors`. */
 type DeleteAccountErrorKey = Extract<
   ParseKeys,
   `deleteAccount.errors.${string}`
 >;
 
 export interface DeleteAccountErrorMapping {
-  /** The field the error shows under; the form error when absent. */
   field?: 'password';
   key: DeleteAccountErrorKey;
 }

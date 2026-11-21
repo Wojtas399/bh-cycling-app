@@ -9,10 +9,6 @@ import { useAppTheme } from '@/constants/theme';
 import type { Race } from '@/lib/races';
 import { Ionicons } from '@expo/vector-icons';
 
-/**
- * The Race an Activity is paired to, on top of Activity Details: its priority
- * drawn as on the tile, then its name. One button opening the Race.
- */
 export default function RaceHeader({
   race,
   onPress,

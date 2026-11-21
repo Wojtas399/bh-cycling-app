@@ -24,6 +24,10 @@ _Avoid_: Free ride (a kind of planned Workout), extra workout, unpaired ride
 An Activity intervals.icu received from Strava but can't share through its API, so only its id and start time are known. It has no details. Unless it is paired to a Workout, it's an Unplanned Activity.
 _Avoid_: Stub, hidden activity
 
+**Workout Details**:
+The screen for one Workout, pushed over the tabs from any Workout tile. A completed Workout also shows what its paired Activity recorded, including that Activity's Route when it has one. A planned or missed Workout has no Activity, so it has no Route.
+_Avoid_: Workout sheet, workout page
+
 **Activity Details**:
 The screen for one Activity with no Workout behind it: an Unplanned Activity, or an Activity paired to a Race, which opens with that Race named on top. It's a sibling of Workout Details, not one of its modes.
 _Avoid_: Unpaired workout details, activity mode
@@ -33,8 +37,8 @@ The screen for one Note: its title, colour and dates, then its text as Note Mark
 _Avoid_: Note view, note page, Note sheet, Note Detail Sheet
 
 **Workout Profile**:
-The planned shape of a Cycling Workout's effort, drawn from its steps: a block for each step ridden, every rep of a Repeat included, as wide as its share of the Workout's time and as tall as its Power Target in %FTP, coloured by Power Zone. When the steps it can draw cover less than half the Workout's time, there is no Workout Profile, and the Workout shows its title and duration alone.
-_Avoid_: Workout graph, workout chart
+The planned shape of a Cycling Workout's effort, drawn from its steps: a block for each step ridden, every rep of a Repeat included, as wide as its share of the Workout's time and as tall as its Power Target in %FTP, coloured by Power Zone. A step with a power range is solid up to its floor, the power the athlete is asked to hold, and faint up to its ceiling. A Ramp is a slope. When the steps it can draw cover less than half the Workout's time, there is no Workout Profile, and the Workout shows its title and duration alone.
+_Avoid_: Workout graph, workout chart, Activity Profile, which is the recorded shape
 
 **Activity Profile**:
 The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.
@@ -92,7 +96,7 @@ An Activity's time from start to finish, stops included. Moving time leaves the 
 _Avoid_: Duration (for a recorded Activity)
 
 **Route**:
-The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
+The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own. An Activity ridden indoors, such as a trainer ride or a VirtualRide, or recorded without GPS, has no Route.
 _Avoid_: Workout route, track, GPS trace
 
 **Workout Status**:

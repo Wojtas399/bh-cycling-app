@@ -13,6 +13,7 @@ import {
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { resolveRideSettings } from '@/lib/rideSettings';
+import * as workoutDetails from '@/lib/workoutDetails';
 import type { WorkoutStep } from '@/lib/workoutProfile';
 import {
   type IntervalsJson,
@@ -237,9 +238,7 @@ describe('useWorkoutDetails', () => {
       );
     });
 
-    // The single read lacks `paired_activity_id` (#191), so the event is
-    // read from its day's events list.
-    it('is completed by a Strava Activity the event names, read from the events list', async () => {
+    it('is completed by a Strava Activity the event names, read from the events list since the single read lacks the paired Activity id', async () => {
       mockConnected();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
@@ -485,14 +484,13 @@ describe('useWorkoutDetails', () => {
       expect(mockGetActivities).not.toHaveBeenCalled();
     });
 
-    it('colours the profile by Coggan zones when the athlete settings fail', async () => {
+    it('colours the profile by Coggan zones when the athlete settings fail, drawing its card in %FTP without waiting on them', async () => {
       mockConnected();
       mockGetAthleteSettings.mockRejectedValue(new IntervalsApiError(500));
       mockGetCalendarEvent.mockResolvedValue(
         event({
           workout_doc: {
             duration: 600,
-            // 80% FTP sits in Coggan's zone 3 (75–90%).
             steps: [{ duration: 600, power: { units: '%ftp', value: 80 } }],
           },
         }),
@@ -504,7 +502,6 @@ describe('useWorkoutDetails', () => {
       expect(result.current.query.data?.blocks).toEqual([
         { widthFraction: 1, minPct: 80, maxPct: 80, zone: 3 },
       ]);
-      // So its profile card is drawn in %FTP, and never waits on them.
       expect(result.current.query.data?.rideSettings).toEqual(
         resolveRideSettings(null),
       );
@@ -1113,9 +1110,8 @@ describe('useWorkoutDetails', () => {
       return result.current.query.data?.steps;
     }
 
-    it('lists a %FTP step with its label, duration, zone and target', async () => {
+    it('lists a %FTP step with its label, duration, zone and target, 80% FTP sitting in Coggan zone 3', async () => {
       const steps = await stepsOf([
-        // 80% FTP sits in Coggan's zone 3 (75–90%).
         { text: 'Tempo', duration: 600, power: { units: '%ftp', value: 80 } },
       ]);
 
@@ -1132,12 +1128,11 @@ describe('useWorkoutDetails', () => {
       ]);
     });
 
-    it("resolves a power-zone target to that zone's %FTP band", async () => {
+    it("resolves a power-zone target to that zone's %FTP band, 55–75% for Coggan zone 2", async () => {
       const steps = await stepsOf([
         { duration: 1200, power: { units: 'power_zone', value: 2 } },
       ]);
 
-      // Coggan's zone 2 runs from 55% to 75% FTP.
       expect(steps?.[0]).toMatchObject({
         zone: 2,
         ftpPct: { start: 55, end: 75 },
@@ -1158,7 +1153,7 @@ describe('useWorkoutDetails', () => {
       });
     });
 
-    it('reads a ramp as start–end, in the order it is ridden', async () => {
+    it('reads a ramp as start–end, in the order it is ridden, coloured by the zone of its middle', async () => {
       const steps = await stepsOf([
         {
           duration: 600,
@@ -1167,7 +1162,6 @@ describe('useWorkoutDetails', () => {
         },
       ]);
 
-      // Coloured by its middle, 60% FTP: Coggan's zone 2.
       expect(steps?.[0]).toMatchObject({
         zone: 2,
         ftpPct: { start: 75, end: 45 },
@@ -1175,12 +1169,11 @@ describe('useWorkoutDetails', () => {
       });
     });
 
-    it('reads a %FTP range as start–end', async () => {
+    it('reads a %FTP range as start–end, coloured by the zone of its middle', async () => {
       const steps = await stepsOf([
         { duration: 600, power: { units: '%ftp', start: 88, end: 94 } },
       ]);
 
-      // Coloured by its middle, 91% FTP: Coggan's zone 4 (90–105%).
       expect(steps?.[0]).toMatchObject({
         zone: 4,
         ftpPct: { start: 88, end: 94 },
@@ -1396,6 +1389,34 @@ describe('useWorkoutDetails', () => {
       await act(() => removeIntervalsQueries(client));
 
       expect(client.getQueryData(workoutKey)).toBeUndefined();
+    });
+
+    it('does not build the view model again while today stays the same', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event());
+      const build = jest.spyOn(workoutDetails, 'buildWorkoutDetails');
+
+      const { result, rerender } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      const builds = build.mock.calls.length;
+
+      await rerender(undefined);
+
+      expect(build).toHaveBeenCalledTimes(builds);
+      build.mockRestore();
+    });
+
+    it('keeps the same refetch across renders', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(event());
+
+      const { result, rerender } = await renderDetails();
+      const first = result.current.refetch;
+
+      await rerender(undefined);
+
+      expect(result.current.refetch).toBe(first);
     });
 
     it('refetches only this query on refetch', async () => {

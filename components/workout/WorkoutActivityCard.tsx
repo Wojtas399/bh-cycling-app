@@ -8,7 +8,6 @@ export interface WorkoutActivityCardProps {
   metrics: ActivityMetric[];
 }
 
-/** Wykonanie: the paired Activity's summary metrics in a two-column grid. */
 export default function WorkoutActivityCard({
   metrics,
 }: WorkoutActivityCardProps) {

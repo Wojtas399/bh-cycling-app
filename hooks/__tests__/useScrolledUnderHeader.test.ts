@@ -14,6 +14,9 @@ function layout(y: number, height: number): LayoutChangeEvent {
   return layoutEvent({ x: 0, y, width: 320, height });
 }
 
+const BLOCK_SPANNING_116_TO_236 = layout(116, 120);
+const BLOCK_PUSHED_DOWN_BY_A_LONGER_TITLE = layout(116, 220);
+
 function scroll(y: number): NativeSyntheticEvent<NativeScrollEvent> {
   return scrollEvent({ x: 0, y });
 }
@@ -26,8 +29,7 @@ describe('useScrolledUnderHeader', () => {
   it('is not under the header before any scroll', async () => {
     const { result } = await renderScrolled();
 
-    // The block spans 116..236 in the scroll content.
-    await act(() => result.current.onLayout(layout(116, 120)));
+    await act(() => result.current.onLayout(BLOCK_SPANNING_116_TO_236));
 
     expect(result.current.scrolledUnder).toBe(false);
   });
@@ -35,7 +37,7 @@ describe('useScrolledUnderHeader', () => {
   it("is under the header once the block's bottom has scrolled up to the header's", async () => {
     const { result } = await renderScrolled();
 
-    await act(() => result.current.onLayout(layout(116, 120)));
+    await act(() => result.current.onLayout(BLOCK_SPANNING_116_TO_236));
     await act(() => result.current.onScroll(scroll(135)));
 
     expect(result.current.scrolledUnder).toBe(false);
@@ -48,7 +50,7 @@ describe('useScrolledUnderHeader', () => {
   it('is no longer under the header once scrolled back', async () => {
     const { result } = await renderScrolled();
 
-    await act(() => result.current.onLayout(layout(116, 120)));
+    await act(() => result.current.onLayout(BLOCK_SPANNING_116_TO_236));
     await act(() => result.current.onScroll(scroll(400)));
     await act(() => result.current.onScroll(scroll(0)));
 
@@ -63,13 +65,14 @@ describe('useScrolledUnderHeader', () => {
     expect(result.current.scrolledUnder).toBe(false);
   });
 
-  it('follows the block when it moves under the current scroll offset', async () => {
+  it('follows the block when a refresh brings a longer title that pushes its bottom down under the current scroll offset', async () => {
     const { result } = await renderScrolled();
 
-    await act(() => result.current.onLayout(layout(116, 120)));
+    await act(() => result.current.onLayout(BLOCK_SPANNING_116_TO_236));
     await act(() => result.current.onScroll(scroll(200)));
-    // A refresh brings a longer title, pushing the block's bottom down.
-    await act(() => result.current.onLayout(layout(116, 220)));
+    await act(() =>
+      result.current.onLayout(BLOCK_PUSHED_DOWN_BY_A_LONGER_TITLE),
+    );
 
     expect(result.current.scrolledUnder).toBe(false);
   });

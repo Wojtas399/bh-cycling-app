@@ -1,6 +1,5 @@
 import type { ParseKeys } from 'i18next';
 
-/** An i18n key under `changePassword.errors`. */
 type ChangePasswordErrorKey = Extract<
   ParseKeys,
   `changePassword.errors.${string}`
@@ -9,12 +8,10 @@ type ChangePasswordErrorKey = Extract<
 export type ChangePasswordMutation = 'changePassword' | 'sendResetEmail';
 
 export interface ChangePasswordErrorMapping {
-  /** The field the error shows under; the form error when absent. */
   field?: 'currentPassword' | 'newPassword';
   key: ChangePasswordErrorKey;
 }
 
-/** The reset email has no fields of its own, so its errors are form errors. */
 export function mapChangePasswordError(
   mutation: ChangePasswordMutation,
   code: string,

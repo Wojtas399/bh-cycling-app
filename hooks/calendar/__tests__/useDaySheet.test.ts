@@ -127,7 +127,7 @@ describe('useDaySheet', () => {
     expect(result.current.notes).toMatchObject([{ id: 4 }]);
   });
 
-  it('closes when the data goes away, and stays closed when it returns', async () => {
+  it('closes on a range reload or a disconnect, and stays closed when the data returns', async () => {
     const { result, rerender } = await renderSheet(data());
 
     await act(async () => result.current.open(OCT_24));

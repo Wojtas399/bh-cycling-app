@@ -1,12 +1,10 @@
 import type { ParseKeys } from 'i18next';
 
-/** An i18n key under `forgotPassword.errors`. */
 type ForgotPasswordErrorKey = Extract<
   ParseKeys,
   `forgotPassword.errors.${string}`
 >;
 
-/** Forgot-password errors are all form errors; none shows under a field. */
 export interface ForgotPasswordErrorMapping {
   key: ForgotPasswordErrorKey;
 }

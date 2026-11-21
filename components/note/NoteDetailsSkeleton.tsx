@@ -3,10 +3,6 @@ import { useTranslation } from 'react-i18next';
 import Box from '@/components/Box';
 import SkeletonBar from '@/components/SkeletonBar';
 
-/**
- * Placeholder of the Note Details layout while the Note loads: the title, the
- * dates row and the divider, then a few lines of text, all on the page.
- */
 export default function NoteDetailsSkeleton() {
   const { t } = useTranslation(undefined, { keyPrefix: 'noteDetails' });
 

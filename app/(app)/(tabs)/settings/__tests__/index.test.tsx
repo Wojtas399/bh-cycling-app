@@ -187,10 +187,9 @@ describe('SettingsScreen — Konto section', () => {
     expect(screen.getByText('settings.account.deleteAccount')).toBeTruthy();
   });
 
-  it('does not make the Konto rows pressable', async () => {
+  it('does not make the Konto rows pressable, so they carry no button role', async () => {
     await renderScreen();
 
-    // Pressable SettingsRows expose accessibilityRole="button".
     expect(
       screen.queryByRole('button', { name: /settings\.account\.email/ }),
     ).toBeNull();

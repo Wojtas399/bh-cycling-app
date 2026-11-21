@@ -1,18 +1,12 @@
 import { signUpSchema } from '../signUpSchema';
+import {
+  firstIssuePerField,
+  issueMessagesByField,
+} from '@/test-utils/schemaIssues';
 import * as v from 'valibot';
 
-/** The first issue key per field, as the resolver reports it. */
 function errors(input: Record<string, string>) {
-  const result = v.safeParse(signUpSchema, input);
-  const byField: Record<string, string> = {};
-
-  for (const issue of result.issues ?? []) {
-    const field = v.getDotPath(issue) ?? 'root';
-
-    byField[field] ??= issue.message;
-  }
-
-  return byField;
+  return firstIssuePerField(signUpSchema, input);
 }
 
 describe('signUpSchema', () => {
@@ -97,7 +91,6 @@ describe('signUpSchema', () => {
     });
   });
 
-  // Matches the hand-written validation this schema replaced.
   it('shows the mismatch even while the password has its own error', () => {
     expect(
       errors({
@@ -108,6 +101,21 @@ describe('signUpSchema', () => {
     ).toEqual({
       password: 'validation.passwordTooShort',
       confirmPassword: 'validation.passwordsMismatch',
+    });
+  });
+
+  it("reports the confirmation's own issue before the mismatch, so the first-issue resolver shows one error per field", () => {
+    expect(
+      issueMessagesByField(signUpSchema, {
+        email: 'rider@example.com',
+        password: 'password-1',
+        confirmPassword: '',
+      }),
+    ).toEqual({
+      confirmPassword: [
+        'signUp.validation.confirmPasswordRequired',
+        'validation.passwordsMismatch',
+      ],
     });
   });
 

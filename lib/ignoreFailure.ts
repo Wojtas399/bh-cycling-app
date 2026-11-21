@@ -1,5 +1,5 @@
 const nothing = () => undefined;
 
-export function ignoreFailure(promise: Promise<unknown>): Promise<void> {
-  return promise.then(nothing, nothing);
+export function ignoreFailure(work: () => unknown): Promise<void> {
+  return new Promise(settle => settle(work())).then(nothing, nothing);
 }

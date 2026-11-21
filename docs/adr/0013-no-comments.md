@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (Spec: Ban explanatory comments from code)
+Accepted (Spec: Ban explanatory comments from code)
 
 ## Context
 

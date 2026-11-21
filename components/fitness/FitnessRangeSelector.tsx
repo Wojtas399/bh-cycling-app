@@ -2,15 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
 import Box from '@/components/Box';
-import GlassControl, { GLASS_EDGE } from '@/components/GlassControl';
+import GlassControl, {
+  EDGE_MEASURING_ALIKE_ON_EVERY_PAINT,
+} from '@/components/GlassControl';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { FITNESS_RANGES, type FitnessRange } from '@/lib/fitness';
 
-/**
- * Segmented control choosing the chart's range: 6 tygodni, 3 miesiące, rok.
- * A glass track with the selected range on prominent glass.
- */
 export default function FitnessRangeSelector({
   range,
   onRangeChange,
@@ -30,7 +28,7 @@ export default function FitnessRangeSelector({
   return (
     <GlassControl
       placement="chrome"
-      style={{ flexDirection: 'row', padding: spacing.xs }}
+      surfaceStyle={{ flexDirection: 'row', padding: spacing.xs }}
     >
       {FITNESS_RANGES.map(option => {
         const selected = option === range;
@@ -50,7 +48,7 @@ export default function FitnessRangeSelector({
               prominent
               onPress={() => onRangeChange(option)}
               accessibilityState={{ selected }}
-              style={segment}
+              surfaceStyle={segment}
             >
               {label}
             </GlassControl>
@@ -61,7 +59,7 @@ export default function FitnessRangeSelector({
             onPress={() => onRangeChange(option)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            style={[{ flex: 1 }, segment, GLASS_EDGE]}
+            style={[{ flex: 1 }, segment, EDGE_MEASURING_ALIKE_ON_EVERY_PAINT]}
           >
             {label}
           </Pressable>

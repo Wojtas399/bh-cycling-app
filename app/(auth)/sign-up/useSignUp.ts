@@ -10,7 +10,8 @@ import {
   type SignUpValues,
   signUpSchema,
 } from './signUpSchema';
-import type { FormBinding } from '@/hooks/formBinding';
+import { type FormBinding, noServerErrorOnAnyField } from '@/hooks/formBinding';
+import { resetOtherSubmissions } from '@/hooks/formSubmissions';
 import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
@@ -40,13 +41,13 @@ export function useSignUp() {
     mutationFn: signInWithGoogle,
   });
 
+  const submissions = [emailSignUp, googleSignUp];
   const busy = emailSignUp.isPending || googleSignUp.isPending;
 
   function mapError(mutation: SignUpMutation, e: unknown): SignUpErrorMapping {
     return mapSignUpError(mutation, getErrorCode(e));
   }
 
-  // Starting one mutation resets the other, so at most one has an error.
   const mapped: SignUpErrorMapping | null = emailSignUp.error
     ? mapError('emailSignUp', emailSignUp.error)
     : googleSignUp.error
@@ -61,30 +62,24 @@ export function useSignUp() {
       emailSignUp.reset();
       googleSignUp.reset();
     },
-    // Every sign-up server error is a form error.
-    serverError: () => '',
-    // Editing the password re-checks "passwords mismatch".
+    serverError: noServerErrorOnAnyField,
     deps: { password: ['confirmPassword'] },
   };
 
   async function submit() {
     if (busy) return;
 
-    await handleSubmit(async values => {
-      googleSignUp.reset();
-
-      // A failure surfaces through `emailSignUp.error`.
-      await emailSignUp.mutateAsync(values).catch(() => {});
+    await handleSubmit(values => {
+      resetOtherSubmissions(emailSignUp, submissions);
+      emailSignUp.mutate(values);
     })();
   }
 
-  async function signUpWithGoogle() {
+  function signUpWithGoogle() {
     if (busy) return;
 
-    emailSignUp.reset();
-
-    // A failure surfaces through `googleSignUp.error`.
-    await googleSignUp.mutateAsync().catch(() => {});
+    resetOtherSubmissions(googleSignUp, submissions);
+    googleSignUp.mutate();
   }
 
   return {

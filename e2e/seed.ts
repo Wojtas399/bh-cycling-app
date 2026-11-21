@@ -1,10 +1,3 @@
-/**
- * Recreates the test athlete's `e2e-` Workouts, Race, Note and ride on
- * Intervals.icu, so every suite run starts from the same data. `npm run e2e:ios` and
- * `npm run e2e:android` run it before `e2e run`, because e2e 0.23 has no
- * global setup and its `test.setup` isn't available on mobile. `planSeed`
- * decides what to write; this file only makes the calls. Run it on its own with `npm run e2e:seed`.
- */
 import { athleteFromEnv, intervalsFromEnv } from './support/athlete.ts';
 import { loadLocalEnv } from './support/env.ts';
 import { planSeed } from './support/seedPlan.ts';
@@ -21,20 +14,23 @@ const existingItemsSchema = v.array(
   }),
 );
 
-try {
-  // The suite refuses to start without the test user's credentials, but its
-  // config loads only after the seed. So check them here, before the seed
-  // changes anything on staging.
+function requireSuiteCredentialsBeforeChangingStaging(): void {
   athleteFromEnv();
+}
+
+function personalApiKeyBasicAuth(apiKey: string): string {
+  return `Basic ${Buffer.from(`API_KEY:${apiKey}`).toString('base64')}`;
+}
+
+try {
+  requireSuiteCredentialsBeforeChangingStaging();
   const { apiKey, athleteId } = intervalsFromEnv();
-  // A personal API key is Basic auth with the username `API_KEY`.
-  const authorization = `Basic ${Buffer.from(`API_KEY:${apiKey}`).toString('base64')}`;
+  const authorization = personalApiKeyBasicAuth(apiKey);
   const eventsPath = `/athlete/${athleteId}/events`;
   const activitiesPath = `/athlete/${athleteId}/activities`;
   const plan = planSeed(new Date());
   const { oldest, newest } = plan.deleteWindow;
 
-  // A `FormData` body goes as multipart, with the boundary `fetch` sets.
   const call = async (
     method: string,
     path: string,
@@ -103,18 +99,17 @@ try {
   }
 
   const { ride } = plan;
-  const upload = new FormData();
+  const unpairedRideUpload = new FormData();
 
-  upload.append(
+  unpairedRideUpload.append(
     'file',
     new Blob([ride.tcx], { type: 'application/xml' }),
     `${ride.external_id}.tcx`,
   );
-  // Unpaired: no `paired_event_id`, so it's an Unplanned Activity.
   await call(
     'POST',
     `${activitiesPath}?${new URLSearchParams({ name: ride.name, external_id: ride.external_id })}`,
-    upload,
+    unpairedRideUpload,
   );
 
   const created = [...Object.values(plan.events), ride]

@@ -34,21 +34,11 @@ import { NO_WORKOUT_PROFILE, profileCardSource } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
 import { useLocalSearchParams } from 'expo-router';
 
-/**
- * Activity Details: one Unplanned Activity or paired Race, pushed over the
- * tabs from its tile. Mirrors Workout Details and branches on the raw query
- * (ADR 0005): data wins over an error, so a failed pull-to-refresh keeps the
- * Activity on screen. An Activity paired to a Race gets the Race header,
- * which opens the Race Detail Sheet.
- */
 export default function ActivityDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
   const { availability, query, refetch } = useActivityDetails(id);
-  // The same Route query the banner reads, so a refresh can retry it. It's
-  // skipped when there's no Route.
-  const route = useActivityRoute(routeOf(query.data)?.activityId ?? null);
-  // Skipped when the Activity isn't paired.
+  const bannerRoute = useActivityRoute(routeOf(query.data)?.activityId ?? null);
   const pairedRace = usePairedRace(pairedEventIdOf(query.data));
   const raceSheet = useRaceSheet();
   const theme = useAppTheme();
@@ -60,10 +50,9 @@ export default function ActivityDetailsScreen() {
     setRefreshing(true);
 
     try {
-      // A loaded Route is never fetched again; a failed one is retried.
       await Promise.all([
         refetch(),
-        route.refetchIfFailed(),
+        bannerRoute.refetchIfFailed(),
         pairedRace.refetch(),
       ]);
     } finally {
@@ -71,8 +60,8 @@ export default function ActivityDetailsScreen() {
     }
   }
 
-  function body() {
-    const skeleton = <WorkoutDetailsSkeleton label={t('loading')} />;
+  function bodyPreferringDataOverError() {
+    const skeleton = <WorkoutDetailsSkeleton loadingLabel={t('loading')} />;
 
     if (availability === 'loading') return skeleton;
 
@@ -85,7 +74,7 @@ export default function ActivityDetailsScreen() {
         <ActivityDetailsContent
           activityId={id}
           details={query.data}
-          race={pairedRace.race}
+          loadedPairedRace={pairedRace.race}
           onRacePress={raceSheet.open}
         />
       );
@@ -124,7 +113,7 @@ export default function ActivityDetailsScreen() {
           ) : undefined
         }
       >
-        {body()}
+        {bodyPreferringDataOverError()}
       </ScrollView>
       <ScreenHeader title={t('title')} onLayout={header.onLayout} />
       <RaceDetailSheet sheet={raceSheet} />
@@ -132,31 +121,28 @@ export default function ActivityDetailsScreen() {
   );
 }
 
-/**
- * The loaded Activity: the Race header when it's paired to a Race, the Route
- * banner, the hero, the Activity Profile, then Podsumowanie and Opis.
- */
 function ActivityDetailsContent({
   activityId,
   details,
-  race,
+  loadedPairedRace,
   onRacePress,
 }: {
   activityId: string;
   details: Extract<ActivityDetails, { isStravaActivity: false }>;
-  /** Undefined until the paired Race loads, and when there is none. */
-  race: Race | undefined;
+  loadedPairedRace: Race | undefined;
   onRacePress: (race: Race) => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const settings = useAthleteSettings();
   const profile = profileCardSource(NO_WORKOUT_PROFILE, details, settings.data);
+  const profileUnitsPending = settings.isLoading;
 
   return (
     <Box gap="md">
-      {race && <RaceHeader race={race} onPress={onRacePress} />}
+      {loadedPairedRace && (
+        <RaceHeader race={loadedPairedRace} onPress={onRacePress} />
+      )}
 
-      {/* `route` is `null` for a trainer ride, a VirtualRide or no GPS. */}
       {details.route && (
         <RouteBanner
           mapHref={{
@@ -169,19 +155,18 @@ function ActivityDetailsContent({
 
       <ActivityDetailsHero
         title={details.title}
-        type={details.type}
+        sportType={details.type}
         startLocal={details.startLocal}
       />
 
-      {/* Held until the ride can be drawn as it'll stay: in watts or %FTP. */}
-      {settings.isLoading ? (
+      {profileUnitsPending ? (
         <ProfileCardSkeleton />
       ) : (
         profile && (
           <WorkoutDetailsCard>
             <DetailedProfileCard
               source={profile}
-              testID="activity-details-profile"
+              plotTestID="activity-details-profile"
             />
           </WorkoutDetailsCard>
         )

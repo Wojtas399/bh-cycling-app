@@ -3,10 +3,6 @@ import { useAppTheme } from '@/constants/theme';
 import type { RacePriority } from '@/lib/races';
 import { Ionicons } from '@expo/vector-icons';
 
-/**
- * A Race Priority's rank icon (see `RACE_RANKS`). Decorative: whatever shows
- * it also says the priority.
- */
 export default function RaceRankIcon({
   priority,
   size,

@@ -16,22 +16,12 @@ import { profileReadout } from '@/lib/profileReadout';
 
 export interface DetailedProfileCardProps {
   source: ProfileCardSource;
-  /** The plot's; the scrub readout is `{testID}-readout`. */
-  testID: string;
+  plotTestID: string;
 }
 
-/**
- * The large profile card of Workout Details and Activity Details: the
- * planned Workout Profile above the recorded Activity Profile when there's
- * both, either alone otherwise, with the scrub readout and their time in zone
- * below. Drawn once it's laid out, for the plot's width. Read by a screen
- * reader as one summary covering whatever it shows, each strip with its
- * power, then the time-in-zone rows as text.
- * The scrub isn't offered to a screen reader.
- */
 export default function DetailedProfileCard({
   source: { card, settings },
-  testID,
+  plotTestID,
 }: DetailedProfileCardProps) {
   const [width, setWidth] = useState(0);
 
@@ -41,7 +31,7 @@ export default function DetailedProfileCard({
         <LaidOutProfile
           profile={buildDetailedProfile(card, settings)}
           width={width}
-          testID={testID}
+          plotTestID={plotTestID}
         />
       )}
     </View>
@@ -51,15 +41,14 @@ export default function DetailedProfileCard({
 function LaidOutProfile({
   profile,
   width,
-  testID,
+  plotTestID,
 }: {
   profile: DetailedProfile;
   width: number;
-  testID: string;
+  plotTestID: string;
 }) {
   const { t } = useTranslation();
-  // The scrub pointer's time, in s; `null` while it's hidden.
-  const [pointer, setPointer] = useState<number | null>(null);
+  const [pointerSeconds, setPointerSeconds] = useState<number | null>(null);
   const { strips, accessibilityLabel } = profilePlot(profile, t);
 
   return (
@@ -70,15 +59,15 @@ function LaidOutProfile({
         durationSeconds={profile.durationSeconds}
         width={width}
         accessibilityLabel={accessibilityLabel}
-        pointerShown={pointer !== null}
-        onScrub={setPointer}
-        testID={testID}
+        pointerShown={pointerSeconds !== null}
+        onScrub={setPointerSeconds}
+        testID={plotTestID}
       />
-      {pointer !== null && (
+      {pointerSeconds !== null && (
         <ScrubReadout
-          readout={profileReadout(profile, pointer)}
-          onHide={() => setPointer(null)}
-          testID={testID}
+          readout={profileReadout(profile, pointerSeconds)}
+          onHidePointer={() => setPointerSeconds(null)}
+          plotTestID={plotTestID}
         />
       )}
       <TimeInZoneRows rows={profile.timeInZone} />

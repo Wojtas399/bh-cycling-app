@@ -13,7 +13,6 @@ export interface WorkoutStatusDotProps {
   size?: number;
 }
 
-/** A small dot in the Workout Status colour: green, gray, or red. */
 export default function WorkoutStatusDot({
   status,
   size = 6,

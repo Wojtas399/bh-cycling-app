@@ -10,7 +10,8 @@ import {
   type SignInValues,
   signInSchema,
 } from './signInSchema';
-import type { FormBinding } from '@/hooks/formBinding';
+import { type FormBinding, noServerErrorOnAnyField } from '@/hooks/formBinding';
+import { resetOtherSubmissions } from '@/hooks/formSubmissions';
 import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
@@ -32,7 +33,6 @@ export function useSignIn() {
         variables.password,
       );
 
-      // A fresh link for an account that still has to verify its email.
       if (!user.emailVerified) await sendVerificationEmail(user);
     },
   });
@@ -41,13 +41,13 @@ export function useSignIn() {
     mutationFn: googleSignInFlow,
   });
 
+  const submissions = [emailSignIn, googleSignIn];
   const busy = emailSignIn.isPending || googleSignIn.isPending;
 
   function mapError(mutation: SignInMutation, e: unknown): SignInErrorMapping {
     return mapSignInError(mutation, getErrorCode(e));
   }
 
-  // Starting one mutation resets the other, so at most one has an error.
   const mapped: SignInErrorMapping | null = emailSignIn.error
     ? mapError('emailSignIn', emailSignIn.error)
     : googleSignIn.error
@@ -62,28 +62,23 @@ export function useSignIn() {
       emailSignIn.reset();
       googleSignIn.reset();
     },
-    // Sign-in errors are all form errors; none shows under a field.
-    serverError: () => '',
+    serverError: noServerErrorOnAnyField,
   };
 
   async function submit() {
     if (busy) return;
 
-    await handleSubmit(async values => {
-      googleSignIn.reset();
-
-      // A failure surfaces through `emailSignIn.error`.
-      await emailSignIn.mutateAsync(values).catch(() => {});
+    await handleSubmit(values => {
+      resetOtherSubmissions(emailSignIn, submissions);
+      emailSignIn.mutate(values);
     })();
   }
 
-  async function signInWithGoogle() {
+  function signInWithGoogle() {
     if (busy) return;
 
-    emailSignIn.reset();
-
-    // A failure surfaces through `googleSignIn.error`.
-    await googleSignIn.mutateAsync().catch(() => {});
+    resetOtherSubmissions(googleSignIn, submissions);
+    googleSignIn.mutate();
   }
 
   return {

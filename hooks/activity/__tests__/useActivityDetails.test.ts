@@ -1,5 +1,6 @@
 import { useActivityDetails } from '../useActivityDetails';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
+import * as activityDetails from '@/lib/activityDetails';
 import {
   type IntervalsActivity,
   IntervalsApiError,
@@ -55,7 +56,6 @@ function mockConnected() {
   });
 }
 
-/** An Activity as `GET /activity/{id}?intervals=true` returns it. */
 function activity(
   overrides: Partial<IntervalsJson<IntervalsActivity>> = {},
 ): IntervalsActivity {
@@ -70,8 +70,7 @@ function activity(
   });
 }
 
-/** The fields set to `null`, as intervals.icu sends a value it doesn't have. */
-function nulls(
+function missingFieldsAsIntervalsIcuSendsThem(
   ...fields: (keyof IntervalsActivity)[]
 ): Partial<IntervalsJson<IntervalsActivity>> {
   return Object.fromEntries(fields.map(field => [field, null]));
@@ -118,8 +117,7 @@ describe('useActivityDetails', () => {
     });
   });
 
-  /** Renders the details of `body` and waits for the view model. */
-  async function detailsOf(body: IntervalsActivity) {
+  async function loadedDetailsOf(body: IntervalsActivity) {
     mockConnected();
     mockGetActivity.mockResolvedValue(body);
 
@@ -130,9 +128,8 @@ describe('useActivityDetails', () => {
     return result.current.query.data;
   }
 
-  /** As `detailsOf`, for an Activity the screen can show. */
   async function shownDetailsOf(body: IntervalsActivity) {
-    const details = await detailsOf(body);
+    const details = await loadedDetailsOf(body);
 
     if (!details || details.isStravaActivity) {
       throw new Error('Expected an Activity the screen can show.');
@@ -144,7 +141,7 @@ describe('useActivityDetails', () => {
   describe('hero', () => {
     it('carries the trimmed name as the title, with the sport type and start date-time', async () => {
       expect(
-        await detailsOf(
+        await loadedDetailsOf(
           activity({
             name: '  Popołudniowa jazda \n',
             type: 'GravelRide',
@@ -167,7 +164,9 @@ describe('useActivityDetails', () => {
     ])(
       'has no title when the name is %s, so the screen can fall back to the sport',
       async (_, name) => {
-        expect(await detailsOf(activity({ name, type: 'Run' }))).toMatchObject({
+        expect(
+          await loadedDetailsOf(activity({ name, type: 'Run' })),
+        ).toMatchObject({
           title: null,
           type: 'Run',
         });
@@ -351,9 +350,7 @@ describe('useActivityDetails', () => {
       ]);
     });
 
-    it('shows only the times for a strength session', async () => {
-      // A WeightTraining Activity as intervals.icu returns it: every other
-      // summary metric is null.
+    it('shows only the times for a strength session, whose every other summary metric intervals.icu sends as null', async () => {
       const details = await shownDetailsOf(
         activity({
           name: 'Siłownia',
@@ -361,7 +358,7 @@ describe('useActivityDetails', () => {
           start_date_local: '2026-10-21T07:30:00',
           moving_time: 3480,
           elapsed_time: 3480,
-          ...nulls(
+          ...missingFieldsAsIntervalsIcuSendsThem(
             'distance',
             'icu_training_load',
             'icu_intensity',
@@ -516,8 +513,7 @@ describe('useActivityDetails', () => {
 
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
-      // The body intervals.icu returns for a Strava Activity, as verified.
-      const strava = readIntervalsBody<IntervalsActivity>({
+      const stravaBodyAsVerified = readIntervalsBody<IntervalsActivity>({
         id: '20679555658',
         icu_athlete_id: 'athlete-1',
         start_date_local: '2026-10-14T18:00:00',
@@ -525,7 +521,9 @@ describe('useActivityDetails', () => {
         _note: 'STRAVA activities are not available via the API',
       });
 
-      expect(await detailsOf(strava)).toEqual({ isStravaActivity: true });
+      expect(await loadedDetailsOf(stravaBodyAsVerified)).toEqual({
+        isStravaActivity: true,
+      });
     });
 
     it('surfaces a missing Activity as an API error with status 404', async () => {
@@ -544,9 +542,7 @@ describe('useActivityDetails', () => {
   describe('storage', () => {
     const activityKey = ['intervals', 'athlete-1', 'activity', ACTIVITY_ID];
 
-    it('keeps only the agreed fields of the body, and of each interval', async () => {
-      // A slice of the ~71 KB body: the fields Activity Details needs, plus
-      // a sample of the ones it doesn't.
+    it('keeps only the agreed fields of the body, and of each interval, from a slice of the full body with fields Activity Details never reads', async () => {
       const body = readIntervalsBody<IntervalsActivity>({
         id: ACTIVITY_ID,
         name: 'Popołudniowa jazda',
@@ -721,6 +717,34 @@ describe('useActivityDetails', () => {
       await act(() => removeIntervalsQueries(client));
 
       expect(client.getQueryData(activityKey)).toBeUndefined();
+    });
+
+    it('does not build the view model again until the data changes', async () => {
+      mockConnected();
+      mockGetActivity.mockResolvedValue(activity());
+      const build = jest.spyOn(activityDetails, 'buildActivityDetails');
+
+      const { result, rerender } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      const builds = build.mock.calls.length;
+
+      await rerender(undefined);
+
+      expect(build).toHaveBeenCalledTimes(builds);
+      build.mockRestore();
+    });
+
+    it('keeps the same refetch across renders', async () => {
+      mockConnected();
+      mockGetActivity.mockResolvedValue(activity());
+
+      const { result, rerender } = await renderDetails();
+      const first = result.current.refetch;
+
+      await rerender(undefined);
+
+      expect(result.current.refetch).toBe(first);
     });
 
     it('refetches only this query on refetch', async () => {

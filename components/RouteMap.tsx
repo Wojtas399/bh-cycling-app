@@ -19,31 +19,21 @@ import {
 
 const LINE_LAYOUT = { 'line-cap': 'round', 'line-join': 'round' } as const;
 
-/** MapLibre's own ⓘ corner, which the replacement button keeps. */
-const DEFAULT_ATTRIBUTION_POSITION = { bottom: 8, left: 8 } as const;
+const MAPLIBRE_ATTRIBUTION_CORNER = { bottom: 8, left: 8 } as const;
 const ATTRIBUTION_ICON_SIZE = 22;
 
 interface RouteMapProps {
   route: Route;
-  /** Space kept clear around the Route when the camera fits to its bounds. */
-  padding: ViewPadding;
-  /** Pan and zoom when true; no gestures at all when false. Never rotates or tilts. */
+  routeFitPadding: ViewPadding;
   interactive: boolean;
-  /** Where the attribution ⓘ sits; bottom-left when absent. */
   attributionPosition?: MapProps['attributionPosition'];
 }
 
-/**
- * Draws a Route on a dark map: a thin orange line with green start and red
- * finish dots. The map's own contents are hidden from the screen reader; the
- * attribution ⓘ is the component's own button, after the map in the tree, so
- * it stays focusable and opens MapLibre's attribution dialog.
- */
 export default function RouteMap({
   route,
-  padding,
+  routeFitPadding,
   interactive,
-  attributionPosition = DEFAULT_ATTRIBUTION_POSITION,
+  attributionPosition = MAPLIBRE_ATTRIBUTION_CORNER,
 }: RouteMapProps) {
   const { colors } = useAppTheme();
   const { t } = useTranslation(undefined, { keyPrefix: 'route.map' });
@@ -69,10 +59,9 @@ export default function RouteMap({
           touchPitch={false}
           compass={false}
           logo={false}
-          // Replaced by the button below, which a hidden map can't hide.
           attribution={false}
         >
-          <Camera initialViewState={{ bounds, padding }} />
+          <Camera initialViewState={{ bounds, padding: routeFitPadding }} />
 
           <GeoJSONSource id="route" data={line}>
             <Layer
@@ -104,19 +93,40 @@ export default function RouteMap({
         </Map>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('attribution')}
+      <AttributionFocusableOutsideHiddenMap
+        label={t('attribution')}
+        color={colors.textSecondary}
         onPress={() => void mapRef.current?.showAttribution()}
-        hitSlop={11}
-        style={{ position: 'absolute', ...attributionPosition }}
-      >
-        <Ionicons
-          name="information-circle-outline"
-          size={ATTRIBUTION_ICON_SIZE}
-          color={colors.textSecondary}
-        />
-      </Pressable>
+        position={attributionPosition}
+      />
     </View>
+  );
+}
+
+function AttributionFocusableOutsideHiddenMap({
+  label,
+  color,
+  onPress,
+  position,
+}: {
+  label: string;
+  color: string;
+  onPress: () => void;
+  position: MapProps['attributionPosition'];
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={11}
+      style={{ position: 'absolute', ...position }}
+    >
+      <Ionicons
+        name="information-circle-outline"
+        size={ATTRIBUTION_ICON_SIZE}
+        color={color}
+      />
+    </Pressable>
   );
 }

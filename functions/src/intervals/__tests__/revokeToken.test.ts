@@ -48,7 +48,7 @@ describe('revokeIntervalsToken', () => {
     await expect(revokeIntervalsToken('user-1')).resolves.toBeUndefined();
   });
 
-  it('does not throw on other HTTP failures', async () => {
+  it('does not throw on other HTTP failures, so callers can always proceed', async () => {
     mockIntegration({ accessToken: 'token-1' });
     fetchMock.mockResolvedValue({ ok: false, status: 500 });
 

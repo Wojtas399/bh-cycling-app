@@ -26,7 +26,6 @@ const DATA: CalendarData = {
   notes: [],
 };
 
-/** The Calendar's day sheet and Race sheet, wired as the screen wires them. */
 async function renderSheets() {
   return renderHook(() => {
     const daySheet = useDaySheet(DATA);
@@ -37,7 +36,7 @@ async function renderSheets() {
 }
 
 describe('useCalendarRaceSheet', () => {
-  it('closes the day sheet at once and opens the Race only once it has dismissed', async () => {
+  it('closes the day sheet at once and opens the Race only once it has dismissed, as iOS presents no sheet while another is dismissing', async () => {
     const { result } = await renderSheets();
 
     await act(async () => result.current.daySheet.open(OCT_24));
@@ -62,6 +61,16 @@ describe('useCalendarRaceSheet', () => {
 
     expect(result.current.raceSheet.visible).toBe(false);
     expect(result.current.daySheet.visible).toBe(false);
+  });
+
+  it('keeps the Race after closing, so its sheet can slide out', async () => {
+    const { result } = await renderSheets();
+
+    await act(async () => result.current.raceSheet.open(MARATHON));
+    await act(async () => result.current.raceSheet.close());
+
+    expect(result.current.raceSheet.visible).toBe(false);
+    expect(result.current.raceSheet.race).toBe(MARATHON);
   });
 
   it('opens a Race at once when no day sheet is in the way', async () => {

@@ -13,10 +13,6 @@ export interface WorkoutStravaCardProps {
   activity: StravaActivitySummary;
 }
 
-/**
- * Wykonanie for a Workout completed by a Strava Activity: what is known (its
- * source and start time), why there is nothing more, and a link to Strava.
- */
 export default function WorkoutStravaCard({
   activity,
 }: WorkoutStravaCardProps) {
@@ -29,7 +25,6 @@ export default function WorkoutStravaCard({
   return (
     <WorkoutDetailsCard title={t('title')}>
       <Box flexDirection="row" alignItems="center" gap="sm">
-        {/* A neutral source mark, not an imitation of Strava's logo. */}
         <Ionicons
           name="cloud-download-outline"
           size={18}

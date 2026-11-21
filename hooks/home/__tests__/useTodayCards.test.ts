@@ -9,6 +9,7 @@ import {
 } from '@/lib/intervalsApi';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
@@ -48,13 +49,12 @@ function mockConnection(
   });
 }
 
-/** Everything the app asks for at consent. */
-const FULL_SCOPE = 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
+const FULL_CONSENT_SCOPE =
+  'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
 
-/** What a connection made before Wellness was asked for holds. */
-const SCOPE_WITHOUT_WELLNESS = 'ACTIVITY:READ,CALENDAR:READ';
+const SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR = 'ACTIVITY:READ,CALENDAR:READ';
 
-function mockConnected(scope: string = FULL_SCOPE) {
+function mockConnected(scope: string = FULL_CONSENT_SCOPE) {
   mockConnection({
     isConnected: true,
     accessToken: 'token-1',
@@ -63,8 +63,7 @@ function mockConnected(scope: string = FULL_SCOPE) {
   });
 }
 
-/** What intervals.icu returns on a day without data: every metric `null`. */
-const NO_DATA = {
+const DAY_WITHOUT_DATA_ALL_NULL = {
   ctl: null,
   atl: null,
   readiness: null,
@@ -75,9 +74,8 @@ const NO_DATA = {
   restingHR: null,
 };
 
-/** A WHOOP morning after a block of riding: every metric is filled. */
-const FULL_ENTRY = {
-  ...NO_DATA,
+const FULLY_FILLED_ENTRY = {
+  ...DAY_WITHOUT_DATA_ALL_NULL,
   id: '2026-11-02',
   ctl: 42.6,
   atl: 50.4,
@@ -88,8 +86,7 @@ const FULL_ENTRY = {
   restingHR: 48,
 };
 
-/** `FULL_ENTRY`'s Wellness card rows. */
-const FULL_ROWS = [
+const FULLY_FILLED_ENTRY_WELLNESS_ROWS = [
   { key: 'readiness', value: '63' },
   { key: 'sleep', value: '7h 57m' },
   { key: 'sleepScore', value: '84' },
@@ -97,20 +94,17 @@ const FULL_ROWS = [
   { key: 'restingHr', value: '48 bpm' },
 ];
 
-/** `FULL_ENTRY` on both cards. */
-const FULL_CARDS = {
+const FULLY_FILLED_ENTRY_ON_BOTH_CARDS = {
   status: 'ready',
   fitness: { fitness: 43, fatigue: 50, form: -7 },
-  wellness: FULL_ROWS,
+  wellness: FULLY_FILLED_ENTRY_WELLNESS_ROWS,
 };
 
-/** Refetches, then lets React Query hand the settled state to the hook. */
-async function refetch(hook: {
+async function refetchAndSettle(hook: {
   result: { current: { refetch: () => Promise<void> } };
 }) {
   await act(() => hook.result.current.refetch());
-  // React Query hands the settled state to the hook on a later tick.
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  await settleQueries();
 }
 
 async function renderSettled() {
@@ -168,7 +162,7 @@ describe('useTodayCards', () => {
   });
 
   it('asks to reconnect, and asks for nothing, when the stored scope lacks Wellness', async () => {
-    mockConnected(SCOPE_WITHOUT_WELLNESS);
+    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
 
     const { result } = await renderHookWithClient(() => useTodayCards());
 
@@ -178,11 +172,11 @@ describe('useTodayCards', () => {
 
   it('needs no reconnect with Wellness granted but athlete settings not', async () => {
     mockConnected('ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ');
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result } = await renderSettled();
 
-    expect(result.current.state).toEqual(FULL_CARDS);
+    expect(result.current.state).toEqual(FULLY_FILLED_ENTRY_ON_BOTH_CARDS);
   });
 
   it('asks to reconnect when the request is refused for its scope, without retrying it or the global reconnect', async () => {
@@ -198,19 +192,19 @@ describe('useTodayCards', () => {
 
   it('asks to reconnect over values already shown when Wellness access is taken away', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const hook = await renderSettled();
 
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
   });
 
   it('fills in once a reconnect grants Wellness, without a restart', async () => {
-    mockConnected(SCOPE_WITHOUT_WELLNESS);
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result, rerender } = await renderHookWithClient(() =>
       useTodayCards(),
@@ -218,10 +212,12 @@ describe('useTodayCards', () => {
 
     expect(result.current.state).toEqual({ status: 'needsScope' });
 
-    mockConnected(FULL_SCOPE);
+    mockConnected(FULL_CONSENT_SCOPE);
     await rerender({});
 
-    await waitFor(() => expect(result.current.state).toEqual(FULL_CARDS));
+    await waitFor(() =>
+      expect(result.current.state).toEqual(FULLY_FILLED_ENTRY_ON_BOTH_CARDS),
+    );
   });
 
   it('hides both cards when the request fails for any other reason', async () => {
@@ -235,11 +231,11 @@ describe('useTodayCards', () => {
 
   it("shows a full entry on both cards, Form from the rounded values, read and cached for today's date", async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result, client } = await renderSettled();
 
-    expect(result.current.state).toEqual(FULL_CARDS);
+    expect(result.current.state).toEqual(FULLY_FILLED_ENTRY_ON_BOTH_CARDS);
     expect(mockGetWellness).toHaveBeenCalledTimes(1);
     expect(mockGetWellness).toHaveBeenCalledWith(
       'token-1',
@@ -249,20 +245,23 @@ describe('useTodayCards', () => {
     );
     expect(
       client.getQueryData(['intervals', 'athlete-1', 'wellness', TODAY]),
-    ).toEqual({ fitness: FULL_CARDS.fitness, wellness: FULL_ROWS });
+    ).toEqual({
+      fitness: FULLY_FILLED_ENTRY_ON_BOTH_CARDS.fitness,
+      wellness: FULLY_FILLED_ENTRY_WELLNESS_ROWS,
+    });
   });
 
   it("keeps today's values on both cards when a refetch fails", async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const hook = await renderSettled();
 
     mockGetWellness.mockRejectedValue(new IntervalsApiError(500));
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
-    expect(hook.result.current.state).toEqual(FULL_CARDS);
+    expect(hook.result.current.state).toEqual(FULLY_FILLED_ENTRY_ON_BOTH_CARDS);
   });
 
   it.each([
@@ -273,21 +272,25 @@ describe('useTodayCards', () => {
     'shows no Fitness values without %s, and the Wellness rows as they are',
     async (_name, missing) => {
       mockConnected();
-      mockGetWellness.mockResolvedValue({ ...FULL_ENTRY, ...missing });
+      mockGetWellness.mockResolvedValue({ ...FULLY_FILLED_ENTRY, ...missing });
 
       const { result } = await renderSettled();
 
       expect(result.current.state).toEqual({
         status: 'ready',
         fitness: null,
-        wellness: FULL_ROWS,
+        wellness: FULLY_FILLED_ENTRY_WELLNESS_ROWS,
       });
     },
   );
 
   it('shows a real 0 from intervals.icu as 0, not as no data', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue({ ...NO_DATA, ctl: 0, atl: 0 });
+    mockGetWellness.mockResolvedValue({
+      ...DAY_WITHOUT_DATA_ALL_NULL,
+      ctl: 0,
+      atl: 0,
+    });
 
     const { result } = await renderSettled();
 
@@ -300,7 +303,7 @@ describe('useTodayCards', () => {
 
   it('shows neither values nor rows on a day without data, when every metric is null', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(NO_DATA);
+    mockGetWellness.mockResolvedValue(DAY_WITHOUT_DATA_ALL_NULL);
 
     const { result } = await renderSettled();
 
@@ -324,12 +327,12 @@ describe('useTodayCards', () => {
     ],
     [
       'a partly synced morning, as its single metric',
-      { ...NO_DATA, restingHR: 48 },
+      { ...DAY_WITHOUT_DATA_ALL_NULL, restingHR: 48 },
       [{ key: 'restingHr', value: '48 bpm' }],
     ],
     [
       'an Apple Watch morning with sleep and SDNN only, under the SDNN label',
-      { ...NO_DATA, sleepSecs: 25200, hrvSDNN: 44 },
+      { ...DAY_WITHOUT_DATA_ALL_NULL, sleepSecs: 25200, hrvSDNN: 44 },
       [
         { key: 'sleep', value: '7h' },
         { key: 'hrvSdnn', value: '44 ms' },
@@ -337,12 +340,12 @@ describe('useTodayCards', () => {
     ],
     [
       'both HRV statistics as rMSSD alone',
-      { ...NO_DATA, hrv: 52, hrvSDNN: 44 },
+      { ...DAY_WITHOUT_DATA_ALL_NULL, hrv: 52, hrvSDNN: 44 },
       [{ key: 'hrv', value: '52 ms' }],
     ],
     [
       'a 0 as a value',
-      { ...NO_DATA, readiness: 0, sleepScore: 0 },
+      { ...DAY_WITHOUT_DATA_ALL_NULL, readiness: 0, sleepScore: 0 },
       [
         { key: 'readiness', value: '0' },
         { key: 'sleepScore', value: '0' },
@@ -351,7 +354,7 @@ describe('useTodayCards', () => {
     [
       'fractional values rounded to whole numbers',
       {
-        ...NO_DATA,
+        ...DAY_WITHOUT_DATA_ALL_NULL,
         readiness: 62.5,
         sleepSecs: 28649,
         sleepScore: 83.6,
@@ -368,7 +371,7 @@ describe('useTodayCards', () => {
     ],
   ])('shows %s on the Wellness card', async (_name, entry, rows) => {
     mockConnected();
-    mockGetWellness.mockResolvedValue({ ...FULL_ENTRY, ...entry });
+    mockGetWellness.mockResolvedValue({ ...FULLY_FILLED_ENTRY, ...entry });
 
     const { result } = await renderSettled();
 
@@ -380,7 +383,7 @@ describe('useTodayCards', () => {
 
   it('reads the new day at midnight, loading until it arrives', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result, rerender } = await renderSettled();
 
@@ -402,7 +405,7 @@ describe('useTodayCards', () => {
       expect.anything(),
     );
 
-    resolveNextDay({ ...NO_DATA, ctl: 41.2, atl: 44.7 });
+    resolveNextDay({ ...DAY_WITHOUT_DATA_ALL_NULL, ctl: 41.2, atl: 44.7 });
 
     await waitFor(() =>
       expect(result.current.state).toEqual({
@@ -415,7 +418,7 @@ describe('useTodayCards', () => {
 
   it('refetch reads the entry again, one request feeding both cards', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(NO_DATA);
+    mockGetWellness.mockResolvedValue(DAY_WITHOUT_DATA_ALL_NULL);
 
     const hook = await renderSettled();
 
@@ -426,12 +429,12 @@ describe('useTodayCards', () => {
     });
 
     mockGetWellness.mockResolvedValue({
-      ...NO_DATA,
+      ...DAY_WITHOUT_DATA_ALL_NULL,
       ctl: 48.5,
       atl: 43.1,
       restingHR: 48,
     });
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
     expect(hook.result.current.state).toEqual({
@@ -443,13 +446,13 @@ describe('useTodayCards', () => {
 
   it('refetch asks for nothing once a reconnect takes Wellness away', async () => {
     mockConnected();
-    mockGetWellness.mockResolvedValue(FULL_ENTRY);
+    mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const hook = await renderSettled();
 
-    mockConnected(SCOPE_WITHOUT_WELLNESS);
+    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
     await hook.rerender({});
-    await refetch(hook);
+    await refetchAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
     expect(mockGetWellness).toHaveBeenCalledTimes(1);

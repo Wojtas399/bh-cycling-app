@@ -2,15 +2,10 @@ import { existsSync } from 'node:fs';
 
 const ENV_FILE = new URL('../../.env.local', import.meta.url);
 
-/** Loads the repo's gitignored `.env.local` into `process.env`, if it exists. */
 export function loadLocalEnv(): void {
   if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
 }
 
-/**
- * Reads `names` from the env. When any is missing, throws one error that
- * names every missing variable and says what `purpose` needs them for.
- */
 export function requireEnv<const Name extends string>(
   names: readonly Name[],
   purpose: string,

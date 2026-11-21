@@ -61,6 +61,12 @@ const restrictedSyntax = [
     message:
       'Drop the written type predicate: TypeScript infers it for an arrow passed straight to .filter or .find (ADR 0014).',
   },
+  {
+    selector:
+      "CallExpression[callee.property.name='catch'] > ArrowFunctionExpression[params.length=0][body.type='BlockStatement'][body.body.length=0]",
+    message:
+      "Use ignoreFailure(() => work()) from '@/lib/ignoreFailure' instead of .catch(() => {}). To start a mutation whose error shows on mutation.error, call mutate.",
+  },
 ];
 const assertsFunctionSyntax = {
   selector: 'TSTypePredicate[asserts=true]',
@@ -82,6 +88,7 @@ module.exports = defineConfig([
         'error',
         '@typescript-eslint/consistent-type-assertions',
       ],
+      'no-empty': ['error', { allowEmptyCatch: false }],
     },
   },
   {
@@ -125,7 +132,6 @@ module.exports = defineConfig([
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       eqeqeq: ['error', 'always', { null: 'ignore' }],
-      'no-empty': ['error', { allowEmptyCatch: false }],
       'prefer-const': 'error',
       'padding-line-between-statements': [
         'error',

@@ -8,7 +8,6 @@ import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { routeOf } from '@/lib/activityDetails';
 import { useLocalSearchParams } from 'expo-router';
 
-/** The full-screen Route map of an Unplanned Activity. */
 export default function ActivityRouteMapScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,7 +34,7 @@ export default function ActivityRouteMapScreen() {
           />
         ) : null
       }
-      missingMessage={t('routeMissing')}
+      missingRouteMessage={t('routeMissing')}
     />
   );
 }

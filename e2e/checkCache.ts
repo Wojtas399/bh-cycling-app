@@ -1,12 +1,3 @@
-/**
- * Fails when a file in the committed replay cache, `.e2e/cache`, holds the
- * test users' emails or passwords or the Intervals.icu key, so a recording
- * can't leak one into git. `npm run e2e:ios` and `npm run e2e:android` run it
- * before the seed. `findCacheLeaks` decides what leaks; this file only reads
- * the files and the env. It prints file names, never a value. It stops when any
- * of the five variables is unset, naming them, so it never passes without
- * checking. Run it on its own with `npm run e2e:check-cache`.
- */
 import { findCacheLeaks } from './support/cacheLeaks.ts';
 import { loadLocalEnv, requireEnv } from './support/env.ts';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';

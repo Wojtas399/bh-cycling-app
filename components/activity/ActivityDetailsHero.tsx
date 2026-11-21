@@ -10,27 +10,20 @@ import { sportIcon, sportLabel } from '@/lib/sportIcon';
 import { Ionicons } from '@expo/vector-icons';
 
 export interface ActivityDetailsHeroProps {
-  /** The Activity's name, `null` to fall back to the sport label. */
   title: string | null;
-  /** intervals.icu's sport type. */
-  type: string;
+  sportType: string;
   startLocal: LocalDateTimeString;
 }
 
-/**
- * The top of Activity Details, outside any card: a quiet sport line where
- * Workout Details has its status pill, the title and the start. The sport
- * line is read as its label, and not at all when the title already is it.
- */
 export default function ActivityDetailsHero({
   title,
-  type,
+  sportType,
   startLocal,
 }: ActivityDetailsHeroProps) {
   const { t } = useTranslation();
   const theme = useAppTheme();
   const dateLabels = useNoteDateLabels();
-  const sport = t(sportLabel(type));
+  const sport = t(sportLabel(sportType));
   const start = formatActivityStart(startLocal, dateLabels);
   const titleIsSport = title === null;
 
@@ -46,7 +39,7 @@ export default function ActivityDetailsHero({
         importantForAccessibility={titleIsSport ? 'no-hide-descendants' : 'yes'}
       >
         <Ionicons
-          name={sportIcon(type)}
+          name={sportIcon(sportType)}
           size={14}
           color={theme.colors.workoutDone}
           accessibilityElementsHidden

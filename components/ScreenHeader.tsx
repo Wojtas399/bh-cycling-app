@@ -12,18 +12,12 @@ import { useRouter } from 'expo-router';
 interface ScreenHeaderProps {
   title: string;
   backDisabled?: boolean;
-  /** From `useGlassHeader('pushed')`, which lays the screen out under it. */
   onLayout: (event: LayoutChangeEvent) => void;
-  /** Chrome under the title row, such as a banner, that stays put too. */
   children?: ReactNode;
 }
 
 const SIDE_SLOT_WIDTH = 44;
 
-/**
- * A pushed screen's back arrow and title in a sticky Glass header. Render it
- * after the screen's content, which scrolls under it.
- */
 export default function ScreenHeader({
   title,
   backDisabled,

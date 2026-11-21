@@ -37,8 +37,7 @@ function mockConnected() {
   });
 }
 
-/** The paired event as `GET /events/{id}` returns it, shaped like #280's. */
-function pairedEvent(
+function livePairedEventBody(
   overrides: Partial<IntervalsCalendarEvent> = {},
 ): IntervalsCalendarEvent {
   return {
@@ -67,7 +66,7 @@ describe('usePairedRace', () => {
   });
 
   it('is the Race behind the paired event, read once by its id', async () => {
-    mockGetCalendarEvent.mockResolvedValue(pairedEvent());
+    mockGetCalendarEvent.mockResolvedValue(livePairedEventBody());
 
     const { result } = await renderPairedRace(EVENT_ID);
 
@@ -102,7 +101,7 @@ describe('usePairedRace', () => {
 
   it('has no Race when the paired event is a Workout', async () => {
     mockGetCalendarEvent.mockResolvedValue(
-      pairedEvent({ category: 'WORKOUT', name: 'Sweet spot 3×15' }),
+      livePairedEventBody({ category: 'WORKOUT', name: 'Sweet spot 3×15' }),
     );
 
     const { result, client } = await renderPairedRace(EVENT_ID);
@@ -116,7 +115,7 @@ describe('usePairedRace', () => {
   });
 
   it('reads the Race again on refetch', async () => {
-    mockGetCalendarEvent.mockResolvedValue(pairedEvent());
+    mockGetCalendarEvent.mockResolvedValue(livePairedEventBody());
 
     const { result } = await renderPairedRace(EVENT_ID);
 
@@ -125,7 +124,7 @@ describe('usePairedRace', () => {
     );
 
     mockGetCalendarEvent.mockResolvedValue(
-      pairedEvent({ name: 'Mazovia MTB Maraton Kraków' }),
+      livePairedEventBody({ name: 'Mazovia MTB Maraton Kraków' }),
     );
     await act(() => result.current.refetch());
 
@@ -136,7 +135,7 @@ describe('usePairedRace', () => {
   });
 
   it('is refetched when everything for the athlete is invalidated', async () => {
-    mockGetCalendarEvent.mockResolvedValue(pairedEvent());
+    mockGetCalendarEvent.mockResolvedValue(livePairedEventBody());
 
     const { result, client } = await renderPairedRace(EVENT_ID);
 

@@ -34,40 +34,38 @@ import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 interface CalendarPlace {
   view: CalendarView;
-  /** Where the view opens. Without one it opens on today's month or week. */
   startDate?: Date;
 }
 
-/**
- * Only the active view's hook is mounted, so switching views never fetches
- * for both — both read the same per-month queries, so the switch is instant
- * whenever the other view already loaded the months. A switch keeps the
- * user's place: the view it mounts opens near the range being left.
- */
 export default function CalendarScreen() {
   const [place, setPlace] = useState<CalendarPlace>({ view: 'monthly' });
   const today = useToday();
 
-  function changeView(view: CalendarView, anchor: Date) {
+  function switchViewKeepingPlace(view: CalendarView, visibleRangeStart: Date) {
     if (view === place.view) return;
 
     setPlace({
       view,
-      startDate: otherViewStartDate(place.view, anchor, today),
+      startDate: otherViewStartDate(place.view, visibleRangeStart, today),
     });
   }
 
   return place.view === 'monthly' ? (
-    <MonthlyCalendar startDate={place.startDate} onViewChange={changeView} />
+    <MonthlyCalendar
+      startDate={place.startDate}
+      onViewChange={switchViewKeepingPlace}
+    />
   ) : (
-    <WeeklyCalendar startDate={place.startDate} onViewChange={changeView} />
+    <WeeklyCalendar
+      startDate={place.startDate}
+      onViewChange={switchViewKeepingPlace}
+    />
   );
 }
 
 interface ViewProps {
   startDate?: Date;
-  /** `anchor` is the visible range's: the month's 1st or the week's Monday. */
-  onViewChange: (view: CalendarView, anchor: Date) => void;
+  onViewChange: (view: CalendarView, visibleRangeStart: Date) => void;
 }
 
 function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
@@ -78,7 +76,7 @@ function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
   return (
     <CalendarLayout
       view="monthly"
-      fill
+      fillWithoutScrollOrPadding
       onViewChange={view => onViewChange(view, month)}
       title={labels.month(month)}
       range={range}
@@ -137,41 +135,28 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
 
 interface CalendarLayoutProps {
   view: CalendarView;
-  /** The loaded view fills the body instead of scrolling (see `CalendarBody`). */
-  fill?: boolean;
+  fillWithoutScrollOrPadding?: boolean;
   onViewChange: (view: CalendarView) => void;
   title: string;
   range: CalendarRangeView;
   onPrevious: () => void;
   onNext: () => void;
-  /** The loaded view. */
   children: (view: LoadedViewProps) => ReactNode;
 }
 
 interface LoadedViewProps {
   itemsByDate: CalendarItemsByDate;
-  /** The whole Notes overlapping the range, in `id` order. */
   notes: Note[];
-  /** Opens the day sheet. */
   onDayPress: (day: CalendarDay) => void;
-  /** Opens the Workout's details. */
   onWorkoutPress: (workout: CalendarWorkout) => void;
-  /** Opens the Activity's details. */
   onActivityPress: (activity: UnplannedActivity) => void;
-  /** Opens the Race Detail Sheet straight from the view (no day sheet). */
   onRacePress: (race: Race) => void;
-  /** Opens Note Details straight from the view (no day sheet). */
   onNotePress: (note: Note) => void;
 }
 
-/**
- * Everything the two views share: the header (toggle, "Dziś", refresh, range
- * navigation) sticky on Glass, the loading/error/ready body under it, the
- * day sheet, and the Race Detail Sheet.
- */
 function CalendarLayout({
   view,
-  fill,
+  fillWithoutScrollOrPadding,
   onViewChange,
   title,
   range: { availability, query, goToToday, showsToday, refresh, refreshing },
@@ -192,7 +177,11 @@ function CalendarLayout({
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
-      <CalendarBody state={bodyState(query)} fill={fill} header={header}>
+      <CalendarBody
+        state={bodyStatePreferringDataOverError(query)}
+        fillWithoutScrollOrPadding={fillWithoutScrollOrPadding}
+        header={header}
+      >
         {({ itemsByDate, notes }) =>
           children({
             itemsByDate,
@@ -245,8 +234,9 @@ function CalendarLayout({
   );
 }
 
-/** Data wins over an error, so a failed refetch keeps the view on screen. */
-function bodyState(query: CalendarRangeView['query']): CalendarBodyState {
+function bodyStatePreferringDataOverError(
+  query: CalendarRangeView['query'],
+): CalendarBodyState {
   if (query.data) {
     return { status: 'ready', data: query.data };
   }

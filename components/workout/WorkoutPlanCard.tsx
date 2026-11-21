@@ -9,11 +9,6 @@ export interface WorkoutPlanCardProps {
   metrics: WorkoutPlanMetrics;
 }
 
-/**
- * The Plan card of a Workout with no Plan vs wykonanie (planned, missed, or
- * completed without Activity numbers): a two-column grid of the
- * planned metrics intervals.icu supplies. Hidden when it supplies none.
- */
 export default function WorkoutPlanCard({ metrics }: WorkoutPlanCardProps) {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.plan',
@@ -28,7 +23,7 @@ export default function WorkoutPlanCard({ metrics }: WorkoutPlanCardProps) {
         items={rows.map(({ metric, value }) => ({
           key: metric,
           label: t(metric),
-          value: formatMetric(metric, value),
+          formattedValue: formatMetric(metric, value),
         }))}
       />
     </WorkoutDetailsCard>
