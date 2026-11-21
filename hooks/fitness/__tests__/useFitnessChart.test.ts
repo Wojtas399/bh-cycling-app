@@ -252,7 +252,11 @@ describe('useFitnessChart', () => {
     expect(mockGetWellnessRange).toHaveBeenCalledWith(
       'token-1',
       'athlete-1',
-      { oldest: '2025-11-07', newest: TODAY, fields: 'id,ctl,atl,ctlLoad' },
+      {
+        oldest: '2025-11-07',
+        newest: TODAY,
+        fields: ['id', 'ctl', 'atl', 'ctlLoad'],
+      },
       expect.anything(),
     );
     expect(

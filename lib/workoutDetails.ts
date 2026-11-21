@@ -1,6 +1,10 @@
 import { type ActivityMetric, summariseActivity } from './activitySummary';
 import { isCyclingWorkout, rideSteps } from './cyclingWorkout';
-import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
+import type {
+  IntervalsActivity,
+  IntervalsCalendarEvent,
+  IntervalsField,
+} from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
 import type { WorkoutPairing } from './pairing';
@@ -23,31 +27,32 @@ import { type WorkoutDetailsStep, buildWorkoutSteps } from './workoutSteps';
  * and type that tell a Strava Activity apart, and the summary metrics
  * completed mode shows.
  */
-export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
-  'id',
-  'start_date_local',
-  'name',
-  'type',
-  'paired_event_id',
-  'moving_time',
-  'distance',
-  'elapsed_time',
-  'icu_training_load',
-  'icu_intensity',
-  'icu_average_watts',
-  'icu_weighted_avg_watts',
-  'icu_variability_index',
-  'average_heartrate',
-  'max_heartrate',
-  'average_cadence',
-  'total_elevation_gain',
-  'calories',
-  'icu_joules',
-  'average_speed',
-  'compliance',
-  'stream_types',
-  'trainer',
-].join(',');
+export const WORKOUT_DETAILS_ACTIVITY_FIELDS: readonly IntervalsField<IntervalsActivity>[] =
+  [
+    'id',
+    'start_date_local',
+    'name',
+    'type',
+    'paired_event_id',
+    'moving_time',
+    'distance',
+    'elapsed_time',
+    'icu_training_load',
+    'icu_intensity',
+    'icu_average_watts',
+    'icu_weighted_avg_watts',
+    'icu_variability_index',
+    'average_heartrate',
+    'max_heartrate',
+    'average_cadence',
+    'total_elevation_gain',
+    'calories',
+    'icu_joules',
+    'average_speed',
+    'compliance',
+    'stream_types',
+    'trainer',
+  ];
 
 /**
  * What the Workout Details query stores: the event, how it is paired and the

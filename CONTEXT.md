@@ -48,6 +48,25 @@ _Avoid_: Tooltip, crosshair
 A step whose power climbs or falls steadily from a start power to an end power. A Workout Profile draws it as a slope from start to end in the order it's ridden, the Scrub Readout reads its power along that slope, and it's coloured by the zone at its midpoint.
 _Avoid_: Range, which holds one band of power throughout
 
+**FTP**:
+The athlete's functional threshold power, in watts, from their Ride settings on Intervals.icu. Power zones and %FTP targets are fractions of it. A Workout's planned watts come from the current FTP; an Activity carries the FTP Intervals.icu used when it was ridden, and its recorded watts come from that one.
+_Avoid_: Threshold (alone)
+
+**Intensity**:
+How hard a session is relative to FTP: Intervals.icu's intensity factor as a percentage (IF × 100). A Workout carries its planned Intensity, an Activity its recorded one, and each detected interval its average power as %FTP.
+_Avoid_: IF, intensity factor
+
+**Normalized Power**:
+An Activity's average power weighted toward its hard efforts, in watts, as calculated by Intervals.icu. Shown as NP.
+_Avoid_: Weighted average power
+
+**Variability Index**:
+How evenly an Activity was paced: Normalized Power divided by average power, so 1 is perfectly steady. Shown as VI.
+
+**Elapsed Time**:
+An Activity's time from start to finish, stops included. Moving time leaves the stops out.
+_Avoid_: Duration (for a recorded Activity)
+
 **Route**:
 The GPS track of an Activity, i.e. where the athlete actually rode. A Workout has no Route of its own.
 _Avoid_: Workout route, track, GPS trace
@@ -79,6 +98,14 @@ _Avoid_: Recovery, Readiness
 **Wellness Entry**:
 One athlete's Wellness record for one day. It may be missing or only partly filled, depending on what reached Intervals.icu that day.
 _Avoid_: Wellness log, daily check-in
+
+**Training Load**:
+The strain of a session as Intervals.icu scores it: planned on a Workout, recorded on an Activity. A Wellness Entry carries the day's load, from which Intervals.icu builds Fitness and Fatigue.
+_Avoid_: TSS, stress score
+
+**HRV**:
+Heart rate variability from a Wellness Entry, in milliseconds. BH Cycling shows rMSSD, or SDNN when that's all the device reports, as on Apple Watch, and never both.
+_Avoid_: Variability (alone)
 
 **Fitness**:
 The athlete's long-term training load: a rolling average of recent daily load, weighted over weeks, as calculated by Intervals.icu. BH Cycling shows it and never calculates it.

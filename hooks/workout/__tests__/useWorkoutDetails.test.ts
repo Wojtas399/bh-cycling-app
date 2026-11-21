@@ -394,9 +394,7 @@ describe('useWorkoutDetails', () => {
         expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
 
-      const fields = (
-        mockGetActivities.mock.calls[0][2].fields as string
-      ).split(',');
+      const { fields } = mockGetActivities.mock.calls[0][2];
 
       expect(fields).toEqual(
         expect.arrayContaining(['id', 'start_date_local', 'paired_event_id']),
@@ -650,9 +648,7 @@ describe('useWorkoutDetails', () => {
 
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
 
-      const fields = (
-        mockGetActivities.mock.calls[0][2].fields as string
-      ).split(',');
+      const { fields } = mockGetActivities.mock.calls[0][2];
 
       expect(fields).toEqual(expect.arrayContaining(['name', 'type']));
     });
@@ -829,9 +825,7 @@ describe('useWorkoutDetails', () => {
     it('requests the summary metrics with the activities', async () => {
       await metricsFor({});
 
-      const fields = (
-        mockGetActivities.mock.calls[0][2].fields as string
-      ).split(',');
+      const { fields } = mockGetActivities.mock.calls[0][2];
 
       expect(fields).toEqual(
         expect.arrayContaining([
@@ -1026,9 +1020,7 @@ describe('useWorkoutDetails', () => {
     it('requests the stream types and trainer flag with the activities', async () => {
       await routeFor(null);
 
-      const fields = (
-        mockGetActivities.mock.calls[0][2].fields as string
-      ).split(',');
+      const { fields } = mockGetActivities.mock.calls[0][2];
 
       expect(fields).toEqual(
         expect.arrayContaining(['stream_types', 'trainer']),
