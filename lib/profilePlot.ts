@@ -5,26 +5,16 @@ import type { StripSegment } from './stripSegment';
 import type { WorkoutProfileSummary } from './workoutDetails';
 import type { TFunction } from 'i18next';
 
-/** One strip of the plot: its segments, and what it shows. */
 export interface PlotStrip {
-  /** On the card's time scale. */
   segments: StripSegment[];
-  /** Written above the strip when it shares the plot. */
   caption: string;
 }
 
-/** The card's plot: its strips, and the one label a screen reader reads. */
 export interface ProfilePlot {
-  /** The plan above the ride. */
   strips: PlotStrip[];
-  /**
-   * Every strip's numbers, each with its power: the plan's, then the
-   * ride's. Each reads what its strip draws.
-   */
   accessibilityLabel: string;
 }
 
-/** The plot of the detailed card `profile`, in `t`'s language. */
 export function profilePlot(
   { planned, recorded }: Pick<DetailedProfile, 'planned' | 'recorded'>,
   t: TFunction,
@@ -80,7 +70,6 @@ export function profilePlot(
             planned: plannedText,
             recorded: recordedText,
           })
-        : // A card always has at least one strip.
-          (plannedText ?? recordedText ?? ''),
+        : (plannedText ?? recordedText ?? ''),
   };
 }

@@ -139,7 +139,7 @@ describe('buildWorkoutDetails', () => {
       ]);
     });
 
-    it("time in zone comes from a ride's steps, at the athlete's zones", () => {
+    it("time in zone comes from a ride's steps, at the athlete's zones, so 58% is Z1 under a 60% ceiling, not Coggan's Z2", () => {
       const planned = details(
         event({
           type: 'Ride',
@@ -154,7 +154,6 @@ describe('buildWorkoutDetails', () => {
         }),
       );
 
-      // 58% is Z1 under this athlete's 60% ceiling, not Coggan's Z2.
       expect(planned.zoneTimes).toEqual({
         1: 600,
         2: 2400,
@@ -212,6 +211,55 @@ describe('buildWorkoutDetails', () => {
       const strava = { ...pairedActivity, name: undefined, type: undefined };
 
       expect(details(ride, strava).recordedActivityId).toBeNull();
+    });
+  });
+
+  describe('profileSummary', () => {
+    const fourByFiveMinutesWithoutADocTotal = event({
+      type: 'Ride',
+      workout_doc: {
+        steps: [
+          { duration: 600, power: { units: 'power_zone', value: 1 } },
+          {
+            reps: 4,
+            duration: 1200,
+            steps: [{ duration: 300, power: { units: '%ftp', value: 105 } }],
+          },
+        ],
+      },
+    });
+
+    it('totals the top-level steps when the doc carries no total, since a repeat step covers all of its reps', () => {
+      expect(
+        details(fourByFiveMinutesWithoutADocTotal).profileSummary
+          ?.durationSeconds,
+      ).toBe(1800);
+    });
+
+    it('counts the steps of a repeat once per rep', () => {
+      expect(
+        details(fourByFiveMinutesWithoutADocTotal).profileSummary?.stepCount,
+      ).toBe(5);
+    });
+  });
+
+  describe('comparison compliance', () => {
+    const rideActivity = { ...pairedActivity, type: 'Ride' };
+
+    it("is intervals.icu's percentage, 0 included", () => {
+      expect(
+        details(ride, { ...rideActivity, compliance: 0 }).comparison
+          ?.compliance,
+      ).toBe(0);
+    });
+
+    it.each([
+      ["intervals.icu hasn't calculated it, sending null", null],
+      ['the athlete asked intervals.icu to ignore it, sending a negative', -1],
+    ])('is null when %s', (_, compliance) => {
+      expect(
+        details(ride, { ...rideActivity, compliance }).comparison?.compliance,
+      ).toBeNull();
     });
   });
 });

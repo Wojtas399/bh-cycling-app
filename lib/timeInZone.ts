@@ -42,8 +42,8 @@ export const NO_ZONE_TIMES: ZoneTimes = noZoneTimes();
 export function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
   const times = noZoneTimes();
 
-  for (const { start, end, zone } of segments) {
-    times[zone] += end - start;
+  for (const { startSeconds, endSeconds, zone } of segments) {
+    times[zone] += endSeconds - startSeconds;
   }
 
   return times;

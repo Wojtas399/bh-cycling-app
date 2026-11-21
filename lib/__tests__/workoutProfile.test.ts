@@ -1,9 +1,7 @@
 import type { ZoneConfig } from '../powerZones';
 import { buildWorkoutProfile, profileCeilingPct } from '../workoutProfile';
 
-// Spelled out rather than resolved, so these expectations stay pinned to the
-// bands under test instead of following whatever powerZones defaults to.
-const CONFIG: ZoneConfig = [
+const SPELLED_OUT_COGGAN_BANDS: ZoneConfig = [
   { zone: 1, minPct: 0, maxPct: 55 },
   { zone: 2, minPct: 55, maxPct: 75 },
   { zone: 3, minPct: 75, maxPct: 90 },
@@ -29,9 +27,11 @@ const THRESHOLD_2X20 = [
 
 describe('workoutProfile', () => {
   it('buildWorkoutProfile returns no blocks when the workout has no steps', () => {
-    expect(buildWorkoutProfile([], CONFIG)).toEqual([]);
-    expect(buildWorkoutProfile(undefined, CONFIG)).toEqual([]);
-    expect(buildWorkoutProfile(null, CONFIG)).toEqual([]);
+    expect(buildWorkoutProfile([], SPELLED_OUT_COGGAN_BANDS)).toEqual([]);
+    expect(buildWorkoutProfile(undefined, SPELLED_OUT_COGGAN_BANDS)).toEqual(
+      [],
+    );
+    expect(buildWorkoutProfile(null, SPELLED_OUT_COGGAN_BANDS)).toEqual([]);
   });
 
   it('buildWorkoutProfile renders a flat recovery ride as exactly one block', () => {
@@ -39,7 +39,7 @@ describe('workoutProfile', () => {
       { duration: 3600, power: { units: 'power_zone', value: 1 } },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+    expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
       { widthFraction: 1, minPct: 0, maxPct: 55, zone: 1 },
     ]);
   });
@@ -49,7 +49,7 @@ describe('workoutProfile', () => {
       { duration: 1200, power: { units: 'power_zone', value: 4 } },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+    expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
       { widthFraction: 1, minPct: 90, maxPct: 105, zone: 4 },
     ]);
   });
@@ -75,7 +75,7 @@ describe('workoutProfile', () => {
       { duration: 1200, power: { units: '%ftp', start: 95, end: 105 } },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+    expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
       { widthFraction: 1, minPct: 95, maxPct: 105, zone: 4 },
     ]);
   });
@@ -83,7 +83,7 @@ describe('workoutProfile', () => {
   it('buildWorkoutProfile gives a single-value %ftp target an equal min and max', () => {
     const steps = [{ duration: 900, power: { units: '%ftp', value: 65 } }];
 
-    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+    expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
       { widthFraction: 1, minPct: 65, maxPct: 65, zone: 2 },
     ]);
   });
@@ -96,7 +96,9 @@ describe('workoutProfile', () => {
       },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)[0]).toMatchObject({
+    expect(
+      buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)[0],
+    ).toMatchObject({
       minPct: 95,
       maxPct: 105,
     });
@@ -107,7 +109,7 @@ describe('workoutProfile', () => {
       { duration: 600, power: { units: '%ftp', start: 50, end: 90 } },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+    expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
       { widthFraction: 1, minPct: 50, maxPct: 90, zone: 2 },
     ]);
   });
@@ -117,7 +119,9 @@ describe('workoutProfile', () => {
       { duration: 600, power: { units: '%ftp', start: 90, end: 50 } },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)[0]).toMatchObject({
+    expect(
+      buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)[0],
+    ).toMatchObject({
       minPct: 50,
       maxPct: 90,
     });
@@ -133,7 +137,7 @@ describe('workoutProfile', () => {
         },
       ];
 
-      expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+      expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
         {
           widthFraction: 1,
           minPct: 50,
@@ -153,7 +157,7 @@ describe('workoutProfile', () => {
         },
       ];
 
-      expect(buildWorkoutProfile(steps, CONFIG)[0]).toEqual({
+      expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)[0]).toEqual({
         widthFraction: 1,
         minPct: 50,
         maxPct: 90,
@@ -167,7 +171,9 @@ describe('workoutProfile', () => {
         { duration: 600, power: { units: '%ftp', start: 90, end: 50 } },
       ];
 
-      expect(buildWorkoutProfile(steps, CONFIG)[0].ramp).toBeUndefined();
+      expect(
+        buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)[0].ramp,
+      ).toBeUndefined();
     });
 
     it('buildWorkoutProfile draws a ramp with equal ends flat', () => {
@@ -179,7 +185,7 @@ describe('workoutProfile', () => {
         },
       ];
 
-      expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+      expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
         { widthFraction: 1, minPct: 70, maxPct: 70, zone: 2 },
       ]);
     });
@@ -189,7 +195,7 @@ describe('workoutProfile', () => {
         { duration: 420, ramp: true, power: { units: 'power_zone', value: 1 } },
       ];
 
-      expect(buildWorkoutProfile(steps, CONFIG)[0]).toEqual({
+      expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)[0]).toEqual({
         widthFraction: 1,
         minPct: 0,
         maxPct: 55,
@@ -219,7 +225,9 @@ describe('workoutProfile', () => {
       ];
 
       expect(
-        buildWorkoutProfile(steps, CONFIG).map(block => block.ramp),
+        buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS).map(
+          block => block.ramp,
+        ),
       ).toEqual([
         { startPct: 60, endPct: 100 },
         { startPct: 100, endPct: 60 },
@@ -229,21 +237,24 @@ describe('workoutProfile', () => {
     });
   });
 
-  it('buildWorkoutProfile never turns a Sweet Spot effort into its own zone', () => {
-    // Sweet Spot straddles Z3/Z4, so it must resolve to the underlying zone.
+  it('buildWorkoutProfile never turns a Sweet Spot effort into its own zone, only its underlying Z3 or Z4', () => {
     const steps = [
       { duration: 1200, power: { units: '%ftp', start: 84, end: 97 } },
       { duration: 1200, power: { units: '%ftp', start: 84, end: 88 } },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG).map(block => block.zone)).toEqual(
-      [4, 3],
-    );
+    expect(
+      buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS).map(
+        block => block.zone,
+      ),
+    ).toEqual([4, 3]);
   });
 
   it('buildWorkoutProfile sizes each block by its share of the workout duration', () => {
-    // 2x20 threshold: 10min ramp, 20min on, 5min off, 20min on, 5min cooldown.
-    const blocks = buildWorkoutProfile(THRESHOLD_2X20, CONFIG);
+    const blocks = buildWorkoutProfile(
+      THRESHOLD_2X20,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
 
     expect(blocks.map(block => block.widthFraction)).toEqual([
       1 / 6,
@@ -255,17 +266,20 @@ describe('workoutProfile', () => {
   });
 
   it('buildWorkoutProfile keeps the steps in time order', () => {
-    const blocks = buildWorkoutProfile(THRESHOLD_2X20, CONFIG);
+    const blocks = buildWorkoutProfile(
+      THRESHOLD_2X20,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
 
     expect(blocks.map(block => block.zone)).toEqual([2, 4, 1, 4, 1]);
     expect(blocks.map(block => block.maxPct)).toEqual([90, 105, 55, 105, 55]);
   });
 
   it('buildWorkoutProfile block widths always add up to the full profile', () => {
-    const total = buildWorkoutProfile(THRESHOLD_2X20, CONFIG).reduce(
-      (sum, block) => sum + block.widthFraction,
-      0,
-    );
+    const total = buildWorkoutProfile(
+      THRESHOLD_2X20,
+      SPELLED_OUT_COGGAN_BANDS,
+    ).reduce((sum, block) => sum + block.widthFraction, 0);
 
     expect(total).toBeCloseTo(1, 10);
   });
@@ -279,7 +293,7 @@ describe('workoutProfile', () => {
         { duration: 600, power: { units: '%ftp' } },
         { duration: 1800, power: { units: 'power_zone', value: 4 } },
       ],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(blocks.map(block => block.zone)).toEqual([2, 4]);
@@ -294,7 +308,7 @@ describe('workoutProfile', () => {
         { duration: 0, power: { units: 'power_zone', value: 5 } },
         { duration: -60, power: { units: 'power_zone', value: 6 } },
       ],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(blocks).toEqual([
@@ -308,7 +322,7 @@ describe('workoutProfile', () => {
         { duration: 1800, power: { units: 'hr_zone', value: 3 } },
         { duration: 1800 },
       ],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(blocks).toEqual([]);
@@ -320,7 +334,7 @@ describe('workoutProfile', () => {
         { duration: 3000, power: { units: 'power_zone', value: 2 } },
         { duration: 600 },
       ],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(blocks).toEqual([
@@ -328,15 +342,13 @@ describe('workoutProfile', () => {
     ]);
   });
 
-  it('buildWorkoutProfile draws nothing when the skipped steps are most of the ride', () => {
-    // Skipped steps hand their width over, so a 20min interval next to a 60min
-    // unplaceable one would otherwise be drawn as the entire session.
+  it('buildWorkoutProfile draws nothing when the skipped steps are most of the ride, rather than a 20min interval as the whole session', () => {
     const blocks = buildWorkoutProfile(
       [
         { duration: 3600, power: { units: 'hr_zone', value: 3 } },
         { duration: 1200, power: { units: '%ftp', value: 100 } },
       ],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(blocks).toEqual([]);
@@ -345,10 +357,33 @@ describe('workoutProfile', () => {
   it('buildWorkoutProfile draws nothing when no step asks for any power', () => {
     const blocks = buildWorkoutProfile(
       [{ duration: 1800, power: { units: '%ftp', value: 0 } }],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(blocks).toEqual([]);
+  });
+
+  it('buildWorkoutProfile never draws a block below the axis, flooring negative %FTP at zero', () => {
+    const blocks = buildWorkoutProfile(
+      [
+        {
+          duration: 1800,
+          ramp: true,
+          power: { units: '%ftp', start: -20, end: 60 },
+        },
+      ],
+      SPELLED_OUT_COGGAN_BANDS,
+    );
+
+    expect(blocks).toEqual([
+      {
+        widthFraction: 1,
+        minPct: 0,
+        maxPct: 60,
+        zone: 1,
+        ramp: { startPct: 0, endPct: 60 },
+      },
+    ]);
   });
 
   it('profileCeilingPct is positive for every profile buildWorkoutProfile returns', () => {
@@ -360,22 +395,27 @@ describe('workoutProfile', () => {
     ];
 
     for (const steps of workouts) {
-      const blocks = buildWorkoutProfile(steps, CONFIG);
+      const blocks = buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS);
 
       expect(blocks.length).toBeGreaterThan(0);
       expect(profileCeilingPct(blocks)).toBeGreaterThan(0);
     }
   });
 
-  it('buildWorkoutProfile floors a very short sprint so it stays visible', () => {
-    // A 30s sprint is 0.4% of a 2h ride: a hairline without the floor.
-    const blocks = buildWorkoutProfile(SPRINT_IN_A_LONG_RIDE, CONFIG);
+  it('buildWorkoutProfile floors a 30s sprint in a 2h ride, 0.4% of it, to 1% so it stays visible', () => {
+    const blocks = buildWorkoutProfile(
+      SPRINT_IN_A_LONG_RIDE,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
 
     expect(blocks[1].widthFraction).toBe(0.01);
   });
 
   it('buildWorkoutProfile takes the floored width off the longer steps, keeping the total whole', () => {
-    const blocks = buildWorkoutProfile(SPRINT_IN_A_LONG_RIDE, CONFIG);
+    const blocks = buildWorkoutProfile(
+      SPRINT_IN_A_LONG_RIDE,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
 
     expect(blocks[0].widthFraction).toBeCloseTo(0.4971, 4);
     expect(blocks[2].widthFraction).toBeCloseTo(0.4929, 4);
@@ -384,13 +424,15 @@ describe('workoutProfile', () => {
     ).toBeCloseTo(1, 10);
   });
 
-  it('buildWorkoutProfile keeps every burst of a microburst session visible', () => {
-    // 30x 10s on / 50s off: every burst is under the floor on its own.
-    const steps = Array.from({ length: 30 }, () => [
+  it('buildWorkoutProfile keeps every burst of a microburst session visible, though each is under the floor on its own', () => {
+    const thirtyByTenSecondsOnFiftyOff = Array.from({ length: 30 }, () => [
       { duration: 10, power: { units: 'power_zone', value: 6 } },
       { duration: 50, power: { units: 'power_zone', value: 2 } },
     ]).flat();
-    const blocks = buildWorkoutProfile(steps, CONFIG);
+    const blocks = buildWorkoutProfile(
+      thirtyByTenSecondsOnFiftyOff,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
 
     expect(blocks).toHaveLength(60);
     expect(blocks.every(block => block.widthFraction >= 0.01)).toBe(true);
@@ -400,7 +442,6 @@ describe('workoutProfile', () => {
   });
 
   it('buildWorkoutProfile drops the floor when there are too many steps to fit it, keeping the shape honest', () => {
-    // 150 blocks cannot all clear the floor, so proportions win over visibility.
     const steps = [
       ...Array.from({ length: 149 }, () => ({
         duration: 15,
@@ -408,7 +449,7 @@ describe('workoutProfile', () => {
       })),
       { duration: 3600, power: { units: 'power_zone', value: 2 } },
     ];
-    const blocks = buildWorkoutProfile(steps, CONFIG);
+    const blocks = buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS);
 
     expect(blocks[149].widthFraction).toBeCloseTo(0.617, 3);
     expect(
@@ -416,10 +457,8 @@ describe('workoutProfile', () => {
     ).toBeCloseTo(1, 10);
   });
 
-  it('buildWorkoutProfile draws each rep of a nested repeat as its own blocks, in order', () => {
-    // "6x 3 min on / 2 min off" as intervals.icu sends it: the parent carries
-    // the reps and the total across them, its children a single rep.
-    const steps = [
+  it('buildWorkoutProfile draws each rep of a nested repeat as its own blocks, in order, from a parent that carries the total and children that carry one rep', () => {
+    const sixByThreeMinutesOnTwoOff = [
       { duration: 600, power: { units: 'power_zone', value: 1 } },
       {
         text: '6x',
@@ -436,7 +475,10 @@ describe('workoutProfile', () => {
     const off = { widthFraction: 0.04, minPct: 50, maxPct: 50, zone: 1 };
     const easy = { widthFraction: 0.2, minPct: 0, maxPct: 55, zone: 1 };
 
-    const blocks = buildWorkoutProfile(steps, CONFIG);
+    const blocks = buildWorkoutProfile(
+      sixByThreeMinutesOnTwoOff,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
 
     expect(blocks).toHaveLength(14);
     blocks.forEach((block, index) => {
@@ -451,8 +493,7 @@ describe('workoutProfile', () => {
   });
 
   it('buildWorkoutProfile unrolls repeats nested inside repeats', () => {
-    // 2x [ 3x (30s on / 30s off), 5 min easy ]
-    const steps = [
+    const twoByThreeBurstsThenFiveMinutesEasy = [
       {
         reps: 2,
         duration: 960,
@@ -470,14 +511,15 @@ describe('workoutProfile', () => {
       },
     ];
 
-    const zones = buildWorkoutProfile(steps, CONFIG).map(block => block.zone);
+    const zones = buildWorkoutProfile(
+      twoByThreeBurstsThenFiveMinutesEasy,
+      SPELLED_OUT_COGGAN_BANDS,
+    ).map(block => block.zone);
 
     expect(zones).toEqual([6, 2, 6, 2, 6, 2, 1, 6, 2, 6, 2, 6, 2, 1]);
   });
 
   it('buildWorkoutProfile does not count a repeat total on top of its reps when judging what is drawable', () => {
-    // 1200s of drawable reps against a 1000s free ride: drawable is a
-    // majority only if the repeat's own 1200s total is not counted again.
     const steps = [
       {
         reps: 2,
@@ -487,14 +529,17 @@ describe('workoutProfile', () => {
       { duration: 1000, freeride: true },
     ];
 
-    expect(buildWorkoutProfile(steps, CONFIG)).toEqual([
+    expect(buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toEqual([
       { widthFraction: 0.5, minPct: 90, maxPct: 105, zone: 4 },
       { widthFraction: 0.5, minPct: 90, maxPct: 105, zone: 4 },
     ]);
   });
 
   it('profileCeilingPct is the workout own maximum power, so its tallest block fills the height', () => {
-    const blocks = buildWorkoutProfile(THRESHOLD_2X20, CONFIG);
+    const blocks = buildWorkoutProfile(
+      THRESHOLD_2X20,
+      SPELLED_OUT_COGGAN_BANDS,
+    );
     const ceiling = profileCeilingPct(blocks);
 
     expect(ceiling).toBe(105);
@@ -504,7 +549,7 @@ describe('workoutProfile', () => {
   it('profileCeilingPct scales an easy ride against its own ceiling, not a shared one', () => {
     const easyRide = buildWorkoutProfile(
       [{ duration: 5400, power: { units: '%ftp', start: 60, end: 70 } }],
-      CONFIG,
+      SPELLED_OUT_COGGAN_BANDS,
     );
 
     expect(profileCeilingPct(easyRide)).toBe(70);
