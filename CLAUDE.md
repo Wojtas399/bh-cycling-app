@@ -20,6 +20,10 @@ The end-to-end suite runs against real staging, started by hand from the dev's m
 
 Read `CODING_STANDARDS.md` before writing or reviewing code. It covers testing scope (Jest for business logic, e2e for user-facing flows, no Jest render tests of components or screens) and says ADRs are binding.
 
+## Subagents
+
+Before you delegate a spec's tickets to implementer subagents, read `docs/agents/delegation.md`.
+
 ## Probes
 
 Probe a lint rule without a file: `npx eslint --stdin --stdin-filename lib/probe.ts`. Put a type-check probe in the gitignored `.scratch/` folder, which `tsc` still checks, never in `lib/` or another source folder.
