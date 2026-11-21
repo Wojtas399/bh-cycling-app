@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form';
 
-import type { FormBinding } from '../formBinding';
+import { type FormBinding, formErrorsOnly } from '../formBinding';
 import { useFormTextField } from '../useFormTextField';
+import { flushPromises } from '@/test-utils/settle';
 import { act, renderHook } from '@testing-library/react-native';
 
 jest.mock('react-i18next', () => ({
@@ -23,7 +24,7 @@ async function setup() {
       setFocus,
       busy: false,
       onFieldChange: () => {},
-      serverError: () => '',
+      serverError: formErrorsOnly,
     };
 
     return {
@@ -48,12 +49,36 @@ describe('useFormTextField', () => {
 
     await act(async () => {
       hook.result.current.email.onSubmitEditing?.();
-      // RHF focuses on the next tick.
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await flushPromises();
     });
 
     expect(focusPassword).toHaveBeenCalledTimes(1);
     expect(focusEmail).not.toHaveBeenCalled();
+  });
+
+  it('shows a validation error over a server error on the same field', async () => {
+    const hook = await renderHook(() => {
+      const { control, setFocus, setError } = useForm<Values>({
+        defaultValues: { email: '', password: '' },
+      });
+      const form: FormBinding<Values> = {
+        control,
+        setFocus,
+        busy: false,
+        onFieldChange: () => {},
+        serverError: () => 'errors.emailTaken',
+      };
+
+      return { setError, email: useFormTextField({ form, name: 'email' }) };
+    });
+
+    expect(hook.result.current.email.error).toBe('errors.emailTaken');
+
+    await act(async () => {
+      hook.result.current.setError('email', { message: 'validation.email' });
+    });
+
+    expect(hook.result.current.email.error).toBe('validation.email');
   });
 
   it('leaves the last field without a next key', async () => {

@@ -5,13 +5,17 @@ import {
   type IntervalsAuthMutation,
   mapIntervalsAuthError,
 } from './intervalsAuthErrors';
-import { CONSENT_SCOPES } from './intervalsScopes';
+import { COMMA_SEPARATED_CONSENT_SCOPES } from './intervalsScopes';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { toast } from '@/lib/toast';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -21,10 +25,15 @@ const AUTHORIZATION_ENDPOINT = 'https://intervals.icu/oauth/authorize';
 const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
 
 export interface UseIntervalsAuthResult {
-  handleConnect: () => Promise<void>;
+  handleConnect: () => void;
   handleDisconnect: () => void;
   connecting: boolean;
   disconnecting: boolean;
+}
+
+function refetchIntervalsUnderNewConsent(queryClient: QueryClient) {
+  setNeedsReconnect(false);
+  void queryClient.invalidateQueries({ queryKey: intervalsKeys.all });
 }
 
 export function useIntervalsAuth(): UseIntervalsAuthResult {
@@ -37,7 +46,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
-        scopes: CONSENT_SCOPES,
+        scopes: COMMA_SEPARATED_CONSENT_SCOPES,
         redirectUri: REDIRECT_URI,
         responseType: AuthSession.ResponseType.Code,
         usePKCE: false,
@@ -62,12 +71,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     onSuccess: outcome => {
       if (outcome === 'cancelled') return;
 
-      // Re-enables the gated queries; the 401 already removed the old data.
-      setNeedsReconnect(false);
-      // Refetches under the new consent, athlete settings included, which
-      // never go stale otherwise. The whole prefix, since the Firestore
-      // connection may not carry the athlete id yet.
-      void queryClient.invalidateQueries({ queryKey: intervalsKeys.all });
+      refetchIntervalsUnderNewConsent(queryClient);
       toast.success(t('connected'));
     },
     onError: () => toast.error(errorMessage('connect')),
@@ -81,18 +85,14 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       await disconnectIntervals();
     },
-    onSuccess: async () => {
-      // Otherwise reconnecting the same athlete would show the old data.
-      await removeIntervalsQueries(queryClient);
-    },
+    onSuccess: () => removeIntervalsQueries(queryClient),
     onError: () => toast.error(errorMessage('disconnect')),
   });
 
-  async function handleConnect() {
+  function handleConnect() {
     if (connect.isPending) return;
 
-    // A failure surfaces as a toast via `onError`.
-    await connect.mutateAsync().catch(() => {});
+    connect.mutate();
   }
 
   function handleDisconnect() {

@@ -138,7 +138,7 @@ describe('useCooldown', () => {
     expect(renders).toBe(rendersAtZero);
   });
 
-  it('starts from the full length while another cooldown is counting down', async () => {
+  it('starts from the full length while another cooldown is counting down, though the shared clock last ticked before it started', async () => {
     const { result } = await renderHook(() => ({
       first: useCooldown(60),
       second: useCooldown(60),
@@ -155,5 +155,33 @@ describe('useCooldown', () => {
     });
 
     expect(result.current.second.remaining).toBe(60);
+  });
+
+  it('can run up to a second past its full length when started between two ticks of the shared clock', async () => {
+    const { result } = await renderHook(() => ({
+      first: useCooldown(60),
+      second: useCooldown(60),
+    }));
+
+    await act(async () => {
+      result.current.first.start();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+    await act(async () => {
+      result.current.second.start();
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(60_400);
+    });
+
+    expect(result.current.second.remaining).toBe(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
+    expect(result.current.second.remaining).toBe(0);
   });
 });

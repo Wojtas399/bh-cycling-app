@@ -41,11 +41,6 @@ function subscribeToToday(onChange: () => void): () => void {
   };
 }
 
-/**
- * Local `YYYY-MM-DD` of today, kept current across midnight — both while the
- * app is open (a timer to the next midnight) and after it was suspended
- * through one (re-read when it returns to the foreground).
- */
 export function useToday(): LocalDateString {
   return useSyncExternalStore(subscribeToToday, readToday);
 }

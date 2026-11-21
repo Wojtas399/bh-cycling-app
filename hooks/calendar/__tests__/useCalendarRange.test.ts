@@ -7,6 +7,7 @@ import { useToday } from '@/hooks/useToday';
 import { calendarItemKey } from '@/lib/calendarItems';
 import * as calendarWorkouts from '@/lib/calendarWorkouts';
 import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
+import * as combineMonthResultsModule from '@/lib/combineMonthResults';
 import {
   type IntervalsActivity,
   type IntervalsCalendarEvent,
@@ -16,6 +17,7 @@ import {
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
 import { addDays, toLocalDateString } from '@/lib/localDate';
+import { restoreDefaultFocus } from '@/test-utils/focus';
 import {
   createTestQueryClient,
   renderHookWithClient,
@@ -81,12 +83,6 @@ function event(
   };
 }
 
-/**
- * `useCalendarRange` is range-shape agnostic; exercising it through the
- * month config is enough to cover its own logic (states, navigation,
- * refresh). `useMonthlyCalendar`/`useWeeklyCalendar` each get their own thin
- * test verifying only how they wire their config.
- */
 const monthConfig: UseCalendarRangeConfig = {
   startOf: startOfMonth,
   endOf: endOfMonth,
@@ -104,14 +100,12 @@ const visibleMonthKey = intervalsKeys.month(
 
 const EMPTY_MONTH = { itemsByDate: {}, completedEventIds: [], notes: [] };
 
-/** Marks the visible month as last fetched `ageMs` ago. */
 function ageVisibleMonth(client: QueryClient, ageMs: number) {
   client.setQueryData(visibleMonthKey, EMPTY_MONTH, {
     updatedAt: Date.now() - ageMs,
   });
 }
 
-/** A client whose visible month was last fetched `ageMs` ago. */
 function clientWithMonthFetched(ageMs: number) {
   const client = createTestQueryClient();
 
@@ -122,10 +116,6 @@ function clientWithMonthFetched(ageMs: number) {
 
 const SIX_MINUTES = 6 * 60_000;
 
-/**
- * How many times a month was fetched: each fetch makes one events call for
- * its items and one for its Notes, so only the former are counted.
- */
 function monthFetches(): number {
   return mockGetCalendarEvents.mock.calls.filter(
     ([, , params]) => params.category === undefined,
@@ -142,8 +132,7 @@ describe('useCalendarRange', () => {
   });
 
   afterEach(() => {
-    // Hands focus back to the default listener for the next test.
-    focusManager.setFocused(undefined);
+    restoreDefaultFocus();
     jest.useRealTimers();
   });
 
@@ -412,7 +401,7 @@ describe('useCalendarRange', () => {
     ]);
   });
 
-  it('does not refetch when navigating back to a month already loaded', async () => {
+  it('shows a month already loaded at once when navigating back to it, with no new fetch', async () => {
     mockConnected();
 
     const { result } = await renderHookWithClient(() =>
@@ -427,7 +416,6 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.goToPrevious());
 
-    // Back to the loaded month: its data is there at once, with no new fetch.
     expect(result.current.query.data).toBeDefined();
     expect(monthFetches()).toBe(2);
   });
@@ -490,7 +478,7 @@ describe('useCalendarRange', () => {
     expect(result.current.query.data).toEqual(before);
   });
 
-  it('refetches a month that was refreshed away from when it is next shown', async () => {
+  it('refetches a month that was refreshed away from when it is next shown, showing its old data meanwhile', async () => {
     mockConnected();
 
     const { result } = await renderHookWithClient(() =>
@@ -508,11 +496,10 @@ describe('useCalendarRange', () => {
     await act(async () => result.current.goToPrevious());
 
     await waitFor(() => expect(monthFetches()).toBe(4));
-    // A background refetch shows the old data meanwhile.
     expect(result.current.query.data).toBeDefined();
   });
 
-  it('refetches a stale month when the app returns to the foreground', async () => {
+  it('refetches a month that went stale while shown only once the app returns to the foreground', async () => {
     mockConnected();
     focusManager.setFocused(false);
 
@@ -522,7 +509,6 @@ describe('useCalendarRange', () => {
       client,
     });
 
-    // Aged after mounting, so only the return to the foreground can refetch.
     await act(async () => ageVisibleMonth(client, SIX_MINUTES));
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
 
@@ -559,7 +545,7 @@ describe('useCalendarRange', () => {
     expect(result.current.query.data).toBeDefined();
   });
 
-  it('goes back to loading while a refresh retries a month that failed to load', async () => {
+  it('treats a refresh of a month that failed to load as a first load again, not a refresh', async () => {
     mockConnected();
     mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
 
@@ -573,7 +559,6 @@ describe('useCalendarRange', () => {
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
     await act(async () => result.current.refresh());
 
-    // A retry with no data is a first load again, not a refresh.
     await waitFor(() => expect(result.current.query.isError).toBe(false));
     expect(result.current.query.isPending).toBe(true);
     expect(result.current.query.isFetching).toBe(true);
@@ -592,7 +577,7 @@ describe('useCalendarRange', () => {
     expect(result.current.refreshing).toBe(false);
   });
 
-  it("refresh also invalidates Home's workouts and the athlete settings", async () => {
+  it("refresh only marks Home's workouts stale off screen, and fetches the athlete settings again at once for the refetched month", async () => {
     mockConnected();
 
     const client = createTestQueryClient();
@@ -612,8 +597,6 @@ describe('useCalendarRange', () => {
 
     await act(async () => result.current.refresh());
 
-    // Off screen, Home's workouts are only marked stale. The refetched month
-    // reads the settings, so they're fetched again at once.
     expect(client.getQueryState(upcomingKey)?.isInvalidated).toBe(true);
     await waitFor(() =>
       expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1),
@@ -704,6 +687,36 @@ describe('useCalendarRange', () => {
 
     expect(toLocalDateString(result.current.anchor)).toBe('2026-10-01');
     expect(result.current.showsToday).toBe(false);
+  });
+
+  it('does not combine the months again while the range and their results stay the same', async () => {
+    mockConnected();
+    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
+    const combineBetween = combineMonthResultsModule.combineMonthResults;
+    const combined = jest.fn();
+    const spy = jest
+      .spyOn(combineMonthResultsModule, 'combineMonthResults')
+      .mockImplementation((start, end) => {
+        const combine = combineBetween(start, end);
+
+        return results => {
+          combined();
+
+          return combine(results);
+        };
+      });
+
+    const { result, rerender } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    const combines = combined.mock.calls.length;
+
+    await rerender({});
+
+    expect(combined).toHaveBeenCalledTimes(combines);
+    spy.mockRestore();
   });
 
   it('does not derive the statuses again while today stays the same', async () => {

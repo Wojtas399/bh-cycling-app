@@ -49,8 +49,7 @@ function mockConnected() {
   });
 }
 
-// Shaped like the live Race bodies in #280.
-function raceEvent(
+function liveRaceBody(
   overrides: Partial<IntervalsCalendarEvent>,
 ): IntervalsCalendarEvent {
   return {
@@ -73,7 +72,7 @@ describe('useNextRace', () => {
 
   it('reads the Races of the next 30 days in one call and counts down to the nearest', async () => {
     mockGetCalendarEvents.mockResolvedValue([
-      raceEvent({
+      liveRaceBody({
         id: 7,
         category: 'RACE_A',
         name: 'Mistrzostwa Polski',
@@ -129,7 +128,7 @@ describe('useNextRace', () => {
       async (_token, _athlete, params: { category?: unknown }) => {
         if (Array.isArray(params.category)) throw new Error('races down');
 
-        return [raceEvent({ start_date_local: `${TODAY}T00:00:00` })];
+        return [liveRaceBody({ start_date_local: `${TODAY}T00:00:00` })];
       },
     );
 

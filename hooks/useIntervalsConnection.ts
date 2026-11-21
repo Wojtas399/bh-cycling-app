@@ -9,7 +9,6 @@ export interface IntervalsConnectionState {
   athleteName: string | null;
   athleteId: string | null;
   accessToken: string | null;
-  /** The scopes granted at the last consent, as Intervals.icu returned them. */
   scope: string | null;
   loading: boolean;
 }
@@ -30,7 +29,6 @@ interface ConnectionStore {
   getSnapshot: () => IntervalsConnectionState;
 }
 
-/** Follows one user's integration document; signed out, there is none. */
 function createConnectionStore(uid: string | undefined): ConnectionStore {
   if (!uid) {
     return { subscribe: subscribeToNothing, getSnapshot: () => NOT_CONNECTED };
@@ -68,11 +66,6 @@ function createConnectionStore(uid: string | undefined): ConnectionStore {
   };
 }
 
-/**
- * The signed-in user's Intervals.icu connection, followed live. It is loading
- * until the first snapshot, and not connected without loading when signed
- * out. The user is the one signed in when the hook mounts.
- */
 export function useIntervalsConnection(): IntervalsConnectionState {
   const [store] = useState(() =>
     createConnectionStore(auth().currentUser?.uid),

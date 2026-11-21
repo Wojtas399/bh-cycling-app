@@ -58,7 +58,7 @@ describe('useSurfaceContrast', () => {
   it('follows Reduce Transparency while the app is open', async () => {
     Platform.OS = 'ios';
     settings({ reduceTransparency: false });
-    const changed = captureListener(AccessibilityInfo);
+    const changed = captureListenersByEventName(AccessibilityInfo);
 
     const { result } = await renderHook(() => useSurfaceContrast());
 
@@ -79,7 +79,7 @@ describe('useSurfaceContrast', () => {
     async (os, turnedOn) => {
       Platform.OS = os;
       settings({});
-      const appStateChanged = captureListener(AppState);
+      const appStateChanged = captureListenersByEventName(AppState);
 
       const { result } = await renderHook(() => useSurfaceContrast());
 
@@ -97,7 +97,7 @@ describe('useSurfaceContrast', () => {
   it('waits for the app to be active before reading again', async () => {
     Platform.OS = 'ios';
     settings({});
-    const appStateChanged = captureListener(AppState);
+    const appStateChanged = captureListenersByEventName(AppState);
 
     const { result } = await renderHook(() => useSurfaceContrast());
 
@@ -111,10 +111,31 @@ describe('useSurfaceContrast', () => {
     expect(result.current.increaseContrast).toBe(false);
   });
 
+  it('hands a surface mounting later the settings already known, without reading them again', async () => {
+    Platform.OS = 'ios';
+    settings({ reduceTransparency: true });
+
+    const first = await renderHook(() => useSurfaceContrast());
+
+    await waitFor(() =>
+      expect(first.result.current.reduceTransparency).toBe(true),
+    );
+
+    const readsBefore = jest.mocked(
+      AccessibilityInfo.isReduceTransparencyEnabled,
+    ).mock.calls.length;
+    const later = await renderHook(() => useSurfaceContrast());
+
+    expect(later.result.current.reduceTransparency).toBe(true);
+    expect(AccessibilityInfo.isReduceTransparencyEnabled).toHaveBeenCalledTimes(
+      readsBefore,
+    );
+  });
+
   it('keeps the last value when a setting cannot be read', async () => {
     Platform.OS = 'ios';
     settings({ darkerSystemColors: true });
-    const appStateChanged = captureListener(AppState);
+    const appStateChanged = captureListenersByEventName(AppState);
 
     const { result } = await renderHook(() => useSurfaceContrast());
 
@@ -158,8 +179,7 @@ describe('useSurfaceContrast', () => {
   });
 });
 
-/** Records the listeners a module subscribes and fires them by event name. */
-function captureListener(emitter: {
+function captureListenersByEventName(emitter: {
   addEventListener: (...args: never[]) => unknown;
 }) {
   const listeners = new Map<string, (value: never) => void>();
