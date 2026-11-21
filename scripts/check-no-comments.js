@@ -5,6 +5,8 @@ const ts = require('typescript');
 
 const EXCLUDED_GENERATED_PATHS = ['dist/', 'expo-env.d.ts'];
 
+const OUT_OF_SCOPE_CONFIG_BASENAME_PART = '.config.';
+
 const SCRIPT_KINDS = {
   '.ts': ts.ScriptKind.TS,
   '.tsx': ts.ScriptKind.TSX,
@@ -93,7 +95,7 @@ function isUnder(file, listedPath) {
 function isLintedSource(file) {
   return (
     path.extname(file) in SCRIPT_KINDS &&
-    !path.basename(file).includes('.config.') &&
+    !path.basename(file).includes(OUT_OF_SCOPE_CONFIG_BASENAME_PART) &&
     !EXCLUDED_GENERATED_PATHS.some(excluded => isUnder(file, excluded))
   );
 }
@@ -137,6 +139,7 @@ if (require.main === module) {
 
 module.exports = {
   EXCLUDED_GENERATED_PATHS,
+  OUT_OF_SCOPE_CONFIG_BASENAME_PART,
   filesToCheck,
   findBannedComments,
 };
