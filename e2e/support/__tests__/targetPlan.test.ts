@@ -42,6 +42,18 @@ describe('planTargets', () => {
     ]);
   });
 
+  it('turns off drawn touches on every Expo Simulators target, since drawing them onto a hosted recording can outlast the cleanup timeout', () => {
+    expect(
+      planTargets({
+        E2E_IOS_BUILD_ID: 'ios-build-3',
+        E2E_ANDROID_BUILD_ID: 'android-build-3',
+      }),
+    ).toEqual([
+      expect.objectContaining({ videoTouches: false }),
+      expect.objectContaining({ videoTouches: false }),
+    ]);
+  });
+
   it('runs both targets on Expo Simulators with both build ids', () => {
     const env = {
       E2E_IOS_BUILD_ID: 'ios-build-2',

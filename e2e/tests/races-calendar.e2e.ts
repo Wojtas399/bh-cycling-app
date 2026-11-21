@@ -1,6 +1,7 @@
-import { monthTitle, tapCenter } from '../support/calendar';
+import { monthTitle, tapThroughCalendarToolbar } from '../support/calendar';
 import { LOAD_TIMEOUT } from '../support/constants';
 import { test } from '../support/fixtures';
+import { byComposedLabel, wholeText } from '../support/locators';
 import { planSeed } from '../support/seedPlan';
 import { signIn } from '../support/signIn';
 import { expect } from 'e2e';
@@ -16,21 +17,27 @@ test('Kalendarz → tomorrow → E2E Goal Race swaps the day sheet for the Race 
   await screen.getByText(/Kalendarz/).tap();
   await expect(screen.getByText(monthTitle(today))).toBeVisible(LOAD_TIMEOUT);
 
-  // On the last day of a month, tomorrow's cell in this month's grid is a
-  // padding day, which isn't tappable.
-  if (day.getMonth() !== today.getMonth()) {
-    await tapCenter(screen, screen.getByLabel(/^Następny$/));
+  const raceCellIsAnUntappablePaddingDay = day.getMonth() !== today.getMonth();
+
+  if (raceCellIsAnUntappablePaddingDay) {
+    await tapThroughCalendarToolbar(screen, screen.getByLabel(/^Następny$/));
     await expect(screen.getByText(monthTitle(day))).toBeVisible();
   }
 
-  // The day's label is "<day>. <counts>", Races first.
+  const aRaceFirstInDayCounts = /\. wyścig A(,|$)/;
   const dayCell = screen.getByTestId(`calendar-day-${date}`);
 
-  await expect(dayCell).toHaveAccessibleName(/\. wyścig A(,|$)/, LOAD_TIMEOUT);
+  await expect(dayCell).toHaveAccessibleName(
+    aRaceFirstInDayCounts,
+    LOAD_TIMEOUT,
+  );
   await dayCell.tap();
 
   const daySheet = screen.getByTestId('calendar-day-sheet');
-  const tile = daySheet.getByLabel(new RegExp(`^Wyścig A: ${name}, Bieg$`));
+  const tile = byComposedLabel(
+    daySheet,
+    new RegExp(`^Wyścig A: ${name}, Bieg$`),
+  );
 
   await expect(tile).toBeVisible();
   await tile.tap();
@@ -38,5 +45,5 @@ test('Kalendarz → tomorrow → E2E Goal Race swaps the day sheet for the Race 
   const raceSheet = screen.getByTestId('race-detail-sheet');
 
   await expect(daySheet).toBeHidden();
-  await expect(raceSheet.getByText(new RegExp(`^${name}$`))).toBeVisible();
+  await expect(raceSheet.getByText(wholeText(name))).toBeVisible();
 });

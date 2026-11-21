@@ -3,11 +3,6 @@ export interface CacheFile {
   content: string;
 }
 
-/**
- * The names of the replay cache files that hold any of `secrets`, each once.
- * An empty or unset secret never matches. Entries are JSON, so a secret is
- * also matched in its JSON-escaped form, e.g. a `"` in a password stored as `\"`.
- */
 export function findCacheLeaks(
   files: readonly CacheFile[],
   secrets: readonly (string | undefined)[],
