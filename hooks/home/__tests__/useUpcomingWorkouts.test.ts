@@ -52,7 +52,7 @@ function mockConnected() {
   });
 }
 
-function todayEvent(): IntervalsCalendarEvent {
+function workoutScheduledToday(): IntervalsCalendarEvent {
   return {
     id: 1,
     category: 'WORKOUT',
@@ -101,7 +101,7 @@ describe('useUpcomingWorkouts', () => {
 
   it("caches today's items under the athlete and today's date", async () => {
     mockConnected();
-    mockGetCalendarEvents.mockResolvedValue([todayEvent()]);
+    mockGetCalendarEvents.mockResolvedValue([workoutScheduledToday()]);
 
     const { result, client } = await renderHookWithClient(() =>
       useUpcomingWorkouts(),
@@ -152,7 +152,7 @@ describe('useUpcomingWorkouts', () => {
     );
   });
 
-  it("lists today's Race first, from the events call it already makes", async () => {
+  it("lists today's Race first, from the events call it already makes, so only the events and Notes calls go out", async () => {
     mockConnected();
     const today = toLocalDateString(new Date());
     const race: IntervalsCalendarEvent = {
@@ -165,7 +165,7 @@ describe('useUpcomingWorkouts', () => {
 
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE' ? [] : [todayEvent(), race],
+        params.category === 'NOTE' ? [] : [workoutScheduledToday(), race],
     );
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -192,7 +192,7 @@ describe('useUpcomingWorkouts', () => {
 
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE' ? [note] : [todayEvent()],
+        params.category === 'NOTE' ? [note] : [workoutScheduledToday()],
     );
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -213,7 +213,7 @@ describe('useUpcomingWorkouts', () => {
     mockConnected();
     const today = toLocalDateString(new Date());
 
-    mockGetCalendarEvents.mockResolvedValue([todayEvent()]);
+    mockGetCalendarEvents.mockResolvedValue([workoutScheduledToday()]);
     mockGetActivities.mockResolvedValue([
       { id: '20679555658', start_date_local: `${today}T18:00:00` },
     ]);
@@ -249,7 +249,7 @@ describe('useUpcomingWorkouts', () => {
       async (_token, _athlete, params: { category?: string }) => {
         if (params.category === 'NOTE') throw new Error('notes down');
 
-        return [todayEvent()];
+        return [workoutScheduledToday()];
       },
     );
 
@@ -278,7 +278,7 @@ describe('useUpcomingWorkouts', () => {
 
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE' ? [] : [todayEvent()],
+        params.category === 'NOTE' ? [] : [workoutScheduledToday()],
     );
     await act(() => result.current.refetch());
 

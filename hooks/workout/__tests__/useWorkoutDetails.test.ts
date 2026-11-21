@@ -233,7 +233,7 @@ describe('useWorkoutDetails', () => {
       );
     });
 
-    it('is completed by a Strava Activity the event names, read from the events list', async () => {
+    it('is completed by a Strava Activity the event names, read from the events list since the single read lacks the paired Activity id', async () => {
       mockConnected();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
@@ -474,7 +474,7 @@ describe('useWorkoutDetails', () => {
       expect(mockGetActivities).not.toHaveBeenCalled();
     });
 
-    it('colours the profile by Coggan zones when the athlete settings fail', async () => {
+    it('colours the profile by Coggan zones when the athlete settings fail, drawing its card in %FTP without waiting on them', async () => {
       mockConnected();
       mockGetAthleteSettings.mockRejectedValue(new IntervalsApiError(500));
       mockGetCalendarEvent.mockResolvedValue(
@@ -1093,7 +1093,7 @@ describe('useWorkoutDetails', () => {
       return result.current.query.data?.steps;
     }
 
-    it('lists a %FTP step with its label, duration, zone and target', async () => {
+    it('lists a %FTP step with its label, duration, zone and target, 80% FTP sitting in Coggan zone 3', async () => {
       const steps = await stepsOf([
         { text: 'Tempo', duration: 600, power: { units: '%ftp', value: 80 } },
       ]);
@@ -1111,7 +1111,7 @@ describe('useWorkoutDetails', () => {
       ]);
     });
 
-    it("resolves a power-zone target to that zone's %FTP band", async () => {
+    it("resolves a power-zone target to that zone's %FTP band, 55–75% for Coggan zone 2", async () => {
       const steps = await stepsOf([
         { duration: 1200, power: { units: 'power_zone', value: 2 } },
       ]);
@@ -1136,7 +1136,7 @@ describe('useWorkoutDetails', () => {
       });
     });
 
-    it('reads a ramp as start–end, in the order it is ridden', async () => {
+    it('reads a ramp as start–end, in the order it is ridden, coloured by the zone of its middle', async () => {
       const steps = await stepsOf([
         {
           duration: 600,
@@ -1152,7 +1152,7 @@ describe('useWorkoutDetails', () => {
       });
     });
 
-    it('reads a %FTP range as start–end', async () => {
+    it('reads a %FTP range as start–end, coloured by the zone of its middle', async () => {
       const steps = await stepsOf([
         { duration: 600, power: { units: '%ftp', start: 88, end: 94 } },
       ]);

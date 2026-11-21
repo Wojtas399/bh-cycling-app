@@ -64,7 +64,7 @@ function activity(
   };
 }
 
-function nulls(
+function missingFieldsAsIntervalsIcuSendsThem(
   ...fields: (keyof IntervalsActivity)[]
 ): Partial<IntervalsActivity> {
   return Object.fromEntries(fields.map(field => [field, null]));
@@ -111,7 +111,7 @@ describe('useActivityDetails', () => {
     });
   });
 
-  async function detailsOf(body: IntervalsActivity) {
+  async function loadedDetailsOf(body: IntervalsActivity) {
     mockConnected();
     mockGetActivity.mockResolvedValue(body);
 
@@ -123,7 +123,7 @@ describe('useActivityDetails', () => {
   }
 
   async function shownDetailsOf(body: IntervalsActivity) {
-    const details = await detailsOf(body);
+    const details = await loadedDetailsOf(body);
 
     if (!details || details.isStravaActivity) {
       throw new Error('Expected an Activity the screen can show.');
@@ -135,7 +135,7 @@ describe('useActivityDetails', () => {
   describe('hero', () => {
     it('carries the trimmed name as the title, with the sport type and start date-time', async () => {
       expect(
-        await detailsOf(
+        await loadedDetailsOf(
           activity({
             name: '  Popołudniowa jazda \n',
             type: 'GravelRide',
@@ -158,7 +158,9 @@ describe('useActivityDetails', () => {
     ])(
       'has no title when the name is %s, so the screen can fall back to the sport',
       async (_, name) => {
-        expect(await detailsOf(activity({ name, type: 'Run' }))).toMatchObject({
+        expect(
+          await loadedDetailsOf(activity({ name, type: 'Run' })),
+        ).toMatchObject({
           title: null,
           type: 'Run',
         });
@@ -342,7 +344,7 @@ describe('useActivityDetails', () => {
       ]);
     });
 
-    it('shows only the times for a strength session', async () => {
+    it('shows only the times for a strength session, whose every other summary metric intervals.icu sends as null', async () => {
       const details = await shownDetailsOf(
         activity({
           name: 'Siłownia',
@@ -350,7 +352,7 @@ describe('useActivityDetails', () => {
           start_date_local: '2026-10-21T07:30:00',
           moving_time: 3480,
           elapsed_time: 3480,
-          ...nulls(
+          ...missingFieldsAsIntervalsIcuSendsThem(
             'distance',
             'icu_training_load',
             'icu_intensity',
@@ -505,7 +507,7 @@ describe('useActivityDetails', () => {
 
   describe('states', () => {
     it('makes a Strava Activity unavailable rather than an empty Activity', async () => {
-      const strava = {
+      const stravaBodyAsVerified = {
         id: '20679555658',
         icu_athlete_id: 'athlete-1',
         start_date_local: '2026-10-14T18:00:00',
@@ -513,7 +515,9 @@ describe('useActivityDetails', () => {
         _note: 'STRAVA activities are not available via the API',
       } as unknown as IntervalsActivity;
 
-      expect(await detailsOf(strava)).toEqual({ isStravaActivity: true });
+      expect(await loadedDetailsOf(stravaBodyAsVerified)).toEqual({
+        isStravaActivity: true,
+      });
     });
 
     it('surfaces a missing Activity as an API error with status 404', async () => {
@@ -532,7 +536,7 @@ describe('useActivityDetails', () => {
   describe('storage', () => {
     const activityKey = ['intervals', 'athlete-1', 'activity', ACTIVITY_ID];
 
-    it('keeps only the agreed fields of the body, and of each interval', async () => {
+    it('keeps only the agreed fields of the body, and of each interval, from a slice of the full body with fields Activity Details never reads', async () => {
       const body = {
         id: ACTIVITY_ID,
         name: 'Popołudniowa jazda',

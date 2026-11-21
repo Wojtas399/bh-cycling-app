@@ -6,7 +6,7 @@ export interface SurfaceContrast {
   increaseContrast: boolean;
 }
 
-let snapshot: SurfaceContrast = {
+let contrastSharedByEverySurface: SurfaceContrast = {
   reduceTransparency: false,
   increaseContrast: false,
 };
@@ -14,13 +14,19 @@ const listeners = new Set<() => void>();
 let stopWatching: (() => void) | undefined;
 
 function update(key: keyof SurfaceContrast, value: boolean) {
-  if (snapshot[key] === value) return;
+  if (contrastSharedByEverySurface[key] === value) return;
 
-  snapshot = { ...snapshot, [key]: value };
+  contrastSharedByEverySurface = {
+    ...contrastSharedByEverySurface,
+    [key]: value,
+  };
   listeners.forEach(listener => listener());
 }
 
-function read(setting: () => Promise<boolean>, key: keyof SurfaceContrast) {
+function readKeepingLastValueOnFailure(
+  setting: () => Promise<boolean>,
+  key: keyof SurfaceContrast,
+) {
   setting().then(
     value => update(key, value),
     () => {},
@@ -34,11 +40,11 @@ function readIncreaseContrast(): Promise<boolean> {
 }
 
 function watch(): () => void {
-  read(
+  readKeepingLastValueOnFailure(
     () => AccessibilityInfo.isReduceTransparencyEnabled(),
     'reduceTransparency',
   );
-  read(readIncreaseContrast, 'increaseContrast');
+  readKeepingLastValueOnFailure(readIncreaseContrast, 'increaseContrast');
 
   const reduceTransparencySubscription = AccessibilityInfo.addEventListener(
     'reduceTransparencyChanged',
@@ -46,7 +52,7 @@ function watch(): () => void {
   );
   const appStateSubscription = AppState.addEventListener('change', state => {
     if (state === 'active') {
-      read(readIncreaseContrast, 'increaseContrast');
+      readKeepingLastValueOnFailure(readIncreaseContrast, 'increaseContrast');
     }
   });
 
@@ -74,5 +80,5 @@ function subscribe(listener: () => void) {
 }
 
 export function useSurfaceContrast(): SurfaceContrast {
-  return useSyncExternalStore(subscribe, () => snapshot);
+  return useSyncExternalStore(subscribe, () => contrastSharedByEverySurface);
 }

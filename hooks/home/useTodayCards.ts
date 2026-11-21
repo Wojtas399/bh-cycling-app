@@ -33,9 +33,9 @@ export function useTodayCards() {
   const today = useToday();
 
   const lacksWellness = lacksScope(connection.scope, 'WELLNESS:READ');
-  const readCredentials =
+  const credentialsIfWellnessGranted =
     connection.loading || lacksWellness ? null : credentials;
-  const options = todayQueryOptions(readCredentials, today);
+  const options = todayQueryOptions(credentialsIfWellnessGranted, today);
 
   const query = useQuery(options);
   const refetch = useRefetchQuery(options.queryKey);

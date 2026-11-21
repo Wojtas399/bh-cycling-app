@@ -56,6 +56,31 @@ describe('useFormTextField', () => {
     expect(focusEmail).not.toHaveBeenCalled();
   });
 
+  it('shows a validation error over a server error on the same field', async () => {
+    const hook = await renderHook(() => {
+      const { control, setFocus, setError } = useForm<Values>({
+        defaultValues: { email: '', password: '' },
+      });
+      const form: FormBinding<Values> = {
+        control,
+        setFocus,
+        busy: false,
+        onFieldChange: () => {},
+        serverError: () => 'errors.emailTaken',
+      };
+
+      return { setError, email: useFormTextField({ form, name: 'email' }) };
+    });
+
+    expect(hook.result.current.email.error).toBe('errors.emailTaken');
+
+    await act(async () => {
+      hook.result.current.setError('email', { message: 'validation.email' });
+    });
+
+    expect(hook.result.current.email.error).toBe('validation.email');
+  });
+
   it('leaves the last field without a next key', async () => {
     const hook = await setup();
 

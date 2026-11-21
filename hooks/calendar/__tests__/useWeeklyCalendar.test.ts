@@ -89,8 +89,9 @@ describe('useWeeklyCalendar', () => {
   });
 
   it('opens on the week containing a starting date, fetching the months it touches', async () => {
+    const wednesdayOfTheWeekAcrossNewYear2021 = new Date(2020, 11, 30);
     const { result } = await renderHookWithClient(() =>
-      useWeeklyCalendar(new Date(2020, 11, 30)),
+      useWeeklyCalendar(wednesdayOfTheWeekAcrossNewYear2021),
     );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
@@ -119,7 +120,7 @@ describe('useWeeklyCalendar', () => {
     );
   });
 
-  it("shows a Race in a week across two months once, though both months' events calls return it", async () => {
+  it("shows a Race in a week across two months once, though it falls in December's pairing window as well as in January, so both months' events calls return it", async () => {
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params: { category?: string }) =>
         params.category === 'NOTE'
@@ -176,8 +177,10 @@ describe('useWeeklyCalendar', () => {
   });
 
   it('shows today in a week that crosses into the next month, on one of its later days', async () => {
+    const sundayEndingAWeekBegunInOctober = new Date(2026, 10, 1, 12);
+
     jest.useFakeTimers();
-    jest.setSystemTime(new Date(2026, 10, 1, 12));
+    jest.setSystemTime(sundayEndingAWeekBegunInOctober);
 
     const { result } = await renderHookWithClient(() => useWeeklyCalendar());
 
@@ -201,7 +204,7 @@ describe('useWeeklyCalendar', () => {
     expect(result.current.showsToday).toBe(true);
   });
 
-  it('does not fetch a week whose months are already loaded', async () => {
+  it('does not fetch a week whose months the monthly view has already loaded', async () => {
     const now = new Date();
     const client = createQueryClient();
 

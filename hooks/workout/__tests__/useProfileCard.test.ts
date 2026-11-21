@@ -45,7 +45,7 @@ const PLAN_SUMMARY: WorkoutProfileSummary = {
   peakFtpPct: 100,
 };
 
-const PLAN_ZONE_TIMES: ZoneTimes = {
+const PLAN_ZONE_TIMES_FROM_ITS_STEPS: ZoneTimes = {
   1: 0,
   2: 600,
   3: 0,
@@ -55,7 +55,7 @@ const PLAN_ZONE_TIMES: ZoneTimes = {
   7: 0,
 };
 
-const RIDE: IntervalsActivity = {
+const RIDE_DRAWING_A_600_S_PROFILE: IntervalsActivity = {
   id: ACTIVITY_ID,
   name: 'Popołudniowa jazda',
   type: 'Ride',
@@ -68,12 +68,12 @@ const RIDE: IntervalsActivity = {
   ],
 };
 
-function renderCard(recordedActivityId: string | null) {
+function renderCardWithCurrentRideSettings(recordedActivityId: string | null) {
   return renderHookWithClient(() =>
     useProfileCard({
       blocks: PLANNED_BLOCKS,
       profileSummary: PLAN_SUMMARY,
-      zoneTimes: PLAN_ZONE_TIMES,
+      zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
       rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
       recordedActivityId,
     }),
@@ -106,13 +106,13 @@ beforeEach(() => {
 
 describe('useProfileCard', () => {
   it('fetches nothing and shows the plan alone without a paired Activity', async () => {
-    const { result } = await renderCard(null);
+    const { result } = await renderCardWithCurrentRideSettings(null);
 
     expect(result.current).toMatchObject(PLAN_ALONE);
     expect(mockGetActivity).not.toHaveBeenCalled();
   });
 
-  it("shows the plan while the Activity loads, then the ride's strip below it, drawn from its detected intervals", async () => {
+  it("shows the plan while the Activity loads, then the ride's strip below it, drawn from its detected intervals at the current FTP when the ride kept none of its own", async () => {
     let resolveActivity: (activity: IntervalsActivity) => void = () => {};
 
     mockGetActivity.mockReturnValue(
@@ -121,12 +121,12 @@ describe('useProfileCard', () => {
       }),
     );
 
-    const { result } = await renderCard(ACTIVITY_ID);
+    const { result } = await renderCardWithCurrentRideSettings(ACTIVITY_ID);
 
     await waitFor(() => expect(mockGetActivity).toHaveBeenCalled());
     expect(result.current).toMatchObject(PLAN_ALONE);
 
-    resolveActivity(RIDE);
+    resolveActivity(RIDE_DRAWING_A_600_S_PROFILE);
 
     await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
     expect(mockGetActivity).toHaveBeenCalledWith(
@@ -148,7 +148,7 @@ describe('useProfileCard', () => {
 
   it("lists the plan's time in zone above the ride's from intervals.icu", async () => {
     mockGetActivity.mockResolvedValue({
-      ...RIDE,
+      ...RIDE_DRAWING_A_600_S_PROFILE,
       icu_zone_times: [
         { id: 'Z1', secs: 30 },
         { id: 'Z2', secs: 290 },
@@ -156,7 +156,7 @@ describe('useProfileCard', () => {
         { id: 'SS', secs: 120 },
       ],
     });
-    const { result } = await renderCard(ACTIVITY_ID);
+    const { result } = await renderCardWithCurrentRideSettings(ACTIVITY_ID);
 
     await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
     const { card, settings } = result.current!;
@@ -183,7 +183,7 @@ describe('useProfileCard', () => {
   it('keeps the plan alone when the Activity fails to load', async () => {
     mockGetActivity.mockRejectedValue(new Error('offline'));
 
-    const { result } = await renderCard(ACTIVITY_ID);
+    const { result } = await renderCardWithCurrentRideSettings(ACTIVITY_ID);
 
     await waitFor(() => expect(mockGetActivity).toHaveBeenCalled());
     expect(result.current).toMatchObject(PLAN_ALONE);
@@ -196,7 +196,7 @@ describe('useProfileCard', () => {
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES,
+        zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
         rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
         recordedActivityId: null,
       }),
@@ -211,7 +211,7 @@ describe('useProfileCard', () => {
       useProfileCard({
         blocks: PLANNED_BLOCKS,
         profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES,
+        zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
         rideSettings: resolveRideSettings(null),
         recordedActivityId: null,
       }),

@@ -83,7 +83,7 @@ export function useCalendarRange({
 
   const athleteId = credentials?.athleteId;
 
-  const refresh = useCallback(() => {
+  const markAthleteDataStale = useCallback(() => {
     if (!athleteId) return;
 
     queryClient.invalidateQueries({
@@ -101,7 +101,7 @@ export function useCalendarRange({
     showsToday:
       toLocalDateString(startOf(anchor)) <= today &&
       today <= toLocalDateString(endOf(anchor)),
-    refresh,
+    refresh: markAthleteDataStale,
     refreshing: query.data !== undefined && query.isFetching,
   };
 }

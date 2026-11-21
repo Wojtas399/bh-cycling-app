@@ -4,6 +4,7 @@ const path = require('node:path');
 const ts = require('typescript');
 
 const ENFORCED_PATHS = [
+  'hooks/',
   'lib/__tests__/calendarDayCounts.test.ts',
   'lib/__tests__/calendarGrid.test.ts',
   'lib/__tests__/calendarItems.test.ts',
@@ -37,6 +38,10 @@ const ENFORCED_PATHS = [
   'lib/raceLabels.ts',
   'lib/races.ts',
   'lib/weekNotes.ts',
+  'test-utils/__tests__/focus.test.ts',
+  'test-utils/__tests__/settle.test.ts',
+  'test-utils/focus.ts',
+  'test-utils/settle.ts',
 ];
 
 const EXCLUDED_GENERATED_PATHS = ['dist/', 'expo-env.d.ts'];

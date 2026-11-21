@@ -17,6 +17,7 @@ import {
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
 import { addDays, toLocalDateString } from '@/lib/localDate';
+import { restoreDefaultFocus } from '@/test-utils/focus';
 import {
   createTestQueryClient,
   renderHookWithClient,
@@ -131,7 +132,7 @@ describe('useCalendarRange', () => {
   });
 
   afterEach(() => {
-    focusManager.setFocused(undefined);
+    restoreDefaultFocus();
     jest.useRealTimers();
   });
 
@@ -400,7 +401,7 @@ describe('useCalendarRange', () => {
     ]);
   });
 
-  it('does not refetch when navigating back to a month already loaded', async () => {
+  it('shows a month already loaded at once when navigating back to it, with no new fetch', async () => {
     mockConnected();
 
     const { result } = await renderHookWithClient(() =>
@@ -477,7 +478,7 @@ describe('useCalendarRange', () => {
     expect(result.current.query.data).toEqual(before);
   });
 
-  it('refetches a month that was refreshed away from when it is next shown', async () => {
+  it('refetches a month that was refreshed away from when it is next shown, showing its old data meanwhile', async () => {
     mockConnected();
 
     const { result } = await renderHookWithClient(() =>
@@ -498,7 +499,7 @@ describe('useCalendarRange', () => {
     expect(result.current.query.data).toBeDefined();
   });
 
-  it('refetches a stale month when the app returns to the foreground', async () => {
+  it('refetches a month that went stale while shown only once the app returns to the foreground', async () => {
     mockConnected();
     focusManager.setFocused(false);
 
@@ -544,7 +545,7 @@ describe('useCalendarRange', () => {
     expect(result.current.query.data).toBeDefined();
   });
 
-  it('goes back to loading while a refresh retries a month that failed to load', async () => {
+  it('treats a refresh of a month that failed to load as a first load again, not a refresh', async () => {
     mockConnected();
     mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
 
@@ -576,7 +577,7 @@ describe('useCalendarRange', () => {
     expect(result.current.refreshing).toBe(false);
   });
 
-  it("refresh also invalidates Home's workouts and the athlete settings", async () => {
+  it("refresh only marks Home's workouts stale off screen, and fetches the athlete settings again at once for the refetched month", async () => {
     mockConnected();
 
     const client = createTestQueryClient();

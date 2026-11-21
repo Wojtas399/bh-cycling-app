@@ -3,6 +3,7 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { IntervalsApiError, getActivityMap } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import { restoreDefaultFocus } from '@/test-utils/focus';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
@@ -151,7 +152,7 @@ describe('useActivityRoute', () => {
     await rerender({});
 
     expect(mockGetActivityMap).toHaveBeenCalledTimes(1);
-    focusManager.setFocused(undefined);
+    restoreDefaultFocus();
   });
 
   it('refetches only the Route on refetch', async () => {
@@ -186,7 +187,7 @@ describe('useActivityRoute', () => {
     expect(result.current.query.data).not.toBeNull();
   });
 
-  it('does nothing on refetchIfFailed once the Route has loaded', async () => {
+  it('does nothing on refetchIfFailed once the Route has loaded, resolving by the next microtask with no request in flight', async () => {
     mockConnected();
 
     const { result } = await renderRoute();
