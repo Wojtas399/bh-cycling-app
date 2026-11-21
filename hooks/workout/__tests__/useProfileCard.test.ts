@@ -27,8 +27,8 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockGetActivity = getActivity as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockGetActivity = jest.mocked(getActivity);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 /** The athlete's current Ride FTP. */
 const CURRENT_FTP = 250;
@@ -100,11 +100,12 @@ const PLAN_ALONE = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (useIntervalsConnection as jest.Mock).mockReturnValue({
+  jest.mocked(useIntervalsConnection).mockReturnValue({
     isConnected: true,
     athleteName: null,
     athleteId: 'athlete-1',
     accessToken: 'token-1',
+    scope: null,
     loading: false,
   });
 });

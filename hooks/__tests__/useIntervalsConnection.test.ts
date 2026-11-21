@@ -78,6 +78,25 @@ describe('useIntervalsConnection', () => {
     expect(result.current.scope).toBeNull();
   });
 
+  it('is not connected when the document does not match the expected shape', async () => {
+    const { result } = await renderHook(() => useIntervalsConnection());
+
+    await emitSnapshot({
+      accessToken: 'token-1',
+      athleteId: 12345,
+      athleteName: 'Jane Rider',
+    });
+
+    expect(result.current).toEqual({
+      isConnected: false,
+      athleteName: null,
+      athleteId: null,
+      accessToken: null,
+      scope: null,
+      loading: false,
+    });
+  });
+
   it('transitions to not connected when the document is deleted mid-session', async () => {
     const { result } = await renderHook(() => useIntervalsConnection());
 

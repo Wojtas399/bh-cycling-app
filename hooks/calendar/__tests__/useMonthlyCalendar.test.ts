@@ -29,10 +29,10 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetActivities = getActivities as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetActivities = jest.mocked(getActivities);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 /**
  * The shared loading/refresh behavior is covered once, generically, in
@@ -47,6 +47,7 @@ describe('useMonthlyCalendar', () => {
       athleteName: null,
       athleteId: 'athlete-1',
       accessToken: 'token-1',
+      scope: null,
       loading: false,
     });
     mockGetAthleteSettings.mockResolvedValue({});

@@ -13,6 +13,7 @@ import { type Zone, isZone } from './powerZones';
 import { resolveFtp } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
 import { type ZoneTimes, zoneTimesFromIcu } from './timeInZone';
+import { pick } from './typed';
 import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 const STORED_ACTIVITY_FIELDS = [
@@ -87,11 +88,11 @@ export function toStoredActivityDetails(
   return {
     isStravaActivity: false,
     activity: {
-      ...pickPresentKeys(body, STORED_ACTIVITY_FIELDS),
+      ...pick(body, STORED_ACTIVITY_FIELDS),
       type,
       ...(icu_intervals != null && {
         icu_intervals: icu_intervals.map(interval =>
-          pickPresentKeys(interval, STORED_INTERVAL_FIELDS),
+          pick(interval, STORED_INTERVAL_FIELDS),
         ),
       }),
     },
@@ -233,13 +234,4 @@ function descriptionOf({ description }: StoredActivity): {
   const trimmed = description?.trim();
 
   return trimmed ? { description: trimmed } : {};
-}
-
-function pickPresentKeys<T extends object, K extends keyof T>(
-  source: T,
-  keys: readonly K[],
-): Pick<T, K> {
-  return Object.fromEntries(
-    keys.filter(key => key in source).map(key => [key, source[key]]),
-  ) as Pick<T, K>;
 }

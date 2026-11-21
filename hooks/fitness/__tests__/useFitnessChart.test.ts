@@ -28,9 +28,9 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockUseToday = useToday as jest.Mock;
-const mockGetWellnessRange = getWellnessRange as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseToday = jest.mocked(useToday);
+const mockGetWellnessRange = jest.mocked(getWellnessRange);
 
 const TODAY = '2026-11-06';
 
