@@ -55,7 +55,7 @@ export default function RaceDetailSheet({ sheet }: RaceDetailSheetProps) {
 
           {description ? (
             <Box marginTop="base">
-              <NoteMarkdown text={description} />
+              <NoteMarkdown textWithHtmlStripped={description} />
             </Box>
           ) : null}
         </>

@@ -6,14 +6,12 @@ import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import type { ShownTodayCardsState } from '@/hooks/home/useTodayCards';
 
-/** Bar widths of the loading card's rows. */
-const SKELETON_ROWS = [
+const SKELETON_ROW_BAR_WIDTHS = [
   { key: 'first', label: 72, value: 48 },
   { key: 'second', label: 56, value: 40 },
   { key: 'third', label: 88, value: 52 },
 ];
 
-/** Today's Wellness Entry on Home, as a plain read-only table. */
 export default function WellnessCard({
   state,
 }: {
@@ -23,12 +21,12 @@ export default function WellnessCard({
 
   if (state.status === 'loading') {
     return (
-      <Card busyLabel={t('loading')}>
-        {SKELETON_ROWS.map(({ key, label, value }, index) => (
-          <Row key={key} index={index}>
-            <Bar width={label} />
-            <Bar width={value} />
-          </Row>
+      <Card loadingLabel={t('loading')}>
+        {SKELETON_ROW_BAR_WIDTHS.map(({ key, label, value }, index) => (
+          <LabelValueRow key={key} index={index}>
+            <BodySLineSkeletonBar width={label} />
+            <BodySLineSkeletonBar width={value} />
+          </LabelValueRow>
         ))}
       </Card>
     );
@@ -47,23 +45,22 @@ export default function WellnessCard({
   return (
     <Card>
       {state.wellness.map(({ key, value }, index) => (
-        <Row key={key} index={index}>
+        <LabelValueRow key={key} index={index}>
           <Text variant="body-s-regular" color="textSecondary">
             {t(`rows.${key}`)}
           </Text>
           <Text variant="body-s-medium">{value}</Text>
-        </Row>
+        </LabelValueRow>
       ))}
     </Card>
   );
 }
 
-/** The card surface with its title; a `busyLabel` marks it as loading. */
 function Card({
-  busyLabel,
+  loadingLabel,
   children,
 }: {
-  busyLabel?: string;
+  loadingLabel?: string;
   children: ReactNode;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'home.wellness' });
@@ -71,9 +68,9 @@ function Card({
   return (
     <SheenSurface
       padding="base"
-      accessible={busyLabel !== undefined}
-      accessibilityLabel={busyLabel}
-      accessibilityState={busyLabel ? { busy: true } : undefined}
+      accessible={loadingLabel !== undefined}
+      accessibilityLabel={loadingLabel}
+      accessibilityState={loadingLabel ? { busy: true } : undefined}
     >
       <Text variant="h3" marginBottom="xs">
         {t('title')}
@@ -83,8 +80,13 @@ function Card({
   );
 }
 
-/** A label-left, value-right row, with a hairline above all but the first. */
-function Row({ index, children }: { index: number; children: ReactNode }) {
+function LabelValueRow({
+  index,
+  children,
+}: {
+  index: number;
+  children: ReactNode;
+}) {
   return (
     <Box
       flexDirection="row"
@@ -99,8 +101,7 @@ function Row({ index, children }: { index: number; children: ReactNode }) {
   );
 }
 
-/** A static skeleton bar, sized to a line of `body-s` text. */
-function Bar({ width }: { width: number }) {
+function BodySLineSkeletonBar({ width }: { width: number }) {
   return (
     <Box
       backgroundColor="bgTertiary"

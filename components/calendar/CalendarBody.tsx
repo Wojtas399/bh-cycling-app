@@ -19,34 +19,22 @@ export type CalendarBodyState =
 
 export interface CalendarBodyProps {
   state: CalendarBodyState;
-  /** The loaded view, rendered once the state is ready. */
   children: (data: CalendarData) => ReactNode;
-  /**
-   * The loaded view fills the body instead of scrolling, and lays out its
-   * own padding (the month grid sizes its rows to the space).
-   */
-  fill?: boolean;
-  /** The sticky header the body starts under. */
+  fillWithoutScrollOrPadding?: boolean;
   header: GlassHeaderLayout;
 }
 
-/**
- * The Calendar's content area: a spinner, an error message, or the loaded
- * view. It starts under the sticky header and ends clear of the tab bar; a
- * scrolling view scrolls under both.
- */
 export default function CalendarBody({
   state,
   children,
-  fill = false,
+  fillWithoutScrollOrPadding = false,
   header,
 }: CalendarBodyProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
   const theme = useAppTheme();
   const tabBarClearance = useTabBarClearance();
-  /** The gap between the sticky header and the content under it. */
-  const gap = theme.spacing.base;
-  const belowHeader = header.height + gap;
+  const gapUnderHeader = theme.spacing.base;
+  const belowHeader = header.height + gapUnderHeader;
 
   switch (state.status) {
     case 'loading':
@@ -68,7 +56,7 @@ export default function CalendarBody({
         </Text>
       );
     case 'ready':
-      if (fill) {
+      if (fillWithoutScrollOrPadding) {
         return (
           <Box
             flex={1}
@@ -87,7 +75,7 @@ export default function CalendarBody({
           {...header.scrollViewProps}
           contentContainerStyle={{
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: header.scrollInsetTop + gap,
+            paddingTop: header.scrollInsetTop + gapUnderHeader,
             paddingBottom: theme.spacing.xl,
           }}
         >

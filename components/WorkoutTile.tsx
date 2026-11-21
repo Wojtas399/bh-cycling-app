@@ -12,27 +12,14 @@ import type { WorkoutStatus } from '@/lib/workoutStatus';
 
 export interface WorkoutTileProps {
   title: string;
-  /** Omitted where the surrounding screen already shows the day. */
   dayLabel?: string;
-  /** Draws a Workout Status dot before the title when given. */
   status?: WorkoutStatus;
   durationSeconds?: number;
-  /** The Workout Profile to draw. Empty when there is none to show. */
   blocks?: WorkoutBlock[];
-  /** Adds a muted "Aktywność ze Stravy" line below the duration. */
   completedWithStravaActivity?: boolean;
-  /** Makes the whole tile a button, e.g. to open the Workout's details. */
   onPress?: () => void;
 }
 
-/**
- * Presentational card for a single workout. Renders the title — with a status
- * dot and a day label, when given — on the top row, the duration below in
- * muted text, a muted "Aktywność ze Stravy" line when it was completed with a
- * Strava Activity, and the Workout Profile beneath that. Knows nothing about
- * intervals.icu, is interactive only when given `onPress`, and degrades to
- * whichever parts it was given.
- */
 export default function WorkoutTile({
   title,
   dayLabel,

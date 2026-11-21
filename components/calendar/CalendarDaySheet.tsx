@@ -96,7 +96,7 @@ export default function CalendarDaySheet({
                 key={note.id}
                 note={note}
                 when={when}
-                showWhen={false}
+                showWhenBesideTitle={false}
                 subtitle={subtitle}
                 onPress={() => onNotePress(note)}
               />

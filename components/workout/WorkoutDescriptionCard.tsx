@@ -18,7 +18,7 @@ export default function WorkoutDescriptionCard({
   return (
     <WorkoutDetailsCard title={t('description')}>
       {asNoteMarkdown ? (
-        <NoteMarkdown text={description} />
+        <NoteMarkdown textWithHtmlStripped={description} />
       ) : (
         <Text variant="body-s-regular">{description}</Text>
       )}

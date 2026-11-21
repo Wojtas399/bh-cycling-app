@@ -108,7 +108,7 @@ export default function RouteMapScreen({
               accessibilityLabel={t('common.close')}
               onPress={close}
               hitSlop={8}
-              style={{
+              surfaceStyle={{
                 width: CLOSE_SIZE,
                 height: CLOSE_SIZE,
                 alignItems: 'center',
@@ -217,7 +217,7 @@ function FullScreenRoute({
                 borderRadius="lg"
                 accessible
                 accessibilityLabel={t('chip', { label: t(chip), value })}
-                style={{ flex: 1, padding: theme.spacing.md }}
+                surfaceStyle={{ flex: 1, padding: theme.spacing.md }}
               >
                 <Text variant="body-xs-regular" color="textSecondary">
                   {t(chip)}

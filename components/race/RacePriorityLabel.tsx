@@ -19,7 +19,7 @@ export default function RacePriorityLabel({
       <Box marginRight="xs">
         <RaceRankIcon priority={priority} size={14} />
       </Box>
-      {RACE_RANKS[priority].eyebrow ? (
+      {RACE_RANKS[priority].priorityAsRedEyebrow ? (
         <Text
           variant="body-xs-medium"
           color="race"

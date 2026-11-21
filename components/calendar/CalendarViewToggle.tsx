@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 
-import GlassControl, { GLASS_EDGE } from '@/components/GlassControl';
+import GlassControl, {
+  EDGE_MEASURING_ALIKE_ON_EVERY_PAINT,
+} from '@/components/GlassControl';
 import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import { CALENDAR_VIEWS, type CalendarView } from '@/lib/calendarView';
@@ -25,7 +27,7 @@ export default function CalendarViewToggle({
   return (
     <GlassControl
       placement="chrome"
-      style={{ flexDirection: 'row', padding: spacing.xs }}
+      surfaceStyle={{ flexDirection: 'row', padding: spacing.xs }}
     >
       {CALENDAR_VIEWS.map(option => {
         const selected = option === view;
@@ -45,7 +47,7 @@ export default function CalendarViewToggle({
             prominent
             onPress={() => onViewChange(option)}
             accessibilityState={{ selected }}
-            style={segment}
+            surfaceStyle={segment}
           >
             {label}
           </GlassControl>
@@ -55,7 +57,7 @@ export default function CalendarViewToggle({
             onPress={() => onViewChange(option)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            style={[segment, GLASS_EDGE]}
+            style={[segment, EDGE_MEASURING_ALIKE_ON_EVERY_PAINT]}
           >
             {label}
           </Pressable>

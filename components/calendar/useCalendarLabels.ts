@@ -3,21 +3,19 @@ import { useTranslation } from 'react-i18next';
 
 import type { CalendarDay } from '@/lib/calendarGrid';
 import { formatMonthTitle } from '@/lib/formatMonthTitle';
+import type {
+  MonthNamesFromJanuary,
+  WeekdayNamesFromMonday,
+} from '@/lib/noteDates';
 
 export interface CalendarLabels {
-  /** Short weekday names, Monday first: "Pn" … "Nd". */
-  weekdaysShort: readonly string[];
-  /** Month names as they read after a day number, January first. */
-  monthNamesGenitive: readonly string[];
-  /** "Październik 2026". */
+  weekdaysShort: WeekdayNamesFromMonday;
+  monthNamesGenitive: MonthNamesFromJanuary;
   month: (anchor: Date) => string;
-  /** "5 – 11 października 2026", or "28 września – 4 października 2026". */
   week: (days: CalendarDay[]) => string;
-  /** "Poniedziałek, 5 października". */
   day: (day: CalendarDay) => string;
 }
 
-/** Polish date labels for the Calendar screen's headers, agenda, and sheet. */
 export function useCalendarLabels(): CalendarLabels {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar' });
 
