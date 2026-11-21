@@ -1,3 +1,4 @@
+import type { MondayBasedWeekday } from '../calendarWorkouts';
 import { type RowLength, layoutNoteRow, noteBarInsets } from '../noteBars';
 import type { Note } from '../notes';
 
@@ -13,11 +14,11 @@ function note(overrides: Partial<Note>): Note {
   };
 }
 
-// October 2026 starts on a Thursday.
-const OCTOBER = Array.from(
+const OCTOBER_2026_FROM_THURSDAY_1ST = Array.from(
   { length: 31 },
   (_, index) => `2026-10-${String(index + 1).padStart(2, '0')}`,
 );
+const OCTOBER = OCTOBER_2026_FROM_THURSDAY_1ST;
 const FIRST_ROW = [
   '2026-09-28',
   '2026-09-29',
@@ -31,7 +32,7 @@ const SECOND_ROW = OCTOBER.slice(4, 11);
 const LAST_ROW = [...OCTOBER.slice(25), '2026-11-01'];
 
 describe('layoutNoteRow', () => {
-  it('draws a single-day Note as one rounded, labelled cell in lane 0', () => {
+  it('draws a single-day Note as one rounded, labelled cell in lane 0, the top one', () => {
     const wolne = note({ start: '2026-10-07', end: '2026-10-08' });
 
     expect(layoutNoteRow(SECOND_ROW, OCTOBER, [wolne])).toEqual({
@@ -59,7 +60,7 @@ describe('layoutNoteRow', () => {
     });
   });
 
-  it('gives each Note, in id order, the lowest lane free across its span', () => {
+  it('gives each Note, in id order, the lowest lane free across its span, reusing a lane once its Note ends', () => {
     const camp = note({ id: 1, start: '2026-10-05', end: '2026-10-08' });
     const rest = note({ id: 2, start: '2026-10-06', end: '2026-10-07' });
     const race = note({ id: 3, start: '2026-10-08', end: '2026-10-09' });
@@ -76,7 +77,6 @@ describe('layoutNoteRow', () => {
     ).toEqual([
       { id: 1, lane: 0, firstColumn: 0, lastColumn: 2 },
       { id: 2, lane: 1, firstColumn: 1, lastColumn: 1 },
-      // Lane 0 is free again once the camp ends.
       { id: 3, lane: 0, firstColumn: 3, lastColumn: 3 },
     ]);
   });
@@ -99,10 +99,12 @@ describe('layoutNoteRow', () => {
     ]);
   });
 
-  it('rounds only the ends that are the Note’s real first and last day', () => {
-    // 2 – 13 October: starts in the first row, runs through the second and
-    // ends in the third.
-    const camp = note({ start: '2026-10-02', end: '2026-10-14' });
+  it('rounds only the ends that are the Note’s real first and last day, starting each new row’s segment at its first cell, where the label goes', () => {
+    const campFrom2To13OctoberAcrossThreeRows = note({
+      start: '2026-10-02',
+      end: '2026-10-14',
+    });
+    const camp = campFrom2To13OctoberAcrossThreeRows;
     const thirdRow = OCTOBER.slice(11, 18);
 
     expect(layoutNoteRow(FIRST_ROW, OCTOBER, [camp]).segments).toEqual([
@@ -113,7 +115,6 @@ describe('layoutNoteRow', () => {
         roundedEnd: false,
       }),
     ]);
-    // A new row's segment starts at its first cell, where the label goes.
     expect(layoutNoteRow(SECOND_ROW, OCTOBER, [camp]).segments).toEqual([
       expect.objectContaining({
         firstColumn: 0,
@@ -132,16 +133,24 @@ describe('layoutNoteRow', () => {
     ]);
   });
 
-  it('clips to the month, leaving neighbour-month cells empty', () => {
-    // 27 September – 2 October and 30 October – 2 November.
-    const autumn = note({ id: 1, start: '2026-09-27', end: '2026-10-03' });
-    const allSaints = note({ id: 2, start: '2026-10-30', end: '2026-11-03' });
+  it('clips to the month, leaving neighbour-month cells empty and the clipped end square', () => {
+    const autumnFrom27SeptemberTo2October = note({
+      id: 1,
+      start: '2026-09-27',
+      end: '2026-10-03',
+    });
+    const allSaintsFrom30OctoberTo2November = note({
+      id: 2,
+      start: '2026-10-30',
+      end: '2026-11-03',
+    });
+    const autumn = autumnFrom27SeptemberTo2October;
+    const allSaints = allSaintsFrom30OctoberTo2November;
 
     expect(layoutNoteRow(FIRST_ROW, OCTOBER, [autumn]).segments).toEqual([
       expect.objectContaining({
         firstColumn: 3,
         lastColumn: 4,
-        // The real start lies outside the month, so the bar runs off square.
         roundedStart: false,
         roundedEnd: true,
       }),
@@ -191,17 +200,15 @@ describe('layoutNoteRow', () => {
   });
 });
 
-/** The length in points in a row `width` points wide. */
-function inPoints(length: RowLength, width: number): number {
-  return (length.percent / 100) * width + length.offset;
+function pointsAlongRow(length: RowLength, rowWidthPoints: number): number {
+  return (length.percentOfRow / 100) * rowWidthPoints + length.offsetPoints;
 }
 
 describe('noteBarInsets', () => {
-  // 48-point cells 2 apart make a 348-point row, cell N starting at 50 × N.
-  const WIDTH = 348;
-  const GAP = 2;
+  const ROW_POINTS_OF_48_POINT_CELLS_2_APART = 348;
+  const GAP_POINTS = 2;
 
-  it.each([
+  it.each<[string, MondayBasedWeekday, MondayBasedWeekday, number, number]>([
     ['one cell', 2, 2, 100, 200],
     ['a run of cells', 2, 4, 100, 100],
     ['the first cell', 0, 0, 0, 300],
@@ -210,18 +217,26 @@ describe('noteBarInsets', () => {
   ])(
     'lines a bar over %s up with the cells’ edges',
     (_, firstColumn, lastColumn, left, right) => {
-      const insets = noteBarInsets({ firstColumn, lastColumn }, GAP);
+      const insets = noteBarInsets({ firstColumn, lastColumn }, GAP_POINTS);
 
-      expect(inPoints(insets.left, WIDTH)).toBeCloseTo(left);
-      expect(inPoints(insets.right, WIDTH)).toBeCloseTo(right);
+      expect(
+        pointsAlongRow(insets.left, ROW_POINTS_OF_48_POINT_CELLS_2_APART),
+      ).toBeCloseTo(left);
+      expect(
+        pointsAlongRow(insets.right, ROW_POINTS_OF_48_POINT_CELLS_2_APART),
+      ).toBeCloseTo(right);
     },
   );
 
   it('keeps the bar on its cells at any row width', () => {
-    // 30-point cells 2 apart: a 222-point row, cell N starting at 32 × N.
-    const insets = noteBarInsets({ firstColumn: 1, lastColumn: 3 }, GAP);
+    const rowPointsOf30PointCells2Apart = 222;
+    const insets = noteBarInsets({ firstColumn: 1, lastColumn: 3 }, GAP_POINTS);
 
-    expect(inPoints(insets.left, 222)).toBeCloseTo(32);
-    expect(inPoints(insets.right, 222)).toBeCloseTo(96);
+    expect(
+      pointsAlongRow(insets.left, rowPointsOf30PointCells2Apart),
+    ).toBeCloseTo(32);
+    expect(
+      pointsAlongRow(insets.right, rowPointsOf30PointCells2Apart),
+    ).toBeCloseTo(96);
   });
 });

@@ -214,10 +214,10 @@ function NoteBar({ segment }: { segment: NoteBarSegment }) {
       style={{
         position: 'absolute',
         top: lane * (BAR_HEIGHT + BAR_GAP),
-        left: `${left.percent}%`,
-        marginLeft: left.offset,
-        right: `${right.percent}%`,
-        marginRight: right.offset,
+        left: `${left.percentOfRow}%`,
+        marginLeft: left.offsetPoints,
+        right: `${right.percentOfRow}%`,
+        marginRight: right.offsetPoints,
         height: BAR_HEIGHT,
       }}
     >

@@ -63,7 +63,7 @@ describe('dayCounts', () => {
     });
   });
 
-  it('lists the day’s Race Priorities in Race order, apart from the Workouts', () => {
+  it('lists the day’s Race Priorities in the order the day already holds its Races, apart from the Workouts', () => {
     const data: CalendarData = {
       itemsByDate: {
         '2026-11-12': [
@@ -115,7 +115,7 @@ describe('dayCounts', () => {
 });
 
 describe('dayMarkers', () => {
-  it('splits the Races, in Race order, from the Workouts and Activities', () => {
+  it('splits the Races, in the order the day already holds them, from the Workouts and Activities', () => {
     const items = [
       race(1, 'B', '2026-11-12'),
       race(2, 'C', '2026-11-12'),

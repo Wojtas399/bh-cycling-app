@@ -1,13 +1,18 @@
 import type { Note } from '../notes';
 import { weekNotes } from '../weekNotes';
 
-/** A Note from `start` up to, not including, `end`. */
-function note(id: number, start: string, end: string): Note {
-  return { id, name: `N${id}`, description: null, color: null, start, end };
+function note(id: number, start: string, dayAfterLastDay: string): Note {
+  return {
+    id,
+    name: `N${id}`,
+    description: null,
+    color: null,
+    start,
+    end: dayAfterLastDay,
+  };
 }
 
-// Monday 19 – Sunday 25 October 2026.
-const [MON, TUE, WED, THU, FRI, SAT, SUN] = [
+const WEEK_OF_MONDAY_19_TO_SUNDAY_25_OCTOBER_2026 = [
   '2026-10-19',
   '2026-10-20',
   '2026-10-21',
@@ -16,7 +21,8 @@ const [MON, TUE, WED, THU, FRI, SAT, SUN] = [
   '2026-10-24',
   '2026-10-25',
 ];
-const WEEK = [MON, TUE, WED, THU, FRI, SAT, SUN];
+const WEEK = WEEK_OF_MONDAY_19_TO_SUNDAY_25_OCTOBER_2026;
+const [MON, TUE, WED, THU, FRI, SAT, SUN] = WEEK;
 
 describe('weekNotes', () => {
   it('lays out nothing for a week with no Notes', () => {
@@ -48,7 +54,8 @@ describe('weekNotes', () => {
   });
 
   it('runs a multi-day Note inside the week from its first to its last day', () => {
-    const oboz = note(1, TUE, FRI); // Tuesday to Thursday
+    const obozTuesdayToThursday = note(1, TUE, FRI);
+    const oboz = obozTuesdayToThursday;
     const layout = weekNotes([oboz], WEEK);
     const lane = { note: oboz, lane: 0 };
 
@@ -76,7 +83,8 @@ describe('weekNotes', () => {
   });
 
   it('labels a Note carried in from last week on Monday, its line running off the top', () => {
-    const blok = note(1, '2026-10-12', WED); // to Tuesday
+    const blokFromLastWeekToTuesday = note(1, '2026-10-12', WED);
+    const blok = blokFromLastWeekToTuesday;
     const { days } = weekNotes([blok], WEEK);
 
     expect(days[MON].crossings).toEqual([
@@ -90,7 +98,8 @@ describe('weekNotes', () => {
   });
 
   it('runs a Note going into next week off the bottom on Sunday', () => {
-    const wyjazd = note(1, FRI, '2026-10-28'); // to next Tuesday
+    const wyjazdFromFridayToNextTuesday = note(1, FRI, '2026-10-28');
+    const wyjazd = wyjazdFromFridayToNextTuesday;
     const { days } = weekNotes([wyjazd], WEEK);
 
     expect(days[FRI].crossings).toEqual([
@@ -102,10 +111,10 @@ describe('weekNotes', () => {
     expect(days[FRI].rows).toEqual([{ note: wyjazd, multiDay: true }]);
   });
 
-  it('keeps each overlapping multi-day Note in its own lane all week, in id order', () => {
-    const blok = note(1, '2026-10-12', FRI); // to Thursday
-    const chory = note(2, TUE, THU); // Tuesday to Wednesday
-    const wyjazd = note(3, WED, '2026-10-28'); // into next week
+  it('keeps each overlapping multi-day Note in its own lane all week, in id order, even once the lanes below it are free', () => {
+    const blok = note(1, '2026-10-12', FRI);
+    const chory = note(2, TUE, THU);
+    const wyjazd = note(3, WED, '2026-10-28');
     const { lanes, days } = weekNotes([blok, chory, wyjazd], WEEK);
     const crossing = (date: string) =>
       days[date].crossings.map(({ note: n, lane }) => [n.id, lane]);
@@ -125,13 +134,13 @@ describe('weekNotes', () => {
       [2, 1],
       [3, 2],
     ]);
-    // Lane 0 and 1 are free by now, but Wyjazd stays in lane 2.
     expect(crossing(FRI)).toEqual([[3, 2]]);
     expect(crossing(SUN)).toEqual([[3, 2]]);
   });
 
   it('lays out Notes on Sunday only', () => {
-    const wyjazd = note(1, SUN, '2026-10-28'); // into next week
+    const wyjazdIntoNextWeek = note(1, SUN, '2026-10-28');
+    const wyjazd = wyjazdIntoNextWeek;
     const wolne = note(2, SUN, '2026-10-26');
     const { lanes, days } = weekNotes([wyjazd, wolne], WEEK);
 
@@ -166,27 +175,35 @@ describe('weekNotes', () => {
   });
 
   it('lists first-day multi-day Notes before single-day ones, each in id order', () => {
+    const singleDay = note(1, WED, THU);
+    const multiDayFromWednesday = note(2, WED, SAT);
+    const anotherSingleDay = note(3, WED, THU);
+    const multiDayFromTuesdayWithNoRowOnWednesday = note(4, TUE, FRI);
+    const anotherMultiDayFromWednesday = note(5, WED, FRI);
     const notes = [
-      note(1, WED, THU), // single day
-      note(2, WED, SAT), // multi-day, starts Wednesday
-      note(3, WED, THU), // single day
-      note(4, TUE, FRI), // multi-day, started Tuesday: no row on Wednesday
-      note(5, WED, FRI), // multi-day, starts Wednesday
+      singleDay,
+      multiDayFromWednesday,
+      anotherSingleDay,
+      multiDayFromTuesdayWithNoRowOnWednesday,
+      anotherMultiDayFromWednesday,
     ];
     const { days } = weekNotes(notes, WEEK);
 
     expect(days[WED].rows).toEqual([
-      { note: notes[1], multiDay: true },
-      { note: notes[4], multiDay: true },
+      { note: multiDayFromWednesday, multiDay: true },
+      { note: anotherMultiDayFromWednesday, multiDay: true },
     ]);
     expect(days[WED].hiddenCount).toBe(2);
   });
 
   it('leaves out Notes that ended before Monday or start after Sunday', () => {
+    const endedOnTheSundayBefore = note(1, '2026-10-10', MON);
+    const nextWeekOnly = note(2, '2026-10-26', '2026-10-29');
+    const singleDayOnTheSundayBefore = note(3, '2026-10-18', MON);
     const notes = [
-      note(1, '2026-10-10', MON), // ended on the Sunday before
-      note(2, '2026-10-26', '2026-10-29'), // next week only
-      note(3, '2026-10-18', MON), // single day, the Sunday before
+      endedOnTheSundayBefore,
+      nextWeekOnly,
+      singleDayOnTheSundayBefore,
     ];
     const layout = weekNotes(notes, WEEK);
 
