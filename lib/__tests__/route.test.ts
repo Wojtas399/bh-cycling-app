@@ -206,13 +206,15 @@ describe('toRoute', () => {
 
   it('computes the bounds when the response bounds are malformed', () => {
     const route = toRoute(
-      readIntervalsBody<IntervalsActivityMap>({
-        latlngs: [
-          [LAT, 21.0],
-          [LAT + 0.001, 21.002],
-        ],
-        bounds: [[LAT, null]],
-      }),
+      readIntervalsBody<IntervalsActivityMap>(
+        {
+          latlngs: [
+            [LAT, 21.0],
+            [LAT + 0.001, 21.002],
+          ],
+        },
+        { bounds: [[LAT, null]] },
+      ),
     );
 
     expect(route?.bounds).toEqual([

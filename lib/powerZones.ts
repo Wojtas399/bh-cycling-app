@@ -5,7 +5,7 @@ const ZONES = [1, 2, 3, 4, 5, 6, 7] as const;
 export type Zone = (typeof ZONES)[number];
 
 export function isZone(zone: number | null | undefined): zone is Zone {
-  return zone != null && Number.isInteger(zone) && zone >= 1 && zone <= 7;
+  return ZONES.some(candidate => candidate === zone);
 }
 
 export interface ZoneBand {
