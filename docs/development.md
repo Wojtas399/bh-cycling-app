@@ -55,23 +55,25 @@ Expo Go does **not** include this app’s native Firebase stack. Use the dev cli
 
 ## Other scripts
 
-| Script                                              | Purpose                                                                     |
-| --------------------------------------------------- | --------------------------------------------------------------------------- |
-| `npm run lint`                                      | ESLint over the whole app; any warning fails it, locally and in CI          |
-| `npm run fingerprint -- [ref]`                      | Native fingerprint per platform; with a ref, what changed since it          |
-| `npm run eas:log -- ios\|android\|<build-id>`       | Latest (or given) EAS build: phases, then the failing phase's log           |
-| `npm run ios:prebuild` / `npm run android:prebuild` | Regenerate native projects (`expo prebuild --clean`)                        |
-| `npm run e2e:ios` / `npm run e2e:android`           | Run the e2e suite on the dedicated simulator or emulator (`docs/e2e.md`)    |
-| `npm run reset-project`                             | Moves starter `app` code to `app-example` and gives a blank `app` directory |
+| Script                                              | Purpose                                                                       |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `npm run lint`                                      | ESLint over the app, then over `functions/`; any warning fails it, also in CI |
+| `npm run fingerprint -- [ref]`                      | Native fingerprint per platform; with a ref, what changed since it            |
+| `npm run eas:log -- ios\|android\|<build-id>`       | Latest (or given) EAS build: phases, then the failing phase's log             |
+| `npm run ios:prebuild` / `npm run android:prebuild` | Regenerate native projects (`expo prebuild --clean`)                          |
+| `npm run e2e:ios` / `npm run e2e:android`           | Run the e2e suite on the dedicated simulator or emulator (`docs/e2e.md`)      |
+| `npm run reset-project`                             | Moves starter `app` code to `app-example` and gives a blank `app` directory   |
 
 ## Cloud Functions (`functions/`)
 
-A separate TypeScript project deployed independently from the app. It has its own `package.json`, dependencies, and test suite.
+A separate TypeScript project deployed independently from the app. It has its own `package.json`, dependencies, ESLint config (`functions/eslint.config.js`) and test suite. Root `npm run lint` runs its lint too, and CI and the pre-commit hook type-check it.
 
 ```bash
 cd functions
 npm install
-npm run build   # compile TypeScript to lib/
+npm run lint    # ESLint, any warning fails it
+npx tsc --noEmit  # type-check src/ and test-utils/
+npm run build   # compile src/ to lib/, without tests (tsconfig.build.json)
 npm test        # run the Jest suite
 ```
 
@@ -102,7 +104,7 @@ The app side needs the matching public client ID to build the authorization requ
 
 Before cutting `rc/X.Y.Z`, build the e2e app and run the e2e suite on both platforms: `npm run e2e:build:ios`, `npm run e2e:ios`, `npm run e2e:build:android` and `npm run e2e:android`. Nothing runs it automatically. To run it on Expo Simulators instead of the local devices, use `npm run e2e:cloud:ios` and `npm run e2e:cloud:android`. See `docs/e2e.md`.
 
-CI and releases run on GitHub Actions. The repo is public, so standard runners cost nothing. Nothing runs on EAS Workflows. Pull requests run `.github/workflows/ci.yml`, one `Checks` job that lints, type-checks and tests after a single `npm ci`. A new push to a PR cancels its older CI and Fingerprint runs. `.github/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android, so CI on `main` runs inside the release. The ref decides what ships.
+CI and releases run on GitHub Actions. The repo is public, so standard runners cost nothing. Nothing runs on EAS Workflows. Pull requests run `.github/workflows/ci.yml`, one `Checks` job that runs `npm ci` for the app and for `functions/`, then lints, type-checks and tests both. A new push to a PR cancels its older CI and Fingerprint runs. `.github/workflows/release.yml` runs on pushes to `main`, `rc/*` and `hotfix/*` and on `v*` tags. It calls `ci.yml`, then runs `scripts/release.sh` for iOS and Android, so CI on `main` runs inside the release. The ref decides what ships.
 
 | Ref                                      | Result                                                                                                                                                                |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
