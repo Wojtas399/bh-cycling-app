@@ -1,4 +1,4 @@
-import type { ParseKeys } from 'i18next';
+import i18n, { type ParseKeys, exists } from 'i18next';
 import * as v from 'valibot';
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -7,6 +7,16 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 export function msg(key: ParseKeys): string {
   return key;
+}
+
+export function isTranslationKey(message: string): message is ParseKeys {
+  return (
+    exists(message) &&
+    i18n.languages.some(
+      language =>
+        typeof i18n.getResource(language, 'translation', message) === 'string',
+    )
+  );
 }
 
 export function requiredString(requiredKey: ParseKeys) {
@@ -20,32 +30,6 @@ export function newPasswordField(
     v.string(),
     v.nonEmpty(msg(requiredKey)),
     v.minLength(MIN_PASSWORD_LENGTH, msg('validation.passwordTooShort')),
-  );
-}
-
-type ForwardPath<
-  T extends Record<string, unknown>,
-  K extends keyof T & string,
-> = Parameters<typeof v.forward<T, v.CheckIssue<T>, [K]>>[1];
-
-function keyOfInputAsForwardPath<
-  T extends Record<string, unknown>,
-  K extends keyof T & string,
->(key: K): ForwardPath<T, K> {
-  return [key] as ForwardPath<T, K>;
-}
-
-export function passwordsMatch<
-  T extends Record<string, unknown>,
-  P extends keyof T & string = keyof T & string,
-  C extends keyof T & string = keyof T & string,
->(password: P, confirm: C) {
-  return v.forward<T, v.CheckIssue<T>, [C]>(
-    v.check(
-      input => (input[confirm] as unknown) === input[password],
-      msg('validation.passwordsMismatch'),
-    ),
-    keyOfInputAsForwardPath<T, C>(confirm),
   );
 }
 

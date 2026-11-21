@@ -21,8 +21,8 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockGetCalendarEvent = getCalendarEvent as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockGetCalendarEvent = jest.mocked(getCalendarEvent);
 
 const EVENT_ID = 4242;
 
@@ -32,6 +32,7 @@ function mockConnected() {
     athleteName: null,
     athleteId: 'athlete-1',
     accessToken: 'token-1',
+    scope: null,
     loading: false,
   });
 }

@@ -1,5 +1,5 @@
 import { useCallback, useId } from 'react';
-import { StyleSheet, type TextStyle, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import theme from '@/constants/theme';
 import { DarkGlassView, liquidGlassAvailable } from '@/lib/liquidGlass';
@@ -19,10 +19,6 @@ const pillSurface = liquidGlassAvailable
       borderWidth: 1,
       borderColor: colors.borderStrong,
     };
-
-function asTextStyleFontWeight(fontWeight: string): TextStyle['fontWeight'] {
-  return fontWeight as TextStyle['fontWeight'];
-}
 
 export const toasterConfig = {
   position: 'top-center',
@@ -44,7 +40,7 @@ export const toasterConfig = {
       fontFamily: label.fontFamily,
       fontSize: label.fontSize,
       lineHeight: label.lineHeight,
-      fontWeight: asTextStyleFontWeight(label.fontWeight),
+      fontWeight: label.fontWeight,
     },
   },
   icons: {
