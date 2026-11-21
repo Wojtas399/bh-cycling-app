@@ -113,18 +113,20 @@ describe('planSeed', () => {
   });
 
   describe('descriptions', () => {
-    // Intervals.icu workout syntax: section titles, and steps written as
-    // `- <minutes>m <%FTP or %FTP range>`, with blank lines between sections.
-    const STEP = /^- \d+m \d+(-\d+)?%$/;
+    const WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP = /^- \d+m \d+(-\d+)?%$/;
     const steps = (description: string) =>
-      description.split('\n').filter(line => STEP.test(line));
+      description
+        .split('\n')
+        .filter(line => WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP.test(line));
     const { sweetSpot, endurance } = planSeed(new Date(2026, 10, 8)).events;
 
     it.each(Object.entries({ sweetSpot, endurance }))(
       '%s is written in Intervals.icu workout syntax',
       (_, workout) => {
         for (const line of workout.description.split('\n')) {
-          if (line.startsWith('-')) expect(line).toMatch(STEP);
+          if (line.startsWith('-')) {
+            expect(line).toMatch(WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP);
+          }
         }
 
         expect(steps(workout.description).length).toBeGreaterThan(0);
@@ -166,7 +168,6 @@ describe('planSeed', () => {
   });
 });
 
-/** Each trackpoint's time and power, in file order. */
 function trackpoints(tcx: string): { time: string; watts: number }[] {
   return [...tcx.matchAll(/<Trackpoint>([\s\S]*?)<\/Trackpoint>/g)].map(
     ([, body]) => ({

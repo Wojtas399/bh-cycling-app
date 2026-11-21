@@ -18,3 +18,18 @@ How agents run and write the end-to-end suite. `docs/e2e.md` is the full guide: 
 - **An agent step never types a credential or personal value as plain text.** The replay cache in `.e2e/cache` is committed, and a recording keeps what the step typed. Credentials go through `credentials`, or the step uses a locator `fill`. `npm run e2e:check-cache` runs before the seed and fails when a cache file holds the test email, password or Intervals.icu key. It names only the files: delete them and record the step again.
 - **Leave the test athlete's data to the seed.** The seed owns only events and Activities whose `external_id` starts with `e2e-`. Don't create, edit or delete anything else on the test athlete or the test user.
 - **Write tests by `CODING_STANDARDS.md`:** locators first, a `testID` only when visible text is ambiguous or missing, `agent.act` only as a fallback, no `agent.assert`.
+
+## iOS accessibility facts
+
+These are facts about iOS's accessibility tree and system UI. Each one has a helper in `e2e/support/locators.ts`, `e2e/support/calendar.ts` or the fixture. Use the helper, so a test needs no comment to explain its locator.
+
+- **An accessible element hides what's inside it.** A button, such as a Note card, a Race tile, a week row or a Calendar day, is one node read by its composed label, and its visible text and any `testID` inside it, such as `calendar-today`, aren't in the tree. The Activity Profile card is one image, so its axis labels aren't nodes either. Reach these by label with `byComposedLabel`. A week row's label opens with its Workout Status, so build it with `weekRowLabel({ status, name })`.
+- **The engine reports iOS's header trait as "other", not "heading".** Find a heading, such as a week view day rail, by its label, not by role.
+- **A pushed screen keeps the screen below it in the tree.** Under Workout Details or Note Details, the Home tile or card is still there, and its label starts with the same name. Match a details title whole with `wholeText`.
+- **A readout's rows sit beside its node, not inside it.** Find the Scrub Readout's reading on the screen, not inside the readout's `testID`.
+- **iOS reports a full-screen "Toolbar" over the Calendar header.** A locator tap on "Następny", "Dziś" or the view toggle fails as covered, though nothing covers it. `tapThroughCalendarToolbar` taps the middle of the target's bounds instead.
+- **A row scrolled into view can stop under the tab bar.** `tapClearOfTabBar` swipes it clear, then taps it.
+- **The keyboard covers the "Zaloguj się" button.** A locator then finds only the screen title, and tapping it just closes the keyboard. `tapKeyboardDone` submits with the keyboard's Done key.
+- **iOS may offer to save the password in a system sheet over the app,** in Polish on the local simulator and in English on Expo Simulators. `dismissSavePasswordSheet` taps "Nie teraz" or "Not Now" when it shows.
+- **A React Native `Alert` is the platform's own dialog,** and its buttons are in the tree on both platforms. `device.alert('accept')` matches only English labels like "OK" on iOS, and Android may report a button in capitals. `tapAlertButton` taps the button by its text, in any case.
+- **On iOS the Firebase session lives in the keychain,** which `app.clearState()` leaves behind. The `signedOut` fixture clears the keychain too.

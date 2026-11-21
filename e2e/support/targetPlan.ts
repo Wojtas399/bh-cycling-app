@@ -1,9 +1,5 @@
 type Platform = 'ios' | 'android';
 
-/**
- * One platform's e2e target: a local simulator or emulator by name, or an
- * Expo Simulators device that installs the EAS build `buildId`.
- */
 export type TargetPlan =
   | { platform: Platform; device: string }
   | {
@@ -12,10 +8,6 @@ export type TargetPlan =
       videoTouches: false;
     };
 
-/**
- * Where each platform runs: the env var with its EAS build id, the fixed
- * Expo Simulators device, and the env var that overrides the local device.
- */
 const PLATFORMS = [
   {
     platform: 'ios',
@@ -33,11 +25,6 @@ const PLATFORMS = [
   },
 ] as const;
 
-/**
- * Picks where each platform's e2e target runs, from the env. A platform with
- * an EAS build id runs on Expo Simulators; one without runs on today's local
- * simulator or emulator, so `npm run e2e:ios|android` is unchanged.
- */
 export function planTargets(
   env: Readonly<Record<string, string | undefined>>,
 ): TargetPlan[] {
@@ -48,7 +35,6 @@ export function planTargets(
       ? {
           platform: platformConfig.platform,
           expoSimulators: { buildId, device: platformConfig.cloudDevice },
-          // Drawing touches onto a hosted recording can outlast the cleanup timeout.
           videoTouches: false,
         }
       : {

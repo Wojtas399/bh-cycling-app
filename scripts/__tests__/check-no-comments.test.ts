@@ -136,6 +136,16 @@ describe('findBannedComments', () => {
     ).toEqual(['// opening banner']);
   });
 
+  it('finds a JSDoc block after the last statement of a file', () => {
+    expect(bannedIn('export const a = 1;\n/** dangling */\n', 'a.ts')).toEqual([
+      '/** dangling */',
+    ]);
+  });
+
+  it('finds a JSDoc block in a file with no statements', () => {
+    expect(bannedIn('/** alone */\n', 'a.ts')).toEqual(['/** alone */']);
+  });
+
   it('finds comments in type positions', () => {
     expect(
       bannedIn(
@@ -154,35 +164,43 @@ describe('filesToCheck', () => {
     'library/x.ts',
     'hooks/useToday.ts',
     'components/Card.tsx',
+    'e2e/tests/sign-in.e2e.ts',
     'functions/src/index.ts',
+    'functions/src/account/__tests__/deleteAccount.test.ts',
     'functions/jest.config.js',
     'functions/package.json',
     'app.config.ts',
+    'eslint.config.js',
     'scripts/generate-icons.js',
+    'scripts/check-no-effects.sh',
     'dist/bundle.js',
+    'expo-env.d.ts',
     'README.md',
   ];
 
-  it('checks nothing while the enforced list is empty', () => {
-    expect(filesToCheck(tracked, [])).toEqual([]);
-  });
-
-  it('checks every TS and JS file under an enforced directory, tests included', () => {
-    expect(filesToCheck(tracked, ['lib/'])).toEqual([
+  it('checks every tracked TS and JS file in root and functions/src, tests included', () => {
+    expect(filesToCheck(tracked)).toEqual([
       'lib/notes.ts',
       'lib/__tests__/notes.test.ts',
-    ]);
-  });
-
-  it('checks an enforced file on its own', () => {
-    expect(filesToCheck(tracked, ['hooks/useToday.ts'])).toEqual([
+      'library/x.ts',
       'hooks/useToday.ts',
+      'components/Card.tsx',
+      'e2e/tests/sign-in.e2e.ts',
+      'functions/src/index.ts',
+      'functions/src/account/__tests__/deleteAccount.test.ts',
+      'scripts/generate-icons.js',
     ]);
   });
 
   it('never checks config files or excluded generated paths', () => {
     expect(
-      filesToCheck(tracked, ['functions/', 'app.config.ts', 'dist/']),
-    ).toEqual(['functions/src/index.ts']);
+      filesToCheck([
+        'functions/jest.config.js',
+        'app.config.ts',
+        'eslint.config.js',
+        'dist/bundle.js',
+        'expo-env.d.ts',
+      ]),
+    ).toEqual([]);
   });
 });

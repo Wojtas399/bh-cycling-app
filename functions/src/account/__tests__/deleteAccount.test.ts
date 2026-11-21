@@ -67,7 +67,7 @@ describe('deleteAccountHandler', () => {
     expect(callOrder).toEqual([]);
   });
 
-  it('rejects a stale auth_time with failed-precondition and deletes nothing', async () => {
+  it('rejects a stale auth_time with failed-precondition and deletes nothing, since the Admin SDK skips the recent-login check', async () => {
     await expect(
       deleteAccountHandler(buildRequest({ authTimeSecondsAgo: 5 * 60 + 1 })),
     ).rejects.toMatchObject({ code: 'failed-precondition' });
@@ -89,7 +89,7 @@ describe('deleteAccountHandler', () => {
     ).resolves.toEqual({ success: true });
   });
 
-  it('revokes the integration, deletes users/{uid} recursively, then the Auth user', async () => {
+  it('revokes the integration, deletes users/{uid} recursively, then the Auth user last', async () => {
     const result = await deleteAccountHandler(buildRequest());
 
     expect(revokeIntervalsToken).toHaveBeenCalledWith('user-1');
@@ -108,7 +108,7 @@ describe('deleteAccountHandler', () => {
     });
   });
 
-  it('keeps the Auth user when the Firestore deletion fails so the user can retry', async () => {
+  it('keeps the Auth user when the Firestore deletion fails, so a retry still passes the sign-in check', async () => {
     recursiveDeleteMock.mockRejectedValueOnce(new Error('firestore down'));
 
     await expect(deleteAccountHandler(buildRequest())).rejects.toThrow(

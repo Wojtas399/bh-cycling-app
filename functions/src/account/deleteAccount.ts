@@ -13,9 +13,23 @@ export async function deleteAccountHandler(
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
 
-  // The Admin SDK skips Firebase's own recent-login check, so this is the
-  // only thing enforcing it.
-  const authTime = request.auth.token.auth_time;
+  requireRecentSignIn(request.auth);
+
+  const { uid } = request.auth;
+
+  await revokeIntervalsToken(uid);
+
+  const db = getFirestore();
+
+  await db.recursiveDelete(db.doc(`users/${uid}`));
+
+  await deleteAuthUserUnlessGone(uid);
+
+  return { success: true };
+}
+
+function requireRecentSignIn(auth: NonNullable<CallableRequest['auth']>) {
+  const authTime = auth.token.auth_time;
 
   if (
     typeof authTime !== 'number' ||
@@ -26,17 +40,9 @@ export async function deleteAccountHandler(
       'Recent sign-in required. Re-authenticate and try again.',
     );
   }
+}
 
-  const { uid } = request.auth;
-
-  await revokeIntervalsToken(uid);
-
-  const db = getFirestore();
-
-  await db.recursiveDelete(db.doc(`users/${uid}`));
-
-  // Deleted last so that a retry after a partial failure still passes the
-  // authentication check above.
+async function deleteAuthUserUnlessGone(uid: string) {
   try {
     await getAuth().deleteUser(uid);
   } catch (error) {
@@ -44,6 +50,4 @@ export async function deleteAccountHandler(
       throw error;
     }
   }
-
-  return { success: true };
 }

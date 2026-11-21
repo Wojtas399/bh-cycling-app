@@ -4,17 +4,11 @@ import type { Locator, Screen } from 'e2e';
 
 const { monthNames } = pl.calendar;
 
-/** The monthly Calendar's title for `date`'s month, matched whole. */
 export function monthTitle(date: Date): RegExp {
   return new RegExp(`^${formatMonthTitle(date, monthNames)}$`);
 }
 
-/**
- * Taps the middle of `target` as a point. On iOS the tree reports a
- * full-screen "Toolbar" over the Calendar header, so a locator tap there is
- * refused as covered, though nothing covers it on screen.
- */
-export async function tapCenter(
+export async function tapThroughCalendarToolbar(
   screen: Screen,
   target: Locator,
 ): Promise<void> {
