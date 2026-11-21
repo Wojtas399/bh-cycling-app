@@ -38,8 +38,8 @@ To land or fix a stack of PRs, see `docs/agents/stacked-prs.md`.
 
 Pick the base branch by the `ships:` label. A PR that ships (`ships: ota`, `ships: store`, `ships: backend`) targets the open release branch (`git branch -r --list 'origin/rc/*'`), or `main` when none is open. A `ships: none` PR targets `main`. Diff and review against `origin/<base>`, since local branches lag behind.
 
-## The `main` branch
+## The `main` and `rc/*` branches
 
-Remote `main` changes only through merged PRs. The husky `pre-push` hook rejects any push that updates `main` on the remote: fast-forwards, force pushes and deletes. Never bypass it: don't set `ALLOW_MAIN_PUSH=1` and don't pass `--no-verify`. Those overrides are for the repo owner only.
+Remote `main` and `rc/*` change only through merged PRs. GitHub rulesets enforce this on the server: they reject direct pushes, force pushes and deletes, and require the `Checks` and `Native fingerprint` checks to pass before a merge. They also block ref updates through `gh api` and commits made in the web editor. Admins can bypass them only when merging a PR, so the user's token can't push to these branches either.
 
-The hook can't see commits made in the GitHub web editor, ref updates through `gh api`, or pushes from a clone without husky installed. Server-side protection would close these gaps, but it needs GitHub Pro on this private repo.
+The husky `pre-push` hook is the early warning: it rejects a push to `main` locally, before the server does. Never bypass it: don't set `ALLOW_MAIN_PUSH=1` and don't pass `--no-verify`. Don't change or disable the rulesets either. That's for the repo owner only.
