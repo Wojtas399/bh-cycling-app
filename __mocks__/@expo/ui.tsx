@@ -1,4 +1,3 @@
-// Jest can't drive the native sheet; render its content only while presented.
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
