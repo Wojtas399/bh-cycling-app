@@ -18,12 +18,25 @@ const SCRIPT_KINDS = {
 
 const ESLINT_RULE = String.raw`[@a-z][\w@/-]*`;
 
-const ALLOWED_DIRECTIVES = [
-  new RegExp(
-    String.raw`^\/\/ eslint-disable(?:-next)?-line ${ESLINT_RULE}(?:, ${ESLINT_RULE})* -- \S`,
-  ),
-  /^\/\/ @ts-expect-error: \S/,
-];
+const ALLOWED_ESLINT_DISABLE = new RegExp(
+  String.raw`^\/\/ eslint-disable(?:-next)?-line (${ESLINT_RULE}(?:, ${ESLINT_RULE})*) -- \S`,
+);
+
+const ALLOWED_TS_EXPECT_ERROR = /^\/\/ @ts-expect-error: \S/;
+
+const NEVER_DISABLED_RULES = ['@typescript-eslint/consistent-type-assertions'];
+
+function isAllowedDirective(text) {
+  const eslintDisable = text.match(ALLOWED_ESLINT_DISABLE);
+
+  if (eslintDisable) {
+    return !eslintDisable[1]
+      .split(', ')
+      .some(rule => NEVER_DISABLED_RULES.includes(rule));
+  }
+
+  return ALLOWED_TS_EXPECT_ERROR.test(text);
+}
 
 function isJsDocNode(node) {
   return (
@@ -81,9 +94,7 @@ function findBannedComments(fileName, text) {
       line: text.slice(0, pos).split('\n').length,
       text: text.slice(pos, end),
     }))
-    .filter(
-      comment => !ALLOWED_DIRECTIVES.some(shape => shape.test(comment.text)),
-    );
+    .filter(comment => !isAllowedDirective(comment.text));
 }
 
 function isUnder(file, listedPath) {
@@ -128,7 +139,7 @@ function main() {
   }
 
   console.error(
-    `\n${findings.length} comment(s) found. Code has no comments (docs/adr/0013-no-comments.md). Only "// eslint-disable-next-line <rule> -- <reason>", "// eslint-disable-line <rule> -- <reason>" and "// @ts-expect-error: <reason>" are allowed. See "Write no comments" in CODING_STANDARDS.md for where the why goes instead.`,
+    `\n${findings.length} comment(s) found. Code has no comments (docs/adr/0013-no-comments.md). Only "// eslint-disable-next-line <rule> -- <reason>", "// eslint-disable-line <rule> -- <reason>" and "// @ts-expect-error: <reason>" are allowed, and no directive may disable ${NEVER_DISABLED_RULES.join(', ')} (docs/adr/0014-no-type-assertions.md). See "Write no comments" in CODING_STANDARDS.md for where the why goes instead.`,
   );
   process.exitCode = 1;
 }
