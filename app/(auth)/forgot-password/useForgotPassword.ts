@@ -6,7 +6,7 @@ import {
   type ForgotPasswordInput,
   forgotPasswordSchema,
 } from './forgotPasswordSchema';
-import type { FormBinding } from '@/hooks/formBinding';
+import { type FormBinding, formErrorsOnly } from '@/hooks/formBinding';
 import { useAppForm } from '@/hooks/useAppForm';
 import { useCooldown } from '@/hooks/useCooldown';
 import { auth } from '@/lib/firebase';
@@ -24,14 +24,11 @@ export function useForgotPassword() {
     defaultValues: { email: '' },
   });
 
-  // The parsed email of the last successful send. Resend reuses it, not the
-  // field, and its presence means the success state is showing.
   const [sentEmail, setSentEmail] = useState<string | null>(null);
   const { remaining: cooldown, start: startCooldown } =
     useCooldown(COOLDOWN_SECONDS);
 
-  // Send and resend hit the same endpoint, so they share one mutation.
-  const sendReset = useMutation({
+  const sendOrResendResetEmail = useMutation({
     mutationFn: async (address: string) => {
       await auth().sendPasswordResetEmail(address);
     },
@@ -41,31 +38,26 @@ export function useForgotPassword() {
     },
   });
 
-  const busy = sendReset.isPending;
+  const busy = sendOrResendResetEmail.isPending;
 
   const form: FormBinding<ForgotPasswordInput> = {
     control,
     setFocus,
     busy,
-    onFieldChange: () => sendReset.reset(),
-    // Every forgot-password server error is a form error.
-    serverError: () => '',
+    onFieldChange: () => sendOrResendResetEmail.reset(),
+    serverError: formErrorsOnly,
   };
 
   async function submit() {
     if (busy) return;
 
-    await handleSubmit(async values => {
-      // A failure surfaces through `sendReset.error`.
-      await sendReset.mutateAsync(values.email).catch(() => {});
-    })();
+    await handleSubmit(values => sendOrResendResetEmail.mutate(values.email))();
   }
 
-  async function resend() {
+  function resend() {
     if (!sentEmail || cooldown > 0 || busy) return;
 
-    // A failure surfaces through `sendReset.error`.
-    await sendReset.mutateAsync(sentEmail).catch(() => {});
+    sendOrResendResetEmail.mutate(sentEmail);
   }
 
   function backToSignIn() {
@@ -78,8 +70,11 @@ export function useForgotPassword() {
 
   return {
     form,
-    formError: sendReset.error
-      ? t(mapForgotPasswordError(getErrorCode(sendReset.error)).key)
+    formError: sendOrResendResetEmail.error
+      ? t(
+          mapForgotPasswordError(getErrorCode(sendOrResendResetEmail.error))
+            .key,
+        )
       : '',
     busy,
     submit,

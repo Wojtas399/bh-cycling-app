@@ -12,6 +12,7 @@ import {
   changePasswordSchema,
 } from './changePasswordSchema';
 import type { FormBinding } from '@/hooks/formBinding';
+import { resetOtherSubmissions } from '@/hooks/formSubmissions';
 import { useAppForm } from '@/hooks/useAppForm';
 import { auth } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
@@ -35,7 +36,6 @@ export function useChangePassword() {
     mutationFn: async (variables: ChangePasswordValues) => {
       const user = auth().currentUser;
 
-      // Maps to the generic form error.
       if (!user?.email) throw new Error('no_email');
 
       const credential = auth.EmailAuthProvider.credential(
@@ -64,6 +64,7 @@ export function useChangePassword() {
     },
   });
 
+  const submissions = [changePassword, sendResetEmail];
   const busy = changePassword.isPending || sendResetEmail.isPending;
 
   function mapError(
@@ -73,7 +74,6 @@ export function useChangePassword() {
     return mapChangePasswordError(mutation, getErrorCode(e));
   }
 
-  // Starting one mutation resets the other, so at most one has an error.
   const mapped: ChangePasswordErrorMapping | null = changePassword.error
     ? mapError('changePassword', changePassword.error)
     : sendResetEmail.error
@@ -93,8 +93,6 @@ export function useChangePassword() {
       sendResetEmail.reset();
     },
     serverError: name => (name === 'confirmPassword' ? '' : mappedError(name)),
-    // Editing the new password re-checks "passwords mismatch"; editing the
-    // current password re-checks "same as current".
     deps: {
       currentPassword: ['newPassword'],
       newPassword: ['confirmPassword'],
@@ -104,11 +102,9 @@ export function useChangePassword() {
   async function submit() {
     if (busy) return;
 
-    await handleSubmit(async values => {
-      sendResetEmail.reset();
-
-      // A failure surfaces through `changePassword.error`.
-      await changePassword.mutateAsync(values).catch(() => {});
+    await handleSubmit(values => {
+      resetOtherSubmissions(changePassword, submissions);
+      changePassword.mutate(values);
     })();
   }
 
@@ -125,7 +121,7 @@ export function useChangePassword() {
         onPress: () => {
           if (busy) return;
 
-          changePassword.reset();
+          resetOtherSubmissions(sendResetEmail, submissions);
           sendResetEmail.mutate(email);
         },
       },

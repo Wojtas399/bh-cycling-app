@@ -14,8 +14,6 @@ export const signUpSchema = v.pipe(
       'signUp.validation.confirmPasswordRequired',
     ),
   }),
-  // The mismatch comes after each field's own issue, and the resolver keeps
-  // the first issue per field, so each field still shows at most one error.
   passwordsMatch('password', 'confirmPassword'),
 );
 

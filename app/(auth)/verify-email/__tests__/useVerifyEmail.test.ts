@@ -1,8 +1,10 @@
 import { useVerifyEmail } from '../useVerifyEmail';
 import { sendVerificationEmail } from '@/lib/verificationEmail';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { act } from '@testing-library/react-native';
 
+const mockSignOut = jest.fn();
 const mockUser = {
   uid: 'rider',
   email: 'rider@example.com',
@@ -16,17 +18,16 @@ jest.mock('react-i18next', () => ({
 }));
 
 jest.mock('@/lib/firebase', () => ({
-  auth: () => ({ currentUser: mockUser, signOut: jest.fn() }),
+  auth: () => ({ currentUser: mockUser, signOut: mockSignOut }),
 }));
 
-/**
- * Opens verify-email when no email went out in the last minute, as on a cold
- * start, so a resend goes through. A send an earlier test made is a minute
- * old by then.
- */
-async function openWithNoRecentSend() {
+function ageEarlierTestsSendsPastTheCooldown() {
   jest.useFakeTimers();
   jest.advanceTimersByTime(60_000);
+}
+
+async function openWithNoRecentSend() {
+  ageEarlierTestsSendsPastTheCooldown();
   const hook = await renderHookWithClient(() => useVerifyEmail());
 
   jest.useRealTimers();
@@ -36,30 +37,24 @@ async function openWithNoRecentSend() {
 
 type Hook = Awaited<ReturnType<typeof openWithNoRecentSend>>;
 
-// What sign-up and sign-in do after the account signs in.
-async function handlerSends() {
+async function signUpOrSignInSendsTheEmail() {
   await act(async () => {
     await sendVerificationEmail(mockUser);
   });
-}
-
-// React Query hands the settled state to the hook on a later tick.
-async function settle() {
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
 }
 
 async function checkVerified(hook: Hook) {
   await act(async () => {
     await hook.result.current.handleVerified();
   });
-  await settle();
+  await settleQueries();
 }
 
 async function resend(hook: Hook) {
   await act(async () => {
     await hook.result.current.handleResend();
   });
-  await settle();
+  await settleQueries();
 }
 
 describe('useVerifyEmail', () => {
@@ -68,6 +63,7 @@ describe('useVerifyEmail', () => {
     mockUser.emailVerified = false;
     mockUser.reload.mockResolvedValue(undefined);
     mockUser.sendEmailVerification.mockResolvedValue(undefined);
+    mockSignOut.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -76,7 +72,7 @@ describe('useVerifyEmail', () => {
 
   it('sends no email on mount', async () => {
     await renderHookWithClient(() => useVerifyEmail());
-    await settle();
+    await settleQueries();
 
     expect(mockUser.sendEmailVerification).not.toHaveBeenCalled();
   });
@@ -92,24 +88,23 @@ describe('useVerifyEmail', () => {
     expect(hook.result.current.cooldown).toBe(60);
   });
 
-  it('opens with Resend on cooldown after sign-up or sign-in sent the email', async () => {
-    await handlerSends();
+  it('opens with Resend on cooldown after sign-up or sign-in sent the email, so Resend sends nothing more', async () => {
+    await signUpOrSignInSendsTheEmail();
     const hook = await renderHookWithClient(() => useVerifyEmail());
 
     expect(hook.result.current.cooldown).toBe(60);
 
     await resend(hook);
 
-    // One email: the handler's. Resend did nothing.
     expect(mockUser.sendEmailVerification).toHaveBeenCalledTimes(1);
   });
 
-  it('starts the cooldown when the email goes out after the screen opened', async () => {
+  it('starts the cooldown when the email goes out after the auth gate opened the screen', async () => {
     const hook = await openWithNoRecentSend();
 
     expect(hook.result.current.cooldown).toBe(0);
 
-    await handlerSends();
+    await signUpOrSignInSendsTheEmail();
 
     expect(hook.result.current.cooldown).toBe(60);
   });
@@ -148,5 +143,22 @@ describe('useVerifyEmail', () => {
     await checkVerified(hook);
 
     expect(hook.result.current.error).toBe('');
+  });
+
+  it('signs out', async () => {
+    const hook = await openWithNoRecentSend();
+
+    await act(async () => {
+      await hook.result.current.handleSignOut();
+    });
+
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves when signing out fails, since the user has nothing to act on', async () => {
+    mockSignOut.mockRejectedValue(new Error('sign-out failed'));
+    const hook = await openWithNoRecentSend();
+
+    await expect(hook.result.current.handleSignOut()).resolves.toBeUndefined();
   });
 });

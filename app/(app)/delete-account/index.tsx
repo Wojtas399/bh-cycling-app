@@ -18,6 +18,23 @@ import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 
+function DangerIconWithPlainLabel({
+  icon,
+  label,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+}) {
+  const theme = useAppTheme();
+
+  return (
+    <>
+      <Ionicons name={icon} size={20} color={theme.colors.danger} />
+      <Text variant="body-l-semibold">{label}</Text>
+    </>
+  );
+}
+
 export default function DeleteAccountScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'deleteAccount' });
   const theme = useAppTheme();
@@ -86,15 +103,10 @@ export default function DeleteAccountScreen() {
               {busy ? (
                 <ActivityIndicator color={theme.colors.textPrimary} />
               ) : (
-                <>
-                  {/* Red on the icon only: a red label fails AA on Frost. */}
-                  <Ionicons
-                    name="trash-outline"
-                    size={20}
-                    color={theme.colors.danger}
-                  />
-                  <Text variant="body-l-semibold">{t('deleteButton')}</Text>
-                </>
+                <DangerIconWithPlainLabel
+                  icon="trash-outline"
+                  label={t('deleteButton')}
+                />
               )}
             </Button>
             {formError ? (

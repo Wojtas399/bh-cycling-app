@@ -13,6 +13,7 @@ import type { FormBinding } from '@/hooks/formBinding';
 import { useAppForm } from '@/hooks/useAppForm';
 import { GoogleSignin, auth, functions } from '@/lib/firebase';
 import { getErrorCode } from '@/lib/getErrorCode';
+import { ignoreFailure } from '@/lib/ignoreFailure';
 import { getSignInMethods } from '@/lib/signInMethods';
 import { signOutAndClear } from '@/lib/signOutAndClear';
 import { toast } from '@/lib/toast';
@@ -22,7 +23,20 @@ import {
 } from '@react-native-google-signin/google-signin';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigation } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import {
+  type NavigationAction,
+  usePreventRemove,
+} from 'expo-router/react-navigation';
+
+const GOING_BACK_ACTIONS = ['GO_BACK', 'POP'];
+
+function refreshIdTokenToCarryNewAuthTime() {
+  return auth().currentUser?.getIdToken(true);
+}
+
+function signOutOfGoogleSoThePickerShowsAgain() {
+  return ignoreFailure(GoogleSignin.signOut());
+}
 
 export function useDeleteAccount() {
   const { t } = useTranslation();
@@ -39,8 +53,9 @@ export function useDeleteAccount() {
     },
   );
 
-  /** Resolves to false when the user cancelled Google sign-in. */
-  async function reauthenticate(values: DeleteAccountValues): Promise<boolean> {
+  async function reauthenticate(
+    values: DeleteAccountValues,
+  ): Promise<'reauthenticated' | 'cancelled'> {
     const user = auth().currentUser;
 
     if (!user) throw new Error('no_user');
@@ -53,14 +68,14 @@ export function useDeleteAccount() {
 
       await user.reauthenticateWithCredential(credential);
 
-      return true;
+      return 'reauthenticated';
     }
 
     await GoogleSignin.hasPlayServices();
 
     const result = await GoogleSignin.signIn();
 
-    if (result.type === 'cancelled') return false;
+    if (result.type === 'cancelled') return 'cancelled';
 
     const idToken = result.data?.idToken;
 
@@ -70,61 +85,52 @@ export function useDeleteAccount() {
       auth.GoogleAuthProvider.credential(idToken),
     );
 
-    return true;
+    return 'reauthenticated';
+  }
+
+  async function reauthenticateThenDelete(
+    values: DeleteAccountValues,
+  ): Promise<'deleted' | 'cancelled'> {
+    try {
+      if ((await reauthenticate(values)) === 'cancelled') return 'cancelled';
+    } catch (e) {
+      if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
+        return 'cancelled';
+      }
+
+      throw e;
+    }
+
+    await refreshIdTokenToCarryNewAuthTime();
+    await functions().httpsCallable('deleteAccount')();
+
+    return 'deleted';
   }
 
   const deleteAccount = useMutation({
-    mutationFn: async (
-      values: DeleteAccountValues,
-    ): Promise<'deleted' | 'cancelled'> => {
-      try {
-        if (!(await reauthenticate(values))) return 'cancelled';
-      } catch (e) {
-        if (isErrorWithCode(e) && e.code === statusCodes.SIGN_IN_CANCELLED) {
-          return 'cancelled';
-        }
-
-        throw e;
-      }
-
-      // Forces a token carrying the new `auth_time`, which the function checks.
-      await auth().currentUser?.getIdToken(true);
-
-      await functions().httpsCallable('deleteAccount')();
-
-      return 'deleted';
-    },
+    mutationFn: reauthenticateThenDelete,
     onSuccess: async outcome => {
       if (outcome === 'cancelled') return;
 
-      // The root toast host outlives the sign-out redirect to sign-in.
       toast.success(t('deleteAccount.deleted'));
       await signOutAndClear();
     },
     onError: async e => {
-      if (getErrorCode(e) !== 'auth/user-mismatch') return;
-
-      // Sign out so the account picker shows again on the next attempt.
-      await GoogleSignin.signOut().catch(() => {});
+      if (getErrorCode(e) === 'auth/user-mismatch') {
+        await signOutOfGoogleSoThePickerShowsAgain();
+      }
     },
   });
 
   const busy = deleteAccount.isPending;
 
-  // Going back is blocked while the request runs: the hardware back button
-  // and the header button here, the swipe gesture in the screen's options.
-  // Any other dispatched removal goes through: dispatching it again doesn't
-  // loop, since React Navigation skips screens that already saw the action.
-  // The auth gate dispatches nothing: it drops this screen by changing the
-  // route list, which this hook never sees, so the deleted user still lands
-  // on sign-in.
-  usePreventRemove(busy, ({ data }) => {
-    const { type } = data.action;
+  function letThroughAnyRemovalButGoingBack(action: NavigationAction) {
+    if (!GOING_BACK_ACTIONS.includes(action.type)) navigation.dispatch(action);
+  }
 
-    if (type === 'GO_BACK' || type === 'POP') return;
-
-    navigation.dispatch(data.action);
-  });
+  usePreventRemove(busy, ({ data }) =>
+    letThroughAnyRemovalButGoingBack(data.action),
+  );
 
   const mapped = deleteAccount.error
     ? mapDeleteAccountError(getErrorCode(deleteAccount.error))
@@ -145,10 +151,7 @@ export function useDeleteAccount() {
   async function submit() {
     if (busy) return;
 
-    await handleSubmit(async values => {
-      // A failure surfaces through `deleteAccount.error`.
-      await deleteAccount.mutateAsync(values).catch(() => {});
-    })();
+    await handleSubmit(values => deleteAccount.mutate(values))();
   }
 
   return {

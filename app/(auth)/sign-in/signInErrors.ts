@@ -1,11 +1,9 @@
 import type { ParseKeys } from 'i18next';
 
-/** An i18n key for a sign-in failure. */
 type SignInErrorKey = Extract<ParseKeys, `signIn.errors.${string}`>;
 
 export type SignInMutation = 'emailSignIn' | 'googleSignIn';
 
-/** Sign-in errors are all form errors; none shows under a field. */
 export interface SignInErrorMapping {
   key: SignInErrorKey;
 }
