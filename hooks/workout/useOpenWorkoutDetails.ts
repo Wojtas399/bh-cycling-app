@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 
 import { useRouter } from 'expo-router';
 
-/** Pushes the Workout Details screen for an intervals.icu event id. */
 export function useOpenWorkoutDetails(): (eventId: number) => void {
   const router = useRouter();
 

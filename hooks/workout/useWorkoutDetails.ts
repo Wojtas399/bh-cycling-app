@@ -1,44 +1,21 @@
-import { useCallback, useMemo } from 'react';
-
 import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
+import { useRefetchQuery } from '@/hooks/useRefetchQuery';
+import { useStableSelect } from '@/hooks/useStableSelect';
 import { useToday } from '@/hooks/useToday';
 import {
-  intervalsKeys,
   selectWorkoutDetailsAsOf,
   workoutDetailsQueryOptions,
 } from '@/lib/intervalsQueries';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
-/**
- * One Workout's details by its intervals.icu event id. The Workout Status
- * follows `today`, so a planned Workout turns missed at midnight without a
- * fetch. The screen gates on `availability` and branches on the raw `query`;
- * `refetch` refetches this query alone, for pull-to-refresh.
- */
 export function useWorkoutDetails(eventId: number) {
   const { availability, credentials } = useIntervalsAvailability();
-  const queryClient = useQueryClient();
   const today = useToday();
+  const select = useStableSelect(selectWorkoutDetailsAsOf, today);
+  const options = workoutDetailsQueryOptions(credentials, eventId, select);
 
-  // Stable per day, so the view model is only rebuilt when the day changes.
-  const select = useMemo(() => selectWorkoutDetailsAsOf(today), [today]);
-
-  const query = useQuery(
-    workoutDetailsQueryOptions(credentials, eventId, select),
-  );
-
-  const athleteId = credentials?.athleteId;
-
-  // Goes through the client rather than `query.refetch`: reading a property
-  // off the tracked query result here would narrow which changes re-render.
-  const refetch = useCallback(
-    () =>
-      queryClient.refetchQueries({
-        queryKey: intervalsKeys.workout(athleteId, eventId),
-        exact: true,
-      }),
-    [athleteId, eventId, queryClient],
-  );
+  const query = useQuery(options);
+  const refetch = useRefetchQuery(options.queryKey);
 
   return { availability, query, refetch };
 }

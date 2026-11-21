@@ -10,19 +10,11 @@ import {
 } from '@/lib/races';
 import { useQuery } from '@tanstack/react-query';
 
-/** What the next-race card shows. */
 export interface NextRace {
   race: Race;
   countdown: RaceCountdown;
 }
 
-/**
- * The Race the next-race card counts down to (see `nextRace`), and how far
- * off it is. `today` follows the clock, so the card rolls over at midnight.
- * `next` is undefined while loading, on error and with no Race in the window:
- * the card has no placeholder and no error state. `refetch` refetches this
- * query alone, for pull-to-refresh.
- */
 export function useNextRace() {
   const { credentials } = useIntervalsAvailability();
   const today = useToday();

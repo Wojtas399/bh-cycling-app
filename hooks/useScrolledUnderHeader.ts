@@ -5,12 +5,6 @@ import type {
   NativeSyntheticEvent,
 } from 'react-native';
 
-/**
- * Whether a block at the top of a scroll view has scrolled fully under its
- * glass header, so the header can take over what the block showed. Pass the
- * header's height from `useGlassHeader`. `onLayout` goes on the block, a
- * direct child of the scroll content, and `onScroll` on the scroll view.
- */
 export function useScrolledUnderHeader(headerHeight: number) {
   const [blockBottom, setBlockBottom] = useState<number | null>(null);
   const [scrolledUnder, setScrolledUnder] = useState(false);

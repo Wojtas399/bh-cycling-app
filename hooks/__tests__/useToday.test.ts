@@ -48,14 +48,13 @@ describe('useToday', () => {
     expect(result.current).toBe('2026-10-07');
   });
 
-  it('updates when the app returns to the foreground after midnight', async () => {
+  it('updates when the app returns to the foreground after being suspended through midnight, with no timer fired', async () => {
     const appStateChanged = captureAppStateListener();
 
     jest.setSystemTime(new Date(2026, 9, 5, 22));
 
     const { result } = await renderHook(() => useToday());
 
-    // Suspended through midnight: the clock moves on, but no timer fires.
     jest.setSystemTime(new Date(2026, 9, 6, 8));
     await act(async () => {
       appStateChanged('active');
