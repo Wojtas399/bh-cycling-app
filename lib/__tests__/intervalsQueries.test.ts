@@ -47,10 +47,10 @@ jest.mock('../intervalsApi', () => ({
 const TODAY = '2026-02-11';
 const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 
-const mockGetActivities = getActivities as jest.Mock;
-const mockGetCalendarEvent = getCalendarEvent as jest.Mock;
-const mockGetCalendarEvents = getCalendarEvents as jest.Mock;
-const mockGetAthleteSettings = getAthleteSettings as jest.Mock;
+const mockGetActivities = jest.mocked(getActivities);
+const mockGetCalendarEvent = jest.mocked(getCalendarEvent);
+const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
+const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 const ATHLETE_ZONES = [60, 80, 95, 110, 130, 160, 220];
 const ATHLETE_Z2 = { zone: 2, minPct: 60, maxPct: 80 };
@@ -567,8 +567,8 @@ describe('upcomingQueryOptions', () => {
 
   it('fails when the Notes call fails', async () => {
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) => {
-        if (params.category === 'NOTE') throw new Error('notes down');
+      async (_token, _athlete, params) => {
+        if (params?.category === 'NOTE') throw new Error('notes down');
 
         return [];
       },
@@ -817,8 +817,8 @@ describe('monthQueryOptions', () => {
     });
 
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE'
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE'
           ? [
               noteEvent({
                 id: 7,
@@ -855,8 +855,8 @@ describe('monthQueryOptions', () => {
 
   it('passes the Notes through select beside the items by day', async () => {
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) =>
-        params.category === 'NOTE'
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE'
           ? [noteEvent({ id: 7, start_date_local: '2026-02-20T00:00:00' })]
           : [
               {
@@ -885,8 +885,8 @@ describe('monthQueryOptions', () => {
 
   it('fails when the Notes call fails', async () => {
     mockGetCalendarEvents.mockImplementation(
-      async (_token, _athlete, params: { category?: string }) => {
-        if (params.category === 'NOTE') throw new Error('notes down');
+      async (_token, _athlete, params) => {
+        if (params?.category === 'NOTE') throw new Error('notes down');
 
         return [];
       },

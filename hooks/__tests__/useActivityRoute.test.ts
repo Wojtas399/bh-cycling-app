@@ -1,6 +1,7 @@
 import { useActivityRoute } from '../useActivityRoute';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { IntervalsApiError, getActivityMap } from '@/lib/intervalsApi';
+import type { IntervalsActivityMap } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
@@ -20,8 +21,8 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
-const mockUseIntervalsConnection = useIntervalsConnection as jest.Mock;
-const mockGetActivityMap = getActivityMap as jest.Mock;
+const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockGetActivityMap = jest.mocked(getActivityMap);
 
 const ACTIVITY_ID = 'i42';
 const ROUTE_KEY = ['intervals', 'athlete-1', 'route', ACTIVITY_ID];
@@ -34,6 +35,7 @@ function mockConnection(
     athleteName: null,
     athleteId: null,
     accessToken: null,
+    scope: null,
     loading: false,
     ...overrides,
   });
@@ -47,7 +49,7 @@ function mockConnected() {
   });
 }
 
-const GPS_MAP = {
+const GPS_MAP: IntervalsActivityMap = {
   latlngs: [[52.2, 21.0], null, [52.201, 21.002]],
   bounds: [
     [52.2, 21.0],
