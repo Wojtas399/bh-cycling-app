@@ -20,7 +20,11 @@ import {
   type CalendarGridCell,
   getMonthGrid,
 } from '@/lib/calendarGrid';
-import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
+import {
+  type CalendarItemsByDate,
+  type RaceItem,
+  calendarItemKey,
+} from '@/lib/calendarItems';
 import {
   type CalendarData,
   eachDate,
@@ -37,43 +41,26 @@ import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
 
 const DAY_NUMBER_SIZE = 24;
-/** A tile's padding, and the space between its day number and Note bars. */
-const TILE_SPACING = 'xs';
+const TILE_PADDING_AND_BARS_GAP = 'xs';
 const MARKER_SIZE = 6;
-/**
- * An A Race's ring around its whole tile: a tile-sized outline, unlike any
- * dot.
- */
-const A_RING_WIDTH = 2;
+const A_RACE_RING_WIDTH = 2;
 const BAR_HEIGHT = 14;
 const BAR_GAP = 2;
-/** How far a bar's rounded end sits in from its cell's edge. */
-const BAR_END_INSET = 3;
+const BAR_ROUNDED_END_INSET_FROM_CELL_EDGE = 3;
+const DECORATION_LEAVING_TAP_AND_LABEL_TO_TILE = {
+  pointerEvents: 'none',
+  importantForAccessibility: 'no-hide-descendants',
+  accessibilityElementsHidden: true,
+} as const;
 const BAR_LABEL_SIZE = 10;
 
 export interface CalendarMonthGridProps {
-  /** Any date in the month to lay out. */
   month: Date;
   itemsByDate: CalendarItemsByDate;
-  /** The whole Notes overlapping the month, in `id` order. */
   notes: Note[];
   onDayPress: (day: CalendarDay) => void;
 }
 
-/**
- * The monthly grid: Monday-first weeks of day tiles, filling the space it is
- * given — the rows share its height, so a 6-week month gets shorter tiles,
- * not a taller grid. Under each day number, its Notes as coloured bars (two
- * lanes; a multi-day Note runs as one bar across the tiles and the gaps
- * between them), a "+N" for the Notes that don't fit, then a marker per
- * Workout (a status dot) and Unplanned Activity (a hollow green ring, "done,
- * not planned"). A rank icon per Race, in Race order, sits beside the day
- * number, so a Race day's dots stay in line with the rest of its row. A
- * day with an A Race is ringed in red, past or future alike. A tile cuts off
- * what doesn't fit; the day sheet shows everything. Days from the
- * neighbouring months are dimmer tiles, empty and not tappable — their data
- * was never fetched.
- */
 export default function CalendarMonthGrid({
   month,
   itemsByDate,
@@ -141,12 +128,6 @@ interface GridRowProps {
   onDayPress: (day: CalendarDay) => void;
 }
 
-/**
- * A week of tiles, with the row's Note bars drawn over them in one layer so
- * a bar and its label run unbroken across tiles. Each tile reserves the
- * bars' height under its day number. The row clips too, so bars that don't
- * fit a short row stay out of the row below.
- */
 function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
   const theme = useAppTheme();
   const laneCount = Math.max(0, ...layout.segments.map(s => s.lane + 1));
@@ -166,29 +147,25 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
             key={cell.date}
             cell={cell}
             data={data}
-            barsHeight={barsHeight}
-            overflow={layout.overflowByDate[cell.date] ?? 0}
+            rowNoteBarsHeight={barsHeight}
+            hiddenNoteCount={layout.overflowByDate[cell.date] ?? 0}
             isToday={cell.date === today}
             onDayPress={onDayPress}
           />
         ) : (
-          <PaddingCell key={cell.date} cell={cell} />
+          <NeighbouringMonthCell key={cell.date} cell={cell} />
         ),
       )}
 
       {layout.segments.length > 0 && (
-        // Decoration only: the tile under it takes the tap and announces the
-        // day's counts.
         <View
-          pointerEvents="none"
-          importantForAccessibility="no-hide-descendants"
-          accessibilityElementsHidden
+          {...DECORATION_LEAVING_TAP_AND_LABEL_TO_TILE}
           style={{
             position: 'absolute',
             top:
-              theme.spacing[TILE_SPACING] +
+              theme.spacing[TILE_PADDING_AND_BARS_GAP] +
               DAY_NUMBER_SIZE +
-              theme.spacing[TILE_SPACING],
+              theme.spacing[TILE_PADDING_AND_BARS_GAP],
             left: 0,
             right: 0,
           }}
@@ -226,8 +203,8 @@ function NoteBar({ segment }: { segment: NoteBarSegment }) {
           flex: 1,
           justifyContent: 'center',
           backgroundColor: noteFill(note.color),
-          marginLeft: roundedStart ? BAR_END_INSET : 0,
-          marginRight: roundedEnd ? BAR_END_INSET : 0,
+          marginLeft: roundedStart ? BAR_ROUNDED_END_INSET_FROM_CELL_EDGE : 0,
+          marginRight: roundedEnd ? BAR_ROUNDED_END_INSET_FROM_CELL_EDGE : 0,
           borderTopLeftRadius: roundedStart ? radius : 0,
           borderBottomLeftRadius: roundedStart ? radius : 0,
           borderTopRightRadius: roundedEnd ? radius : 0,
@@ -241,7 +218,7 @@ function NoteBar({ segment }: { segment: NoteBarSegment }) {
             color: noteLabelColor(note.color),
             fontSize: BAR_LABEL_SIZE,
             lineHeight: BAR_HEIGHT,
-            paddingHorizontal: BAR_END_INSET,
+            paddingHorizontal: BAR_ROUNDED_END_INSET_FROM_CELL_EDGE,
           }}
         >
           {noteTitle(note)}
@@ -254,10 +231,8 @@ function NoteBar({ segment }: { segment: NoteBarSegment }) {
 interface GridCellProps {
   cell: CalendarGridCell;
   data: CalendarData;
-  /** The height the row's Note bars take under the day number. */
-  barsHeight: number;
-  /** The "+N": the day's Notes that didn't fit a lane. */
-  overflow: number;
+  rowNoteBarsHeight: number;
+  hiddenNoteCount: number;
   isToday: boolean;
   onDayPress: (day: CalendarDay) => void;
 }
@@ -265,8 +240,8 @@ interface GridCellProps {
 function GridCell({
   cell,
   data,
-  barsHeight,
-  overflow,
+  rowNoteBarsHeight,
+  hiddenNoteCount,
   isToday,
   onDayPress,
 }: GridCellProps) {
@@ -283,9 +258,11 @@ function GridCell({
       accessibilityLabel={label}
       testID={`calendar-day-${cell.date}`}
     >
-      <CalendarDayTile flex={1} padding={TILE_SPACING} overflow="hidden">
-        {/* The rank icons sit beside the day number, so the dots below line
-            up across the row whether or not a day has a Race. */}
+      <CalendarDayTile
+        flex={1}
+        padding={TILE_PADDING_AND_BARS_GAP}
+        overflow="hidden"
+      >
         <Box flexDirection="row" alignItems="center" gap="xs">
           <Box
             width={DAY_NUMBER_SIZE}
@@ -304,36 +281,23 @@ function GridCell({
             </Text>
           </Box>
 
-          {races.length > 0 && (
-            <Box
-              flex={1}
-              flexDirection="row"
-              alignItems="center"
-              gap="xs"
-              overflow="hidden"
-            >
-              {races.map(item => (
-                <RaceRankIcon
-                  key={calendarItemKey(item)}
-                  priority={item.race.priority}
-                  size={RACE_RANKS[item.race.priority].gridIconSize}
-                />
-              ))}
-            </Box>
-          )}
+          {races.length > 0 && <RankIconsBesideDayNumber races={races} />}
         </Box>
 
-        {barsHeight > 0 && (
-          <Box marginTop={TILE_SPACING} style={{ height: barsHeight }} />
+        {rowNoteBarsHeight > 0 && (
+          <Box
+            marginTop={TILE_PADDING_AND_BARS_GAP}
+            style={{ height: rowNoteBarsHeight }}
+          />
         )}
 
-        {overflow > 0 && (
+        {hiddenNoteCount > 0 && (
           <Text
             variant="body-xs-regular"
             color="textSecondary"
             style={{ fontSize: BAR_LABEL_SIZE, lineHeight: BAR_HEIGHT }}
           >
-            +{overflow}
+            +{hiddenNoteCount}
           </Text>
         )}
 
@@ -361,18 +325,33 @@ function GridCell({
           </Box>
         )}
 
-        {hasARace && <ARaceRing />}
+        {hasARace && <ARaceRingOverTileEdge />}
       </CalendarDayTile>
     </TouchableOpacity>
   );
 }
 
-/**
- * The red ring around a day with an A Race. Drawn over the tile's edge
- * rather than as its border, so the tile's content stays where every other
- * tile has it. Decoration only: the day's label says "wyścig A".
- */
-function ARaceRing() {
+function RankIconsBesideDayNumber({ races }: { races: RaceItem[] }) {
+  return (
+    <Box
+      flex={1}
+      flexDirection="row"
+      alignItems="center"
+      gap="xs"
+      overflow="hidden"
+    >
+      {races.map(item => (
+        <RaceRankIcon
+          key={calendarItemKey(item)}
+          priority={item.race.priority}
+          size={RACE_RANKS[item.race.priority].gridIconSize}
+        />
+      ))}
+    </Box>
+  );
+}
+
+function ARaceRingOverTileEdge() {
   return (
     <Box
       position="absolute"
@@ -381,17 +360,14 @@ function ARaceRing() {
       bottom={0}
       left={0}
       borderRadius="sm"
-      borderWidth={A_RING_WIDTH}
+      borderWidth={A_RACE_RING_WIDTH}
       borderColor="race"
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+      {...DECORATION_LEAVING_TAP_AND_LABEL_TO_TILE}
       testID="calendar-a-race-ring"
     />
   );
 }
 
-/** The day's screen-reader label (see `formatDayLabel`). */
 function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.dayCounts' });
   const labels = useCalendarLabels();
@@ -405,14 +381,13 @@ function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
   });
 }
 
-/** A day from a neighbouring month: a dimmer tile, empty, not tappable. */
-function PaddingCell({ cell }: { cell: CalendarGridCell }) {
+function NeighbouringMonthCell({ cell }: { cell: CalendarGridCell }) {
   return (
     <Box flex={1} testID={`calendar-day-${cell.date}`}>
       <CalendarDayTile
         outsideMonth
         flex={1}
-        padding={TILE_SPACING}
+        padding={TILE_PADDING_AND_BARS_GAP}
         overflow="hidden"
       >
         <Box

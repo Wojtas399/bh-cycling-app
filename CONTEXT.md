@@ -32,6 +32,10 @@ _Avoid_: Unpaired workout details, activity mode
 The screen for one Note: its title, colour and dates, then its text as Note Markdown. A sibling of Workout Details and Activity Details, pushed from a Note's card on Home, the Calendar and the Calendar day sheet. It replaced the Note sheet, so a Note never opens in a sheet.
 _Avoid_: Note view, note page, Note sheet, Note Detail Sheet
 
+**Workout Profile**:
+The planned shape of a Cycling Workout's effort, drawn from its steps and coloured by power zone: one bar per step in the order it's ridden, as wide as its share of the session and as tall as the power it asks for. A step with a power range is solid up to its floor, the power the athlete is asked to hold, and faint up to its ceiling. A Ramp is a slope.
+_Avoid_: Activity Profile, which is the recorded shape
+
 **Activity Profile**:
 The recorded shape of an Activity's effort, drawn from intervals.icu's detected intervals and coloured by power zone. Shown on Activity Details, and on a completed Workout's Workout Details below its Workout Profile, the two on one time scale.
 _Avoid_: Workout Profile, which is the planned shape

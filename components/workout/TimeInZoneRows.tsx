@@ -2,53 +2,36 @@ import { useTranslation } from 'react-i18next';
 
 import Box from '@/components/Box';
 import Text from '@/components/Text';
-import { ZONE_COLORS } from '@/components/WorkoutProfile';
+import { RANGE_CAP_OPACITY, ZONE_COLORS } from '@/components/WorkoutProfile';
 import { useAppTheme } from '@/constants/theme';
-import { formatDuration } from '@/lib/formatDuration';
-import { formatStepDuration } from '@/lib/formatStepDuration';
+import { formatZoneTime } from '@/lib/formatZoneTime';
 import type { StripSide } from '@/lib/profileCard';
 import type { TimeInZoneRow, ZoneTimeBar } from '@/lib/timeInZone';
 
-/** A row's bar with the side it's of. */
 interface SideBar {
   side: StripSide;
   bar: ZoneTimeBar;
 }
 
-/** Room for the zone label, so every row's bars start in line. */
-const ZONE_WIDTH = 24;
+const ZONE_LABEL_WIDTH_ALIGNING_BAR_STARTS = 24;
 
-/**
- * Room for the times, so every row's bars end in line and compare: one time,
- * or the plan's and the ride's.
- */
-const SINGLE_TIME_WIDTH = 52;
-const COMPARED_TIME_WIDTH = 104;
+const ONE_TIME_WIDTH_ALIGNING_BAR_ENDS = 52;
+const TWO_TIMES_WIDTH_ALIGNING_BAR_ENDS = 104;
 
-/** A bar's thickness, thinner when the plan's and the ride's share a row. */
-const SINGLE_BAR_HEIGHT = 8;
-const COMPARED_BAR_HEIGHT = 5;
+const LONE_BAR_HEIGHT = 8;
+const SHARED_ROW_BAR_HEIGHT = 5;
 
-/** See `ProfileWithTimeAxis`: the plan's bar is faint above the ride's. */
-const PLANNED_OPACITY = 0.4;
+const PLANNED_BAR_OPACITY_AS_ON_PROFILE = RANGE_CAP_OPACITY;
 
-/**
- * A zone's time: in whole minutes like the card's time axis, but in seconds
- * under a minute, so a short burst doesn't read as none.
- */
-function formatZoneTime(seconds: number): string {
-  return seconds < 60 ? formatStepDuration(seconds) : formatDuration(seconds);
-}
+const LEGEND_LEFT_OUT_AS_EACH_ROW_NAMES_ITS_TIMES = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
 
 export interface TimeInZoneRowsProps {
   rows: TimeInZoneRow[];
 }
 
-/**
- * The time-in-zone rows under the profile card: per zone, the plan's bar
- * faint above the ride's solid one, measured against the longest, with the
- * times. Each row is read by a screen reader as plain text.
- */
 export default function TimeInZoneRows({ rows }: TimeInZoneRowsProps) {
   const { t } = useTranslation(undefined, {
     keyPrefix: 'workoutDetails.timeInZone',
@@ -57,8 +40,8 @@ export default function TimeInZoneRows({ rows }: TimeInZoneRowsProps) {
 
   if (rows.length === 0) return null;
 
-  // Every row has the same strips: the card's.
-  const compared = rows[0].planned !== null && rows[0].recorded !== null;
+  const [anyRow] = rows;
+  const everyRowCompares = anyRow.planned !== null && anyRow.recorded !== null;
 
   function label(zone: TimeInZoneRow['zone'], [first, second]: SideBar[]) {
     return second
@@ -74,8 +57,7 @@ export default function TimeInZoneRows({ rows }: TimeInZoneRowsProps) {
     <Box gap="xs">
       {rows.map(({ zone, planned, recorded }) => {
         const color = colors[ZONE_COLORS[zone]];
-        // The plan's bar above the ride's. A row has at least one.
-        const bars: SideBar[] = [
+        const planAboveRide: SideBar[] = [
           ...(planned ? [{ side: 'planned' as const, bar: planned }] : []),
           ...(recorded ? [{ side: 'recorded' as const, bar: recorded }] : []),
         ];
@@ -84,25 +66,32 @@ export default function TimeInZoneRows({ rows }: TimeInZoneRowsProps) {
           <Box
             key={zone}
             accessible
-            accessibilityLabel={label(zone, bars)}
+            accessibilityLabel={label(zone, planAboveRide)}
             flexDirection="row"
             alignItems="center"
             gap="sm"
           >
-            <Text variant="body-xs-medium" style={{ width: ZONE_WIDTH, color }}>
+            <Text
+              variant="body-xs-medium"
+              style={{ width: ZONE_LABEL_WIDTH_ALIGNING_BAR_STARTS, color }}
+            >
               Z{zone}
             </Text>
             <Box flex={1} gap="xs">
-              {bars.map(({ side, bar }) => (
+              {planAboveRide.map(({ side, bar }) => (
                 <Box
                   key={side}
-                  height={compared ? COMPARED_BAR_HEIGHT : SINGLE_BAR_HEIGHT}
+                  height={
+                    everyRowCompares ? SHARED_ROW_BAR_HEIGHT : LONE_BAR_HEIGHT
+                  }
                   borderRadius="full"
                   style={{
                     width: `${bar.share * 100}%`,
                     backgroundColor: color,
                     opacity:
-                      compared && side === 'planned' ? PLANNED_OPACITY : 1,
+                      everyRowCompares && side === 'planned'
+                        ? PLANNED_BAR_OPACITY_AS_ON_PROFILE
+                        : 1,
                   }}
                 />
               ))}
@@ -111,22 +100,22 @@ export default function TimeInZoneRows({ rows }: TimeInZoneRowsProps) {
               variant="body-xs-regular"
               color="textSecondary"
               style={{
-                width: compared ? COMPARED_TIME_WIDTH : SINGLE_TIME_WIDTH,
+                width: everyRowCompares
+                  ? TWO_TIMES_WIDTH_ALIGNING_BAR_ENDS
+                  : ONE_TIME_WIDTH_ALIGNING_BAR_ENDS,
                 textAlign: 'right',
                 fontVariant: ['tabular-nums'],
               }}
             >
-              {bars.map(({ bar }) => formatZoneTime(bar.seconds)).join(' / ')}
+              {planAboveRide
+                .map(({ bar }) => formatZoneTime(bar.seconds))
+                .join(' / ')}
             </Text>
           </Box>
         );
       })}
-      {compared && (
-        // Each row already says which time is which.
-        <Box
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
+      {everyRowCompares && (
+        <Box {...LEGEND_LEFT_OUT_AS_EACH_ROW_NAMES_ITS_TIMES}>
           <Text variant="body-xs-regular" color="textTertiary">
             {t('legend')}
           </Text>

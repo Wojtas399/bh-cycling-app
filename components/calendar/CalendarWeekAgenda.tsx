@@ -16,6 +16,7 @@ import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
+import { bleedHitArea, bleedPastVerticalPadding } from '@/lib/bleed';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
 import {
   type CalendarItem,
@@ -39,42 +40,26 @@ import type { Race } from '@/lib/races';
 import { type LaneCrossing, type NoteRow, weekNotes } from '@/lib/weekNotes';
 
 const RAIL_WIDTH = 44;
-/** Above and below a day's rows; the rail runs through it. */
-const DAY_PADDING = 'md';
-/** Today's filled square behind the day number. */
-const DAY_NUMBER_BOX = { width: 40, height: 36 };
-/** Every row is at least a comfortable tap target tall. */
-const ROW_MIN_HEIGHT = 44;
+const DAY_PADDING_VERTICAL = 'md';
+const DAY_NUMBER_SQUARE = { width: 40, height: 36 };
+const ROW_MIN_TAP_TARGET_HEIGHT = 44;
 const MINI_PROFILE = { width: 54, height: 14 };
 const MARKER_SIZE = 8;
-/** A multi-day Note's line beside the rail, and the gap after it. */
-const LANE_WIDTH = 3;
-const LANE_GAP = 3;
-/** How far inside the day a line starts or ends on its Note's real day. */
-const LANE_INSET = 14;
+const NOTE_LANE_LINE_WIDTH = 3;
+const NOTE_LANE_GAP = 3;
+const NOTE_LINE_INSET_ON_ITS_FIRST_OR_LAST_DAY = 14;
+const SCREEN_READER_REACHES_RAIL_AND_ROWS_ONE_BY_ONE = {
+  accessible: false,
+} as const;
 
 export interface CalendarWeekAgendaProps extends ItemPressHandlers {
-  /** Any date in the week to lay out. */
   week: Date;
   itemsByDate: CalendarItemsByDate;
-  /** The Notes overlapping the week, in `id` order. */
   notes: Note[];
   onDayPress: (day: CalendarDay) => void;
   onNotePress: (note: Note) => void;
 }
 
-/**
- * The weekly agenda as a date rail: Monday to Sunday, each day its rail
- * (short weekday over the day number, today on a white square) beside its
- * rows — its Note rows (see `weekNotes`), a "+N notatki" row for the ones
- * past the cap, then one compact row per item (the day's Races first, then
- * its Workouts and Unplanned Activities) or a muted "Odpoczynek" on a day
- * with none. A hairline parts the rows and the days. A multi-day Note is a
- * line in its colour, in its own lane between the screen edge and the rail,
- * down every day it covers. Tapping a Note row opens the Note, an item row
- * opens its item, and tapping the rail, "+N notatki" or anywhere else in the
- * day, a Strava Activity's row included, opens the day sheet.
- */
 export default function CalendarWeekAgenda({
   week,
   itemsByDate,
@@ -137,19 +122,17 @@ export default function CalendarWeekAgenda({
           <TouchableOpacity
             key={day.date}
             onPress={() => onDayPress(day)}
-            // Not one grouped element, so a screen reader reaches the rail
-            // and every row inside on its own.
-            accessible={false}
+            {...SCREEN_READER_REACHES_RAIL_AND_ROWS_ONE_BY_ONE}
             testID={`calendar-day-${day.date}`}
           >
             <Box
               flexDirection="row"
-              paddingVertical={DAY_PADDING}
+              paddingVertical={DAY_PADDING_VERTICAL}
               borderTopWidth={index === 0 ? 0 : 1}
               borderColor="hairline"
             >
               <NoteLanes
-                laneCount={layout.lanes.length}
+                weekLaneCount={layout.lanes.length}
                 crossings={crossings}
               />
 
@@ -179,28 +162,19 @@ export default function CalendarWeekAgenda({
 }
 
 interface NoteLanesProps {
-  /** The week's lane count, so every day's strip is as wide. */
-  laneCount: number;
+  weekLaneCount: number;
   crossings: LaneCrossing[];
 }
 
-/**
- * A day's strip of Note lanes between the screen edge and the rail: a line
- * per multi-day Note crossing the day, in its lane. A line starts or ends
- * inside the day on its Note's real first or last day, and otherwise runs to
- * the day's hairline, so it reads as one line down the week. Hidden from the
- * screen reader: each Note is announced once, by its title row.
- */
-function NoteLanes({ laneCount, crossings }: NoteLanesProps) {
+function NoteLanes({ weekLaneCount, crossings }: NoteLanesProps) {
   const { spacing } = useAppTheme();
 
-  if (laneCount === 0) return null;
+  if (weekLaneCount === 0) return null;
 
   return (
     <Box
-      width={laneCount * (LANE_WIDTH + LANE_GAP)}
-      // Runs to the day's hairlines, past its padding, like the rail.
-      style={{ marginVertical: -spacing[DAY_PADDING] }}
+      width={weekLaneCount * (NOTE_LANE_LINE_WIDTH + NOTE_LANE_GAP)}
+      style={bleedPastVerticalPadding(spacing[DAY_PADDING_VERTICAL])}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
@@ -208,12 +182,12 @@ function NoteLanes({ laneCount, crossings }: NoteLanesProps) {
         <Box
           key={note.id}
           position="absolute"
-          width={LANE_WIDTH}
+          width={NOTE_LANE_LINE_WIDTH}
           borderRadius="full"
           style={{
-            left: lane * (LANE_WIDTH + LANE_GAP),
-            top: starts ? LANE_INSET : 0,
-            bottom: ends ? LANE_INSET : 0,
+            left: lane * (NOTE_LANE_LINE_WIDTH + NOTE_LANE_GAP),
+            top: starts ? NOTE_LINE_INSET_ON_ITS_FIRST_OR_LAST_DAY : 0,
+            bottom: ends ? NOTE_LINE_INSET_ON_ITS_FIRST_OR_LAST_DAY : 0,
             backgroundColor: noteFill(note.color),
           }}
         />
@@ -228,11 +202,6 @@ interface DateRailProps {
   onPress: () => void;
 }
 
-/**
- * A day's rail: its uppercase short weekday over the day number, today's on a
- * white filled square. To a screen reader it's the day's heading, so the
- * athlete can jump day to day, and double-tapping it opens the day sheet.
- */
 function DateRail({ day, isToday, onPress }: DateRailProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
   const { colors, spacing } = useAppTheme();
@@ -248,10 +217,7 @@ function DateRail({ day, isToday, onPress }: DateRailProps) {
       style={{
         width: RAIL_WIDTH,
         alignItems: 'center',
-        // Runs to the day's hairlines, past its padding, so the whole height
-        // of the rail opens the day sheet.
-        marginVertical: -spacing[DAY_PADDING],
-        paddingVertical: spacing[DAY_PADDING],
+        ...bleedHitArea(spacing[DAY_PADDING_VERTICAL]),
       }}
     >
       <Text
@@ -263,8 +229,8 @@ function DateRail({ day, isToday, onPress }: DateRailProps) {
       </Text>
       <Box
         marginTop="xs"
-        width={DAY_NUMBER_BOX.width}
-        height={DAY_NUMBER_BOX.height}
+        width={DAY_NUMBER_SQUARE.width}
+        height={DAY_NUMBER_SQUARE.height}
         alignItems="center"
         justifyContent="center"
         borderRadius="lg"
@@ -280,12 +246,11 @@ function DateRail({ day, isToday, onPress }: DateRailProps) {
   );
 }
 
-/** A day with no items: plain muted text, so a tap reaches the day sheet. */
 function RestRow() {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
 
   return (
-    <Box minHeight={ROW_MIN_HEIGHT} justifyContent="center">
+    <Box minHeight={ROW_MIN_TAP_TARGET_HEIGHT} justifyContent="center">
       <Text variant="body-s-regular" color="textTertiary">
         {t('rest')}
       </Text>
@@ -297,13 +262,6 @@ interface ItemRowProps extends ItemPressHandlers {
   item: CalendarItem;
 }
 
-/**
- * One item on one line: its marker, title, a Workout's mini profile, a Race's
- * priority tag, then its duration and load. The title is what truncates. Read
- * as one stop, by `compactItemRowLabel`. It opens what `compactItemRowPress`
- * gives. A row with nothing to open, a Strava Activity's, isn't a button, so a
- * tap on it reaches the day sheet.
- */
 function ItemRow({ item, ...handlers }: ItemRowProps) {
   const { t } = useTranslation();
   const words = useCompactRowWords();
@@ -317,7 +275,7 @@ function ItemRow({ item, ...handlers }: ItemRowProps) {
       <Box
         accessible
         accessibilityLabel={label}
-        minHeight={ROW_MIN_HEIGHT}
+        minHeight={ROW_MIN_TAP_TARGET_HEIGHT}
         justifyContent="center"
       >
         {content}
@@ -380,10 +338,6 @@ function ItemRowContent({ row }: { row: CompactItemRow }) {
   );
 }
 
-/**
- * The row's marker: a Workout's status dot, an Activity's ring, or a Race's
- * rank icon, after the done dot when it's paired.
- */
 function RowMarker({ row }: { row: CompactItemRow }) {
   switch (row.kind) {
     case 'workout':
@@ -402,7 +356,6 @@ function RowMarker({ row }: { row: CompactItemRow }) {
   }
 }
 
-/** An Unplanned Activity's marker: a ring where a Workout has its dot. */
 function ActivityRing() {
   return (
     <Box
@@ -415,7 +368,6 @@ function ActivityRing() {
   );
 }
 
-/** A Race's priority as a small red-outlined tag: "B". */
 function PriorityTag({ priority }: { priority: Race['priority'] }) {
   return (
     <Box
@@ -432,7 +384,6 @@ function PriorityTag({ priority }: { priority: Race['priority'] }) {
   );
 }
 
-/** The Polish words a row's screen-reader label is built from. */
 function useCompactRowWords(): CompactItemRowWords {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
 
@@ -455,16 +406,10 @@ function useCompactRowWords(): CompactItemRowWords {
 
 interface NoteRowButtonProps {
   row: NoteRow;
-  /** When the Note applies, as a screen reader announces it. */
   spokenWhen: string;
   onPress: () => void;
 }
 
-/**
- * A Note's row: a multi-day Note's title in its colour and its short range
- * (the lane beside the rail is its marker), or a single-day Note's dot in its
- * colour and its title.
- */
 function NoteRowButton({
   row: { note, multiDay },
   spokenWhen,
@@ -511,7 +456,6 @@ function NoteRowButton({
   );
 }
 
-/** The day's Note rows past the cap, as one row that opens the day sheet. */
 function MoreNotesRow({
   count,
   onPress,
@@ -536,11 +480,10 @@ function MoreNotesRow({
   );
 }
 
-/** A tappable row's style: a tap target tall, dimmed while pressed. */
 function rowPressStyle(layout: ViewStyle) {
   return ({ pressed }: PressableStateCallbackType): ViewStyle => ({
     opacity: pressed ? 0.7 : 1,
-    minHeight: ROW_MIN_HEIGHT,
+    minHeight: ROW_MIN_TAP_TARGET_HEIGHT,
     ...layout,
   });
 }
