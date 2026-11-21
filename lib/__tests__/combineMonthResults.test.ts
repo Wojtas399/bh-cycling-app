@@ -32,8 +32,10 @@ function note(id: number, start: string, end: string): Note {
 
 const JUNE_10 = workout(1, '2026-06-10');
 
-/** Every day of June 2026, with one workout on the 10th. */
-const JUNE_DAYS: Record<string, CalendarItem[]> = Object.fromEntries(
+const EVERY_JUNE_2026_DAY_WITH_A_WORKOUT_ON_THE_10TH: Record<
+  string,
+  CalendarItem[]
+> = Object.fromEntries(
   Array.from({ length: 30 }, (_, index) => {
     const date = `2026-06-${String(index + 1).padStart(2, '0')}`;
 
@@ -41,7 +43,10 @@ const JUNE_DAYS: Record<string, CalendarItem[]> = Object.fromEntries(
   }),
 );
 
-const JUNE = { itemsByDate: JUNE_DAYS, notes: [] };
+const JUNE = {
+  itemsByDate: EVERY_JUNE_2026_DAY_WITH_A_WORKOUT_ON_THE_10TH,
+  notes: [],
+};
 
 const JUNE_START = new Date(2026, 5, 1);
 const JUNE_END = new Date(2026, 5, 30);
@@ -139,7 +144,10 @@ describe('combineMonthResults', () => {
     )([
       month({
         data: {
-          itemsByDate: { ...JUNE_DAYS, '2026-06-30': [juneRace] },
+          itemsByDate: {
+            ...EVERY_JUNE_2026_DAY_WITH_A_WORKOUT_ON_THE_10TH,
+            '2026-06-30': [juneRace],
+          },
           notes: [],
         },
       }),

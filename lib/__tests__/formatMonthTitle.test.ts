@@ -4,13 +4,13 @@ import { formatMonthTitle } from '../formatMonthTitle';
 const { monthNames } = pl.calendar;
 
 describe('formatMonthTitle', () => {
-  it("names the date's month and year", () => {
+  it("names the date's month and year, as in 'Październik 2026'", () => {
     expect(formatMonthTitle(new Date(2026, 9, 5), monthNames)).toBe(
       'Październik 2026',
     );
   });
 
-  it('names January by the first month name', () => {
+  it('names January by the first of the nominative month names', () => {
     expect(formatMonthTitle(new Date(2027, 0, 1), monthNames)).toBe(
       'Styczeń 2027',
     );

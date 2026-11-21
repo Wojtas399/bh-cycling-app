@@ -1,6 +1,5 @@
 import { EVENT_CATEGORY, type IntervalsCalendarEvent } from './intervalsApi';
 
-/** A local calendar date, `YYYY-MM-DD`. */
 export type LocalDateString = string;
 
 export function toLocalDateString(date: Date): LocalDateString {
@@ -11,7 +10,6 @@ export function toLocalDateString(date: Date): LocalDateString {
   return `${year}-${month}-${day}`;
 }
 
-/** Local midnight of a `YYYY-MM-DD` date. */
 export function fromLocalDateString(date: LocalDateString): Date {
   const [year, month, day] = date.split('-').map(Number);
 
@@ -26,10 +24,6 @@ export function addDays(date: Date, days: number): Date {
   return result;
 }
 
-/**
- * Whole calendar days from `from` to `to`, negative when `to` is earlier.
- * Counted on the calendar fields, so a DST shift can never skew it.
- */
 export function daysBetween(
   from: LocalDateString,
   to: LocalDateString,
@@ -45,15 +39,9 @@ export function daysBetween(
 
 export interface DatedWorkoutEvent {
   event: IntervalsCalendarEvent;
-  /** Local calendar date the event is scheduled on, `YYYY-MM-DD`. */
-  date: string;
+  date: LocalDateString;
 }
 
-/**
- * Filters calendar events down to WORKOUT-category ones, tags each with its
- * local calendar date, and orders them chronologically — the first stage
- * `joinCalendarItems` builds on.
- */
 export function toSortedDatedWorkoutEvents(
   events: IntervalsCalendarEvent[],
 ): DatedWorkoutEvent[] {

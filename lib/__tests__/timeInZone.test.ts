@@ -99,8 +99,7 @@ describe('zoneTimesFromIcu', () => {
   });
 });
 
-/** Coggan zones: edges at 55, 75, 90, 105, 120 and 150% FTP. */
-const COGGAN = resolveZoneConfig(null);
+const COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP = resolveZoneConfig(null);
 
 function ftpStep(duration: number, pct: number): WorkoutStep {
   return { duration, power: { units: '%ftp', value: pct } };
@@ -111,18 +110,22 @@ describe('planZoneTimes', () => {
     expect(
       planZoneTimes(
         [ftpStep(600, 50), ftpStep(1200, 88), ftpStep(300, 100)],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 600, 2: 0, 3: 1200, 4: 300, 5: 0, 6: 0, 7: 0 });
   });
 
-  it('reads the zones at the zone config it is given', () => {
-    // 58% is Z2 on Coggan's zones but Z1 under a 60% ceiling.
+  it("reads the zones at the zone config it is given: 58% is Z2 on Coggan's zones but Z1 under a 60% ceiling", () => {
     const config = resolveZoneConfig({
       powerZones: [60, 80, 95, 110, 125, 160, 999],
     });
 
-    expect(planZoneTimes([ftpStep(600, 58)], COGGAN)[2]).toBe(600);
+    expect(
+      planZoneTimes(
+        [ftpStep(600, 58)],
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
+      )[2],
+    ).toBe(600);
     expect(planZoneTimes([ftpStep(600, 58)], config)[1]).toBe(600);
   });
 
@@ -130,7 +133,7 @@ describe('planZoneTimes', () => {
     expect(
       planZoneTimes(
         [{ duration: 900, power: { units: 'power_zone', value: 2 } }],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 0, 2: 900, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 });
   });
@@ -147,7 +150,7 @@ describe('planZoneTimes', () => {
             steps: [ftpStep(120, 115), ftpStep(60, 50)],
           },
         ],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 780, 2: 0, 3: 0, 4: 0, 5: 360, 6: 0, 7: 0 });
   });
@@ -156,13 +159,12 @@ describe('planZoneTimes', () => {
     expect(
       planZoneTimes(
         [{ duration: 600, power: { units: '%ftp', start: 84, end: 96 } }],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       )[3],
     ).toBe(600);
   });
 
-  it('splits a ramp between the zones it climbs through, in proportion', () => {
-    // 45→75% spends a third of its span below the 55% edge.
+  it('splits a ramp between the zones it climbs through, in proportion: 45→75% spends a third of its span below the 55% edge', () => {
     expect(
       planZoneTimes(
         [
@@ -172,7 +174,7 @@ describe('planZoneTimes', () => {
             power: { units: '%ftp', start: 45, end: 75 },
           },
         ],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 200, 2: 400, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 });
   });
@@ -187,13 +189,12 @@ describe('planZoneTimes', () => {
             power: { units: '%ftp', start: 75, end: 45 },
           },
         ],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 200, 2: 400, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 });
   });
 
-  it('keeps a ramp past the top zone in the top zone', () => {
-    // 140→240%: 10 points in Z6, the other 90 above Z7's 150% floor.
+  it("keeps a ramp past the top zone in the top zone: 140→240% has 10 points in Z6 and the other 90 above Z7's 150% floor", () => {
     expect(
       planZoneTimes(
         [
@@ -203,7 +204,7 @@ describe('planZoneTimes', () => {
             power: { units: '%ftp', start: 140, end: 240 },
           },
         ],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 10, 7: 90 });
   });
@@ -218,13 +219,15 @@ describe('planZoneTimes', () => {
           { duration: 300, power: { units: 'w', value: 250 } },
           { power: { units: '%ftp', value: 100 } },
         ],
-        COGGAN,
+        COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP,
       ),
     ).toEqual({ 1: 0, 2: 600, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 });
   });
 
   it('is all zeros with no steps', () => {
-    expect(planZoneTimes(undefined, COGGAN)).toEqual({
+    expect(
+      planZoneTimes(undefined, COGGAN_ZONES_AT_55_75_90_105_120_150_PCT_FTP),
+    ).toEqual({
       1: 0,
       2: 0,
       3: 0,

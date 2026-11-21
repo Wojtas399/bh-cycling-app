@@ -76,6 +76,7 @@ module.exports = defineConfig([
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       eqeqeq: ['error', 'always', { null: 'ignore' }],
+      'no-empty': ['error', { allowEmptyCatch: false }],
       'prefer-const': 'error',
       'padding-line-between-statements': [
         'error',

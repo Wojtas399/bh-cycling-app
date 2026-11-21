@@ -1,29 +1,28 @@
 import { handleIntervalsAuthError } from './handleIntervalsAuthError';
+import { ignoreFailure } from './ignoreFailure';
 import { IntervalsAuthError } from './intervalsApi';
 import { QueryCache, QueryClient } from '@tanstack/react-query';
+
+const KEPT_FOR_THE_SESSION_UNTIL_REFRESHED = {
+  staleTime: Infinity,
+  gcTime: Infinity,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
 
 export function createQueryClient(): QueryClient {
   const client: QueryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: error => {
         if (error instanceof IntervalsAuthError) {
-          // The handler's last step, the Firestore delete, is best-effort.
-          handleIntervalsAuthError(client).catch(() => {});
+          ignoreFailure(handleIntervalsAuthError(client));
         }
       },
     }),
     defaultOptions: {
       queries: {
-        // Data lasts the whole session and only gets fresher through an
-        // explicit refresh, unless a query's own options say otherwise (see
-        // `intervalsQueries`).
-        staleTime: Infinity,
-        gcTime: Infinity,
-        // Any future retry count must never retry an IntervalsAuthError — the
-        // token is known-bad and every retry would 401 again.
+        ...KEPT_FOR_THE_SESSION_UNTIL_REFRESHED,
         retry: false,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
       },
       mutations: {
         retry: false,

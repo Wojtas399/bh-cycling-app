@@ -4,11 +4,6 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 
-/**
- * Signs into Firebase with a Google account. Resolves 'cancelled' when the
- * user dismisses the Google prompt, whether the library returns or throws
- * the cancel; any other failure rejects.
- */
 export async function signInWithGoogle(): Promise<'signedIn' | 'cancelled'> {
   try {
     await GoogleSignin.hasPlayServices();

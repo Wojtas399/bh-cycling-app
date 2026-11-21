@@ -5,23 +5,14 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const MIN_PASSWORD_LENGTH = 8;
 
-/**
- * Schemas carry i18n keys as messages; the form layer translates them at
- * render. Typed so a typo in a key fails `tsc`.
- */
 export function msg(key: ParseKeys): string {
   return key;
 }
 
-/** A non-empty string, kept as typed. */
 export function requiredString(requiredKey: ParseKeys) {
   return v.pipe(v.string(), v.nonEmpty(msg(requiredKey)));
 }
 
-/**
- * A new password: required, then at least `MIN_PASSWORD_LENGTH` characters.
- * Never trimmed.
- */
 export function newPasswordField(
   requiredKey: ParseKeys = 'validation.passwordRequired',
 ) {
@@ -32,32 +23,32 @@ export function newPasswordField(
   );
 }
 
-/**
- * A cross-field check for an object schema's pipe: the `confirm` field must
- * equal the `password` field exactly. The issue lands on `confirm`; a field's
- * own error comes first, so it still shows at most one error. Pair it with
- * `deps: { [password]: [confirm] }` in the form hook.
- */
+type ForwardPath<
+  T extends Record<string, unknown>,
+  K extends keyof T & string,
+> = Parameters<typeof v.forward<T, v.CheckIssue<T>, [K]>>[1];
+
+function keyOfInputAsForwardPath<
+  T extends Record<string, unknown>,
+  K extends keyof T & string,
+>(key: K): ForwardPath<T, K> {
+  return [key] as ForwardPath<T, K>;
+}
+
 export function passwordsMatch<
   T extends Record<string, unknown>,
   P extends keyof T & string = keyof T & string,
   C extends keyof T & string = keyof T & string,
 >(password: P, confirm: C) {
-  type Issue = v.CheckIssue<T>;
-  // valibot can't prove a generic key is a valid path; `confirm` is a key of
-  // `T` by its type.
-  type ConfirmPath = Parameters<typeof v.forward<T, Issue, [C]>>[1];
-
-  return v.forward<T, Issue, [C]>(
+  return v.forward<T, v.CheckIssue<T>, [C]>(
     v.check(
       input => (input[confirm] as unknown) === input[password],
       msg('validation.passwordsMismatch'),
     ),
-    [confirm] as ConfirmPath,
+    keyOfInputAsForwardPath<T, C>(confirm),
   );
 }
 
-/** A required, well-formed email. Trimmed, so the output has no spaces. */
 export function emailField() {
   return v.pipe(
     v.string(),

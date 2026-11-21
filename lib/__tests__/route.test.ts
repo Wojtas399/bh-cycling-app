@@ -1,5 +1,10 @@
 import type { IntervalsActivity } from '../intervalsApi';
-import { activityHasRoute, simplifyRoutePoints, toRoute } from '../route';
+import {
+  activityHasRoute,
+  simplifyRoutePoints,
+  summariseRoute,
+  toRoute,
+} from '../route';
 
 function activity(
   overrides: Partial<IntervalsActivity> = {},
@@ -44,8 +49,9 @@ describe('activityHasRoute', () => {
   });
 });
 
-// At this latitude, 0.00001° of latitude is about 1.1 m.
 const LAT = 52.2;
+const ABOUT_10_M_OF_LATITUDE = 0.00009;
+const ABOUT_3_M_OF_LATITUDE = 0.000027;
 
 describe('simplifyRoutePoints', () => {
   it('collapses a straight line to its endpoints', () => {
@@ -64,8 +70,7 @@ describe('simplifyRoutePoints', () => {
   });
 
   it('keeps a corner further than about 5 m off the line', () => {
-    // About 10 m north of the straight line.
-    const corner: [number, number] = [LAT + 0.00009, 21.002];
+    const corner: [number, number] = [LAT + ABOUT_10_M_OF_LATITUDE, 21.002];
 
     expect(simplifyRoutePoints([[LAT, 21.0], corner, [LAT, 21.004]])).toEqual([
       [LAT, 21.0],
@@ -75,11 +80,10 @@ describe('simplifyRoutePoints', () => {
   });
 
   it('drops a corner within about 5 m of the line', () => {
-    // About 3 m north of the straight line.
     expect(
       simplifyRoutePoints([
         [LAT, 21.0],
-        [LAT + 0.000027, 21.002],
+        [LAT + ABOUT_3_M_OF_LATITUDE, 21.002],
         [LAT, 21.004],
       ]),
     ).toEqual([
@@ -217,6 +221,23 @@ describe('toRoute', () => {
     ]);
   });
 
+  it('computes the bounds from every valid point, even one simplification drops', () => {
+    const route = toRoute({
+      latlngs: [
+        [LAT, 21.0],
+        [LAT + ABOUT_3_M_OF_LATITUDE, 21.002],
+        [LAT, 21.004],
+      ],
+      bounds: null,
+    });
+
+    expect(route?.points).toHaveLength(2);
+    expect(route?.bounds).toEqual([
+      [LAT, 21.0],
+      [LAT + ABOUT_3_M_OF_LATITUDE, 21.004],
+    ]);
+  });
+
   it('is null when fewer than 2 valid points remain', () => {
     expect(toRoute({ latlngs: [[LAT, 21.0], null] })).toBeNull();
   });
@@ -225,5 +246,35 @@ describe('toRoute', () => {
     expect(toRoute({ latlngs: [] })).toBeNull();
     expect(toRoute({ latlngs: null })).toBeNull();
     expect(toRoute({})).toBeNull();
+  });
+});
+
+describe('summariseRoute', () => {
+  it('names the Activity, its distance in metres and its local start', () => {
+    expect(summariseRoute(activity({ elapsed_time: undefined }))).toEqual({
+      activityId: 'i1',
+      distanceMeters: 30_000,
+      startLocal: '2026-10-17T09:00:00',
+    });
+  });
+
+  it('finishes at the start plus the elapsed time, stops included', () => {
+    expect(
+      summariseRoute(activity({ moving_time: 3600, elapsed_time: 4500 }))
+        ?.finishLocal,
+    ).toBe('2026-10-17T10:15:00');
+  });
+
+  it("leaves out a distance or a finish that isn't a finite number", () => {
+    const summary = summariseRoute(
+      activity({ distance: Number.NaN, elapsed_time: Number.NaN }),
+    );
+
+    expect(summary).not.toHaveProperty('distanceMeters');
+    expect(summary).not.toHaveProperty('finishLocal');
+  });
+
+  it('is null for an Activity with no Route', () => {
+    expect(summariseRoute(activity({ type: 'VirtualRide' }))).toBeNull();
   });
 });

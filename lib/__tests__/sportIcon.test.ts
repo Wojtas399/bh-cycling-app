@@ -68,9 +68,10 @@ describe('sportLabel', () => {
   });
 
   it('takes the first matching sport, as the icon does', () => {
-    // Matches both the ride pattern (`Ride$`) and the winter one (`Snow`).
-    expect(sportLabel('SnowRide')).toBe('sport.ride');
-    expect(sportIcon('SnowRide')).toBe('bicycle');
+    const rideAndWinterType = 'SnowRide';
+
+    expect(sportLabel(rideAndWinterType)).toBe('sport.ride');
+    expect(sportIcon(rideAndWinterType)).toBe('bicycle');
   });
 
   it('falls back to a generic label for a sport it does not know', () => {

@@ -14,6 +14,10 @@ describe('createQueryClient', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('routes an IntervalsAuthError to the auth-error handler once, without retrying', async () => {
     const client = createQueryClient();
     const queryFn = jest.fn().mockRejectedValue(new IntervalsAuthError());
@@ -38,6 +42,38 @@ describe('createQueryClient', () => {
     ).rejects.toThrow('network down');
 
     expect(mockHandleIntervalsAuthError).not.toHaveBeenCalled();
+  });
+
+  it('drops a failed auth-error handler, whose integration delete is best-effort', async () => {
+    const unhandledRejection = jest.fn();
+    const client = createQueryClient();
+
+    process.on('unhandledRejection', unhandledRejection);
+    mockHandleIntervalsAuthError.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(
+      client.fetchQuery({
+        queryKey: ['intervals', 'athlete-1', 'x'],
+        queryFn: () => Promise.reject(new IntervalsAuthError()),
+      }),
+    ).rejects.toBeInstanceOf(IntervalsAuthError);
+    await new Promise(resolve => setImmediate(resolve));
+    process.off('unhandledRejection', unhandledRejection);
+
+    expect(unhandledRejection).not.toHaveBeenCalled();
+  });
+
+  it('keeps data for the whole session until an explicit refresh', () => {
+    jest.useFakeTimers();
+
+    const client = createQueryClient();
+    const queryKey = ['intervals', 'athlete-1', 'x'];
+
+    client.setQueryData(queryKey, 'cached');
+    jest.advanceTimersByTime(7 * 24 * 60 * 60 * 1000);
+
+    expect(client.getQueryData(queryKey)).toBe('cached');
+    expect(client.getQueryCache().find({ queryKey })?.isStale()).toBe(false);
   });
 });
 

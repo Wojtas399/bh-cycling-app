@@ -37,4 +37,14 @@ describe('createListeners', () => {
 
     expect(start).toHaveBeenCalledTimes(2);
   });
+
+  it('works through subscribe and notify taken off the store', () => {
+    const { subscribe, notify } = createListeners();
+    const listener = jest.fn();
+
+    subscribe(listener);
+    notify();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
 });
