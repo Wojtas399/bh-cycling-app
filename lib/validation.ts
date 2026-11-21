@@ -1,4 +1,4 @@
-import type { ParseKeys } from 'i18next';
+import i18n, { type ParseKeys, exists } from 'i18next';
 import * as v from 'valibot';
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -7,6 +7,16 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 export function msg(key: ParseKeys): string {
   return key;
+}
+
+export function isTranslationKey(message: string): message is ParseKeys {
+  return (
+    exists(message) &&
+    i18n.languages.some(
+      language =>
+        typeof i18n.getResource(language, 'translation', message) === 'string',
+    )
+  );
 }
 
 export function requiredString(requiredKey: ParseKeys) {
