@@ -12,7 +12,7 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import theme, { useAppTheme } from '@/constants/theme';
 import {
-  ANDROID_SHEET_TOAST_HOST,
+  SHEET_HOSTS_ITS_OWN_TOASTS,
   sheetSurface,
   signalOnDetach,
 } from '@/lib/bottomSheet';
@@ -107,7 +107,7 @@ export default function BottomSheet({
 
           <ScrollView nestedScrollEnabled>{children}</ScrollView>
 
-          {ANDROID_SHEET_TOAST_HOST && visible ? <SheetToastHost /> : null}
+          {SHEET_HOSTS_ITS_OWN_TOASTS && visible ? <SheetToastHost /> : null}
 
           <View ref={signalDismissedOnDetach} />
         </Box>

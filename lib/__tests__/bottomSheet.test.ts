@@ -12,13 +12,15 @@ function bottomSheetModuleOn(os: typeof ReactNative.Platform.OS) {
   });
 }
 
-describe('ANDROID_SHEET_TOAST_HOST', () => {
+describe('SHEET_HOSTS_ITS_OWN_TOASTS', () => {
   it('gives an Android sheet its own toast host, because the sheet is a Dialog window above the root host', () => {
-    expect(bottomSheetModuleOn('android').ANDROID_SHEET_TOAST_HOST).toBe(true);
+    expect(bottomSheetModuleOn('android').SHEET_HOSTS_ITS_OWN_TOASTS).toBe(
+      true,
+    );
   });
 
   it('leaves an iOS sheet to the root toast host, which stays above sheets', () => {
-    expect(bottomSheetModuleOn('ios').ANDROID_SHEET_TOAST_HOST).toBe(false);
+    expect(bottomSheetModuleOn('ios').SHEET_HOSTS_ITS_OWN_TOASTS).toBe(false);
   });
 });
 
