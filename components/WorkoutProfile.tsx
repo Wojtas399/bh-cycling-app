@@ -76,10 +76,7 @@ export default function WorkoutProfile({
       {width > 0 && (
         <Svg width={width} height={height}>
           {bars.map((bar, index) => (
-            // Blocks have no identity of their own: they are positions in a
-            // time-ordered list that is replaced wholesale, never reordered
-            // or spliced, so the index is the stable identity here.
-            // eslint-disable-next-line react/no-array-index-key
+            // eslint-disable-next-line react/no-array-index-key -- blocks have no identity of their own: they are positions in a time-ordered list that is replaced wholesale, never reordered or spliced, so the index is the stable identity
             <G key={index}>
               <BarShape
                 bar={bar}

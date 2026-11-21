@@ -2,6 +2,8 @@
 const { defineConfig } = require('eslint/config');
 const expoConfig = require('eslint-config-expo/flat');
 const eslintPluginPrettierRecommended = require('eslint-plugin-prettier/recommended');
+const eslintComments = require('@eslint-community/eslint-plugin-eslint-comments');
+const { EXCLUDED_GENERATED_PATHS } = require('./scripts/check-no-comments');
 
 // Each restricted path is listed once here, because a later config block that
 // sets 'no-restricted-imports' replaces the whole list rather than merging it.
@@ -31,7 +33,13 @@ module.exports = defineConfig([
   expoConfig,
   eslintPluginPrettierRecommended,
   {
-    ignores: ['dist/*', 'expo-env.d.ts', '.claude/**', 'functions/**'],
+    ignores: [...EXCLUDED_GENERATED_PATHS, '.claude/**', 'functions/**'],
+  },
+  {
+    plugins: { 'eslint-comments': eslintComments },
+    rules: {
+      'eslint-comments/require-description': ['error', { ignore: [] }],
+    },
   },
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -45,6 +53,15 @@ module.exports = defineConfig([
       ],
       '@typescript-eslint/no-empty-interface': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-check': true,
+        },
+      ],
 
       // React
       'react/self-closing-comp': 'warn',
