@@ -13,9 +13,12 @@ export async function revokeIntervalsToken(uid: string): Promise<void> {
 
     if (!snapshot.exists) return;
 
-    const parsed = v.safeParse(intervalsIntegrationSchema, snapshot.data());
+    const integrationParse = v.safeParse(
+      intervalsIntegrationSchema,
+      snapshot.data(),
+    );
 
-    if (!parsed.success) {
+    if (!integrationParse.success) {
       console.error(
         'Intervals.icu token revocation skipped: the integration document is malformed.',
       );
@@ -23,7 +26,7 @@ export async function revokeIntervalsToken(uid: string): Promise<void> {
       return;
     }
 
-    const { accessToken } = parsed.output;
+    const { accessToken } = integrationParse.output;
     const response = await fetch(DISCONNECT_APP_URL, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },

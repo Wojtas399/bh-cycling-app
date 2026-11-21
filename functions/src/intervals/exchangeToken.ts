@@ -52,19 +52,19 @@ export async function exchangeIntervalsTokenHandler(
     );
   }
 
-  const parsed = v.safeParse(
+  const tokenParse = v.safeParse(
     intervalsTokenResponseSchema,
     await response.json(),
   );
 
-  if (!parsed.success) {
+  if (!tokenParse.success) {
     throw new HttpsError(
       'internal',
       'Intervals.icu returned an unexpected token response.',
     );
   }
 
-  const tokenResponse = parsed.output;
+  const tokenResponse = tokenParse.output;
 
   const integration: IntervalsIntegration = {
     accessToken: tokenResponse.access_token,
