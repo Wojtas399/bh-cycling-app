@@ -418,7 +418,7 @@ describe('upcomingQueryOptions', () => {
     mockGetActivities.mockResolvedValue([]);
   });
 
-  it("fetches today's and tomorrow's events and Activities a week past each edge", async () => {
+  it("reads today's and tomorrow's events and Activities from the Intervals API through the Calendar Items module", async () => {
     mockGetCalendarEvents.mockResolvedValue([]);
 
     const client = createQueryClient();

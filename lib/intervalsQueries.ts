@@ -25,10 +25,8 @@ import {
 } from './fitness';
 import {
   EVENT_CATEGORY,
-  type IntervalsActivity,
   IntervalsApiError,
   type IntervalsCalendarEvent,
-  type IntervalsField,
   getActivities,
   getActivity,
   getActivityMap,
@@ -480,48 +478,6 @@ export function routeQueryOptions(
         : skipToken,
     staleTime: Infinity,
   });
-}
-
-interface CalendarRangeData {
-  events: IntervalsCalendarEvent[];
-  activities: IntervalsActivity[];
-  notes: Note[];
-  zoneConfig: ZoneConfig;
-}
-
-const UPCOMING_ACTIVITY_FIELDS: readonly IntervalsField<IntervalsActivity>[] = [
-  'id',
-  'start_date_local',
-  'type',
-  'paired_event_id',
-  'name',
-  'moving_time',
-  'distance',
-  'icu_training_load',
-];
-
-async function fetchCalendarRange(
-  client: QueryClient,
-  credentials: IntervalsCredentials,
-  first: Date,
-  last: Date,
-  signal: AbortSignal,
-): Promise<CalendarRangeData> {
-  const { accessToken, athleteId } = credentials;
-  const window = pairingWindow(first, last);
-  const [events, activities, zoneConfig, notes] = await Promise.all([
-    getCalendarEvents(accessToken, athleteId, window, { signal }),
-    getActivities(
-      accessToken,
-      athleteId,
-      { ...window, fields: UPCOMING_ACTIVITY_FIELDS },
-      { signal },
-    ),
-    fetchZoneConfigOrCoggan(client, credentials),
-    fetchNotes(credentials, first, last, signal),
-  ]);
-
-  return { events, activities, notes, zoneConfig };
 }
 
 function intervalsCalendarReads(
