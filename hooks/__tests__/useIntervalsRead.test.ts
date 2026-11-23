@@ -181,5 +181,34 @@ describe('useIntervalsRead', () => {
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
       expect(result.current.query.data).toEqual(new Set(['2026-11-20']));
     });
+
+    it('keeps the same selected data across renders while the selectArgs are equal', async () => {
+      connectIntervals();
+      let today = '2026-11-21';
+      const { result, rerender } = await renderSelected(() => today);
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      const first = result.current.query.data;
+
+      today = '2026-11-21';
+      await rerender(undefined);
+
+      expect(result.current.query.data).toBe(first);
+    });
+
+    it('selects again once a selectArg changes', async () => {
+      connectIntervals();
+      let today = '2026-11-21';
+      const { result, rerender } = await renderSelected(() => today);
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+
+      today = '2026-11-22';
+      await rerender(undefined);
+
+      expect(result.current.query.data).toEqual(
+        new Set(['2026-11-20', '2026-11-22']),
+      );
+    });
   });
 });
