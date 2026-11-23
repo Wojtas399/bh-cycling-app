@@ -10,6 +10,7 @@ import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { restoreDefaultFocus } from '@/test-utils/focus';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -160,6 +161,30 @@ describe('useActivityRoute', () => {
     expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
     expect(result.current.query.data).not.toBeNull();
+  });
+
+  it('refetches a failed Route on refetchIfFailed when its caller never reads the query, as the details screens do', async () => {
+    connectIntervals();
+    let failRead: (error: Error) => void = () => undefined;
+
+    mockGetActivityMap.mockReturnValueOnce(
+      new Promise((_, reject) => {
+        failRead = reject;
+      }),
+    );
+
+    const { result, client } = await renderHookWithClient(
+      () => useActivityRoute(ACTIVITY_ID).refetchIfFailed,
+    );
+
+    await settleQueries();
+    await act(async () => failRead(new IntervalsApiError(500)));
+    await settleQueries();
+    expect(client.getQueryState(ROUTE_KEY)?.status).toBe('error');
+
+    await act(() => result.current());
+
+    expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
   });
 
   it('does nothing on refetchIfFailed once the Route has loaded, resolving by the next microtask with no request in flight', async () => {

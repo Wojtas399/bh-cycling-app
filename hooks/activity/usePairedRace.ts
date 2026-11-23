@@ -1,14 +1,11 @@
-import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
-import { useRefetchQuery } from '@/hooks/useRefetchQuery';
+import { useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { raceQueryOptions } from '@/lib/intervalsQueries';
-import { useQuery } from '@tanstack/react-query';
 
 export function usePairedRace(eventId: number | null) {
-  const { credentials } = useIntervalsAvailability();
-  const options = raceQueryOptions(credentials, eventId);
+  const { query, refetch } = useIntervalsRead({
+    queryOptions: raceQueryOptions,
+    args: [eventId],
+  });
 
-  const { data } = useQuery(options);
-  const refetch = useRefetchQuery(options.queryKey);
-
-  return { race: data ?? undefined, refetch };
+  return { race: query.data ?? undefined, refetch };
 }

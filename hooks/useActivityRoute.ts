@@ -1,19 +1,14 @@
-import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
-import { useRefetchQuery } from '@/hooks/useRefetchQuery';
+import { useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { routeQueryOptions } from '@/lib/intervalsQueries';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export function useActivityRoute(activityId: string | null) {
-  const { credentials } = useIntervalsAvailability();
-  const queryClient = useQueryClient();
-  const options = routeQueryOptions(credentials, activityId);
-  const { queryKey } = options;
-
-  const query = useQuery(options);
-  const refetch = useRefetchQuery(queryKey);
+  const { query, refetch } = useIntervalsRead({
+    queryOptions: routeQueryOptions,
+    args: [activityId],
+  });
 
   async function refetchIfFailed() {
-    if (queryClient.getQueryState(queryKey)?.status !== 'error') return;
+    if (!query.isError) return;
 
     await refetch();
   }
