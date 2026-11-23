@@ -4,6 +4,7 @@ import {
   toStoredActivityDetails,
 } from './activityDetails';
 import {
+  type CalendarRange,
   type CalendarReads,
   TILE_ACTIVITY_FIELDS,
   readCalendarRange,
@@ -157,12 +158,7 @@ export function upcomingQueryOptions(
               { activityFields: TILE_ACTIVITY_FIELDS },
             ),
             fetchZoneConfigOrCoggan(client, credentials),
-            fetchNotes(
-              credentials,
-              fromLocalDateString(range.oldest),
-              fromLocalDateString(range.newest),
-              signal,
-            ),
+            fetchNotes(credentials, range, signal),
           ]);
 
           return {
@@ -293,7 +289,7 @@ export function monthQueryOptions(
               },
             ),
             fetchZoneConfigOrCoggan(client, credentials),
-            fetchNotes(credentials, first, last, signal),
+            fetchNotes(credentials, range, signal),
           ]);
 
           return {
@@ -500,15 +496,14 @@ function intervalsCalendarReads(
 
 async function fetchNotes(
   { accessToken, athleteId }: IntervalsCredentials,
-  first: Date,
-  last: Date,
+  range: CalendarRange,
   signal: AbortSignal,
 ): Promise<Note[]> {
   return toNotes(
     await getCalendarEvents(
       accessToken,
       athleteId,
-      { ...noteWindow(first, last), category: EVENT_CATEGORY.note },
+      { ...noteWindow(range), category: EVENT_CATEGORY.note },
       { signal },
     ),
   );

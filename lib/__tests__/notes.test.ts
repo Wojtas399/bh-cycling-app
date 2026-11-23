@@ -205,7 +205,7 @@ describe('noteLastDay and isMultiDay', () => {
 describe('noteWindow', () => {
   it('reaches 31 days back from the first day, as intervals.icu filters Notes by start date, so a Note started up to then still shows, to the last day', () => {
     expect(NOTE_LOOK_BACK_DAYS).toBe(31);
-    expect(noteWindow(new Date(2026, 9, 23), new Date(2026, 9, 24))).toEqual({
+    expect(noteWindow({ oldest: '2026-10-23', newest: '2026-10-24' })).toEqual({
       oldest: '2026-09-22',
       newest: '2026-10-24',
     });

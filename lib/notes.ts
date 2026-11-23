@@ -1,3 +1,4 @@
+import type { CalendarRange } from './calendarItems';
 import {
   EVENT_CATEGORY,
   type HexColorString,
@@ -60,13 +61,12 @@ export function toNotes(events: NoteEvent[]): Note[] {
 
 export const NOTE_LOOK_BACK_DAYS = 31;
 
-export function noteWindow(
-  first: Date,
-  last: Date,
-): { oldest: LocalDateString; newest: LocalDateString } {
+export function noteWindow({ oldest, newest }: CalendarRange): CalendarRange {
   return {
-    oldest: toLocalDateString(addDays(first, -NOTE_LOOK_BACK_DAYS)),
-    newest: toLocalDateString(last),
+    oldest: toLocalDateString(
+      addDays(fromLocalDateString(oldest), -NOTE_LOOK_BACK_DAYS),
+    ),
+    newest,
   };
 }
 
