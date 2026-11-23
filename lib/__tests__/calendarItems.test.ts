@@ -1,15 +1,25 @@
 import {
+  type CalendarRange,
+  TILE_ACTIVITY_FIELDS,
   activityMetrics,
   calendarItemDate,
   calendarItemKey,
   joinCalendarItems,
+  readCalendarRange,
+  toStoredCalendarItems,
   withWorkoutStatus,
 } from '../calendarItems';
 import type {
   IntervalsActivity,
   IntervalsCalendarEvent,
 } from '../intervalsApi';
-import { resolveZoneConfig } from '../powerZones';
+import { type ZoneConfig, resolveZoneConfig } from '../powerZones';
+import {
+  type FakeCalendarReads,
+  fakeCalendarReads,
+  intervalsActivity,
+  intervalsEvent,
+} from '@/test-utils/calendarItems';
 import {
   type IntervalsJson,
   fromIntervalsJson,
@@ -43,6 +53,55 @@ function activity(
 }
 
 const ZONE_CONFIG = resolveZoneConfig();
+
+const OCTOBER_WEEK: CalendarRange = {
+  oldest: '2026-10-12',
+  newest: '2026-10-18',
+};
+
+async function storedItems(
+  reads: FakeCalendarReads,
+  range: CalendarRange = OCTOBER_WEEK,
+  zoneConfig: ZoneConfig = ZONE_CONFIG,
+) {
+  const paired = await readCalendarRange(reads, range, {
+    activityFields: TILE_ACTIVITY_FIELDS,
+  });
+
+  return toStoredCalendarItems(paired, range, zoneConfig);
+}
+
+describe('the Calendar Items module', () => {
+  it('lists an Activity paired to no Workout as an Unplanned Activity on its day, with every day of the range present', async () => {
+    const { itemsByDate, completedEventIds } = await storedItems(
+      fakeCalendarReads({ activities: [intervalsActivity()] }),
+    );
+
+    expect(itemsByDate).toEqual({
+      '2026-10-12': [],
+      '2026-10-13': [],
+      '2026-10-14': [
+        {
+          kind: 'activity',
+          activity: {
+            id: 'a1',
+            name: 'Zwift',
+            type: 'VirtualRide',
+            date: '2026-10-14',
+            durationSeconds: 1620,
+            distanceMeters: 14000,
+            load: 26,
+          },
+        },
+      ],
+      '2026-10-15': [],
+      '2026-10-16': [],
+      '2026-10-17': [],
+      '2026-10-18': [],
+    });
+    expect(completedEventIds).toEqual([]);
+  });
+});
 
 describe('joinCalendarItems', () => {
   it('lists an Activity paired to no Workout as an Unplanned Activity', () => {

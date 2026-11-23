@@ -5,22 +5,27 @@ export type PairableEvent = Pick<
   'id' | 'paired_activity_id'
 >;
 
-export interface WorkoutPairing {
+export type PairableActivity = Pick<
+  IntervalsActivity,
+  'id' | 'start_date_local' | 'paired_event_id'
+>;
+
+export interface WorkoutPairing<Activity = IntervalsActivity> {
   completed: boolean;
-  activity: IntervalsActivity | null;
+  activity: Activity | null;
 }
 
-export interface Pairings {
-  byEventId: Map<number, WorkoutPairing>;
+export interface Pairings<Activity> {
+  byEventId: Map<number, WorkoutPairing<Activity>>;
   pairedActivityIds: Set<string>;
   completedEventIds: Set<number>;
 }
 
-export function pairWorkouts(
+export function pairWorkouts<Activity extends PairableActivity>(
   events: readonly PairableEvent[],
-  activities: readonly IntervalsActivity[],
-): Pairings {
-  const byEventId = new Map<number, WorkoutPairing>();
+  activities: readonly Activity[],
+): Pairings<Activity> {
+  const byEventId = new Map<number, WorkoutPairing<Activity>>();
   const pairedActivityIds = new Set<string>();
   const completedEventIds = new Set<number>();
 
@@ -52,10 +57,10 @@ export function pairWorkout(
   return { completed, activity: earliest(paired) };
 }
 
-function pair(
+function pair<Activity extends PairableActivity>(
   event: PairableEvent,
-  activities: readonly IntervalsActivity[],
-): { completed: boolean; paired: IntervalsActivity[] } {
+  activities: readonly Activity[],
+): { completed: boolean; paired: Activity[] } {
   const namedActivityId = nonEmptyPairedActivityId(event);
   const paired = activities.filter(
     activity =>
@@ -65,8 +70,10 @@ function pair(
   return { completed: namedActivityId !== null || paired.length > 0, paired };
 }
 
-function earliest(activities: IntervalsActivity[]): IntervalsActivity | null {
-  return activities.reduce<IntervalsActivity | null>(
+function earliest<Activity extends PairableActivity>(
+  activities: Activity[],
+): Activity | null {
+  return activities.reduce<Activity | null>(
     (first, activity) =>
       first && first.start_date_local <= activity.start_date_local
         ? first
