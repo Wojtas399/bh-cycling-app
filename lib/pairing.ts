@@ -10,7 +10,7 @@ export type PairableActivity = Pick<
   'id' | 'start_date_local' | 'paired_event_id'
 >;
 
-export interface WorkoutPairing<Activity = IntervalsActivity> {
+export interface WorkoutPairing<Activity> {
   completed: boolean;
   activity: Activity | null;
 }
@@ -46,15 +46,6 @@ export function pairWorkouts<Activity extends PairableActivity>(
   }
 
   return { byEventId, pairedActivityIds, completedEventIds };
-}
-
-export function pairWorkout(
-  event: PairableEvent,
-  activities: readonly IntervalsActivity[],
-): WorkoutPairing {
-  const { completed, paired } = pair(event, activities);
-
-  return { completed, activity: earliest(paired) };
 }
 
 function pair<Activity extends PairableActivity>(

@@ -5,6 +5,7 @@ import {
   activityMetrics,
   calendarItemDate,
   calendarItemKey,
+  findWorkout,
   readCalendarRange,
   toStoredCalendarItems,
   withItemStatuses,
@@ -1110,6 +1111,62 @@ describe('withItemStatuses', () => {
     expect(withItemStatuses(stored, TODAY)['2026-10-13']).toEqual(
       stored.itemsByDate['2026-10-13'],
     );
+  });
+});
+
+describe('findWorkout', () => {
+  const PLANNED_DAY: CalendarRange = {
+    oldest: '2026-10-14',
+    newest: '2026-10-14',
+  };
+
+  it('finds a Workout ridden days after its planned day, with its Activity, from a read of the planned day alone', async () => {
+    const planned = intervalsEvent({
+      id: 42,
+      start_date_local: '2026-10-14T08:00:00',
+    });
+    const paired = await readCalendarRange(
+      fakeCalendarReads({
+        events: [intervalsEvent({ id: 7 }), planned],
+        activities: [
+          intervalsActivity({
+            id: 'later',
+            paired_event_id: 42,
+            start_date_local: '2026-10-17T18:00:00',
+            icu_average_watts: 212,
+          }),
+        ],
+      }),
+      PLANNED_DAY,
+      { activityFields: ['icu_average_watts'] },
+    );
+
+    expect(findWorkout(paired, 42)).toEqual({
+      kind: 'workout',
+      event: planned,
+      activity: expect.objectContaining({
+        id: 'later',
+        start_date_local: '2026-10-17T18:00:00',
+        icu_average_watts: 212,
+      }),
+      completed: true,
+    });
+  });
+
+  it('finds no Workout for a Race, an Unplanned Activity or an id the read lacks', async () => {
+    const paired = await readCalendarRange(
+      fakeCalendarReads({
+        events: [intervalsEvent({ id: 5, category: 'RACE_A' })],
+        activities: [intervalsActivity({ id: '6' })],
+      }),
+      PLANNED_DAY,
+      { activityFields: [] },
+    );
+
+    expect(paired.items).toHaveLength(2);
+    expect(findWorkout(paired, 5)).toBeUndefined();
+    expect(findWorkout(paired, 6)).toBeUndefined();
+    expect(findWorkout(paired, 42)).toBeUndefined();
   });
 });
 

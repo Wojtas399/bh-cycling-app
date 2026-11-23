@@ -1,4 +1,5 @@
 import { buildActivityDetails } from '../activityDetails';
+import { findWorkout } from '../calendarItems';
 import {
   type IntervalsActivity,
   IntervalsApiError,
@@ -125,7 +126,7 @@ describe('query keys', () => {
       workoutDetailsQueryOptions(
         CREDENTIALS,
         42,
-        selectWorkoutDetailsAsOf(TODAY),
+        selectWorkoutDetailsAsOf(42, TODAY),
       ).queryKey,
     ],
     ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42).queryKey],
@@ -227,7 +228,7 @@ describe('freshness', () => {
       workoutDetailsQueryOptions(
         CREDENTIALS,
         42,
-        selectWorkoutDetailsAsOf(TODAY),
+        selectWorkoutDetailsAsOf(42, TODAY),
       ),
     ],
     ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42)],
@@ -858,7 +859,7 @@ describe('workoutDetailsQueryOptions', () => {
     mockGetCalendarEvent.mockResolvedValue(SINGLE_READ);
   });
 
-  it("takes the Workout from its day's list, since the single read lacks paired_activity_id and step watts", async () => {
+  it('takes the Workout from the Workouts listed a week past each side of its day, since the single read lacks paired_activity_id and step watts', async () => {
     mockGetCalendarEvents.mockResolvedValue([workoutEvent({ id: 7 }), LISTED]);
 
     const client = createQueryClient();
@@ -866,7 +867,7 @@ describe('workoutDetailsQueryOptions', () => {
       workoutDetailsQueryOptions(
         CREDENTIALS,
         42,
-        selectWorkoutDetailsAsOf(TODAY),
+        selectWorkoutDetailsAsOf(42, TODAY),
       ),
     );
 
@@ -874,17 +875,17 @@ describe('workoutDetailsQueryOptions', () => {
       'token-1',
       'athlete-1',
       {
-        oldest: '2026-02-11',
-        newest: '2026-02-11',
+        oldest: '2026-02-04',
+        newest: '2026-02-18',
         category: 'WORKOUT',
         resolve: true,
       },
       { signal: expect.any(AbortSignal) },
     );
-    expect(stored.event).toEqual(LISTED);
+    expect(findWorkout(stored.paired, 42)?.event).toEqual(LISTED);
   });
 
-  it("falls back to the single read when its day's list lacks the event", async () => {
+  it('falls back to the single read when the listed Workouts lack the event', async () => {
     mockGetCalendarEvents.mockResolvedValue([workoutEvent({ id: 7 })]);
 
     const client = createQueryClient();
@@ -892,11 +893,11 @@ describe('workoutDetailsQueryOptions', () => {
       workoutDetailsQueryOptions(
         CREDENTIALS,
         42,
-        selectWorkoutDetailsAsOf(TODAY),
+        selectWorkoutDetailsAsOf(42, TODAY),
       ),
     );
 
-    expect(stored.event).toEqual(SINGLE_READ);
+    expect(findWorkout(stored.paired, 42)?.event).toEqual(SINGLE_READ);
   });
 });
 
