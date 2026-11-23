@@ -1,13 +1,13 @@
 import {
   type CalendarRange,
+  type StoredCalendarItems,
   TILE_ACTIVITY_FIELDS,
   activityMetrics,
   calendarItemDate,
   calendarItemKey,
-  joinCalendarItems,
   readCalendarRange,
   toStoredCalendarItems,
-  withWorkoutStatus,
+  withItemStatuses,
 } from '../calendarItems';
 import type {
   IntervalsActivity,
@@ -15,70 +15,150 @@ import type {
 } from '../intervalsApi';
 import { type ZoneConfig, resolveZoneConfig } from '../powerZones';
 import {
-  type FakeCalendarReads,
   fakeCalendarReads,
   intervalsActivity,
   intervalsEvent,
 } from '@/test-utils/calendarItems';
-import {
-  type IntervalsJson,
-  fromIntervalsJson,
-} from '@/test-utils/intervalsJson';
-
-function event(
-  overrides: Partial<IntervalsCalendarEvent>,
-): IntervalsCalendarEvent {
-  return {
-    id: 1,
-    category: 'WORKOUT',
-    name: 'Sample workout',
-    start_date_local: '2026-10-14T08:00:00',
-    ...overrides,
-  };
-}
-
-function activity(
-  overrides: Partial<IntervalsJson<IntervalsActivity>>,
-): IntervalsActivity {
-  return fromIntervalsJson<IntervalsActivity>({
-    id: 'a1',
-    name: 'Zwift',
-    type: 'VirtualRide',
-    start_date_local: '2026-10-14T18:00:00',
-    moving_time: 1620,
-    distance: 14000,
-    icu_training_load: 26,
-    ...overrides,
-  });
-}
 
 const ZONE_CONFIG = resolveZoneConfig();
 
-const OCTOBER_WEEK: CalendarRange = {
+const TWO_OCTOBER_WEEKS: CalendarRange = {
   oldest: '2026-10-12',
-  newest: '2026-10-18',
+  newest: '2026-10-25',
 };
 
-async function storedItems(
-  reads: FakeCalendarReads,
-  range: CalendarRange = OCTOBER_WEEK,
-  zoneConfig: ZoneConfig = ZONE_CONFIG,
-) {
-  const paired = await readCalendarRange(reads, range, {
-    activityFields: TILE_ACTIVITY_FIELDS,
-  });
+interface Fixtures {
+  events?: IntervalsCalendarEvent[];
+  activities?: IntervalsActivity[];
+  range?: CalendarRange;
+  zoneConfig?: ZoneConfig;
+}
+
+async function storedItems({
+  events,
+  activities,
+  range = TWO_OCTOBER_WEEKS,
+  zoneConfig = ZONE_CONFIG,
+}: Fixtures = {}): Promise<StoredCalendarItems> {
+  const paired = await readCalendarRange(
+    fakeCalendarReads({ events, activities }),
+    range,
+    { activityFields: TILE_ACTIVITY_FIELDS },
+  );
 
   return toStoredCalendarItems(paired, range, zoneConfig);
 }
 
-describe('the Calendar Items module', () => {
-  it('lists an Activity paired to no Workout as an Unplanned Activity on its day, with every day of the range present', async () => {
-    const { itemsByDate, completedEventIds } = await storedItems(
-      fakeCalendarReads({ activities: [intervalsActivity()] }),
+async function listedItems(fixtures: Fixtures) {
+  const { itemsByDate, completedEventIds } = await storedItems(fixtures);
+
+  return { items: Object.values(itemsByDate).flat(), completedEventIds };
+}
+
+describe('readCalendarRange', () => {
+  it("reads events and Activities a week past each edge of the range, adding the pairing fields to the caller's fields", async () => {
+    const reads = fakeCalendarReads();
+
+    await readCalendarRange(reads, TWO_OCTOBER_WEEKS, {
+      activityFields: ['moving_time', 'name', 'icu_average_watts'],
+    });
+
+    expect(reads.eventReads).toEqual([
+      { range: { oldest: '2026-10-05', newest: '2026-11-01' }, options: {} },
+    ]);
+    expect(reads.activityReads).toEqual([
+      {
+        range: { oldest: '2026-10-05', newest: '2026-11-01' },
+        fields: [
+          'id',
+          'start_date_local',
+          'type',
+          'paired_event_id',
+          'name',
+          'moving_time',
+          'icu_average_watts',
+        ],
+      },
+    ]);
+  });
+
+  it('pads across month edges by calendar days', async () => {
+    const reads = fakeCalendarReads();
+
+    await readCalendarRange(
+      reads,
+      { oldest: '2026-10-01', newest: '2026-10-31' },
+      { activityFields: [] },
     );
 
+    expect(reads.eventReads[0].range).toEqual({
+      oldest: '2026-09-24',
+      newest: '2026-11-07',
+    });
+  });
+
+  it("reads events with the caller's category and resolve options", async () => {
+    const reads = fakeCalendarReads();
+
+    await readCalendarRange(reads, TWO_OCTOBER_WEEKS, {
+      activityFields: [],
+      eventOptions: { category: 'WORKOUT', resolve: true },
+    });
+
+    expect(reads.eventReads[0].options).toEqual({
+      category: 'WORKOUT',
+      resolve: true,
+    });
+  });
+
+  it("keeps a Workout ridden outside the range in the untrimmed read, with its raw event and the caller's fields on its Activity", async () => {
+    const plannedInRange = intervalsEvent({
+      id: 7,
+      start_date_local: '2026-10-25T08:00:00',
+    });
+    const { items, completedEventIds } = await readCalendarRange(
+      fakeCalendarReads({
+        events: [plannedInRange],
+        activities: [
+          intervalsActivity({
+            id: 'late',
+            paired_event_id: 7,
+            start_date_local: '2026-10-27T08:00:00',
+            icu_average_watts: 212,
+          }),
+        ],
+      }),
+      TWO_OCTOBER_WEEKS,
+      { activityFields: ['icu_average_watts'] },
+    );
+
+    expect(items).toEqual([
+      {
+        kind: 'workout',
+        event: plannedInRange,
+        activity: {
+          id: 'late',
+          start_date_local: '2026-10-27T08:00:00',
+          type: 'VirtualRide',
+          paired_event_id: 7,
+          name: 'Zwift',
+          icu_average_watts: 212,
+        },
+        completed: true,
+      },
+    ]);
+    expect(completedEventIds).toEqual([7]);
+  });
+});
+
+describe('toStoredCalendarItems', () => {
+  it('lists an Activity paired to no Workout as an Unplanned Activity on its day, with every day of the range present', async () => {
+    const { itemsByDate, completedEventIds } = await storedItems({
+      activities: [intervalsActivity()],
+      range: { oldest: '2026-10-13', newest: '2026-10-15' },
+    });
+
     expect(itemsByDate).toEqual({
-      '2026-10-12': [],
       '2026-10-13': [],
       '2026-10-14': [
         {
@@ -95,51 +175,26 @@ describe('the Calendar Items module', () => {
         },
       ],
       '2026-10-15': [],
-      '2026-10-16': [],
-      '2026-10-17': [],
-      '2026-10-18': [],
     });
     expect(completedEventIds).toEqual([]);
   });
-});
 
-describe('joinCalendarItems', () => {
-  it('lists an Activity paired to no Workout as an Unplanned Activity', () => {
-    const { items } = joinCalendarItems([], [activity({})], ZONE_CONFIG);
-
-    expect(items).toEqual([
-      {
-        kind: 'activity',
-        activity: {
-          id: 'a1',
-          name: 'Zwift',
-          type: 'VirtualRide',
-          date: '2026-10-14',
-          durationSeconds: 1620,
-          distanceMeters: 14000,
-          load: 26,
-        },
-      },
-    ]);
-  });
-
-  it('shows a paired Activity only as its Workout, moved to the Activity day', () => {
-    const { items, completedEventIds } = joinCalendarItems(
-      [
-        event({
+  it('shows a paired Activity only as its Workout, moved to the Activity day', async () => {
+    const { items, completedEventIds } = await listedItems({
+      events: [
+        intervalsEvent({
           id: 7,
           name: 'Threshold',
           start_date_local: '2026-10-15T08:00:00',
         }),
       ],
-      [
-        activity({
+      activities: [
+        intervalsActivity({
           paired_event_id: 7,
           start_date_local: '2026-10-14T18:00:00',
         }),
       ],
-      ZONE_CONFIG,
-    );
+    });
 
     expect(items).toEqual([
       {
@@ -156,11 +211,94 @@ describe('joinCalendarItems', () => {
     expect(completedEventIds).toEqual([7]);
   });
 
+  describe('the pairing window (ADR 0007)', () => {
+    it("places a Workout planned in the week after the range, ridden inside it, on its Activity's day", async () => {
+      const { itemsByDate } = await storedItems({
+        events: [
+          intervalsEvent({ id: 7, start_date_local: '2026-11-01T08:00:00' }),
+        ],
+        activities: [
+          intervalsActivity({
+            paired_event_id: 7,
+            start_date_local: '2026-10-25T18:00:00',
+          }),
+        ],
+      });
+
+      expect(itemsByDate['2026-10-25']).toMatchObject([
+        { kind: 'workout', workout: { id: 7, date: '2026-10-25' } },
+      ]);
+    });
+
+    it("places a Workout planned in the week before the range on its Activity's day inside it", async () => {
+      const { itemsByDate } = await storedItems({
+        events: [
+          intervalsEvent({ id: 7, start_date_local: '2026-10-05T08:00:00' }),
+        ],
+        activities: [
+          intervalsActivity({
+            paired_event_id: 7,
+            start_date_local: '2026-10-12T18:00:00',
+          }),
+        ],
+      });
+
+      expect(itemsByDate['2026-10-12']).toMatchObject([
+        { kind: 'workout', workout: { id: 7 } },
+      ]);
+    });
+
+    it('drops the items whose day falls outside the range, a Workout ridden after it and Unplanned Activities in the padding among them', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({ id: 7, start_date_local: '2026-10-25T08:00:00' }),
+          intervalsEvent({ id: 8, start_date_local: '2026-10-20T08:00:00' }),
+        ],
+        activities: [
+          intervalsActivity({
+            id: 'late',
+            paired_event_id: 7,
+            start_date_local: '2026-10-26T08:00:00',
+          }),
+          intervalsActivity({
+            id: 'before',
+            start_date_local: '2026-10-11T08:00:00',
+          }),
+          intervalsActivity({
+            id: 'after',
+            start_date_local: '2026-10-26T18:00:00',
+          }),
+        ],
+      });
+
+      expect(items.map(calendarItemKey)).toEqual(['workout-8']);
+      expect(completedEventIds).toEqual([7]);
+    });
+
+    it('completes a Workout planned in the padding and ridden inside the range, though its day has passed', async () => {
+      const stored = await storedItems({
+        events: [
+          intervalsEvent({ id: 7, start_date_local: '2026-10-28T08:00:00' }),
+        ],
+        activities: [
+          intervalsActivity({
+            paired_event_id: 7,
+            start_date_local: '2026-10-25T18:00:00',
+          }),
+        ],
+      });
+
+      expect(
+        withItemStatuses(stored, '2026-10-30')['2026-10-25'],
+      ).toMatchObject([{ workout: { id: 7, status: 'completed' } }]);
+    });
+  });
+
   describe("pairing read from both sides, as intervals.icu blanks a Strava Activity's own paired_event_id but keeps the event's paired_activity_id (ADR 0009)", () => {
     const stravaActivity = (
       overrides: Partial<IntervalsActivity> = {},
     ): IntervalsActivity =>
-      activity({
+      intervalsActivity({
         id: '20664018356',
         name: undefined,
         type: undefined,
@@ -171,19 +309,18 @@ describe('joinCalendarItems', () => {
         ...overrides,
       });
 
-    it('completes a Workout whose event names a Strava Activity, on that Activity day, flagged as completed with it, and lists no Unplanned Activity', () => {
-      const { items, completedEventIds } = joinCalendarItems(
-        [
-          event({
+    it('completes a Workout whose event names a Strava Activity, on that Activity day, flagged as completed with it, and lists no Unplanned Activity', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 142141194,
             name: 'Siłownia adaptacja 2',
             start_date_local: '2026-10-21T00:00:00',
             paired_activity_id: '20664018356',
           }),
         ],
-        [stravaActivity()],
-        ZONE_CONFIG,
-      );
+        activities: [stravaActivity()],
+      });
 
       expect(items).toEqual([
         {
@@ -200,42 +337,42 @@ describe('joinCalendarItems', () => {
       expect(completedEventIds).toEqual([142141194]);
     });
 
-    it('completes a Workout an Activity names when the event names none', () => {
-      const { items, completedEventIds } = joinCalendarItems(
-        [event({ id: 7, start_date_local: '2026-10-15T08:00:00' })],
-        [
-          activity({
+    it('completes a Workout an Activity names when the event names none', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({ id: 7, start_date_local: '2026-10-15T08:00:00' }),
+        ],
+        activities: [
+          intervalsActivity({
             id: 'i1001',
             paired_event_id: 7,
             start_date_local: '2026-10-14T18:00:00',
           }),
         ],
-        ZONE_CONFIG,
-      );
+      });
 
       expect(items.map(calendarItemKey)).toEqual(['workout-7']);
       expect(items.map(calendarItemDate)).toEqual(['2026-10-14']);
       expect(completedEventIds).toEqual([7]);
     });
 
-    it('shows a native pairing recorded on both sides as one Workout, not flagged as completed with a Strava Activity', () => {
-      const { items, completedEventIds } = joinCalendarItems(
-        [
-          event({
+    it('shows a native pairing recorded on both sides as one Workout, not flagged as completed with a Strava Activity', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 7,
             start_date_local: '2026-10-15T08:00:00',
             paired_activity_id: 'i1001',
           }),
         ],
-        [
-          activity({
+        activities: [
+          intervalsActivity({
             id: 'i1001',
             paired_event_id: 7,
             start_date_local: '2026-10-14T18:00:00',
           }),
         ],
-        ZONE_CONFIG,
-      );
+      });
 
       expect(items).toEqual([
         {
@@ -252,18 +389,23 @@ describe('joinCalendarItems', () => {
       expect(completedEventIds).toEqual([7]);
     });
 
-    it('completes a Workout whose named Activity is outside the range, on its planned day, not flagged', () => {
-      const { items, completedEventIds } = joinCalendarItems(
-        [
-          event({
+    it('completes a Workout whose named Activity is beyond the pairing window, on its planned day, not flagged', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 7,
             start_date_local: '2026-10-15T08:00:00',
             paired_activity_id: '20664018356',
           }),
         ],
-        [activity({ id: 'i2002', start_date_local: '2026-10-15T18:00:00' })],
-        ZONE_CONFIG,
-      );
+        activities: [
+          stravaActivity({ start_date_local: '2026-11-20T15:05:00' }),
+          intervalsActivity({
+            id: 'i2002',
+            start_date_local: '2026-10-15T18:00:00',
+          }),
+        ],
+      });
 
       expect(items.map(calendarItemKey)).toEqual([
         'workout-7',
@@ -276,25 +418,24 @@ describe('joinCalendarItems', () => {
       expect(completedEventIds).toEqual([7]);
     });
 
-    it('moves a Workout to the earliest Activity paired from either side, which decides the flag, and lists none of them', () => {
-      const { items } = joinCalendarItems(
-        [
-          event({
+    it('moves a Workout to the earliest Activity paired from either side, which decides the flag, and lists none of them', async () => {
+      const { items } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 7,
             start_date_local: '2026-10-15T08:00:00',
             paired_activity_id: '20664018356',
           }),
         ],
-        [
-          activity({
+        activities: [
+          intervalsActivity({
             id: 'i1001',
             paired_event_id: 7,
             start_date_local: '2026-10-16T08:00:00',
           }),
           stravaActivity({ start_date_local: '2026-10-14T15:05:00' }),
         ],
-        ZONE_CONFIG,
-      );
+      });
 
       expect(items.map(calendarItemKey)).toEqual(['workout-7']);
       expect(items.map(calendarItemDate)).toEqual(['2026-10-14']);
@@ -303,25 +444,24 @@ describe('joinCalendarItems', () => {
       });
     });
 
-    it('does not flag a Workout whose earliest paired Activity is native, though a later one is a Strava Activity', () => {
-      const { items } = joinCalendarItems(
-        [
-          event({
+    it('does not flag a Workout whose earliest paired Activity is native, though a later one is a Strava Activity', async () => {
+      const { items } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 7,
             start_date_local: '2026-10-15T08:00:00',
             paired_activity_id: '20664018356',
           }),
         ],
-        [
-          activity({
+        activities: [
+          intervalsActivity({
             id: 'i1001',
             paired_event_id: 7,
             start_date_local: '2026-10-14T08:00:00',
           }),
           stravaActivity({ start_date_local: '2026-10-16T15:05:00' }),
         ],
-        ZONE_CONFIG,
-      );
+      });
 
       expect(items).toEqual([
         {
@@ -334,18 +474,17 @@ describe('joinCalendarItems', () => {
       ]);
     });
 
-    it('lists a Strava Activity no event names as an Unplanned Strava Activity', () => {
-      const { items, completedEventIds } = joinCalendarItems(
-        [
-          event({
+    it('lists a Strava Activity no event names as an Unplanned Strava Activity', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 7,
             start_date_local: '2026-10-20T08:00:00',
             paired_activity_id: 'i1001',
           }),
         ],
-        [stravaActivity()],
-        ZONE_CONFIG,
-      );
+        activities: [stravaActivity()],
+      });
 
       expect(items).toEqual([
         {
@@ -370,25 +509,24 @@ describe('joinCalendarItems', () => {
       expect(completedEventIds).toEqual([7]);
     });
 
-    it('lists an Activity naming an event outside those given, alongside an event-side pairing', () => {
-      const { items, completedEventIds } = joinCalendarItems(
-        [
-          event({
+    it('lists an Activity naming an event it did not read, alongside an event-side pairing', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 7,
             start_date_local: '2026-10-20T08:00:00',
             paired_activity_id: '20664018356',
           }),
         ],
-        [
+        activities: [
           stravaActivity(),
-          activity({
+          intervalsActivity({
             id: 'i3003',
             paired_event_id: 99,
             start_date_local: '2026-10-21T08:00:00',
           }),
         ],
-        ZONE_CONFIG,
-      );
+      });
 
       expect(items.map(calendarItemKey)).toEqual([
         'workout-7',
@@ -396,24 +534,54 @@ describe('joinCalendarItems', () => {
       ]);
       expect([...completedEventIds].sort((a, b) => a - b)).toEqual([7, 99]);
     });
+
+    it('treats an empty paired_activity_id as naming no Activity', async () => {
+      const { items, completedEventIds } = await listedItems({
+        events: [
+          intervalsEvent({
+            id: 7,
+            start_date_local: '2026-10-15T08:00:00',
+            paired_activity_id: '',
+          }),
+        ],
+        activities: [
+          intervalsActivity({
+            id: '',
+            start_date_local: '2026-10-15T18:00:00',
+          }),
+        ],
+      });
+
+      expect(items.map(calendarItemKey)).toEqual(['workout-7', 'activity-']);
+      expect(completedEventIds).toEqual([]);
+    });
   });
 
-  it('lists a day as one list by start time, Workouts first on a tie', () => {
-    const { items } = joinCalendarItems(
-      [
-        event({
+  it('lists a day as one list by start time, Workouts first on a tie', async () => {
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({
           id: 1,
           name: 'Evening',
           start_date_local: '2026-10-14T19:00:00',
         }),
-        event({ id: 2, name: 'Tied', start_date_local: '2026-10-14T18:00:00' }),
+        intervalsEvent({
+          id: 2,
+          name: 'Tied',
+          start_date_local: '2026-10-14T18:00:00',
+        }),
       ],
-      [
-        activity({ id: 'tied', start_date_local: '2026-10-14T18:00:00' }),
-        activity({ id: 'early', start_date_local: '2026-10-14T06:00:00' }),
+      activities: [
+        intervalsActivity({
+          id: 'tied',
+          start_date_local: '2026-10-14T18:00:00',
+        }),
+        intervalsActivity({
+          id: 'early',
+          start_date_local: '2026-10-14T06:00:00',
+        }),
       ],
-      ZONE_CONFIG,
-    );
+    });
 
     expect(items.map(calendarItemKey)).toEqual([
       'activity-early',
@@ -423,71 +591,75 @@ describe('joinCalendarItems', () => {
     ]);
   });
 
-  it('orders a moved Workout by its Activity start time', () => {
-    const { items } = joinCalendarItems(
-      [event({ id: 1, start_date_local: '2026-10-15T06:00:00' })],
-      [
-        activity({
+  it('orders a moved Workout by its Activity start time', async () => {
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-15T06:00:00' }),
+      ],
+      activities: [
+        intervalsActivity({
           id: 'paired',
           paired_event_id: 1,
           start_date_local: '2026-10-14T20:00:00',
         }),
-        activity({ id: 'zwift', start_date_local: '2026-10-14T12:00:00' }),
+        intervalsActivity({
+          id: 'zwift',
+          start_date_local: '2026-10-14T12:00:00',
+        }),
       ],
-      ZONE_CONFIG,
-    );
+    });
 
     expect(items.map(calendarItemKey)).toEqual(['activity-zwift', 'workout-1']);
   });
 
-  it('moves a Workout to the earliest of several paired Activities and lists none of them', () => {
-    const { items } = joinCalendarItems(
-      [event({ id: 1, start_date_local: '2026-10-15T08:00:00' })],
-      [
-        activity({
+  it('moves a Workout to the earliest of several paired Activities and lists none of them', async () => {
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-15T08:00:00' }),
+      ],
+      activities: [
+        intervalsActivity({
           id: 'later',
           paired_event_id: 1,
           start_date_local: '2026-10-16T08:00:00',
         }),
-        activity({
+        intervalsActivity({
           id: 'earlier',
           paired_event_id: 1,
           start_date_local: '2026-10-14T08:00:00',
         }),
       ],
-      ZONE_CONFIG,
-    );
+    });
 
     expect(items).toHaveLength(1);
     expect(items.map(calendarItemDate)).toEqual(['2026-10-14']);
   });
 
-  it('keeps a Workout with no paired Activity on its planned day', () => {
-    const { items } = joinCalendarItems(
-      [event({ id: 1, start_date_local: '2026-10-15T08:00:00' })],
-      [activity({ paired_event_id: 99 })],
-      ZONE_CONFIG,
-    );
+  it('keeps a Workout with no paired Activity on its planned day', async () => {
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-15T08:00:00' }),
+      ],
+      activities: [intervalsActivity({ paired_event_id: 99 })],
+    });
 
     expect(items.map(calendarItemDate)).toEqual(['2026-10-14', '2026-10-15']);
   });
 
-  it('lists an Activity paired to an event it was not given, so it never vanishes', () => {
-    const { items, completedEventIds } = joinCalendarItems(
-      [],
-      [activity({ id: 'outside', paired_event_id: 3 })],
-      ZONE_CONFIG,
-    );
+  it('lists an Activity paired to an event it did not read, so it never vanishes', async () => {
+    const { items, completedEventIds } = await listedItems({
+      activities: [intervalsActivity({ id: 'outside', paired_event_id: 3 })],
+    });
 
     expect(items.map(calendarItemKey)).toEqual(['activity-outside']);
     expect(completedEventIds).toEqual([3]);
   });
 
   describe('Races', () => {
-    it('lists a Race as a race item on its day', () => {
-      const { items } = joinCalendarItems(
-        [
-          event({
+    it('lists a Race as a race item on its day', async () => {
+      const { items } = await listedItems({
+        events: [
+          intervalsEvent({
             id: 3,
             category: 'RACE_A',
             name: 'Mistrzostwa Polski',
@@ -495,9 +667,7 @@ describe('joinCalendarItems', () => {
             type: 'Run',
           }),
         ],
-        [],
-        ZONE_CONFIG,
-      );
+      });
 
       expect(items).toEqual([
         {
@@ -515,35 +685,39 @@ describe('joinCalendarItems', () => {
       expect(items.map(calendarItemDate)).toEqual(['2026-10-14']);
     });
 
-    it("lists a day's Races first, in Race order, then its Workouts and Activities by start time", () => {
-      const { items } = joinCalendarItems(
-        [
-          event({ id: 1, start_date_local: '2026-10-14T06:00:00' }),
-          event({
+    it("lists a day's Races first, in Race order, then its Workouts and Activities by start time", async () => {
+      const { items } = await listedItems({
+        events: [
+          intervalsEvent({ id: 1, start_date_local: '2026-10-14T06:00:00' }),
+          intervalsEvent({
             id: 2,
             category: 'RACE_C',
             start_date_local: '2026-10-14T09:00:00',
           }),
-          event({
+          intervalsEvent({
             id: 3,
             category: 'RACE_B',
             start_date_local: '2026-10-14T17:00:00',
           }),
-          event({
+          intervalsEvent({
             id: 4,
             category: 'RACE_B',
             start_date_local: '2026-10-14T10:00:00',
           }),
-          event({
+          intervalsEvent({
             id: 5,
             category: 'RACE_A',
             start_date_local: '2026-10-15T00:00:00',
           }),
-          event({ id: 6, start_date_local: '2026-10-15T07:00:00' }),
+          intervalsEvent({ id: 6, start_date_local: '2026-10-15T07:00:00' }),
         ],
-        [activity({ id: 'early', start_date_local: '2026-10-14T05:00:00' })],
-        ZONE_CONFIG,
-      );
+        activities: [
+          intervalsActivity({
+            id: 'early',
+            start_date_local: '2026-10-14T05:00:00',
+          }),
+        ],
+      });
 
       expect(items.map(calendarItemKey)).toEqual([
         'race-4',
@@ -558,7 +732,7 @@ describe('joinCalendarItems', () => {
 
     describe('paired from the Activity side (ADR 0009)', () => {
       const race = (overrides: Partial<IntervalsCalendarEvent> = {}) =>
-        event({
+        intervalsEvent({
           id: 3,
           category: 'RACE_B',
           name: 'Gravel Race',
@@ -569,11 +743,11 @@ describe('joinCalendarItems', () => {
           ...overrides,
         });
 
-      it('makes an Activity naming a Race part of the Race item, with its recorded figures, and lists no Unplanned Activity', () => {
-        const { items } = joinCalendarItems(
-          [race()],
-          [
-            activity({
+      it('makes an Activity naming a Race part of the Race item, with its recorded figures, and lists no Unplanned Activity', async () => {
+        const { items } = await listedItems({
+          events: [race()],
+          activities: [
+            intervalsActivity({
               id: 'raced',
               paired_event_id: 3,
               start_date_local: '2026-10-14T09:02:00',
@@ -581,8 +755,7 @@ describe('joinCalendarItems', () => {
               distance: 81234,
             }),
           ],
-          ZONE_CONFIG,
-        );
+        });
 
         expect(items).toEqual([
           {
@@ -610,26 +783,25 @@ describe('joinCalendarItems', () => {
         ]);
       });
 
-      it("shows a paired Race on its earliest Activity's day, still first on that day", () => {
-        const { items } = joinCalendarItems(
-          [
+      it("shows a paired Race on its earliest Activity's day, still first on that day", async () => {
+        const { items } = await listedItems({
+          events: [
             race({ start_date_local: '2026-10-15T00:00:00' }),
-            event({ id: 1, start_date_local: '2026-10-14T06:00:00' }),
+            intervalsEvent({ id: 1, start_date_local: '2026-10-14T06:00:00' }),
           ],
-          [
-            activity({
+          activities: [
+            intervalsActivity({
               id: 'later',
               paired_event_id: 3,
               start_date_local: '2026-10-16T08:00:00',
             }),
-            activity({
+            intervalsActivity({
               id: 'earlier',
               paired_event_id: 3,
               start_date_local: '2026-10-14T08:00:00',
             }),
           ],
-          ZONE_CONFIG,
-        );
+        });
 
         expect(
           items.map(item => [calendarItemKey(item), calendarItemDate(item)]),
@@ -643,19 +815,18 @@ describe('joinCalendarItems', () => {
         });
       });
 
-      it('keeps a Strava Activity on the Race day a separate Unplanned Activity, as its paired_event_id is always null', () => {
-        const { items } = joinCalendarItems(
-          [race()],
-          [
-            activity({
+      it('keeps a Strava Activity on the Race day a separate Unplanned Activity, as its paired_event_id is always null', async () => {
+        const { items } = await listedItems({
+          events: [race()],
+          activities: [
+            intervalsActivity({
               id: '20664018356',
               name: undefined,
               type: undefined,
               start_date_local: '2026-10-14T09:02:00',
             }),
           ],
-          ZONE_CONFIG,
-        );
+        });
 
         expect(items.map(calendarItemKey)).toEqual([
           'race-3',
@@ -666,19 +837,20 @@ describe('joinCalendarItems', () => {
     });
   });
 
-  it('lists an Activity with no type or name, paired from neither side, as a Strava Activity on its day', () => {
-    const { items, completedEventIds } = joinCalendarItems(
-      [event({ id: 1, start_date_local: '2026-10-14T08:00:00' })],
-      [
-        activity({
+  it('lists an Activity with no type or name, paired from neither side, as a Strava Activity on its day', async () => {
+    const { items, completedEventIds } = await listedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-14T08:00:00' }),
+      ],
+      activities: [
+        intervalsActivity({
           id: '20679555658',
           name: undefined,
           type: undefined,
           start_date_local: '2026-10-14T18:00:00',
         }),
       ],
-      ZONE_CONFIG,
-    );
+    });
 
     expect(items).toEqual([
       {
@@ -713,12 +885,10 @@ describe('joinCalendarItems', () => {
     ['name (null)', { name: null }],
   ])(
     'lists an Activity missing only its %s as a Strava Activity',
-    (_field, overrides) => {
-      const { items } = joinCalendarItems(
-        [],
-        [activity(overrides)],
-        ZONE_CONFIG,
-      );
+    async (_field, overrides) => {
+      const { items } = await listedItems({
+        activities: [intervalsActivity(overrides)],
+      });
 
       expect(items).toEqual([
         {
@@ -729,12 +899,16 @@ describe('joinCalendarItems', () => {
     },
   );
 
-  it('drops an Activity metric that is missing or zero', () => {
-    const { items } = joinCalendarItems(
-      [],
-      [activity({ moving_time: 0, distance: 0, icu_training_load: undefined })],
-      ZONE_CONFIG,
-    );
+  it('drops an Activity metric that is missing or zero', async () => {
+    const { items } = await listedItems({
+      activities: [
+        intervalsActivity({
+          moving_time: 0,
+          distance: 0,
+          icu_training_load: undefined,
+        }),
+      ],
+    });
 
     expect(items).toEqual([
       {
@@ -749,35 +923,34 @@ describe('joinCalendarItems', () => {
     ]);
   });
 
-  it('excludes non-WORKOUT events', () => {
-    const { items } = joinCalendarItems(
-      [
-        event({ id: 1, category: 'RACE', name: 'Race day' }),
-        event({ id: 2, category: 'NOTE', name: 'Note' }),
-        event({ id: 3, name: 'Intervals' }),
+  it('lists Workouts and Races, not other events', async () => {
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({ id: 1, category: 'RACE', name: 'Race day' }),
+        intervalsEvent({ id: 2, category: 'NOTE', name: 'Note' }),
+        intervalsEvent({ id: 3, name: 'Intervals' }),
       ],
-      [],
-      ZONE_CONFIG,
-    );
+    });
 
     expect(items.map(calendarItemKey)).toEqual(['workout-3']);
   });
 
-  it('does not match an Activity to a Workout by date or type alone', () => {
-    const { items, completedEventIds } = joinCalendarItems(
-      [event({ id: 1 })],
-      [activity({ start_date_local: '2026-10-14T08:00:00' })],
-      ZONE_CONFIG,
-    );
+  it('does not match an Activity to a Workout by date or type alone', async () => {
+    const { items, completedEventIds } = await listedItems({
+      events: [intervalsEvent({ id: 1 })],
+      activities: [
+        intervalsActivity({ start_date_local: '2026-10-14T08:00:00' }),
+      ],
+    });
 
     expect(items.map(calendarItemKey)).toEqual(['workout-1', 'activity-a1']);
     expect(completedEventIds).toEqual([]);
   });
 
-  it('attaches the planned duration and the profile built against the zone config', () => {
-    const { items } = joinCalendarItems(
-      [
-        event({
+  it('attaches the planned duration and the profile built against the zone config', async () => {
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({
           workout_doc: {
             duration: 3600,
             steps: [
@@ -786,9 +959,8 @@ describe('joinCalendarItems', () => {
           },
         }),
       ],
-      [],
-      resolveZoneConfig({ powerZones: [60, 80, 95] }),
-    );
+      zoneConfig: resolveZoneConfig({ powerZones: [60, 80, 95] }),
+    });
 
     expect(items[0]).toMatchObject({
       workout: {
@@ -798,19 +970,22 @@ describe('joinCalendarItems', () => {
     });
   });
 
-  it('draws a ride profile but none for a non-cycling Workout', () => {
+  it('draws a ride profile but none for a non-cycling Workout', async () => {
     const workoutDoc = {
       duration: 3600,
       steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
     };
-    const { items } = joinCalendarItems(
-      [
-        event({ id: 1, type: 'Ride', workout_doc: workoutDoc }),
-        event({ id: 2, type: 'WeightTraining', workout_doc: workoutDoc }),
+    const { items } = await listedItems({
+      events: [
+        intervalsEvent({ id: 1, type: 'Ride', workout_doc: workoutDoc }),
+        intervalsEvent({
+          id: 2,
+          type: 'WeightTraining',
+          workout_doc: workoutDoc,
+        }),
       ],
-      [],
-      resolveZoneConfig({ powerZones: [60, 80, 95] }),
-    );
+      zoneConfig: resolveZoneConfig({ powerZones: [60, 80, 95] }),
+    });
 
     expect(items).toMatchObject([
       { workout: { id: 1, blocks: [{ zone: 2 }] } },
@@ -818,34 +993,104 @@ describe('joinCalendarItems', () => {
     ]);
   });
 
-  it('returns nothing when there are no events or Activities', () => {
-    expect(joinCalendarItems([], [], ZONE_CONFIG)).toEqual({
-      items: [],
-      completedEventIds: [],
-    });
+  it('stores every day empty when there are no events or Activities', async () => {
+    const { itemsByDate, completedEventIds } = await storedItems();
+
+    expect(Object.keys(itemsByDate)).toHaveLength(14);
+    expect(Object.values(itemsByDate).flat()).toEqual([]);
+    expect(completedEventIds).toEqual([]);
   });
 
-  it('keeps the joined items and completed event IDs plain JSON, so the query cache can store them', () => {
-    const joined = joinCalendarItems(
-      [
-        event({ id: 1, start_date_local: '2026-10-14T08:00:00' }),
-        event({
+  it('keeps the stored items and completed event IDs plain JSON, without a status, so the query cache can store them', async () => {
+    const stored = await storedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-14T08:00:00' }),
+        intervalsEvent({
           id: 2,
           category: 'RACE_A',
           name: 'Gran Fondo',
           start_date_local: '2026-10-18T09:00:00',
         }),
       ],
-      [
-        activity({ id: 'paired', paired_event_id: 1 }),
-        activity({ id: 'race', paired_event_id: 2 }),
-        activity({ id: 'unplanned' }),
+      activities: [
+        intervalsActivity({ id: 'paired', paired_event_id: 1 }),
+        intervalsActivity({ id: 'race', paired_event_id: 2 }),
+        intervalsActivity({ id: 'unplanned' }),
       ],
-      ZONE_CONFIG,
-    );
+    });
 
-    expect(JSON.parse(JSON.stringify(joined))).toEqual(joined);
-    expect(joined.completedEventIds).toEqual([1, 2]);
+    expect(JSON.parse(JSON.stringify(stored))).toEqual(stored);
+    expect(stored.completedEventIds).toEqual([1, 2]);
+    expect(JSON.stringify(stored)).not.toContain('"status"');
+  });
+});
+
+describe('withItemStatuses', () => {
+  const TODAY = '2026-10-14';
+
+  it("derives each Workout's status as of today: missed before it, planned from it on, completed when paired", async () => {
+    const stored = await storedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-13T08:00:00' }),
+        intervalsEvent({ id: 2, start_date_local: '2026-10-14T08:00:00' }),
+        intervalsEvent({ id: 3, start_date_local: '2026-10-12T08:00:00' }),
+      ],
+      activities: [
+        intervalsActivity({
+          paired_event_id: 3,
+          start_date_local: '2026-10-12T18:00:00',
+        }),
+      ],
+    });
+
+    const selected = withItemStatuses(stored, TODAY);
+
+    expect(selected['2026-10-12']).toMatchObject([
+      { workout: { id: 3, status: 'completed' } },
+    ]);
+    expect(selected['2026-10-13']).toMatchObject([
+      { workout: { id: 1, status: 'missed' } },
+    ]);
+    expect(selected['2026-10-14']).toMatchObject([
+      { workout: { id: 2, status: 'planned' } },
+    ]);
+    expect(selected['2026-10-15']).toEqual([]);
+  });
+
+  it('turns a Workout from planned to missed once its day has passed, without a new read', async () => {
+    const stored = await storedItems({
+      events: [
+        intervalsEvent({ id: 1, start_date_local: '2026-10-14T08:00:00' }),
+      ],
+    });
+
+    expect(withItemStatuses(stored, '2026-10-14')['2026-10-14']).toMatchObject([
+      { workout: { status: 'planned' } },
+    ]);
+    expect(withItemStatuses(stored, '2026-10-15')['2026-10-14']).toMatchObject([
+      { workout: { status: 'missed' } },
+    ]);
+  });
+
+  it('gives a Race and an Unplanned Activity no status, so a past Race is never missed', async () => {
+    const stored = await storedItems({
+      events: [
+        intervalsEvent({
+          id: 3,
+          category: 'RACE_B',
+          name: 'Gravel Race',
+          type: 'Ride',
+          start_date_local: '2026-10-13T00:00:00',
+        }),
+      ],
+      activities: [
+        intervalsActivity({ start_date_local: '2026-10-13T18:00:00' }),
+      ],
+    });
+
+    expect(withItemStatuses(stored, TODAY)['2026-10-13']).toEqual(
+      stored.itemsByDate['2026-10-13'],
+    );
   });
 });
 
@@ -877,54 +1122,6 @@ describe('calendarItemKey', () => {
         activity: { id: '7', name: 'Zwift', type: 'Ride', date: '2026-10-14' },
       }),
     ]).toEqual(['workout-7', 'race-7', 'activity-7']);
-  });
-});
-
-describe('withWorkoutStatus', () => {
-  const TODAY = '2026-10-14';
-
-  it("derives a Workout's status as of today", () => {
-    const item = {
-      kind: 'workout' as const,
-      workout: {
-        id: 1,
-        name: 'Ride',
-        date: '2026-10-13',
-        blocks: [],
-        completedWithStravaActivity: false,
-      },
-    };
-
-    expect(withWorkoutStatus(item, new Set(), TODAY)).toMatchObject({
-      workout: { status: 'missed' },
-    });
-    expect(withWorkoutStatus(item, new Set([1]), TODAY)).toMatchObject({
-      workout: { status: 'completed' },
-    });
-  });
-
-  it('gives a Race no status, so a past one is never missed', () => {
-    const item = {
-      kind: 'race' as const,
-      race: {
-        id: 3,
-        name: 'Gravel Race',
-        priority: 'B' as const,
-        date: '2026-10-13',
-        sport: 'Ride',
-      },
-    };
-
-    expect(withWorkoutStatus(item, new Set(), TODAY)).toEqual(item);
-  });
-
-  it('gives an Unplanned Activity no status', () => {
-    const item = {
-      kind: 'activity' as const,
-      activity: { id: 'a1', name: 'Zwift', type: 'Ride', date: '2026-10-13' },
-    };
-
-    expect(withWorkoutStatus(item, new Set(), TODAY)).toEqual(item);
   });
 });
 

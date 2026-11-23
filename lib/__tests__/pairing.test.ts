@@ -1,5 +1,5 @@
 import type { IntervalsActivity } from '../intervalsApi';
-import { type PairableEvent, pairWorkout, pairWorkouts } from '../pairing';
+import { type PairableEvent, pairWorkout } from '../pairing';
 
 function workout(overrides: Partial<PairableEvent> = {}): PairableEvent {
   return { id: 1, paired_activity_id: null, ...overrides };
@@ -70,37 +70,5 @@ describe('pairWorkout', () => {
     });
 
     expect(pairWorkout(workout(), [evening, morning]).activity).toBe(morning);
-  });
-});
-
-describe('pairWorkouts', () => {
-  it('has one pairing per given Workout, by event id', () => {
-    const ride = activity({ id: 'a1', paired_event_id: 1 });
-    const { byEventId } = pairWorkouts([workout(), workout({ id: 2 })], [ride]);
-
-    expect([...byEventId.keys()]).toEqual([1, 2]);
-    expect(byEventId.get(1)).toEqual({ completed: true, activity: ride });
-    expect(byEventId.get(2)).toEqual({ completed: false, activity: null });
-  });
-
-  it('lists the Activities paired to a given Workout, so none of them is Unplanned', () => {
-    const paired = activity({ id: 'a1', paired_event_id: 1 });
-    const unplanned = activity({ id: 'a2' });
-
-    expect(
-      pairWorkouts([workout()], [paired, unplanned]).pairedActivityIds,
-    ).toEqual(new Set(['a1']));
-  });
-
-  it('completes every given Workout paired from either side, and any event a given Activity names, given or not', () => {
-    const { completedEventIds } = pairWorkouts(
-      [workout({ id: 1, paired_activity_id: 'a9' }), workout({ id: 2 })],
-      [
-        activity({ id: 'a1', paired_event_id: 2 }),
-        activity({ id: 'a3', paired_event_id: 7 }),
-      ],
-    );
-
-    expect(completedEventIds).toEqual(new Set([7, 1, 2]));
   });
 });
