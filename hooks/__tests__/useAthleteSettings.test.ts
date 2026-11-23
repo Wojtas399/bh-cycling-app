@@ -1,33 +1,19 @@
+import { connectIntervals } from '@/test-utils/intervalsConnection';
+
 import { useAthleteSettings } from '../useAthleteSettings';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { getAthleteSettings } from '@/lib/intervalsApi';
 import { resolveRideSettings } from '@/lib/rideSettings';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
-
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
 
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getAthleteSettings: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
 describe('useAthleteSettings', () => {
   it("reads the athlete's zones and current Ride FTP", async () => {
-    jest.mocked(useIntervalsConnection).mockReturnValue({
-      isConnected: true,
-      athleteName: null,
-      athleteId: 'athlete-1',
-      accessToken: 'token-1',
-      scope: null,
-      loading: false,
-    });
+    connectIntervals();
     jest.mocked(getAthleteSettings).mockResolvedValue({ ftp: 265 });
 
     const { result } = await renderHookWithClient(() => useAthleteSettings());

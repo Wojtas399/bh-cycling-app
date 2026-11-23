@@ -1,5 +1,10 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
 import { useFitnessChart } from '../useFitnessChart';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
 import {
@@ -12,10 +17,6 @@ import { renderHookWithClient } from '@/test-utils/queryClient';
 import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/hooks/useToday', () => ({
   useToday: jest.fn(),
 }));
@@ -25,43 +26,12 @@ jest.mock('@/lib/intervalsApi', () => ({
   getWellnessRange: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockUseToday = jest.mocked(useToday);
 const mockGetWellnessRange = jest.mocked(getWellnessRange);
 
 const TODAY = '2026-11-06';
 
-const FULL_CONSENT_SCOPE =
-  'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
-
 const SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR = 'ACTIVITY:READ,CALENDAR:READ';
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected(scope: string = FULL_CONSENT_SCOPE) {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-    scope,
-  });
-}
 
 const NEW_ATHLETE_THREE_WEEKS_TO_TODAY = [
   { id: '2026-10-17', ctl: 0, atl: 0, ctlLoad: 0 },
@@ -94,7 +64,7 @@ describe('useFitnessChart', () => {
   });
 
   it('asks to connect, and asks for nothing, when not connected', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderHookWithClient(() => useFitnessChart());
 
@@ -103,7 +73,7 @@ describe('useFitnessChart', () => {
   });
 
   it('asks to connect, and asks for nothing, once the token is known to be bad', async () => {
-    mockConnected();
+    connectIntervals();
     setNeedsReconnect(true);
 
     const { result } = await renderHookWithClient(() => useFitnessChart());
@@ -113,7 +83,7 @@ describe('useFitnessChart', () => {
   });
 
   it('is loading and asks for nothing while the connection itself resolves', async () => {
-    mockConnection({ loading: true });
+    intervalsConnectionLoading();
 
     const { result } = await renderHookWithClient(() => useFitnessChart());
 
@@ -122,7 +92,7 @@ describe('useFitnessChart', () => {
   });
 
   it('is loading while the year is on its way', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(() => useFitnessChart());
@@ -131,7 +101,7 @@ describe('useFitnessChart', () => {
   });
 
   it('asks to reconnect, and asks for nothing, when the stored scope lacks Wellness', async () => {
-    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
+    connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
 
     const { result } = await renderHookWithClient(() => useFitnessChart());
 
@@ -140,7 +110,7 @@ describe('useFitnessChart', () => {
   });
 
   it('asks to reconnect when the read is refused for its scope, without retrying it or the global reconnect', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockRejectedValue(new IntervalsApiError(403));
 
     const { result } = await renderSettled();
@@ -151,7 +121,7 @@ describe('useFitnessChart', () => {
   });
 
   it('asks to reconnect over a chart already shown when Wellness access is taken away', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_THREE_WEEKS_TO_TODAY);
 
     const hook = await renderSettled();
@@ -163,7 +133,7 @@ describe('useFitnessChart', () => {
   });
 
   it('fails with a retry when the read fails for any other reason', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockRejectedValue(new IntervalsApiError(500));
 
     const { result } = await renderSettled();
@@ -172,7 +142,7 @@ describe('useFitnessChart', () => {
   });
 
   it('keeps the chart when a refetch fails', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_THREE_WEEKS_TO_TODAY);
 
     const hook = await renderSettled();
@@ -196,7 +166,7 @@ describe('useFitnessChart', () => {
       ],
     ],
   ])('is empty when the year has %s', async (_name, rows) => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue(rows);
 
     const { result } = await renderSettled();
@@ -205,7 +175,7 @@ describe('useFitnessChart', () => {
   });
 
   it('draws a year whose only values are long past, with today missing', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue([
       { id: '2025-11-07', ctl: 12, atl: 9, ctlLoad: 30 },
     ]);
@@ -216,7 +186,7 @@ describe('useFitnessChart', () => {
   });
 
   it('reads the year ending today once, as a day for every date, cached for today', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_THREE_WEEKS_TO_TODAY);
 
     const { result, client } = await renderSettled();
@@ -262,7 +232,7 @@ describe('useFitnessChart', () => {
   });
 
   it('fills in once a reconnect grants Wellness, without a restart', async () => {
-    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
+    connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_THREE_WEEKS_TO_TODAY);
 
     const { result, rerender } = await renderHookWithClient(() =>
@@ -271,7 +241,7 @@ describe('useFitnessChart', () => {
 
     expect(result.current.state).toEqual({ status: 'needsScope' });
 
-    mockConnected(FULL_CONSENT_SCOPE);
+    connectIntervals();
     await rerender({});
 
     await waitFor(() =>
@@ -280,7 +250,7 @@ describe('useFitnessChart', () => {
   });
 
   it('reads the year ending the new day at midnight, loading until it arrives', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_THREE_WEEKS_TO_TODAY);
 
     const { result, rerender } = await renderSettled();
@@ -324,7 +294,7 @@ describe('useFitnessChart', () => {
   });
 
   it('refetch reads the year again', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockResolvedValue([]);
 
     const hook = await renderSettled();
@@ -339,7 +309,7 @@ describe('useFitnessChart', () => {
   });
 
   it('refetch retries a failed read', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellnessRange.mockRejectedValue(new IntervalsApiError(500));
 
     const hook = await renderSettled();

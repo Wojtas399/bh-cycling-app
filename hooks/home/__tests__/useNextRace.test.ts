@@ -1,6 +1,7 @@
+import { connectIntervals } from '@/test-utils/intervalsConnection';
+
 import { useNextRace } from '../useNextRace';
 import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
 import {
   type IntervalsCalendarEvent,
@@ -11,10 +12,6 @@ import {
 import { intervalsKeys } from '@/lib/intervalsQueries';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
-
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
 
 jest.mock('@/hooks/useToday', () => ({
   useToday: jest.fn(),
@@ -27,28 +24,12 @@ jest.mock('@/lib/intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockUseToday = jest.mocked(useToday);
 const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
 const mockGetActivities = jest.mocked(getActivities);
 const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 const TODAY = '2026-11-08';
-
-function mockConnected() {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: true,
-    athleteName: null,
-    athleteId: 'athlete-1',
-    accessToken: 'token-1',
-    scope: null,
-    loading: false,
-  });
-}
 
 function liveRaceBody(
   overrides: Partial<IntervalsCalendarEvent>,
@@ -68,7 +49,7 @@ describe('useNextRace', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseToday.mockReturnValue(TODAY);
-    mockConnected();
+    connectIntervals();
   });
 
   it('reads the Races of the next 30 days in one call and counts down to the nearest', async () => {

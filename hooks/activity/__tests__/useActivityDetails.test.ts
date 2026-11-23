@@ -1,5 +1,10 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
 import { useActivityDetails } from '../useActivityDetails';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import * as activityDetails from '@/lib/activityDetails';
 import {
   type IntervalsActivity,
@@ -17,45 +22,14 @@ import {
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getActivity: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockGetActivity = jest.mocked(getActivity);
 
 const ACTIVITY_ID = 'i196064284';
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected() {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-  });
-}
 
 function activity(
   overrides: Partial<IntervalsJson<IntervalsActivity>> = {},
@@ -89,7 +63,7 @@ describe('useActivityDetails', () => {
 
   describe('availability gate', () => {
     it('is loading and fetches nothing while the connection resolves', async () => {
-      mockConnection({ loading: true });
+      intervalsConnectionLoading();
 
       const { result } = await renderDetails();
 
@@ -99,7 +73,7 @@ describe('useActivityDetails', () => {
     });
 
     it('is unavailable and fetches nothing when not connected', async () => {
-      mockConnection();
+      disconnectIntervals();
 
       const { result } = await renderDetails();
 
@@ -108,7 +82,7 @@ describe('useActivityDetails', () => {
     });
 
     it('is unavailable and fetches nothing while a reconnect is needed', async () => {
-      mockConnected();
+      connectIntervals();
       setNeedsReconnect(true);
 
       const { result } = await renderDetails();
@@ -119,7 +93,7 @@ describe('useActivityDetails', () => {
   });
 
   async function loadedDetailsOf(body: IntervalsActivity) {
-    mockConnected();
+    connectIntervals();
     mockGetActivity.mockResolvedValue(body);
 
     const { result } = await renderDetails();
@@ -530,7 +504,7 @@ describe('useActivityDetails', () => {
     });
 
     it('surfaces a missing Activity as an API error with status 404', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockRejectedValue(new IntervalsApiError(404));
 
       const { result } = await renderDetails();
@@ -604,7 +578,7 @@ describe('useActivityDetails', () => {
         },
       );
 
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(body);
 
       const { result, client } = await renderDetails();
@@ -646,7 +620,7 @@ describe('useActivityDetails', () => {
     });
 
     it('keeps no field the body leaves out', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(
         readIntervalsBody<IntervalsActivity>({
           id: ACTIVITY_ID,
@@ -673,7 +647,7 @@ describe('useActivityDetails', () => {
     });
 
     it('stores a Strava Activity as an explicit marker, with nothing of its body', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(
         readIntervalsBody<IntervalsActivity>(
           {
@@ -699,7 +673,7 @@ describe('useActivityDetails', () => {
     const activityKey = ['intervals', 'athlete-1', 'activity', ACTIVITY_ID];
 
     it('is refetched when everything for the athlete is invalidated', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(activity());
 
       const { result, client } = await renderDetails();
@@ -715,7 +689,7 @@ describe('useActivityDetails', () => {
     });
 
     it("is dropped with the rest of the ['intervals'] prefix", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(activity());
 
       const { result, client } = await renderDetails();
@@ -729,7 +703,7 @@ describe('useActivityDetails', () => {
     });
 
     it('does not build the view model again until the data changes', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(activity());
       const build = jest.spyOn(activityDetails, 'buildActivityDetails');
 
@@ -745,7 +719,7 @@ describe('useActivityDetails', () => {
     });
 
     it('keeps the same refetch across renders', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(activity());
 
       const { result, rerender } = await renderDetails();
@@ -757,7 +731,7 @@ describe('useActivityDetails', () => {
     });
 
     it('refetches only this query on refetch', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(activity());
 
       const { result, client } = await renderDetails();
@@ -787,7 +761,7 @@ describe('useActivityDetails', () => {
 
   describe('request', () => {
     it('reads the Activity by id with its intervals', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetActivity.mockResolvedValue(activity());
 
       const { result } = await renderDetails();
