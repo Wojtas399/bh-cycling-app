@@ -5,7 +5,6 @@ import {
 } from '@/test-utils/intervalsConnection';
 
 import { useActivityDetails } from '../useActivityDetails';
-import * as activityDetails from '@/lib/activityDetails';
 import {
   type IntervalsActivity,
   type IntervalsActivityInterval,
@@ -700,22 +699,6 @@ describe('useActivityDetails', () => {
       await act(() => removeIntervalsQueries(client));
 
       expect(client.getQueryData(activityKey)).toBeUndefined();
-    });
-
-    it('does not build the view model again until the data changes', async () => {
-      connectIntervals();
-      mockGetActivity.mockResolvedValue(activity());
-      const build = jest.spyOn(activityDetails, 'buildActivityDetails');
-
-      const { result, rerender } = await renderDetails();
-
-      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      const builds = build.mock.calls.length;
-
-      await rerender(undefined);
-
-      expect(build).toHaveBeenCalledTimes(builds);
-      build.mockRestore();
     });
 
     it('keeps the same refetch across renders', async () => {

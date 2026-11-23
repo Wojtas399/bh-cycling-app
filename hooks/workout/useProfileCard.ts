@@ -1,9 +1,8 @@
-import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
+import { useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { buildActivityDetails } from '@/lib/activityDetails';
 import { activityDetailsQueryOptions } from '@/lib/intervalsQueries';
 import { type ProfileCardSource, profileCardSource } from '@/lib/profileCard';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
-import { useQuery } from '@tanstack/react-query';
 
 export function useProfileCard(
   workout: Pick<
@@ -15,15 +14,12 @@ export function useProfileCard(
     | 'recordedActivityId'
   >,
 ): ProfileCardSource | null {
-  const { credentials } = useIntervalsAvailability();
+  const { query } = useIntervalsRead({
+    queryOptions: activityDetailsQueryOptions,
+    args: [workout.recordedActivityId],
+    select: buildActivityDetails,
+    selectArgs: [],
+  });
 
-  const { data: activity } = useQuery(
-    activityDetailsQueryOptions(
-      credentials,
-      workout.recordedActivityId,
-      buildActivityDetails,
-    ),
-  );
-
-  return profileCardSource(workout, activity, workout.rideSettings);
+  return profileCardSource(workout, query.data, workout.rideSettings);
 }
