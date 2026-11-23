@@ -1,15 +1,10 @@
-import { lacksScope } from '@/hooks/intervalsScopes';
-import {
-  type IntervalsAvailability,
-  useIntervalsAvailability,
-} from '@/hooks/useIntervalsAvailability';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import { useRefetchQuery } from '@/hooks/useRefetchQuery';
+import type { IntervalsAvailability } from '@/hooks/useIntervalsAvailability';
+import { useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
 import { type FitnessDay, hasFitnessValues } from '@/lib/fitness';
 import { isForbiddenError } from '@/lib/intervalsApi';
 import { fitnessQueryOptions } from '@/lib/intervalsQueries';
-import { type UseQueryResult, useQuery } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
 
 export type FitnessChartState =
   | { status: 'loading' }
@@ -23,20 +18,14 @@ export type FitnessChartState =
     };
 
 export function useFitnessChart() {
-  const { availability, credentials } = useIntervalsAvailability();
-  const connection = useIntervalsConnection();
   const today = useToday();
+  const { availability, lacksScope, query, refetch } = useIntervalsRead({
+    queryOptions: fitnessQueryOptions,
+    args: [today],
+    requiredScope: 'WELLNESS:READ',
+  });
 
-  const lacksWellness = lacksScope(connection.scope, 'WELLNESS:READ');
-  const options = fitnessQueryOptions(
-    lacksWellness ? null : credentials,
-    today,
-  );
-
-  const query = useQuery(options);
-  const refetch = useRefetchQuery(options.queryKey);
-
-  return { state: toChartState(availability, lacksWellness, query), refetch };
+  return { state: toChartState(availability, lacksScope, query), refetch };
 }
 
 function toChartState(
