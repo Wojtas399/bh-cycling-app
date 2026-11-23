@@ -148,11 +148,6 @@ export interface StoredCalendarItems {
   completedEventIds: number[];
 }
 
-export interface JoinedCalendarItems {
-  items: StoredCalendarItem[];
-  completedEventIds: number[];
-}
-
 interface SortableItem {
   startDateLocal: LocalDateTimeString;
   item: StoredCalendarItem;
@@ -193,19 +188,6 @@ export function toStoredCalendarItems(
   }
 
   return { itemsByDate, completedEventIds };
-}
-
-export function joinCalendarItems(
-  events: IntervalsCalendarEvent[],
-  activities: IntervalsActivity[],
-  zoneConfig: ZoneConfig,
-): JoinedCalendarItems {
-  const { items, completedEventIds } = pairCalendarItems<TileActivityField>(
-    events,
-    activities,
-  );
-
-  return { items: toSortedStoredItems(items, zoneConfig), completedEventIds };
 }
 
 function padByPairingWindow({ oldest, newest }: CalendarRange): CalendarRange {
@@ -397,7 +379,7 @@ function positiveOrUndefined(value: number | undefined): number | undefined {
   return isFiniteNumber(value) && value > 0 ? value : undefined;
 }
 
-export function withWorkoutStatus(
+function withWorkoutStatus(
   item: StoredCalendarItem,
   completedEventIds: ReadonlySet<number>,
   today: LocalDateString,
