@@ -1,5 +1,4 @@
 import { buildActivityDetails } from '../activityDetails';
-import type { StoredMonth } from '../calendarWorkouts';
 import {
   type IntervalsActivity,
   IntervalsApiError,
@@ -590,7 +589,7 @@ describe('monthQueryOptions', () => {
     mockGetActivities.mockResolvedValue([]);
   });
 
-  it("fetches the month's events and activities a week past each edge, since an item moves to its Activity's day", async () => {
+  it("reads the month's events and Activities from the Intervals API through the Calendar Items module", async () => {
     const client = createQueryClient();
 
     await client.fetchQuery(
@@ -622,144 +621,6 @@ describe('monthQueryOptions', () => {
       },
       { signal: expect.any(AbortSignal) },
     );
-  });
-
-  it('stores every day of the month, empty when it has no workouts, without a status', async () => {
-    mockGetCalendarEvents.mockResolvedValue([
-      {
-        id: 1,
-        category: 'WORKOUT',
-        name: 'Intervals',
-        start_date_local: '2026-02-10T08:00:00',
-      },
-    ]);
-
-    const client = createQueryClient();
-
-    await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
-    );
-
-    const stored = client.getQueryData<StoredMonth>(
-      intervalsKeys.month('athlete-1', '2026-02'),
-    );
-
-    expect(Object.keys(stored?.itemsByDate ?? {})).toHaveLength(28);
-    expect(stored?.itemsByDate['2026-02-01']).toEqual([]);
-    expect(stored?.itemsByDate['2026-02-10']).toEqual([
-      {
-        kind: 'workout',
-        workout: {
-          id: 1,
-          name: 'Intervals',
-          date: '2026-02-10',
-          blocks: [],
-          completedWithStravaActivity: false,
-        },
-      },
-    ]);
-    expect(stored?.completedEventIds).toEqual([]);
-  });
-
-  it('stores the IDs of the events a paired activity completes', async () => {
-    mockGetCalendarEvents.mockResolvedValue([
-      {
-        id: 42,
-        category: 'WORKOUT',
-        name: 'Intervals',
-        start_date_local: '2026-02-10T08:00:00',
-      },
-    ]);
-    mockGetActivities.mockResolvedValue([
-      {
-        id: 'a1',
-        name: 'Ride',
-        type: 'Ride',
-        start_date_local: '2026-02-11T08:00:00',
-        moving_time: 3600,
-        distance: 30000,
-        paired_event_id: 42,
-      } satisfies IntervalsActivity,
-    ]);
-
-    const client = createQueryClient();
-
-    await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
-    );
-
-    expect(
-      client.getQueryData<StoredMonth>(
-        intervalsKeys.month('athlete-1', '2026-02'),
-      )?.completedEventIds,
-    ).toEqual([42]);
-  });
-
-  it("selects each workout's status as of today", async () => {
-    mockGetCalendarEvents.mockResolvedValue([
-      {
-        id: 1,
-        category: 'WORKOUT',
-        name: 'Past',
-        start_date_local: '2026-02-10T08:00:00',
-      },
-      {
-        id: 2,
-        category: 'WORKOUT',
-        name: 'Done',
-        start_date_local: '2026-02-09T08:00:00',
-      },
-      {
-        id: 3,
-        category: 'WORKOUT',
-        name: 'Today',
-        start_date_local: '2026-02-11T08:00:00',
-      },
-    ]);
-    mockGetActivities.mockResolvedValue([
-      {
-        id: 'a1',
-        name: 'Ride',
-        type: 'Ride',
-        start_date_local: '2026-02-09T08:00:00',
-        moving_time: 3600,
-        distance: 30000,
-        paired_event_id: 2,
-      } satisfies IntervalsActivity,
-    ]);
-
-    const client = createQueryClient();
-    const options = monthQueryOptions(
-      CREDENTIALS,
-      '2026-02',
-      selectMonthAsOf(TODAY),
-    );
-
-    await client.fetchQuery(options);
-
-    const stored = client.getQueryData<StoredMonth>(options.queryKey)!;
-    const selected = options.select!(stored).itemsByDate;
-
-    expect(selected['2026-02-01']).toEqual([]);
-    expect(selected['2026-02-10']).toMatchObject([
-      { workout: { status: 'missed' } },
-    ]);
-    expect(selected['2026-02-09']).toMatchObject([
-      { workout: { status: 'completed' } },
-    ]);
-    expect(selected['2026-02-11']).toMatchObject([
-      { workout: { status: 'planned' } },
-    ]);
-
-    const nextDay = monthQueryOptions(
-      CREDENTIALS,
-      '2026-02',
-      selectMonthAsOf('2026-02-12'),
-    );
-
-    expect(nextDay.select!(stored).itemsByDate['2026-02-11']).toMatchObject([
-      { workout: { status: 'missed' } },
-    ]);
   });
 
   it('falls back to the Coggan zones when the settings fetch fails', async () => {
@@ -900,55 +761,6 @@ describe('monthQueryOptions', () => {
       ),
     ).rejects.toThrow('notes down');
   });
-
-  it('stores only the items whose day falls in the month', async () => {
-    const plannedInMarchRiddenInFebruary = {
-      id: 1,
-      category: 'WORKOUT',
-      name: 'Ridden early',
-      start_date_local: '2026-03-01T08:00:00',
-    };
-    const plannedInFebruaryRiddenInMarch = {
-      id: 2,
-      category: 'WORKOUT',
-      name: 'Ridden late',
-      start_date_local: '2026-02-28T08:00:00',
-    };
-
-    mockGetCalendarEvents.mockResolvedValue([
-      plannedInMarchRiddenInFebruary,
-      plannedInFebruaryRiddenInMarch,
-    ]);
-    mockGetActivities.mockResolvedValue([
-      ride({
-        id: 'early',
-        paired_event_id: 1,
-        start_date_local: '2026-02-28T18:00:00',
-      }),
-      ride({
-        id: 'late',
-        paired_event_id: 2,
-        start_date_local: '2026-03-01T18:00:00',
-      }),
-      ride({ id: 'zwift', start_date_local: '2026-02-14T07:00:00' }),
-      ride({ id: 'january', start_date_local: '2026-01-30T07:00:00' }),
-    ]);
-
-    const client = createQueryClient();
-    const stored = await client.fetchQuery(
-      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY)),
-    );
-
-    const listed = Object.values(stored.itemsByDate).flat();
-
-    expect(listed).toHaveLength(2);
-    expect(stored.itemsByDate['2026-02-28']).toMatchObject([
-      { kind: 'workout', workout: { id: 1, date: '2026-02-28' } },
-    ]);
-    expect(stored.itemsByDate['2026-02-14']).toMatchObject([
-      { kind: 'activity', activity: { id: 'zwift' } },
-    ]);
-  });
 });
 
 describe('workoutDetailsQueryOptions', () => {
@@ -1027,18 +839,6 @@ function workoutEvent(
     category: 'WORKOUT',
     name: 'Sweet spot',
     start_date_local: '2026-02-11T08:00:00',
-    ...overrides,
-  };
-}
-
-function ride(overrides: Partial<IntervalsActivity>): IntervalsActivity {
-  return {
-    id: 'a1',
-    name: 'Ride',
-    type: 'Ride',
-    start_date_local: '2026-02-11T08:00:00',
-    moving_time: 3600,
-    distance: 30000,
     ...overrides,
   };
 }
