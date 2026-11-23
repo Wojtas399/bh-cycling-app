@@ -27,7 +27,7 @@ import {
   workoutStatus,
 } from './workoutStatus';
 
-export const PAIRING_WINDOW_DAYS = 7;
+const PAIRING_WINDOW_DAYS = 7;
 
 const PAIRING_ACTIVITY_FIELDS = [
   'id',
@@ -104,7 +104,7 @@ export type PairedCalendarItem<Field extends ActivityField> =
   | PairedRace<Field>
   | PairedUnplannedActivity<Field>;
 
-export interface PairedCalendarRange<Field extends ActivityField> {
+export interface PairedCalendarRange<in out Field extends ActivityField> {
   items: PairedCalendarItem<Field>[];
   completedEventIds: number[];
 }

@@ -1043,6 +1043,17 @@ describe('toStoredCalendarItems', () => {
     expect(stored.completedEventIds).toEqual([1, 2]);
     expect(JSON.stringify(stored)).not.toContain('"status"');
   });
+
+  it('takes only a read that fetched every tile field, so no tile silently loses its load', async () => {
+    const readWithoutLoad = await readCalendarRange(
+      fakeCalendarReads(),
+      TWO_OCTOBER_WEEKS,
+      { activityFields: ['moving_time', 'distance'] },
+    );
+
+    // @ts-expect-error: icu_training_load is optional, so only the fields the read was typed with can catch its absence
+    toStoredCalendarItems(readWithoutLoad, TWO_OCTOBER_WEEKS, ZONE_CONFIG);
+  });
 });
 
 describe('withItemStatuses', () => {

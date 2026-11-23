@@ -62,6 +62,37 @@ function workoutScheduledToday(): IntervalsCalendarEvent {
   };
 }
 
+const ATHLETE_ZONES = [60, 80, 95, 110, 130, 160, 220];
+
+function zoneTwoHourToday(): IntervalsCalendarEvent {
+  return {
+    ...workoutScheduledToday(),
+    workout_doc: {
+      duration: 3600,
+      steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
+    },
+  };
+}
+
+function mockZoneTwoHourToday() {
+  mockGetCalendarEvents.mockImplementation(async (_token, _athlete, params) =>
+    params?.category === 'NOTE' ? [] : [zoneTwoHourToday()],
+  );
+}
+
+const ATHLETE_ZONE_2_BLOCK = {
+  widthFraction: 1,
+  minPct: 60,
+  maxPct: 80,
+  zone: 2,
+};
+const COGGAN_ZONE_2_BLOCK = {
+  widthFraction: 1,
+  minPct: 55,
+  maxPct: 75,
+  zone: 2,
+};
+
 describe('useUpcomingWorkouts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -302,6 +333,82 @@ describe('useUpcomingWorkouts', () => {
       },
     });
     expect(client.getQueryState(otherKey)?.dataUpdatedAt).toBe(otherUpdatedAt);
+  });
+
+  describe('Workout Profile zones', () => {
+    it("draws a Workout's profile in the athlete's own zones", async () => {
+      mockConnected();
+      mockGetAthleteSettings.mockResolvedValue({ powerZones: ATHLETE_ZONES });
+      mockZoneTwoHourToday();
+
+      const { result } = await renderHookWithClient(() =>
+        useUpcomingWorkouts(),
+      );
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject([
+          { workout: { blocks: [ATHLETE_ZONE_2_BLOCK] } },
+        ]),
+      );
+    });
+
+    it("falls back to Coggan's zones and still lists the Workout when the athlete settings fail", async () => {
+      mockConnected();
+      mockGetAthleteSettings.mockRejectedValue(
+        new Error('settings unavailable'),
+      );
+      mockZoneTwoHourToday();
+
+      const { result } = await renderHookWithClient(() =>
+        useUpcomingWorkouts(),
+      );
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject([
+          { workout: { blocks: [COGGAN_ZONE_2_BLOCK] } },
+        ]),
+      );
+    });
+
+    it('reads the athlete settings once and reuses them on a refetch', async () => {
+      mockConnected();
+      mockGetCalendarEvents.mockResolvedValue([]);
+
+      const { result } = await renderHookWithClient(() =>
+        useUpcomingWorkouts(),
+      );
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      await act(() => result.current.refetch());
+
+      expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it("reads the athlete settings again after they failed, drawing the athlete's zones once they load", async () => {
+      mockConnected();
+      mockGetAthleteSettings
+        .mockRejectedValueOnce(new Error('settings down'))
+        .mockResolvedValue({ powerZones: ATHLETE_ZONES });
+      mockZoneTwoHourToday();
+
+      const { result } = await renderHookWithClient(() =>
+        useUpcomingWorkouts(),
+      );
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject([
+          { workout: { blocks: [COGGAN_ZONE_2_BLOCK] } },
+        ]),
+      );
+      await act(() => result.current.refetch());
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject([
+          { workout: { blocks: [ATHLETE_ZONE_2_BLOCK] } },
+        ]),
+      );
+      expect(mockGetAthleteSettings).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('is empty when connected but no events match', async () => {

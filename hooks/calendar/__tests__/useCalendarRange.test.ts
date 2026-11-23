@@ -235,6 +235,33 @@ describe('useCalendarRange', () => {
     ]);
   });
 
+  it("falls back to Coggan's zones and still shows the Workout when the athlete settings fail", async () => {
+    mockConnected();
+    mockGetAthleteSettings.mockRejectedValue(new Error('settings unavailable'));
+    mockGetCalendarEvents.mockResolvedValue([
+      event({
+        id: 1,
+        workout_doc: {
+          duration: 3600,
+          steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
+        },
+      }),
+    ]);
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(result.current.query.data?.itemsByDate[today]).toMatchObject([
+      {
+        workout: {
+          blocks: [{ widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 }],
+        },
+      },
+    ]);
+  });
+
   it("surfaces the month's Races from its existing events call, with no new request", async () => {
     mockConnected();
     mockGetCalendarEvents.mockImplementation(
