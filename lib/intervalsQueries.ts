@@ -10,11 +10,7 @@ import {
   toStoredCalendarItems,
   withItemStatuses,
 } from './calendarItems';
-import {
-  type CalendarData,
-  type StoredMonth,
-  pairingWindow,
-} from './calendarWorkouts';
+import { type CalendarData, type StoredMonth } from './calendarWorkouts';
 import {
   FITNESS_FIELDS,
   type FitnessDay,
