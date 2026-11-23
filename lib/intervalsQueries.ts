@@ -334,7 +334,7 @@ export function workoutDetailsQueryOptions(
               {
                 ...reads,
                 events: async (range, options) =>
-                  listedCopyOrSingleRead(
+                  appendIfUnlisted(
                     await reads.events(range, options),
                     eventRead,
                   ),
@@ -511,7 +511,7 @@ async function fetchNotes(
   );
 }
 
-function listedCopyOrSingleRead(
+function appendIfUnlisted(
   listed: IntervalsCalendarEvent[],
   singleRead: IntervalsCalendarEvent,
 ): IntervalsCalendarEvent[] {
