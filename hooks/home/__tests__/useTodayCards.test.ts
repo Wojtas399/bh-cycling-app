@@ -1,5 +1,10 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
 import { useTodayCards } from '../useTodayCards';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
 import {
@@ -12,10 +17,6 @@ import { renderHookWithClient } from '@/test-utils/queryClient';
 import { settleQueries } from '@/test-utils/settle';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/hooks/useToday', () => ({
   useToday: jest.fn(),
 }));
@@ -25,43 +26,12 @@ jest.mock('@/lib/intervalsApi', () => ({
   getWellness: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockUseToday = jest.mocked(useToday);
 const mockGetWellness = jest.mocked(getWellness);
 
 const TODAY = '2026-11-02';
 
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-const FULL_CONSENT_SCOPE =
-  'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
-
 const SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR = 'ACTIVITY:READ,CALENDAR:READ';
-
-function mockConnected(scope: string = FULL_CONSENT_SCOPE) {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-    scope,
-  });
-}
 
 const DAY_WITHOUT_DATA_ALL_NULL = {
   ctl: null,
@@ -125,7 +95,7 @@ describe('useTodayCards', () => {
   });
 
   it('hides both cards and asks for nothing when not connected', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderHookWithClient(() => useTodayCards());
 
@@ -134,7 +104,7 @@ describe('useTodayCards', () => {
   });
 
   it('hides both cards and asks for nothing once the token is known to be bad', async () => {
-    mockConnected();
+    connectIntervals();
     setNeedsReconnect(true);
 
     const { result } = await renderHookWithClient(() => useTodayCards());
@@ -144,7 +114,7 @@ describe('useTodayCards', () => {
   });
 
   it('is loading and asks for nothing while the connection itself resolves', async () => {
-    mockConnection({ loading: true });
+    intervalsConnectionLoading();
 
     const { result } = await renderHookWithClient(() => useTodayCards());
 
@@ -153,7 +123,7 @@ describe('useTodayCards', () => {
   });
 
   it('is loading while the entry is on its way', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(() => useTodayCards());
@@ -162,7 +132,7 @@ describe('useTodayCards', () => {
   });
 
   it('asks to reconnect, and asks for nothing, when the stored scope lacks Wellness', async () => {
-    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
+    connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
 
     const { result } = await renderHookWithClient(() => useTodayCards());
 
@@ -171,7 +141,7 @@ describe('useTodayCards', () => {
   });
 
   it('needs no reconnect with Wellness granted but athlete settings not', async () => {
-    mockConnected('ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ');
+    connectIntervals({ scope: 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ' });
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result } = await renderSettled();
@@ -180,7 +150,7 @@ describe('useTodayCards', () => {
   });
 
   it('asks to reconnect when the request is refused for its scope, without retrying it or the global reconnect', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
 
     const { result } = await renderSettled();
@@ -191,7 +161,7 @@ describe('useTodayCards', () => {
   });
 
   it('asks to reconnect over values already shown when Wellness access is taken away', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const hook = await renderSettled();
@@ -203,7 +173,7 @@ describe('useTodayCards', () => {
   });
 
   it('fills in once a reconnect grants Wellness, without a restart', async () => {
-    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
+    connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result, rerender } = await renderHookWithClient(() =>
@@ -212,7 +182,7 @@ describe('useTodayCards', () => {
 
     expect(result.current.state).toEqual({ status: 'needsScope' });
 
-    mockConnected(FULL_CONSENT_SCOPE);
+    connectIntervals();
     await rerender({});
 
     await waitFor(() =>
@@ -221,7 +191,7 @@ describe('useTodayCards', () => {
   });
 
   it('hides both cards when the request fails for any other reason', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockRejectedValue(new IntervalsApiError(500));
 
     const { result } = await renderSettled();
@@ -230,7 +200,7 @@ describe('useTodayCards', () => {
   });
 
   it("shows a full entry on both cards, Form from the rounded values, read and cached for today's date", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result, client } = await renderSettled();
@@ -252,7 +222,7 @@ describe('useTodayCards', () => {
   });
 
   it("keeps today's values on both cards when a refetch fails", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const hook = await renderSettled();
@@ -271,7 +241,7 @@ describe('useTodayCards', () => {
   ])(
     'shows no Fitness values without %s, and the Wellness rows as they are',
     async (_name, missing) => {
-      mockConnected();
+      connectIntervals();
       mockGetWellness.mockResolvedValue({ ...FULLY_FILLED_ENTRY, ...missing });
 
       const { result } = await renderSettled();
@@ -285,7 +255,7 @@ describe('useTodayCards', () => {
   );
 
   it('shows a real 0 from intervals.icu as 0, not as no data', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue({
       ...DAY_WITHOUT_DATA_ALL_NULL,
       ctl: 0,
@@ -302,7 +272,7 @@ describe('useTodayCards', () => {
   });
 
   it('shows neither values nor rows on a day without data, when every metric is null', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(DAY_WITHOUT_DATA_ALL_NULL);
 
     const { result } = await renderSettled();
@@ -370,7 +340,7 @@ describe('useTodayCards', () => {
       ],
     ],
   ])('shows %s on the Wellness card', async (_name, entry, rows) => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue({ ...FULLY_FILLED_ENTRY, ...entry });
 
     const { result } = await renderSettled();
@@ -382,7 +352,7 @@ describe('useTodayCards', () => {
   });
 
   it('reads the new day at midnight, loading until it arrives', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const { result, rerender } = await renderSettled();
@@ -417,7 +387,7 @@ describe('useTodayCards', () => {
   });
 
   it('refetch reads the entry again, one request feeding both cards', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(DAY_WITHOUT_DATA_ALL_NULL);
 
     const hook = await renderSettled();
@@ -445,12 +415,12 @@ describe('useTodayCards', () => {
   });
 
   it('refetch asks for nothing once a reconnect takes Wellness away', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
     const hook = await renderSettled();
 
-    mockConnected(SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR);
+    connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
     await hook.rerender({});
     await refetchAndSettle(hook);
 

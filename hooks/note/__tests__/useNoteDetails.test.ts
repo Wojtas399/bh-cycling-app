@@ -1,5 +1,10 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
 import { useNoteDetails } from '../useNoteDetails';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   IntervalsApiError,
   type IntervalsCalendarEvent,
@@ -11,45 +16,14 @@ import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getCalendarEvent: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockGetCalendarEvent = jest.mocked(getCalendarEvent);
 
 const EVENT_ID = 7;
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected() {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-  });
-}
 
 const NOTE_EVENT: IntervalsCalendarEvent = {
   id: EVENT_ID,
@@ -69,7 +43,7 @@ describe('useNoteDetails', () => {
   });
 
   it('is loading and fetches nothing while the connection resolves', async () => {
-    mockConnection({ loading: true });
+    intervalsConnectionLoading();
 
     const { result } = await renderDetails();
 
@@ -78,7 +52,7 @@ describe('useNoteDetails', () => {
   });
 
   it('is unavailable and fetches nothing when not connected', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderDetails();
 
@@ -87,7 +61,7 @@ describe('useNoteDetails', () => {
   });
 
   it('loads the Note by its event id when connected', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvent.mockResolvedValue(NOTE_EVENT);
 
     const { result } = await renderDetails();
@@ -101,7 +75,7 @@ describe('useNoteDetails', () => {
   });
 
   it('fails as not found when the event is not a Note', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvent.mockResolvedValue({
       id: EVENT_ID,
       category: 'WORKOUT',
@@ -116,7 +90,7 @@ describe('useNoteDetails', () => {
   });
 
   it('fails as not found when the event was deleted', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvent.mockRejectedValue(new IntervalsApiError(404));
 
     const { result } = await renderDetails();
@@ -126,7 +100,7 @@ describe('useNoteDetails', () => {
   });
 
   it('refetches only this query on refetch', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvent.mockResolvedValue(NOTE_EVENT);
 
     const { result, client } = await renderDetails();

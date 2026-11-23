@@ -1,5 +1,6 @@
+import { connectIntervals } from '@/test-utils/intervalsConnection';
+
 import { usePairedRace } from '../usePairedRace';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   type IntervalsCalendarEvent,
   getCalendarEvent,
@@ -8,34 +9,14 @@ import { intervalsKeys } from '@/lib/intervalsQueries';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getCalendarEvent: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockGetCalendarEvent = jest.mocked(getCalendarEvent);
 
 const EVENT_ID = 4242;
-
-function mockConnected() {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: true,
-    athleteName: null,
-    athleteId: 'athlete-1',
-    accessToken: 'token-1',
-    scope: null,
-    loading: false,
-  });
-}
 
 function livePairedEventBody(
   overrides: Partial<IntervalsCalendarEvent> = {},
@@ -62,7 +43,7 @@ function renderPairedRace(eventId: number | null) {
 describe('usePairedRace', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockConnected();
+    connectIntervals();
   });
 
   it('is the Race behind the paired event, read once by its id', async () => {
