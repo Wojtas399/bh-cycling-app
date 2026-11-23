@@ -49,7 +49,6 @@ import {
   toLocalDateString,
 } from './localDate';
 import { type Note, noteWindow, notesOverlapping, toNotes } from './notes';
-import { pairWorkout } from './pairing';
 import type { ZoneConfig } from './powerZones';
 import {
   NEXT_RACE_WINDOW_DAYS,
@@ -297,9 +296,18 @@ export type WorkoutDetailsSelect = (
 ) => WorkoutDetails;
 
 export function selectWorkoutDetailsAsOf(
+  eventId: number,
   today: LocalDateString,
 ): WorkoutDetailsSelect {
-  return stored => buildWorkoutDetails(stored, today);
+  return stored => {
+    const details = buildWorkoutDetails(stored, eventId, today);
+
+    if (!details) {
+      throw new IntervalsApiError(404, 'The event is not a Workout.');
+    }
+
+    return details;
+  };
 }
 
 export function workoutDetailsQueryOptions(
@@ -323,33 +331,30 @@ export function workoutDetailsQueryOptions(
             { signal },
           );
           const day = eventRead.start_date_local.slice(0, 10);
-          const date = fromLocalDateString(day);
-          const [dayWorkouts, activities, rideSettings] = await Promise.all([
-            getCalendarEvents(
-              accessToken,
-              athleteId,
+          const reads = intervalsCalendarReads(credentials, signal);
+          const [paired, rideSettings] = await Promise.all([
+            readCalendarRange(
               {
-                oldest: day,
-                newest: day,
-                category: EVENT_CATEGORY.workout,
-                resolve: true,
+                ...reads,
+                events: async (range, options) =>
+                  listedCopyOrSingleRead(
+                    await reads.events(range, options),
+                    eventRead,
+                  ),
               },
-              { signal },
-            ),
-            getActivities(
-              accessToken,
-              athleteId,
+              { oldest: day, newest: day },
               {
-                ...pairingWindow(date, date),
-                fields: WORKOUT_DETAILS_ACTIVITY_FIELDS,
+                activityFields: WORKOUT_DETAILS_ACTIVITY_FIELDS,
+                eventOptions: {
+                  category: EVENT_CATEGORY.workout,
+                  resolve: true,
+                },
               },
-              { signal },
             ),
             rideSettingsPromise,
           ]);
-          const event = listedCopyOrSingleRead(dayWorkouts, eventId, eventRead);
 
-          return { event, ...pairWorkout(event, activities), rideSettings };
+          return { paired, rideSettings };
         }
       : skipToken,
     select,
@@ -536,11 +541,12 @@ async function fetchNotes(
 }
 
 function listedCopyOrSingleRead(
-  dayWorkouts: IntervalsCalendarEvent[],
-  eventId: number,
+  listed: IntervalsCalendarEvent[],
   singleRead: IntervalsCalendarEvent,
-): IntervalsCalendarEvent {
-  return dayWorkouts.find(({ id }) => id === eventId) ?? singleRead;
+): IntervalsCalendarEvent[] {
+  return listed.some(({ id }) => id === singleRead.id)
+    ? listed
+    : [...listed, singleRead];
 }
 
 function fetchZoneConfigOrCoggan(

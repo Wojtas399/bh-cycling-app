@@ -1,9 +1,17 @@
+import { readCalendarRange } from '../calendarItems';
 import type {
   IntervalsActivity,
   IntervalsCalendarEvent,
 } from '../intervalsApi';
+import type { LocalDateString } from '../localDate';
 import { resolveZoneConfig } from '../powerZones';
-import { buildWorkoutDetails } from '../workoutDetails';
+import {
+  type StoredWorkoutDetails,
+  WORKOUT_DETAILS_ACTIVITY_FIELDS,
+  type WorkoutDetails,
+  buildWorkoutDetails,
+} from '../workoutDetails';
+import { fakeCalendarReads } from '@/test-utils/calendarItems';
 
 const TODAY = '2026-10-14';
 const ZONE_CONFIG = resolveZoneConfig({ powerZones: [60, 80, 95] });
@@ -55,68 +63,148 @@ const pairedActivity: IntervalsActivity = {
   icu_joules: 300000,
 };
 
-function details(
+async function storedDetails(
+  events: IntervalsCalendarEvent[],
+  activities: IntervalsActivity[],
+  plannedDay: LocalDateString,
+): Promise<StoredWorkoutDetails> {
+  const paired = await readCalendarRange(
+    fakeCalendarReads({ events, activities }),
+    { oldest: plannedDay, newest: plannedDay },
+    { activityFields: WORKOUT_DETAILS_ACTIVITY_FIELDS },
+  );
+
+  return { paired, rideSettings: { zoneConfig: ZONE_CONFIG, ftp: null } };
+}
+
+async function details(
   workout: IntervalsCalendarEvent,
   activity: IntervalsActivity | null = null,
-) {
-  return buildWorkoutDetails(
-    {
-      event: workout,
-      completed: activity != null,
-      activity,
-      rideSettings: { zoneConfig: ZONE_CONFIG, ftp: null },
-    },
+): Promise<WorkoutDetails> {
+  const built = buildWorkoutDetails(
+    await storedDetails(
+      [workout],
+      activity ? [activity] : [],
+      workout.start_date_local.slice(0, 10),
+    ),
+    workout.id,
     TODAY,
   );
+
+  if (!built) throw new Error(`No Workout ${workout.id} in the read`);
+
+  return built;
 }
 
 describe('buildWorkoutDetails', () => {
+  describe('the Workout picked from the paired read', () => {
+    it("opens a Workout ridden days after its planned day with that Activity's numbers", async () => {
+      const opened = await details(
+        event({ type: 'Ride', start_date_local: '2026-10-12T08:00:00' }),
+        {
+          ...pairedActivity,
+          type: 'Ride',
+          start_date_local: '2026-10-15T18:00:00',
+          icu_training_load: 48,
+        },
+      );
+
+      expect(opened).toMatchObject({
+        mode: 'completed',
+        status: 'completed',
+        date: '2026-10-12',
+        recordedActivityId: 'a1',
+        activityMetrics: expect.arrayContaining([
+          { metric: 'load', value: 48 },
+        ]),
+      });
+    });
+
+    it('is completed by an event naming an Activity beyond the read, with no numbers to show', async () => {
+      expect(
+        await details(
+          event({
+            type: 'Ride',
+            start_date_local: '2026-10-12T08:00:00',
+            paired_activity_id: 'a9',
+          }),
+        ),
+      ).toMatchObject({
+        mode: 'completed',
+        status: 'completed',
+        activityMetrics: null,
+        recordedActivityId: null,
+      });
+    });
+
+    it('is missed once its planned day has passed unpaired, and planned from today on', async () => {
+      const unpaired = (start_date_local: string) =>
+        details(event({ type: 'Ride', start_date_local }));
+
+      expect((await unpaired('2026-10-13T08:00:00')).status).toBe('missed');
+      expect((await unpaired('2026-10-14T08:00:00')).status).toBe('planned');
+    });
+
+    it('is null when the read holds no Workout with the id, as for a Race', async () => {
+      const stored = await storedDetails(
+        [event({ id: 5, category: 'RACE_A' }), event({ id: 7 })],
+        [],
+        '2026-10-15',
+      );
+
+      expect(buildWorkoutDetails(stored, 5, TODAY)).toBeNull();
+      expect(buildWorkoutDetails(stored, 42, TODAY)).toBeNull();
+    });
+  });
+
   describe('description', () => {
-    it("is a ride's workout_doc notes, trimmed", () => {
-      expect(details(ride).description).toBe('Ride notes');
+    it("is a ride's workout_doc notes, trimmed", async () => {
+      expect((await details(ride)).description).toBe('Ride notes');
     });
 
-    it("is a non-cycling Workout's full event description, trimmed", () => {
-      expect(details(strength).description).toBe(STRENGTH_DESCRIPTION);
+    it("is a non-cycling Workout's full event description, trimmed", async () => {
+      expect((await details(strength)).description).toBe(STRENGTH_DESCRIPTION);
     });
 
-    it('is the same full description in completed mode', () => {
-      const completed = details(strength, pairedActivity);
+    it('is the same full description in completed mode', async () => {
+      const completed = await details(strength, pairedActivity);
 
       expect(completed.mode).toBe('completed');
       expect(completed.description).toBe(STRENGTH_DESCRIPTION);
     });
 
-    it('drops HTML tags but keeps their text and lines', () => {
+    it('drops HTML tags but keeps their text and lines', async () => {
       expect(
-        details({
-          ...strength,
-          description: '<p>Rozgrzewka</p><b>OHP</b> 3x8<br>przerwy 60s',
-        }).description,
+        (
+          await details({
+            ...strength,
+            description: '<p>Rozgrzewka</p><b>OHP</b> 3x8<br>przerwy 60s',
+          })
+        ).description,
       ).toBe('Rozgrzewka\nOHP 3x8\nprzerwy 60s');
     });
 
-    it('is absent when the text is blank', () => {
-      expect(details({ ...strength, description: ' \n ' })).not.toHaveProperty(
-        'description',
-      );
+    it('is absent when the text is blank', async () => {
       expect(
-        details({ ...ride, workout_doc: { description: '  ' } }),
+        await details({ ...strength, description: ' \n ' }),
       ).not.toHaveProperty('description');
       expect(
-        details({ ...strength, description: '<p> </p>' }),
+        await details({ ...ride, workout_doc: { description: '  ' } }),
+      ).not.toHaveProperty('description');
+      expect(
+        await details({ ...strength, description: '<p> </p>' }),
       ).not.toHaveProperty('description');
     });
   });
 
-  it('tells a Cycling Workout from a non-cycling one', () => {
-    expect(details(ride).isCyclingWorkout).toBe(true);
-    expect(details(strength).isCyclingWorkout).toBe(false);
+  it('tells a Cycling Workout from a non-cycling one', async () => {
+    expect((await details(ride)).isCyclingWorkout).toBe(true);
+    expect((await details(strength)).isCyclingWorkout).toBe(false);
   });
 
   describe('steps, profile and work', () => {
-    it('come from the step parse for a ride', () => {
-      const planned = details(ride);
+    it('come from the step parse for a ride', async () => {
+      const planned = await details(ride);
 
       expect(planned.blocks).toEqual([
         { widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 },
@@ -132,15 +220,16 @@ describe('buildWorkoutDetails', () => {
         workKj: 540,
       });
       expect(
-        details(ride, { ...pairedActivity, type: 'Ride' }).comparison?.rows,
+        (await details(ride, { ...pairedActivity, type: 'Ride' })).comparison
+          ?.rows,
       ).toEqual([
         { metric: 'duration', planned: 3600, actual: 3500, difference: -100 },
         { metric: 'work', planned: 540, actual: 300, difference: -240 },
       ]);
     });
 
-    it("time in zone comes from a ride's steps, at the athlete's zones, so 58% is Z1 under a 60% ceiling, not Coggan's Z2", () => {
-      const planned = details(
+    it("time in zone comes from a ride's steps, at the athlete's zones, so 58% is Z1 under a 60% ceiling, not Coggan's Z2", async () => {
+      const planned = await details(
         event({
           type: 'Ride',
           workout_doc: {
@@ -165,8 +254,8 @@ describe('buildWorkoutDetails', () => {
       });
     });
 
-    it('are left out for a non-cycling Workout in planned mode', () => {
-      const planned = details(strength);
+    it('are left out for a non-cycling Workout in planned mode', async () => {
+      const planned = await details(strength);
 
       expect(planned.blocks).toEqual([]);
       expect(planned.profileSummary).toBeNull();
@@ -183,8 +272,8 @@ describe('buildWorkoutDetails', () => {
       expect(planned.planMetrics).toEqual({ durationSeconds: 3600 });
     });
 
-    it('are left out for a non-cycling Workout in completed mode', () => {
-      const completed = details(strength, pairedActivity);
+    it('are left out for a non-cycling Workout in completed mode', async () => {
+      const completed = await details(strength, pairedActivity);
 
       expect(completed.blocks).toEqual([]);
       expect(completed.profileSummary).toBeNull();
@@ -196,21 +285,23 @@ describe('buildWorkoutDetails', () => {
   });
 
   describe('recordedActivityId', () => {
-    it("is the paired Activity's id, to fetch its Activity Profile", () => {
-      expect(details(ride, { ...pairedActivity, type: 'Ride' })).toMatchObject({
+    it("is the paired Activity's id, to fetch its Activity Profile", async () => {
+      expect(
+        await details(ride, { ...pairedActivity, type: 'Ride' }),
+      ).toMatchObject({
         mode: 'completed',
         recordedActivityId: 'a1',
       });
     });
 
-    it('is null for a Workout without its Activity', () => {
-      expect(details(ride).recordedActivityId).toBeNull();
+    it('is null for a Workout without its Activity', async () => {
+      expect((await details(ride)).recordedActivityId).toBeNull();
     });
 
-    it('is null for a Strava Activity, which has no intervals to fetch', () => {
+    it('is null for a Strava Activity, which has no intervals to fetch', async () => {
       const strava = { ...pairedActivity, name: undefined, type: undefined };
 
-      expect(details(ride, strava).recordedActivityId).toBeNull();
+      expect((await details(ride, strava)).recordedActivityId).toBeNull();
     });
   });
 
@@ -229,16 +320,17 @@ describe('buildWorkoutDetails', () => {
       },
     });
 
-    it('totals the top-level steps when the doc carries no total, since a repeat step covers all of its reps', () => {
+    it('totals the top-level steps when the doc carries no total, since a repeat step covers all of its reps', async () => {
       expect(
-        details(fourByFiveMinutesWithoutADocTotal).profileSummary
+        (await details(fourByFiveMinutesWithoutADocTotal)).profileSummary
           ?.durationSeconds,
       ).toBe(1800);
     });
 
-    it('counts the steps of a repeat once per rep', () => {
+    it('counts the steps of a repeat once per rep', async () => {
       expect(
-        details(fourByFiveMinutesWithoutADocTotal).profileSummary?.stepCount,
+        (await details(fourByFiveMinutesWithoutADocTotal)).profileSummary
+          ?.stepCount,
       ).toBe(5);
     });
   });
@@ -246,9 +338,9 @@ describe('buildWorkoutDetails', () => {
   describe('comparison compliance', () => {
     const rideActivity = { ...pairedActivity, type: 'Ride' };
 
-    it("is intervals.icu's percentage, 0 included", () => {
+    it("is intervals.icu's percentage, 0 included", async () => {
       expect(
-        details(ride, { ...rideActivity, compliance: 0 }).comparison
+        (await details(ride, { ...rideActivity, compliance: 0 })).comparison
           ?.compliance,
       ).toBe(0);
     });
@@ -256,9 +348,10 @@ describe('buildWorkoutDetails', () => {
     it.each([
       ["intervals.icu hasn't calculated it, sending null", null],
       ['the athlete asked intervals.icu to ignore it, sending a negative', -1],
-    ])('is null when %s', (_, compliance) => {
+    ])('is null when %s', async (_, compliance) => {
       expect(
-        details(ride, { ...rideActivity, compliance }).comparison?.compliance,
+        (await details(ride, { ...rideActivity, compliance })).comparison
+          ?.compliance,
       ).toBeNull();
     });
   });
