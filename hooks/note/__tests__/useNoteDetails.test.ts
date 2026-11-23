@@ -1,8 +1,10 @@
 import { useNoteDetails } from '../useNoteDetails';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
+  IntervalsApiError,
   type IntervalsCalendarEvent,
   getCalendarEvent,
+  isNotFoundError,
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
@@ -96,6 +98,31 @@ describe('useNoteDetails', () => {
       id: EVENT_ID,
       name: 'Camp briefing',
     });
+  });
+
+  it('fails as not found when the event is not a Note', async () => {
+    mockConnected();
+    mockGetCalendarEvent.mockResolvedValue({
+      id: EVENT_ID,
+      category: 'WORKOUT',
+      name: 'Sweet spot',
+      start_date_local: '2026-11-20T08:00:00',
+    });
+
+    const { result } = await renderDetails();
+
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+    expect(isNotFoundError(result.current.query.error)).toBe(true);
+  });
+
+  it('fails as not found when the event was deleted', async () => {
+    mockConnected();
+    mockGetCalendarEvent.mockRejectedValue(new IntervalsApiError(404));
+
+    const { result } = await renderDetails();
+
+    await waitFor(() => expect(result.current.query.isError).toBe(true));
+    expect(isNotFoundError(result.current.query.error)).toBe(true);
   });
 
   it('refetches only this query on refetch', async () => {
