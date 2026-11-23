@@ -174,6 +174,15 @@ export async function readCalendarRange<Field extends ActivityField>(
   return pairCalendarItems(events, activities);
 }
 
+export function findWorkout<Field extends ActivityField>(
+  { items }: PairedCalendarRange<Field>,
+  eventId: number,
+): PairedWorkout<Field> | undefined {
+  return items
+    .filter(item => item.kind === 'workout')
+    .find(({ event }) => event.id === eventId);
+}
+
 export function toStoredCalendarItems(
   { items, completedEventIds }: PairedCalendarRange<TileActivityField>,
   { oldest, newest }: CalendarRange,
