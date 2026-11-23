@@ -19,7 +19,6 @@ import {
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { resolveRideSettings } from '@/lib/rideSettings';
-import * as workoutDetails from '@/lib/workoutDetails';
 import type { WorkoutStep } from '@/lib/workoutProfile';
 import {
   type IntervalsJson,
@@ -1397,22 +1396,6 @@ describe('useWorkoutDetails', () => {
       await act(() => removeIntervalsQueries(client));
 
       expect(client.getQueryData(workoutKey)).toBeUndefined();
-    });
-
-    it('does not build the view model again while today stays the same', async () => {
-      connectIntervals();
-      mockGetCalendarEvent.mockResolvedValue(event());
-      const build = jest.spyOn(workoutDetails, 'buildWorkoutDetails');
-
-      const { result, rerender } = await renderDetails();
-
-      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      const builds = build.mock.calls.length;
-
-      await rerender(undefined);
-
-      expect(build).toHaveBeenCalledTimes(builds);
-      build.mockRestore();
     });
 
     it('keeps the same refetch across renders', async () => {

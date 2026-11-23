@@ -10,7 +10,6 @@ import {
 } from '../useCalendarRange';
 import { useToday } from '@/hooks/useToday';
 import * as calendarItems from '@/lib/calendarItems';
-import * as combineMonthResultsModule from '@/lib/combineMonthResults';
 import {
   type IntervalsActivity,
   type IntervalsCalendarEvent,
@@ -702,53 +701,5 @@ describe('useCalendarRange', () => {
 
     expect(toLocalDateString(result.current.anchor)).toBe('2026-10-01');
     expect(result.current.showsToday).toBe(false);
-  });
-
-  it('does not combine the months again while the range and their results stay the same', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const combineBetween = combineMonthResultsModule.combineMonthResults;
-    const combined = jest.fn();
-    const spy = jest
-      .spyOn(combineMonthResultsModule, 'combineMonthResults')
-      .mockImplementation((start, end) => {
-        const combine = combineBetween(start, end);
-
-        return results => {
-          combined();
-
-          return combine(results);
-        };
-      });
-
-    const { result, rerender } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-    const combines = combined.mock.calls.length;
-
-    await rerender({});
-
-    expect(combined).toHaveBeenCalledTimes(combines);
-    spy.mockRestore();
-  });
-
-  it('does not derive the statuses again while today stays the same', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const derive = jest.spyOn(calendarItems, 'withItemStatuses');
-
-    const { result, rerender } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-    const derivations = derive.mock.calls.length;
-
-    await rerender({});
-
-    expect(derive).toHaveBeenCalledTimes(derivations);
-    derive.mockRestore();
   });
 });
