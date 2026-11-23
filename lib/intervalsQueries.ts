@@ -60,7 +60,7 @@ import {
 } from './races';
 import { type RideSettings, resolveRideSettings } from './rideSettings';
 import { type Route, toRoute } from './route';
-import { getUpcomingItems } from './upcomingWorkouts';
+import { getUpcomingItems, upcomingRange } from './upcomingWorkouts';
 import { type WellnessRow, toWellnessRows } from './wellness';
 import {
   type StoredWorkoutDetails,
@@ -144,17 +144,26 @@ export function upcomingQueryOptions(
     queryKey: intervalsKeys.upcoming(credentials?.athleteId, today),
     queryFn: credentials
       ? async ({ signal, client }) => {
-          const first = fromLocalDateString(today);
-          const { events, activities, notes, zoneConfig } =
-            await fetchCalendarRange(
-              client,
+          const range = upcomingRange(today);
+          const [paired, zoneConfig, notes] = await Promise.all([
+            readCalendarRange(
+              intervalsCalendarReads(credentials, signal),
+              range,
+              { activityFields: TILE_ACTIVITY_FIELDS },
+            ),
+            fetchZoneConfigOrCoggan(client, credentials),
+            fetchNotes(
               credentials,
-              first,
-              addDays(first, 1),
+              fromLocalDateString(range.oldest),
+              fromLocalDateString(range.newest),
               signal,
-            );
+            ),
+          ]);
 
-          return getUpcomingItems(events, activities, notes, today, zoneConfig);
+          return getUpcomingItems(
+            { ...toStoredCalendarItems(paired, range, zoneConfig), notes },
+            today,
+          );
         }
       : skipToken,
     ...CHANGING_DATA_FRESHNESS,
