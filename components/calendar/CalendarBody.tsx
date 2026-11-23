@@ -7,7 +7,7 @@ import Text from '@/components/Text';
 import { useAppTheme } from '@/constants/theme';
 import type { GlassHeaderLayout } from '@/hooks/useGlassHeader';
 import { useTabBarClearance } from '@/hooks/useTabBarClearance';
-import type { CalendarData } from '@/lib/calendarWorkouts';
+import type { CalendarData } from '@/lib/calendarMonth';
 
 export type CalendarBodyState =
   | { status: 'loading' }

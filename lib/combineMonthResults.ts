@@ -1,5 +1,5 @@
 import type { CalendarItemsByDate } from './calendarItems';
-import type { CalendarData } from './calendarWorkouts';
+import type { CalendarData } from './calendarMonth';
 import { eachDate, toLocalDateString } from './localDate';
 import { type Note, byNoteId, notesOverlapping } from './notes';
 

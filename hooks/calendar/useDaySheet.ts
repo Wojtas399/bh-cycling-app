@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import type { CalendarDay } from '@/lib/calendarGrid';
 import type { CalendarItem } from '@/lib/calendarItems';
-import type { CalendarData } from '@/lib/calendarWorkouts';
+import type { CalendarData } from '@/lib/calendarMonth';
 import { type Note, notesOn } from '@/lib/notes';
 
 export interface DaySheetController {

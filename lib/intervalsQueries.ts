@@ -12,7 +12,7 @@ import {
   toStoredCalendarItems,
   withItemStatuses,
 } from './calendarItems';
-import { type CalendarData, type StoredMonth } from './calendarWorkouts';
+import { type CalendarData, type StoredMonth } from './calendarMonth';
 import {
   FITNESS_FIELDS,
   type FitnessDay,
