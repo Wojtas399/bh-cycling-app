@@ -287,19 +287,18 @@ export type WorkoutDetailsSelect = (
   stored: StoredWorkoutDetails,
 ) => WorkoutDetails;
 
-export function selectWorkoutDetailsAsOf(
+export function selectWorkoutDetails(
+  stored: StoredWorkoutDetails,
   eventId: number,
   today: LocalDateString,
-): WorkoutDetailsSelect {
-  return stored => {
-    const details = buildWorkoutDetails(stored, eventId, today);
+): WorkoutDetails {
+  const details = buildWorkoutDetails(stored, eventId, today);
 
-    if (!details) {
-      throw new IntervalsApiError(404, 'The event is not a Workout.');
-    }
+  if (!details) {
+    throw new IntervalsApiError(404, 'The event is not a Workout.');
+  }
 
-    return details;
-  };
+  return details;
 }
 
 export function workoutDetailsQueryOptions(

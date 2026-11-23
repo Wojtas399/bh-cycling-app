@@ -10,7 +10,7 @@ import {
   raceQueryOptions,
   routeQueryOptions,
   selectMonthAsOf,
-  selectWorkoutDetailsAsOf,
+  selectWorkoutDetails,
   todayQueryOptions,
   upcomingQueryOptions,
   workoutDetailsQueryOptions,
@@ -85,10 +85,8 @@ describe('query keys', () => {
     ],
     [
       "a Workout's details",
-      workoutDetailsQueryOptions(
-        CREDENTIALS,
-        42,
-        selectWorkoutDetailsAsOf(42, TODAY),
+      workoutDetailsQueryOptions(CREDENTIALS, 42, stored =>
+        selectWorkoutDetails(stored, 42, TODAY),
       ).queryKey,
     ],
     ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42).queryKey],
@@ -185,10 +183,8 @@ describe('freshness', () => {
     ["today's Wellness Entry", todayQueryOptions(CREDENTIALS, TODAY)],
     [
       "a Workout's details",
-      workoutDetailsQueryOptions(
-        CREDENTIALS,
-        42,
-        selectWorkoutDetailsAsOf(42, TODAY),
+      workoutDetailsQueryOptions(CREDENTIALS, 42, stored =>
+        selectWorkoutDetails(stored, 42, TODAY),
       ),
     ],
     ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42)],
