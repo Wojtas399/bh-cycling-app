@@ -58,7 +58,6 @@ import { type Route, toRoute } from './route';
 import {
   type StoredUpcoming,
   type UpcomingItem,
-  getUpcomingItems,
   upcomingRange,
 } from './upcomingWorkouts';
 import { type WellnessRow, toWellnessRows } from './wellness';
@@ -137,10 +136,6 @@ export function athleteSettingsQueryOptions(
 }
 
 export type UpcomingSelect = (stored: StoredUpcoming) => UpcomingItem[];
-
-export function selectUpcomingAsOf(today: LocalDateString): UpcomingSelect {
-  return stored => getUpcomingItems(stored, today);
-}
 
 export function upcomingQueryOptions(
   credentials: IntervalsCredentials | null,

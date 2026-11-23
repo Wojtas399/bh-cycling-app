@@ -1,21 +1,15 @@
-import { useIntervalsAvailability } from '@/hooks/useIntervalsAvailability';
-import { useRefetchQuery } from '@/hooks/useRefetchQuery';
-import { useStableSelect } from '@/hooks/useStableSelect';
+import { useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
-import {
-  selectUpcomingAsOf,
-  upcomingQueryOptions,
-} from '@/lib/intervalsQueries';
-import { useQuery } from '@tanstack/react-query';
+import { upcomingQueryOptions } from '@/lib/intervalsQueries';
+import { getUpcomingItems } from '@/lib/upcomingWorkouts';
 
 export function useUpcomingWorkouts() {
-  const { availability, credentials } = useIntervalsAvailability();
   const today = useToday();
-  const select = useStableSelect(selectUpcomingAsOf, today);
-  const options = upcomingQueryOptions(credentials, today, select);
 
-  const query = useQuery(options);
-  const refetch = useRefetchQuery(options.queryKey);
-
-  return { availability, query, refetch };
+  return useIntervalsRead({
+    queryOptions: upcomingQueryOptions,
+    args: [today],
+    select: getUpcomingItems,
+    selectArgs: [today],
+  });
 }
