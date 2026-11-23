@@ -60,7 +60,7 @@ interface SelectedRead<
   requiredScope?: IntervalsScope;
 }
 
-interface IntervalsRead<TData> {
+export interface IntervalsRead<TData> {
   availability: IntervalsAvailability;
   query: UseQueryResult<TData>;
   refetch: () => Promise<void>;
