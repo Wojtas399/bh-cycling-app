@@ -27,7 +27,7 @@ import {
   workoutStatus,
 } from './workoutStatus';
 
-export const PAIRING_WINDOW_DAYS = 7;
+const PAIRING_WINDOW_DAYS = 7;
 
 const PAIRING_ACTIVITY_FIELDS = [
   'id',
