@@ -6,6 +6,7 @@ import {
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { useRefetchQuery } from './useRefetchQuery';
 import { useStableSelect } from './useStableSelect';
+import { bindSelectArgs } from '@/lib/bindSelectArgs';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import {
   type DefaultError,
@@ -15,7 +16,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 
-type ReadQueryOptions<
+type QueryOptionsFactory<
   Args extends unknown[],
   TQueryFnData,
   TData,
@@ -25,7 +26,19 @@ type ReadQueryOptions<
   ...args: Args
 ) => UseQueryOptions<TQueryFnData, DefaultError, TData, TQueryKey>;
 
-type ReadSelect<TQueryFnData, TData, SelectArgs extends unknown[]> = (
+type SelectingQueryOptionsFactory<
+  Args extends unknown[],
+  TQueryFnData,
+  TData,
+  TQueryKey extends QueryKey,
+> = QueryOptionsFactory<
+  [...Args, select: (stored: TQueryFnData) => TData],
+  TQueryFnData,
+  TData,
+  TQueryKey
+>;
+
+type StoredSelect<TQueryFnData, TData, SelectArgs extends unknown[]> = (
   stored: TQueryFnData,
   ...selectArgs: SelectArgs
 ) => TData;
@@ -36,7 +49,7 @@ interface UnselectedRead<
   TData,
   TQueryKey extends QueryKey,
 > {
-  queryOptions: ReadQueryOptions<Args, TQueryFnData, TData, TQueryKey>;
+  queryOptions: QueryOptionsFactory<Args, TQueryFnData, TData, TQueryKey>;
   args: Args;
   requiredScope?: IntervalsScope;
 }
@@ -48,14 +61,14 @@ interface SelectedRead<
   TQueryKey extends QueryKey,
   SelectArgs extends unknown[],
 > {
-  queryOptions: ReadQueryOptions<
-    [...Args, select: ReadSelect<TQueryFnData, TData, []>],
+  queryOptions: SelectingQueryOptionsFactory<
+    Args,
     TQueryFnData,
     TData,
     TQueryKey
   >;
   args: Args;
-  select: ReadSelect<TQueryFnData, TData, SelectArgs>;
+  select: StoredSelect<TQueryFnData, TData, SelectArgs>;
   selectArgs: SelectArgs;
   requiredScope?: IntervalsScope;
 }
@@ -67,7 +80,7 @@ export interface IntervalsRead<TData> {
   lacksScope: boolean;
 }
 
-type ReadParts<
+type SelectBinding<
   Args extends unknown[],
   TQueryFnData,
   TData,
@@ -76,27 +89,21 @@ type ReadParts<
 > =
   | [
       kind: 'unselected',
-      queryOptions: UnselectedRead<
+      queryOptions: QueryOptionsFactory<Args, TQueryFnData, TData, TQueryKey>,
+    ]
+  | [
+      kind: 'selected',
+      queryOptions: SelectingQueryOptionsFactory<
         Args,
         TQueryFnData,
         TData,
         TQueryKey
-      >['queryOptions'],
-    ]
-  | [
-      kind: 'selected',
-      queryOptions: SelectedRead<
-        Args,
-        TQueryFnData,
-        TData,
-        TQueryKey,
-        SelectArgs
-      >['queryOptions'],
-      select: ReadSelect<TQueryFnData, TData, SelectArgs>,
+      >,
+      select: StoredSelect<TQueryFnData, TData, SelectArgs>,
       ...selectArgs: SelectArgs,
     ];
 
-function readParts<
+function selectBindingOf<
   Args extends unknown[],
   TQueryFnData,
   TData,
@@ -106,25 +113,25 @@ function readParts<
   read:
     | UnselectedRead<Args, TQueryFnData, TData, TQueryKey>
     | SelectedRead<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
-): ReadParts<Args, TQueryFnData, TData, TQueryKey, SelectArgs> {
+): SelectBinding<Args, TQueryFnData, TData, TQueryKey, SelectArgs> {
   return 'select' in read
     ? ['selected', read.queryOptions, read.select, ...read.selectArgs]
     : ['unselected', read.queryOptions];
 }
 
-function bindSelect<
+function bindSelectToQueryOptions<
   Args extends unknown[],
   TQueryFnData,
   TData,
   TQueryKey extends QueryKey,
   SelectArgs extends unknown[],
 >(
-  ...parts: ReadParts<Args, TQueryFnData, TData, TQueryKey, SelectArgs>
-): ReadQueryOptions<Args, TQueryFnData, TData, TQueryKey> {
-  if (parts[0] === 'unselected') return parts[1];
+  ...binding: SelectBinding<Args, TQueryFnData, TData, TQueryKey, SelectArgs>
+): QueryOptionsFactory<Args, TQueryFnData, TData, TQueryKey> {
+  if (binding[0] === 'unselected') return binding[1];
 
-  const [, queryOptions, select, ...selectArgs] = parts;
-  const selectStored = (stored: TQueryFnData) => select(stored, ...selectArgs);
+  const [, queryOptions, select, ...selectArgs] = binding;
+  const selectStored = bindSelectArgs(select, ...selectArgs);
 
   return (credentials, ...args) =>
     queryOptions(credentials, ...args, selectStored);
@@ -162,11 +169,11 @@ export function useIntervalsRead<
   const { scope } = useIntervalsConnection();
   const lacksRequiredScope =
     read.requiredScope !== undefined && lacksScope(scope, read.requiredScope);
-  const queryOptions = useStableSelect(
-    bindSelect<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
-    ...readParts(read),
+  const queryOptionsWithStableSelect = useStableSelect(
+    bindSelectToQueryOptions,
+    ...selectBindingOf(read),
   );
-  const options = queryOptions(
+  const options = queryOptionsWithStableSelect(
     lacksRequiredScope ? null : credentials,
     ...read.args,
   );
