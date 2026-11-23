@@ -6,6 +6,7 @@ import {
 import {
   type CalendarRange,
   type CalendarReads,
+  type StoredCalendarItems,
   TILE_ACTIVITY_FIELDS,
   readCalendarRange,
   toStoredCalendarItems,
@@ -149,23 +150,13 @@ export function upcomingQueryOptions(
   return queryOptions({
     queryKey: intervalsKeys.upcoming(credentials?.athleteId, today),
     queryFn: credentials
-      ? async ({ signal, client }): Promise<StoredUpcoming> => {
-          const range = upcomingRange(today);
-          const [paired, zoneConfig, notes] = await Promise.all([
-            readCalendarRange(
-              intervalsCalendarReads(credentials, signal),
-              range,
-              { activityFields: TILE_ACTIVITY_FIELDS },
-            ),
-            fetchZoneConfigOrCoggan(client, credentials),
-            fetchNotes(credentials, range, signal),
-          ]);
-
-          return {
-            ...toStoredCalendarItems(paired, range, zoneConfig),
-            notes,
-          };
-        }
+      ? ({ signal, client }): Promise<StoredUpcoming> =>
+          readStoredCalendarRange(
+            credentials,
+            upcomingRange(today),
+            signal,
+            client,
+          )
       : skipToken,
     select,
     ...CHANGING_DATA_FRESHNESS,
@@ -275,26 +266,20 @@ export function monthQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }): Promise<StoredMonth> => {
           const first = fromYearMonth(yearMonth);
-          const last = endOfMonth(first);
           const range = {
             oldest: toLocalDateString(first),
-            newest: toLocalDateString(last),
+            newest: toLocalDateString(endOfMonth(first)),
           };
-          const [paired, zoneConfig, notes] = await Promise.all([
-            readCalendarRange(
-              intervalsCalendarReads(credentials, signal),
-              range,
-              {
-                activityFields: TILE_ACTIVITY_FIELDS,
-              },
-            ),
-            fetchZoneConfigOrCoggan(client, credentials),
-            fetchNotes(credentials, range, signal),
-          ]);
+          const stored = await readStoredCalendarRange(
+            credentials,
+            range,
+            signal,
+            client,
+          );
 
           return {
-            ...toStoredCalendarItems(paired, range, zoneConfig),
-            notes: notesOverlapping(notes, range.oldest, range.newest),
+            ...stored,
+            notes: notesOverlapping(stored.notes, range.oldest, range.newest),
           };
         }
       : skipToken,
@@ -492,6 +477,23 @@ function intervalsCalendarReads(
     activities: (range, fields) =>
       getActivities(accessToken, athleteId, { ...range, fields }, { signal }),
   };
+}
+
+async function readStoredCalendarRange(
+  credentials: IntervalsCredentials,
+  range: CalendarRange,
+  signal: AbortSignal,
+  client: QueryClient,
+): Promise<StoredCalendarItems & { notes: Note[] }> {
+  const [paired, zoneConfig, notes] = await Promise.all([
+    readCalendarRange(intervalsCalendarReads(credentials, signal), range, {
+      activityFields: TILE_ACTIVITY_FIELDS,
+    }),
+    fetchZoneConfigOrCoggan(client, credentials),
+    fetchNotes(credentials, range, signal),
+  ]);
+
+  return { ...toStoredCalendarItems(paired, range, zoneConfig), notes };
 }
 
 async function fetchNotes(
