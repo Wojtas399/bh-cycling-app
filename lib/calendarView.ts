@@ -1,5 +1,10 @@
-import { startOfMonth, startOfWeek, toYearMonth } from './calendarWorkouts';
-import { type LocalDateString, fromLocalDateString } from './localDate';
+import {
+  type LocalDateString,
+  fromLocalDateString,
+  startOfMonth,
+  startOfWeek,
+  toYearMonth,
+} from './localDate';
 
 export const CALENDAR_VIEWS = ['monthly', 'weekly'] as const;
 

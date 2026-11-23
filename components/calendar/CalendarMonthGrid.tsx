@@ -25,12 +25,8 @@ import {
   type RaceItem,
   calendarItemKey,
 } from '@/lib/calendarItems';
-import {
-  type CalendarData,
-  eachDate,
-  endOfMonth,
-  startOfMonth,
-} from '@/lib/calendarWorkouts';
+import type { CalendarData } from '@/lib/calendarWorkouts';
+import { eachDate, endOfMonth, startOfMonth } from '@/lib/localDate';
 import {
   type NoteBarSegment,
   type NoteRowLayout,

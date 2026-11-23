@@ -1,11 +1,11 @@
 import { type CalendarRangeView, useCalendarRange } from './useCalendarRange';
 import {
   type YearMonth,
+  addDays,
   endOfWeek,
   startOfWeek,
   toYearMonth,
-} from '@/lib/calendarWorkouts';
-import { addDays } from '@/lib/localDate';
+} from '@/lib/localDate';
 
 export interface UseWeeklyCalendarResult extends CalendarRangeView {
   week: Date;

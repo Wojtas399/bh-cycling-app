@@ -1,16 +1,12 @@
 import { useMonthlyCalendar } from '../useMonthlyCalendar';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import {
-  endOfMonth,
-  pairingWindow,
-  startOfMonth,
-} from '@/lib/calendarWorkouts';
+import { pairingWindow } from '@/lib/calendarWorkouts';
 import {
   getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { toLocalDateString } from '@/lib/localDate';
+import { endOfMonth, startOfMonth, toLocalDateString } from '@/lib/localDate';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 

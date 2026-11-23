@@ -1,5 +1,8 @@
-import { daysSinceMonday } from './calendarWorkouts';
-import { type LocalDateString, fromLocalDateString } from './localDate';
+import {
+  type LocalDateString,
+  daysSinceMonday,
+  fromLocalDateString,
+} from './localDate';
 import { type Note, isMultiDay, noteLastDay } from './notes';
 
 export type WeekdayNamesFromMonday = readonly string[];

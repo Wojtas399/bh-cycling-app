@@ -1,20 +1,21 @@
 import { useWeeklyCalendar } from '../useWeeklyCalendar';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
-import {
-  endOfMonth,
-  endOfWeek,
-  pairingWindow,
-  startOfMonth,
-  startOfWeek,
-  toYearMonth,
-} from '@/lib/calendarWorkouts';
+import { pairingWindow } from '@/lib/calendarWorkouts';
 import {
   getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
 import { monthQueryOptions, selectMonthAsOf } from '@/lib/intervalsQueries';
-import { addDays, toLocalDateString } from '@/lib/localDate';
+import {
+  addDays,
+  endOfMonth,
+  endOfWeek,
+  startOfMonth,
+  startOfWeek,
+  toLocalDateString,
+  toYearMonth,
+} from '@/lib/localDate';
 import { createQueryClient } from '@/lib/queryClient';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';

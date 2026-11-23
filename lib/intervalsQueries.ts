@@ -7,10 +7,7 @@ import {
   CALENDAR_ITEM_ACTIVITY_FIELDS,
   type CalendarData,
   type StoredMonth,
-  type YearMonth,
   buildMonthItems,
-  endOfMonth,
-  fromYearMonth,
   pairingWindow,
   withItemStatuses,
 } from './calendarWorkouts';
@@ -39,8 +36,11 @@ import {
 } from './intervalsApi';
 import {
   type LocalDateString,
+  type YearMonth,
   addDays,
+  endOfMonth,
   fromLocalDateString,
+  fromYearMonth,
   toLocalDateString,
 } from './localDate';
 import { type Note, noteWindow, toNotes } from './notes';
