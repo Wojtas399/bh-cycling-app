@@ -1,5 +1,10 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
 import { useWorkoutDetails } from '../useWorkoutDetails';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
 import {
   type IntervalsActivity,
@@ -23,10 +28,6 @@ import {
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/hooks/useToday', () => ({
   useToday: jest.fn(),
 }));
@@ -39,11 +40,6 @@ jest.mock('@/lib/intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockUseToday = jest.mocked(useToday);
 const mockGetCalendarEvent = jest.mocked(getCalendarEvent);
 const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
@@ -52,28 +48,6 @@ const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 
 const EVENT_ID = 42;
 const TODAY = '2026-10-17';
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected() {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-  });
-}
 
 function event(
   overrides: Partial<IntervalsCalendarEvent> = {},
@@ -117,7 +91,7 @@ describe('useWorkoutDetails', () => {
 
   describe('availability gate', () => {
     it('is loading and fetches nothing while the connection resolves', async () => {
-      mockConnection({ loading: true });
+      intervalsConnectionLoading();
 
       const { result } = await renderDetails();
 
@@ -127,7 +101,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is unavailable and fetches nothing when not connected', async () => {
-      mockConnection();
+      disconnectIntervals();
 
       const { result } = await renderDetails();
 
@@ -138,7 +112,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is unavailable and fetches nothing while a reconnect is needed', async () => {
-      mockConnected();
+      connectIntervals();
       setNeedsReconnect(true);
 
       const { result } = await renderDetails();
@@ -150,7 +124,7 @@ describe('useWorkoutDetails', () => {
 
   describe('Workout Status and mode', () => {
     it('is a planned Workout in planned mode when it is in the future and unpaired', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-10-18T08:00:00' }),
       );
@@ -168,7 +142,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is a missed Workout in planned mode when its day has passed unpaired', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-10-16T08:00:00' }),
       );
@@ -184,7 +158,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('turns planned into missed when today moves on, without a new request', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result, rerender } = await renderDetails();
@@ -204,7 +178,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is completed when an Activity is paired to the Workout', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockResolvedValue([
         activity({ paired_event_id: EVENT_ID }),
@@ -221,7 +195,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is completed by an Activity ridden on a different day', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-10-14T08:00:00' }),
       );
@@ -240,7 +214,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it("opens a Workout ridden on a different day with that Activity's numbers", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-10-14T08:00:00' }),
       );
@@ -267,7 +241,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is completed by a Strava Activity the event names, read from the events list since the single read lacks the paired Activity id', async () => {
-      mockConnected();
+      connectIntervals();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
       mockGetCalendarEvent.mockResolvedValue(planned);
@@ -298,7 +272,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is completed when the Activity the event names is outside the fetched range', async () => {
-      mockConnected();
+      connectIntervals();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
       mockGetCalendarEvent.mockResolvedValue(planned);
@@ -321,7 +295,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('keeps a native pairing recorded on both sides as before', async () => {
-      mockConnected();
+      connectIntervals();
       const planned = event();
 
       mockGetCalendarEvent.mockResolvedValue(planned);
@@ -352,7 +326,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('never pairs an Activity that neither names the event nor is named by it', async () => {
-      mockConnected();
+      connectIntervals();
       const planned = event({ start_date_local: '2026-10-16T08:00:00' });
 
       mockGetCalendarEvent.mockResolvedValue(planned);
@@ -370,7 +344,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('keeps the earliest Activity when several are paired to the Workout', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockResolvedValue([
         activity({
@@ -403,7 +377,7 @@ describe('useWorkoutDetails', () => {
 
   describe('requests', () => {
     it("lists activities a pairing window around the Workout's local date, with the pairing fields", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-11-02T08:00:00' }),
       );
@@ -434,7 +408,7 @@ describe('useWorkoutDetails', () => {
 
   describe('events list', () => {
     it("reads the Workouts listed a week past each side of the event's local day, step watts resolved", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-11-02T08:00:00' }),
       );
@@ -456,7 +430,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('falls back to the single read when the list lacks the event', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event({ name: 'Single read' }));
       mockGetCalendarEvents.mockResolvedValue([
         event({ id: 7, name: 'Another Workout' }),
@@ -470,7 +444,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('fails when the events list fails', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetCalendarEvents.mockRejectedValue(new IntervalsApiError(500));
 
@@ -482,7 +456,7 @@ describe('useWorkoutDetails', () => {
 
   describe('failures', () => {
     it('fails rather than falling back to planned mode when the activities fetch fails', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockRejectedValue(new IntervalsApiError(500));
 
@@ -493,7 +467,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('surfaces an event that is not a Workout as not found', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ category: 'NOTE', name: 'Obóz' }),
       );
@@ -506,7 +480,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('surfaces a deleted Workout as an API error with status 404', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockRejectedValue(new IntervalsApiError(404));
 
       const { result } = await renderDetails();
@@ -519,7 +493,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('colours the profile by Coggan zones when the athlete settings fail, drawing its card in %FTP without waiting on them', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetAthleteSettings.mockRejectedValue(new IntervalsApiError(500));
       mockGetCalendarEvent.mockResolvedValue(
         event({
@@ -544,7 +518,7 @@ describe('useWorkoutDetails', () => {
 
   describe('profile', () => {
     it('summarises the profile with its duration, step count and peak %FTP', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({
           workout_doc: {
@@ -572,7 +546,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it("carries the athlete's Ride settings it's coloured by, current FTP included, for its profile card", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetAthleteSettings.mockResolvedValue({
         ftp: 265,
         powerZones: [60, 80, 90, 105, 120, 150, 999],
@@ -591,7 +565,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('has no profile summary when there is no profile to draw', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ workout_doc: { duration: 3600, steps: [] } }),
       );
@@ -606,7 +580,7 @@ describe('useWorkoutDetails', () => {
 
   describe('Strava Activity', () => {
     it('carries the id, local start time and Strava page of the Strava Activity the event names', async () => {
-      mockConnected();
+      connectIntervals();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
       mockGetCalendarEvent.mockResolvedValue(planned);
@@ -637,7 +611,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is null for a Workout paired to a native Activity', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockResolvedValue([
         activity({ paired_event_id: EVENT_ID }),
@@ -654,7 +628,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is null when the Activity the event names is outside the fetched range', async () => {
-      mockConnected();
+      connectIntervals();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
 
       mockGetCalendarEvent.mockResolvedValue(planned);
@@ -673,7 +647,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is null in planned mode', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result } = await renderDetails();
@@ -687,7 +661,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('requests the name and type that tell a Strava Activity apart', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result } = await renderDetails();
@@ -705,7 +679,7 @@ describe('useWorkoutDetails', () => {
       eventOverrides: Partial<IntervalsCalendarEvent>,
       activityOverrides: Partial<IntervalsActivity>,
     ) {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event(eventOverrides));
       mockGetActivities.mockResolvedValue([
         activity({ paired_event_id: EVENT_ID, ...activityOverrides }),
@@ -782,7 +756,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is absent in planned mode', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event({ moving_time: 3600 }));
 
       const { result } = await renderDetails();
@@ -796,7 +770,7 @@ describe('useWorkoutDetails', () => {
     async function metricsFor(
       activityOverrides: Partial<IntervalsJson<IntervalsActivity>>,
     ) {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       mockGetActivities.mockResolvedValue([
         activity({ paired_event_id: EVENT_ID, ...activityOverrides }),
@@ -861,7 +835,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('is absent in planned mode', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result } = await renderDetails();
@@ -900,7 +874,7 @@ describe('useWorkoutDetails', () => {
 
   describe('plan metrics', () => {
     async function planMetricsFor(overrides: Partial<IntervalsCalendarEvent>) {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event(overrides));
 
       const { result } = await renderDetails();
@@ -968,7 +942,7 @@ describe('useWorkoutDetails', () => {
       paired: Partial<IntervalsActivity> | null,
       overrides: Partial<IntervalsCalendarEvent> = {},
     ) {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event(overrides));
       mockGetActivities.mockResolvedValue(
         paired ? [activity({ paired_event_id: EVENT_ID, ...paired })] : [],
@@ -1078,7 +1052,7 @@ describe('useWorkoutDetails', () => {
 
   describe('description', () => {
     async function descriptionFor(overrides: Partial<IntervalsCalendarEvent>) {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event(overrides));
 
       const { result } = await renderDetails();
@@ -1132,7 +1106,7 @@ describe('useWorkoutDetails', () => {
 
   describe('Kroki steps', () => {
     async function stepsOf(steps: WorkoutStep[] | undefined) {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({ workout_doc: { duration: 3600, steps } }),
       );
@@ -1396,7 +1370,7 @@ describe('useWorkoutDetails', () => {
     const workoutKey = ['intervals', 'athlete-1', 'workout', EVENT_ID];
 
     it('is refetched when everything for the athlete is invalidated', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result, client } = await renderDetails();
@@ -1412,7 +1386,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it("is dropped with the rest of the ['intervals'] prefix", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result, client } = await renderDetails();
@@ -1426,7 +1400,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('does not build the view model again while today stays the same', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
       const build = jest.spyOn(workoutDetails, 'buildWorkoutDetails');
 
@@ -1442,7 +1416,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('keeps the same refetch across renders', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result, rerender } = await renderDetails();
@@ -1454,7 +1428,7 @@ describe('useWorkoutDetails', () => {
     });
 
     it('refetches only this query on refetch', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(event());
 
       const { result, client } = await renderDetails();
