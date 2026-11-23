@@ -1,5 +1,10 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
 import { useUpcomingWorkouts } from '../useUpcomingWorkouts';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   type IntervalsCalendarEvent,
   getActivities,
@@ -11,10 +16,6 @@ import { addDays, toLocalDateString } from '@/lib/localDate';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getCalendarEvents: jest.fn(),
@@ -22,36 +23,9 @@ jest.mock('@/lib/intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
 const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 const mockGetActivities = jest.mocked(getActivities);
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected() {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-  });
-}
 
 function workoutScheduledToday(): IntervalsCalendarEvent {
   return {
@@ -101,7 +75,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('is unavailable and makes no API call when not connected', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
 
@@ -113,7 +87,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('is loading and makes no API call while the connection itself resolves', async () => {
-    mockConnection({ loading: true });
+    intervalsConnectionLoading();
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
 
@@ -122,7 +96,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('is pending while the fetch is in flight', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -132,7 +106,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it("caches today's items under the athlete and today's date with no Workout Status, which it applies as of today", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params) =>
         params?.category === 'NOTE' ? [] : [workoutScheduledToday()],
@@ -172,7 +146,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('fetches the Notes from 31 days before today to tomorrow', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([]);
 
     const { result } = await renderHookWithClient(() => useUpcomingWorkouts());
@@ -191,7 +165,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it("lists today's Race first, from the events call it already makes, so only the events and Notes calls go out", async () => {
-    mockConnected();
+    connectIntervals();
     const today = toLocalDateString(new Date());
     const race: IntervalsCalendarEvent = {
       id: 5,
@@ -218,7 +192,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it("lists today's Notes from the Notes call after today's Workouts", async () => {
-    mockConnected();
+    connectIntervals();
     const today = toLocalDateString(new Date());
     const note: IntervalsCalendarEvent = {
       id: 9,
@@ -248,7 +222,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it("lists today's Strava Activity, as the list returns it, unpaired after today's Workout", async () => {
-    mockConnected();
+    connectIntervals();
     const today = toLocalDateString(new Date());
 
     mockGetCalendarEvents.mockResolvedValue([workoutScheduledToday()]);
@@ -287,7 +261,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('fails when the Notes call fails', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params) => {
         if (params?.category === 'NOTE') throw new Error('notes down');
@@ -303,7 +277,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('refetches only the "Dziś i jutro" query, resolving once it settles', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([]);
     const upcomingKey = intervalsKeys.upcoming(
       'athlete-1',
@@ -337,7 +311,7 @@ describe('useUpcomingWorkouts', () => {
 
   describe('Workout Profile zones', () => {
     it("draws a Workout's profile in the athlete's own zones", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetAthleteSettings.mockResolvedValue({ powerZones: ATHLETE_ZONES });
       mockZoneTwoHourToday();
 
@@ -353,7 +327,7 @@ describe('useUpcomingWorkouts', () => {
     });
 
     it("falls back to Coggan's zones and still lists the Workout when the athlete settings fail", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetAthleteSettings.mockRejectedValue(
         new Error('settings unavailable'),
       );
@@ -371,7 +345,7 @@ describe('useUpcomingWorkouts', () => {
     });
 
     it('reads the athlete settings once and reuses them on a refetch', async () => {
-      mockConnected();
+      connectIntervals();
       mockGetCalendarEvents.mockResolvedValue([]);
 
       const { result } = await renderHookWithClient(() =>
@@ -385,7 +359,7 @@ describe('useUpcomingWorkouts', () => {
     });
 
     it("reads the athlete settings again after they failed, drawing the athlete's zones once they load", async () => {
-      mockConnected();
+      connectIntervals();
       mockGetAthleteSettings
         .mockRejectedValueOnce(new Error('settings down'))
         .mockResolvedValue({ powerZones: ATHLETE_ZONES });
@@ -412,7 +386,7 @@ describe('useUpcomingWorkouts', () => {
   });
 
   it('is empty when connected but no events match', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([
       {
         id: 1,

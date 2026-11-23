@@ -10,12 +10,12 @@ import {
   raceQueryOptions,
   routeQueryOptions,
   selectMonthAsOf,
-  selectUpcomingAsOf,
-  selectWorkoutDetailsAsOf,
+  selectWorkoutDetails,
   todayQueryOptions,
   upcomingQueryOptions,
   workoutDetailsQueryOptions,
 } from '../intervalsQueries';
+import { getUpcomingItems } from '../upcomingWorkouts';
 import { skipToken } from '@tanstack/react-query';
 
 const TODAY = '2026-02-11';
@@ -71,8 +71,9 @@ describe('query keys', () => {
     ['the athlete settings', athleteSettingsQueryOptions(CREDENTIALS).queryKey],
     [
       'the upcoming items',
-      upcomingQueryOptions(CREDENTIALS, TODAY, selectUpcomingAsOf(TODAY))
-        .queryKey,
+      upcomingQueryOptions(CREDENTIALS, TODAY, stored =>
+        getUpcomingItems(stored, TODAY),
+      ).queryKey,
     ],
     ['the next Race', nextRaceQueryOptions(CREDENTIALS, TODAY).queryKey],
     ["today's Wellness Entry", todayQueryOptions(CREDENTIALS, TODAY).queryKey],
@@ -84,10 +85,8 @@ describe('query keys', () => {
     ],
     [
       "a Workout's details",
-      workoutDetailsQueryOptions(
-        CREDENTIALS,
-        42,
-        selectWorkoutDetailsAsOf(42, TODAY),
+      workoutDetailsQueryOptions(CREDENTIALS, 42, stored =>
+        selectWorkoutDetails(stored, 42, TODAY),
       ).queryKey,
     ],
     ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42).queryKey],
@@ -142,10 +141,8 @@ describe('freshness', () => {
   });
 
   it('lets the upcoming workouts go stale after 5 minutes and refetch on focus', () => {
-    const options = upcomingQueryOptions(
-      CREDENTIALS,
-      '2026-10-11',
-      selectUpcomingAsOf('2026-10-11'),
+    const options = upcomingQueryOptions(CREDENTIALS, '2026-10-11', stored =>
+      getUpcomingItems(stored, '2026-10-11'),
     );
 
     expect(options.staleTime).toBe(FIVE_MINUTES);
@@ -186,10 +183,8 @@ describe('freshness', () => {
     ["today's Wellness Entry", todayQueryOptions(CREDENTIALS, TODAY)],
     [
       "a Workout's details",
-      workoutDetailsQueryOptions(
-        CREDENTIALS,
-        42,
-        selectWorkoutDetailsAsOf(42, TODAY),
+      workoutDetailsQueryOptions(CREDENTIALS, 42, stored =>
+        selectWorkoutDetails(stored, 42, TODAY),
       ),
     ],
     ['a Note', noteDetailsQueryOptions(CREDENTIALS, 42)],

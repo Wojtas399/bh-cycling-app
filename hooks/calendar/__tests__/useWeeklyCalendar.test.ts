@@ -1,5 +1,6 @@
+import { connectIntervals } from '@/test-utils/intervalsConnection';
+
 import { useWeeklyCalendar } from '../useWeeklyCalendar';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
   getActivities,
   getAthleteSettings,
@@ -21,10 +22,6 @@ import { createQueryClient } from '@/lib/queryClient';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getCalendarEvents: jest.fn(),
@@ -32,13 +29,8 @@ jest.mock('@/lib/intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
 const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
 
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
 const mockGetActivities = jest.mocked(getActivities);
 const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
@@ -46,14 +38,7 @@ const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
 describe('useWeeklyCalendar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseIntervalsConnection.mockReturnValue({
-      isConnected: true,
-      athleteName: null,
-      athleteId: 'athlete-1',
-      accessToken: 'token-1',
-      scope: null,
-      loading: false,
-    });
+    connectIntervals();
     mockGetAthleteSettings.mockResolvedValue({});
     mockGetCalendarEvents.mockResolvedValue([]);
     mockGetActivities.mockResolvedValue([]);
