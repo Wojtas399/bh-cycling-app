@@ -1,4 +1,5 @@
 import { useIntervalsAvailability } from './useIntervalsAvailability';
+import { useRefetchQuery } from './useRefetchQuery';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import {
   type DefaultError,
@@ -33,7 +34,9 @@ export function useIntervalsRead<
   TQueryKey extends QueryKey,
 >(read: UnselectedRead<Args, TQueryFnData, TData, TQueryKey>) {
   const { availability, credentials } = useIntervalsAvailability();
-  const query = useQuery(read.queryOptions(credentials, ...read.args));
+  const options = read.queryOptions(credentials, ...read.args);
+  const query = useQuery(options);
+  const refetch = useRefetchQuery(options.queryKey);
 
-  return { availability, query };
+  return { availability, query, refetch };
 }

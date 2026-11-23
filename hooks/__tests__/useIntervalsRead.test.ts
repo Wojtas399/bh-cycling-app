@@ -9,8 +9,8 @@ import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { settleQueries } from '@/test-utils/settle';
-import { queryOptions, skipToken } from '@tanstack/react-query';
-import { waitFor } from '@testing-library/react-native';
+import { queryOptions, skipToken, useQuery } from '@tanstack/react-query';
+import { act, waitFor } from '@testing-library/react-native';
 
 const fetchRideDates = jest.fn<
   Promise<string[]>,
@@ -92,6 +92,57 @@ describe('useIntervalsRead', () => {
       expect(result.current.availability).toBe('available');
       expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
       expect(result.current.query.data).toEqual(['2026-11-20', '2026-11-22']);
+    });
+  });
+
+  describe('refetch', () => {
+    it('refetches the read under exactly its key, and no query under a longer one', async () => {
+      connectIntervals();
+      const fetchLonger = jest.fn().mockResolvedValue('longer');
+      const { result } = await renderHookWithClient(() => {
+        useQuery({
+          queryKey: ['intervals', 'athlete-1', 'rideDates', 7, 'longer'],
+          queryFn: fetchLonger,
+        });
+
+        return useIntervalsRead({
+          queryOptions: rideDatesQueryOptions,
+          args: [7],
+        });
+      });
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      await act(() => result.current.refetch());
+
+      expect(fetchRideDates).toHaveBeenCalledTimes(2);
+      expect(fetchLonger).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the same function across renders while the key is equal', async () => {
+      connectIntervals();
+      const { result, rerender } = await renderRideDates();
+      const first = result.current.refetch;
+
+      await rerender(undefined);
+
+      expect(result.current.refetch).toBe(first);
+    });
+
+    it('returns a new function once the key changes', async () => {
+      connectIntervals();
+      let rideId = 7;
+      const { result, rerender } = await renderHookWithClient(() =>
+        useIntervalsRead({
+          queryOptions: rideDatesQueryOptions,
+          args: [rideId],
+        }),
+      );
+      const first = result.current.refetch;
+
+      rideId = 8;
+      await rerender(undefined);
+
+      expect(result.current.refetch).not.toBe(first);
     });
   });
 });
