@@ -14,10 +14,19 @@ import {
 } from '@tanstack/react-query';
 
 type ReadQueryOptions<
+  Args extends unknown[],
   TQueryFnData,
   TData,
   TQueryKey extends QueryKey,
-> = UseQueryOptions<TQueryFnData, DefaultError, TData, TQueryKey>;
+> = (
+  credentials: IntervalsCredentials | null,
+  ...args: Args
+) => UseQueryOptions<TQueryFnData, DefaultError, TData, TQueryKey>;
+
+type ReadSelect<TQueryFnData, TData, SelectArgs extends unknown[]> = (
+  stored: TQueryFnData,
+  ...selectArgs: SelectArgs
+) => TData;
 
 interface UnselectedRead<
   Args extends unknown[],
@@ -25,10 +34,7 @@ interface UnselectedRead<
   TData,
   TQueryKey extends QueryKey,
 > {
-  queryOptions: (
-    credentials: IntervalsCredentials | null,
-    ...args: Args
-  ) => ReadQueryOptions<TQueryFnData, TData, TQueryKey>;
+  queryOptions: ReadQueryOptions<Args, TQueryFnData, TData, TQueryKey>;
   args: Args;
 }
 
@@ -39,12 +45,14 @@ interface SelectedRead<
   TQueryKey extends QueryKey,
   SelectArgs extends unknown[],
 > {
-  queryOptions: (
-    credentials: IntervalsCredentials | null,
-    ...args: [...Args, select: (stored: TQueryFnData) => TData]
-  ) => ReadQueryOptions<TQueryFnData, TData, TQueryKey>;
+  queryOptions: ReadQueryOptions<
+    [...Args, select: ReadSelect<TQueryFnData, TData, []>],
+    TQueryFnData,
+    TData,
+    TQueryKey
+  >;
   args: Args;
-  select: (stored: TQueryFnData, ...selectArgs: SelectArgs) => TData;
+  select: ReadSelect<TQueryFnData, TData, SelectArgs>;
   selectArgs: SelectArgs;
 }
 
@@ -79,13 +87,7 @@ type ReadParts<
         TQueryKey,
         SelectArgs
       >['queryOptions'],
-      select: SelectedRead<
-        Args,
-        TQueryFnData,
-        TData,
-        TQueryKey,
-        SelectArgs
-      >['select'],
+      select: ReadSelect<TQueryFnData, TData, SelectArgs>,
       ...selectArgs: SelectArgs,
     ];
 
@@ -105,7 +107,7 @@ function readParts<
     : ['unselected', read.queryOptions];
 }
 
-function bindQueryOptions<
+function bindSelect<
   Args extends unknown[],
   TQueryFnData,
   TData,
@@ -113,7 +115,7 @@ function bindQueryOptions<
   SelectArgs extends unknown[],
 >(
   ...parts: ReadParts<Args, TQueryFnData, TData, TQueryKey, SelectArgs>
-): UnselectedRead<Args, TQueryFnData, TData, TQueryKey>['queryOptions'] {
+): ReadQueryOptions<Args, TQueryFnData, TData, TQueryKey> {
   if (parts[0] === 'unselected') return parts[1];
 
   const [, queryOptions, select, ...selectArgs] = parts;
@@ -152,11 +154,11 @@ export function useIntervalsRead<
     | SelectedRead<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
 ): IntervalsRead<TData> {
   const { availability, credentials } = useIntervalsAvailability();
-  const boundQueryOptions = useStableSelect(
-    bindQueryOptions<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
+  const queryOptions = useStableSelect(
+    bindSelect<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
     ...readParts(read),
   );
-  const options = boundQueryOptions(credentials, ...read.args);
+  const options = queryOptions(credentials, ...read.args);
   const query = useQuery(options);
   const refetch = useRefetchQuery(options.queryKey);
 
