@@ -4,8 +4,7 @@ import {
 } from '../useCalendarRange';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
-import { calendarItemKey } from '@/lib/calendarItems';
-import * as calendarWorkouts from '@/lib/calendarWorkouts';
+import * as calendarItems from '@/lib/calendarItems';
 import * as combineMonthResultsModule from '@/lib/combineMonthResults';
 import {
   type IntervalsActivity,
@@ -453,7 +452,9 @@ describe('useCalendarRange', () => {
 
     await waitFor(() => expect(result.current.refreshing).toBe(true));
     expect(
-      result.current.query.data?.itemsByDate[today].map(calendarItemKey),
+      result.current.query.data?.itemsByDate[today].map(
+        calendarItems.calendarItemKey,
+      ),
     ).toEqual(['workout-1']);
 
     await act(async () => {
@@ -462,7 +463,9 @@ describe('useCalendarRange', () => {
 
     await waitFor(() => expect(result.current.refreshing).toBe(false));
     expect(
-      result.current.query.data?.itemsByDate[today].map(calendarItemKey),
+      result.current.query.data?.itemsByDate[today].map(
+        calendarItems.calendarItemKey,
+      ),
     ).toEqual(['workout-2']);
     expect(monthFetches()).toBe(2);
   });
@@ -733,7 +736,7 @@ describe('useCalendarRange', () => {
   it('does not derive the statuses again while today stays the same', async () => {
     mockConnected();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const derive = jest.spyOn(calendarWorkouts, 'withItemStatuses');
+    const derive = jest.spyOn(calendarItems, 'withItemStatuses');
 
     const { result, rerender } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
