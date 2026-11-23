@@ -34,6 +34,21 @@ function rideDatesQueryOptions(
   });
 }
 
+function selectedRideDatesQueryOptions(
+  credentials: IntervalsCredentials | null,
+  rideId: number,
+  select: (stored: string[]) => Set<string>,
+) {
+  return queryOptions({
+    ...rideDatesQueryOptions(credentials, rideId),
+    select,
+  });
+}
+
+function rideDatesUpTo(stored: string[], today: string): Set<string> {
+  return new Set(stored.filter(date => date <= today));
+}
+
 describe('useIntervalsRead', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -143,6 +158,28 @@ describe('useIntervalsRead', () => {
       await rerender(undefined);
 
       expect(result.current.refetch).not.toBe(first);
+    });
+  });
+
+  describe('select', () => {
+    function renderSelected(today: () => string) {
+      return renderHookWithClient(() =>
+        useIntervalsRead({
+          queryOptions: selectedRideDatesQueryOptions,
+          args: [7],
+          select: rideDatesUpTo,
+          selectArgs: [today()],
+        }),
+      );
+    }
+
+    it('selects from the stored data with its selectArgs', async () => {
+      connectIntervals();
+
+      const { result } = await renderSelected(() => '2026-11-21');
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      expect(result.current.query.data).toEqual(new Set(['2026-11-20']));
     });
   });
 });
