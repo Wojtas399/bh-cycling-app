@@ -1,10 +1,8 @@
-import type { IntervalsAvailability } from '@/hooks/useIntervalsAvailability';
-import { useIntervalsRead } from '@/hooks/useIntervalsRead';
+import { type IntervalsRead, useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
 import { type FitnessDay, hasFitnessValues } from '@/lib/fitness';
 import { isForbiddenError } from '@/lib/intervalsApi';
 import { fitnessQueryOptions } from '@/lib/intervalsQueries';
-import type { UseQueryResult } from '@tanstack/react-query';
 
 export type FitnessChartState =
   | { status: 'loading' }
@@ -19,23 +17,23 @@ export type FitnessChartState =
 
 export function useFitnessChart() {
   const today = useToday();
-  const { availability, lacksScope, query, refetch } = useIntervalsRead({
+  const read = useIntervalsRead({
     queryOptions: fitnessQueryOptions,
     args: [today],
     requiredScope: 'WELLNESS:READ',
   });
 
-  return { state: toChartState(availability, lacksScope, query), refetch };
+  return { state: toChartState(read), refetch: read.refetch };
 }
 
-function toChartState(
-  availability: IntervalsAvailability,
-  lacksWellness: boolean,
-  { data, error, isError }: UseQueryResult<FitnessDay[]>,
-): FitnessChartState {
+function toChartState({
+  availability,
+  lacksScope,
+  query: { data, error, isError },
+}: IntervalsRead<FitnessDay[]>): FitnessChartState {
   if (availability === 'unavailable') return { status: 'notConnected' };
 
-  if (lacksWellness || isForbiddenError(error)) {
+  if (lacksScope || isForbiddenError(error)) {
     return { status: 'needsScope' };
   }
 

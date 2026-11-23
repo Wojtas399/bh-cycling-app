@@ -6,6 +6,7 @@ import {
 } from '@/hooks/useIntervalsAvailability';
 import { useStableSelect } from '@/hooks/useStableSelect';
 import { useToday } from '@/hooks/useToday';
+import { bindSelectArgs } from '@/lib/bindSelectArgs';
 import {
   type CombinedMonthResult,
   combineMonthResults,
@@ -13,7 +14,7 @@ import {
 import {
   intervalsKeys,
   monthQueryOptions,
-  selectMonthAsOf,
+  selectMonth,
 } from '@/lib/intervalsQueries';
 import {
   type YearMonth,
@@ -75,7 +76,7 @@ export function useCalendarRange({
   );
 
   const combine = useStableSelect(combineRangeMonths, anchor, startOf, endOf);
-  const select = useStableSelect(selectMonthAsOf, today);
+  const select = useStableSelect(bindSelectArgs, selectMonth, today);
 
   const query = useQueries({
     queries: monthsFor(anchor).map(yearMonth =>

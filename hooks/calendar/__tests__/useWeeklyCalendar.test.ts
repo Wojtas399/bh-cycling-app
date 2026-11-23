@@ -9,7 +9,7 @@ import {
 import {
   intervalsKeys,
   monthQueryOptions,
-  selectMonthAsOf,
+  selectMonth,
 } from '@/lib/intervalsQueries';
 import {
   addDays,
@@ -194,10 +194,8 @@ describe('useWeeklyCalendar', () => {
 
     for (const day of [startOfWeek(now), endOfWeek(now)]) {
       await client.fetchQuery(
-        monthQueryOptions(
-          CREDENTIALS,
-          toYearMonth(day),
-          selectMonthAsOf(toLocalDateString(now)),
+        monthQueryOptions(CREDENTIALS, toYearMonth(day), stored =>
+          selectMonth(stored, toLocalDateString(now)),
         ),
       );
     }

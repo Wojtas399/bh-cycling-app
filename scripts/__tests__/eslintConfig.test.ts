@@ -23,6 +23,24 @@ async function rulesFor(filePath: string) {
   );
 }
 
+const TANSTACK_READ_IMPORT = [
+  "import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';",
+  '',
+  'export { useQueries, useQuery, useQueryClient };',
+  '',
+].join('\n');
+
+async function restrictedImportsIn(source: string, filePath: string) {
+  const [result] = await new ESLint({
+    overrideConfigFile: true,
+    baseConfig: projectConfig,
+  }).lintText(source, { filePath });
+
+  return result.messages
+    .filter(({ ruleId }) => ruleId?.endsWith('no-restricted-imports'))
+    .map(({ message }) => message.split(' ')[0]);
+}
+
 describe('eslint.config.js', () => {
   it.each(LINTED_FILE_KINDS)(
     'applies every project ban to %s as it does to lib/ TypeScript',
@@ -33,4 +51,29 @@ describe('eslint.config.js', () => {
       expect(await rulesFor(filePath)).toEqual(reference);
     },
   );
+
+  it.each([
+    'hooks/home/useUpcomingWorkouts.ts',
+    'hooks/useFormTextField.ts',
+    'app/(app)/fitness.tsx',
+    'lib/intervalsQueries.ts',
+  ])(
+    'makes %s read Intervals.icu data through useIntervalsRead, not useQuery or useQueries',
+    async filePath => {
+      expect(await restrictedImportsIn(TANSTACK_READ_IMPORT, filePath)).toEqual(
+        ["'useQueries'", "'useQuery'"],
+      );
+    },
+  );
+
+  it.each([
+    'hooks/useIntervalsRead.ts',
+    'hooks/calendar/useCalendarRange.ts',
+    'hooks/__tests__/useRefetchQuery.test.ts',
+    'test-utils/__tests__/settle.test.ts',
+  ])('lets %s call useQuery and useQueries directly', async filePath => {
+    expect(await restrictedImportsIn(TANSTACK_READ_IMPORT, filePath)).toEqual(
+      [],
+    );
+  });
 });
