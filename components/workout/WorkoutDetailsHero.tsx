@@ -4,8 +4,11 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
 import WorkoutStatusPill from '@/components/workout/WorkoutStatusPill';
-import { daysSinceMonday } from '@/lib/calendarWorkouts';
-import { type LocalDateString, fromLocalDateString } from '@/lib/localDate';
+import {
+  type LocalDateString,
+  daysSinceMonday,
+  fromLocalDateString,
+} from '@/lib/localDate';
 import type { WorkoutStatus } from '@/lib/workoutStatus';
 
 export interface WorkoutDetailsHeroProps {

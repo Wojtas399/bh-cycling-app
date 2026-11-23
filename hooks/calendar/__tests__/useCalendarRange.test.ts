@@ -6,7 +6,6 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
 import { calendarItemKey } from '@/lib/calendarItems';
 import * as calendarWorkouts from '@/lib/calendarWorkouts';
-import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
 import * as combineMonthResultsModule from '@/lib/combineMonthResults';
 import {
   type IntervalsActivity,
@@ -16,7 +15,13 @@ import {
   getCalendarEvents,
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
-import { addDays, toLocalDateString } from '@/lib/localDate';
+import {
+  addDays,
+  endOfMonth,
+  startOfMonth,
+  toLocalDateString,
+  toYearMonth,
+} from '@/lib/localDate';
 import { restoreDefaultFocus } from '@/test-utils/focus';
 import {
   createTestQueryClient,
