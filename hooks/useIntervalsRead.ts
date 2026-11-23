@@ -1,7 +1,9 @@
+import { type IntervalsScope, lacksScope } from './intervalsScopes';
 import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from './useIntervalsAvailability';
+import { useIntervalsConnection } from './useIntervalsConnection';
 import { useRefetchQuery } from './useRefetchQuery';
 import { useStableSelect } from './useStableSelect';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
@@ -36,6 +38,7 @@ interface UnselectedRead<
 > {
   queryOptions: ReadQueryOptions<Args, TQueryFnData, TData, TQueryKey>;
   args: Args;
+  requiredScope?: IntervalsScope;
 }
 
 interface SelectedRead<
@@ -54,12 +57,14 @@ interface SelectedRead<
   args: Args;
   select: ReadSelect<TQueryFnData, TData, SelectArgs>;
   selectArgs: SelectArgs;
+  requiredScope?: IntervalsScope;
 }
 
 interface IntervalsRead<TData> {
   availability: IntervalsAvailability;
   query: UseQueryResult<TData>;
   refetch: () => Promise<void>;
+  lacksScope: boolean;
 }
 
 type ReadParts<
@@ -154,13 +159,19 @@ export function useIntervalsRead<
     | SelectedRead<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
 ): IntervalsRead<TData> {
   const { availability, credentials } = useIntervalsAvailability();
+  const { scope } = useIntervalsConnection();
+  const lacksRequiredScope =
+    read.requiredScope !== undefined && lacksScope(scope, read.requiredScope);
   const queryOptions = useStableSelect(
     bindSelect<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
     ...readParts(read),
   );
-  const options = queryOptions(credentials, ...read.args);
+  const options = queryOptions(
+    lacksRequiredScope ? null : credentials,
+    ...read.args,
+  );
   const query = useQuery(options);
   const refetch = useRefetchQuery(options.queryKey);
 
-  return { availability, query, refetch };
+  return { availability, query, refetch, lacksScope: lacksRequiredScope };
 }

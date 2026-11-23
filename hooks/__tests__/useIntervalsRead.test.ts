@@ -110,6 +110,30 @@ describe('useIntervalsRead', () => {
     });
   });
 
+  describe('scope gate', () => {
+    function renderWellnessGated() {
+      return renderHookWithClient(() =>
+        useIntervalsRead({
+          queryOptions: rideDatesQueryOptions,
+          args: [7],
+          requiredScope: 'WELLNESS:READ',
+        }),
+      );
+    }
+
+    it('requests nothing and lacks the scope when the stored scope lacks the required one', async () => {
+      connectIntervals({ scope: 'ACTIVITY:READ,CALENDAR:READ' });
+
+      const { result } = await renderWellnessGated();
+
+      await settleQueries();
+
+      expect(result.current.lacksScope).toBe(true);
+      expect(result.current.availability).toBe('available');
+      expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+  });
+
   describe('refetch', () => {
     it('refetches the read under exactly its key, and no query under a longer one', async () => {
       connectIntervals();
