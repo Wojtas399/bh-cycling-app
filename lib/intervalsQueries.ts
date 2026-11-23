@@ -244,11 +244,14 @@ export function fitnessQueryOptions(
 
 export type MonthSelect = (month: StoredMonth) => CalendarData;
 
-export function selectMonthAsOf(today: LocalDateString): MonthSelect {
-  return month => ({
+export function selectMonth(
+  month: StoredMonth,
+  today: LocalDateString,
+): CalendarData {
+  return {
     itemsByDate: withItemStatuses(month, today),
     notes: month.notes,
-  });
+  };
 }
 
 export function monthQueryOptions(

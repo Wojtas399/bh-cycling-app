@@ -9,7 +9,7 @@ import {
   noteDetailsQueryOptions,
   raceQueryOptions,
   routeQueryOptions,
-  selectMonthAsOf,
+  selectMonth,
   selectWorkoutDetails,
   todayQueryOptions,
   upcomingQueryOptions,
@@ -80,8 +80,9 @@ describe('query keys', () => {
     ['the Fitness year', fitnessQueryOptions(CREDENTIALS, TODAY).queryKey],
     [
       'a month',
-      monthQueryOptions(CREDENTIALS, '2026-02', selectMonthAsOf(TODAY))
-        .queryKey,
+      monthQueryOptions(CREDENTIALS, '2026-02', stored =>
+        selectMonth(stored, TODAY),
+      ).queryKey,
     ],
     [
       "a Workout's details",
@@ -150,10 +151,8 @@ describe('freshness', () => {
   });
 
   it('lets a month go stale after 5 minutes and refetch on focus', () => {
-    const options = monthQueryOptions(
-      CREDENTIALS,
-      '2026-06',
-      selectMonthAsOf('2026-06-15'),
+    const options = monthQueryOptions(CREDENTIALS, '2026-06', stored =>
+      selectMonth(stored, '2026-06-15'),
     );
 
     expect(options.staleTime).toBe(FIVE_MINUTES);
