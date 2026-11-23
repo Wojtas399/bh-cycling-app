@@ -110,6 +110,62 @@ describe('useIntervalsRead', () => {
     });
   });
 
+  describe('scope gate', () => {
+    function renderWellnessGated() {
+      return renderHookWithClient(() =>
+        useIntervalsRead({
+          queryOptions: rideDatesQueryOptions,
+          args: [7],
+          requiredScope: 'WELLNESS:READ',
+        }),
+      );
+    }
+
+    it('requests nothing and lacks the scope when the stored scope lacks the required one', async () => {
+      connectIntervals({ scope: 'ACTIVITY:READ,CALENDAR:READ' });
+
+      const { result } = await renderWellnessGated();
+
+      await settleQueries();
+
+      expect(result.current.lacksScope).toBe(true);
+      expect(result.current.availability).toBe('available');
+      expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+
+    it("requests the read with the athlete's token and lacks no scope once the required one is granted", async () => {
+      connectIntervals({ scope: 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ' });
+
+      const { result } = await renderWellnessGated();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      expect(result.current.lacksScope).toBe(false);
+      expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
+    });
+
+    it('requests nothing and lacks no scope while the connection resolves', async () => {
+      intervalsConnectionLoading();
+
+      const { result } = await renderWellnessGated();
+
+      await settleQueries();
+
+      expect(result.current.lacksScope).toBe(false);
+      expect(result.current.availability).toBe('loading');
+      expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+
+    it('lacks no scope and requests the read without a required scope, whatever the stored scope', async () => {
+      connectIntervals({ scope: 'ACTIVITY:READ' });
+
+      const { result } = await renderRideDates();
+
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      expect(result.current.lacksScope).toBe(false);
+      expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
+    });
+  });
+
   describe('refetch', () => {
     it('refetches the read under exactly its key, and no query under a longer one', async () => {
       connectIntervals();
