@@ -100,9 +100,20 @@ describe('useUpcomingWorkouts', () => {
     expect(result.current.query.isPending).toBe(true);
   });
 
-  it("caches today's items under the athlete and today's date", async () => {
+  it("caches today's items under the athlete and today's date with no Workout Status, which it applies as of today", async () => {
     mockConnected();
-    mockGetCalendarEvents.mockResolvedValue([workoutScheduledToday()]);
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE' ? [] : [workoutScheduledToday()],
+    );
+    const today = toLocalDateString(new Date());
+    const workout = {
+      id: 1,
+      name: 'Intervals',
+      date: today,
+      blocks: [],
+      completedWithStravaActivity: false,
+    };
 
     const { result, client } = await renderHookWithClient(() =>
       useUpcomingWorkouts(),
@@ -113,25 +124,20 @@ describe('useUpcomingWorkouts', () => {
         {
           kind: 'workout',
           dayLabel: 'today',
-          workout: {
-            id: 1,
-            name: 'Intervals',
-            date: toLocalDateString(new Date()),
-            status: 'planned',
-            blocks: [],
-            completedWithStravaActivity: false,
-          },
+          workout: { ...workout, status: 'planned' },
         },
       ]),
     );
     expect(
-      client.getQueryData([
-        'intervals',
-        'athlete-1',
-        'upcoming',
-        toLocalDateString(new Date()),
-      ]),
-    ).toBe(result.current.query.data);
+      client.getQueryData(['intervals', 'athlete-1', 'upcoming', today]),
+    ).toEqual({
+      itemsByDate: {
+        [today]: [{ kind: 'workout', workout }],
+        [toLocalDateString(addDays(new Date(), 1))]: [],
+      },
+      completedEventIds: [],
+      notes: [],
+    });
   });
 
   it('fetches the Notes from 31 days before today to tomorrow', async () => {
@@ -288,9 +294,13 @@ describe('useUpcomingWorkouts', () => {
     );
     await act(() => result.current.refetch());
 
-    expect(client.getQueryData(upcomingKey)).toMatchObject([
-      { kind: 'workout', workout: { id: 1 } },
-    ]);
+    expect(client.getQueryData(upcomingKey)).toMatchObject({
+      itemsByDate: {
+        [toLocalDateString(new Date())]: [
+          { kind: 'workout', workout: { id: 1 } },
+        ],
+      },
+    });
     expect(client.getQueryState(otherKey)?.dataUpdatedAt).toBe(otherUpdatedAt);
   });
 

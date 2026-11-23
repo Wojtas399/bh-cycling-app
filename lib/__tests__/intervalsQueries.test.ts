@@ -21,12 +21,12 @@ import {
   raceQueryOptions,
   routeQueryOptions,
   selectMonthAsOf,
+  selectUpcomingAsOf,
   selectWorkoutDetailsAsOf,
   todayQueryOptions,
   upcomingQueryOptions,
   workoutDetailsQueryOptions,
 } from '../intervalsQueries';
-import { toLocalDateString } from '../localDate';
 import { resolveZoneConfig } from '../powerZones';
 import { createQueryClient } from '../queryClient';
 import { skipToken } from '@tanstack/react-query';
@@ -58,18 +58,6 @@ const ZONE_2_HOUR: IntervalsWorkoutDoc = {
   duration: 3600,
   steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
 };
-
-function workoutOnTheDayTheSuiteRuns(
-  overrides: Partial<IntervalsCalendarEvent> = {},
-): IntervalsCalendarEvent {
-  return {
-    id: 1,
-    category: 'WORKOUT',
-    name: 'Intervals',
-    start_date_local: `${toLocalDateString(new Date())}T08:00:00`,
-    ...overrides,
-  };
-}
 
 describe('intervalsKeys', () => {
   it('nests every key under the intervals prefix and the athlete', () => {
@@ -119,7 +107,11 @@ describe('intervalsKeys', () => {
 describe('query keys', () => {
   it.each([
     ['the athlete settings', athleteSettingsQueryOptions(CREDENTIALS).queryKey],
-    ['the upcoming items', upcomingQueryOptions(CREDENTIALS, TODAY).queryKey],
+    [
+      'the upcoming items',
+      upcomingQueryOptions(CREDENTIALS, TODAY, selectUpcomingAsOf(TODAY))
+        .queryKey,
+    ],
     ['the next Race', nextRaceQueryOptions(CREDENTIALS, TODAY).queryKey],
     ["today's Wellness Entry", todayQueryOptions(CREDENTIALS, TODAY).queryKey],
     ['the Fitness year', fitnessQueryOptions(CREDENTIALS, TODAY).queryKey],
@@ -188,7 +180,11 @@ describe('freshness', () => {
   });
 
   it('lets the upcoming workouts go stale after 5 minutes and refetch on focus', () => {
-    const options = upcomingQueryOptions(CREDENTIALS, '2026-10-11');
+    const options = upcomingQueryOptions(
+      CREDENTIALS,
+      '2026-10-11',
+      selectUpcomingAsOf('2026-10-11'),
+    );
 
     expect(options.staleTime).toBe(FIVE_MINUTES);
     expect(options.refetchOnWindowFocus).toBe(true);
@@ -427,7 +423,13 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11'));
+    await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-11',
+        selectUpcomingAsOf('2026-10-11'),
+      ),
+    );
 
     expect(mockGetCalendarEvents).toHaveBeenCalledWith(
       'token-1',
@@ -456,10 +458,13 @@ describe('upcomingQueryOptions', () => {
     );
   });
 
-  it("lists today's items as of the day in its key, statuses included", async () => {
-    mockGetCalendarEvents.mockResolvedValue([
-      workoutOnTheDayTheSuiteRuns({ start_date_local: '2026-10-11T08:00:00' }),
-    ]);
+  it('caches the items and Notes with no Workout Status, which select applies as of today', async () => {
+    mockGetCalendarEvents.mockImplementation(
+      async (_token, _athlete, params) =>
+        params?.category === 'NOTE'
+          ? [noteEvent({ id: 7, start_date_local: '2026-10-11T00:00:00' })]
+          : [workoutEvent({ id: 1, start_date_local: '2026-10-11T08:00:00' })],
+    );
     mockGetActivities.mockResolvedValue([
       {
         id: 'a1',
@@ -472,50 +477,73 @@ describe('upcomingQueryOptions', () => {
     ]);
 
     const client = createQueryClient();
-    const items = await client.fetchQuery(
-      upcomingQueryOptions(CREDENTIALS, '2026-10-11'),
+    const options = upcomingQueryOptions(
+      CREDENTIALS,
+      '2026-10-11',
+      selectUpcomingAsOf('2026-10-11'),
     );
+    const stored = await client.fetchQuery(options);
+    const workout = {
+      id: 1,
+      name: 'Sweet spot',
+      date: '2026-10-11',
+      blocks: [],
+      completedWithStravaActivity: false,
+    };
+    const activity = {
+      id: 'a1',
+      name: 'Zwift',
+      type: 'VirtualRide',
+      date: '2026-10-11',
+      durationSeconds: 1620,
+      distanceMeters: 14000,
+    };
 
-    expect(items).toEqual([
+    expect(stored.itemsByDate).toEqual({
+      '2026-10-11': [
+        { kind: 'workout', workout },
+        { kind: 'activity', activity },
+      ],
+      '2026-10-12': [],
+    });
+    expect(options.select!(stored)).toEqual([
       {
         kind: 'workout',
         dayLabel: 'today',
-        workout: {
-          id: 1,
-          name: 'Intervals',
-          date: '2026-10-11',
-          status: 'planned',
-          blocks: [],
-          completedWithStravaActivity: false,
-        },
+        workout: { ...workout, status: 'planned' },
       },
+      { kind: 'activity', dayLabel: 'today', activity },
       {
-        kind: 'activity',
+        kind: 'note',
         dayLabel: 'today',
-        activity: {
-          id: 'a1',
-          name: 'Zwift',
-          type: 'VirtualRide',
-          date: '2026-10-11',
-          durationSeconds: 1620,
-          distanceMeters: 14000,
-        },
+        note: expect.objectContaining({ id: 7 }),
       },
     ]);
   });
 
   it('builds the profile blocks against the athlete own zone boundaries', async () => {
     mockGetCalendarEvents.mockResolvedValue([
-      workoutOnTheDayTheSuiteRuns({ workout_doc: ZONE_2_HOUR }),
+      workoutEvent({
+        start_date_local: '2026-10-11T08:00:00',
+        workout_doc: ZONE_2_HOUR,
+      }),
     ]);
 
     const client = createQueryClient();
-    const items = await client.fetchQuery(
-      upcomingQueryOptions(CREDENTIALS, toLocalDateString(new Date())),
+    const stored = await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-11',
+        selectUpcomingAsOf('2026-10-11'),
+      ),
     );
 
-    expect(items[0].kind === 'workout' && items[0].workout.blocks).toEqual([
-      { widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 },
+    expect(stored.itemsByDate['2026-10-11']).toMatchObject([
+      {
+        workout: {
+          blocks: [{ widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 }],
+        },
+      },
     ]);
   });
 
@@ -524,25 +552,48 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11'));
-    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-12'));
+    await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-11',
+        selectUpcomingAsOf('2026-10-11'),
+      ),
+    );
+    await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-12',
+        selectUpcomingAsOf('2026-10-12'),
+      ),
+    );
 
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to the Coggan zones and still lists workouts when the settings fetch fails', async () => {
+  it('falls back to the Coggan zones and still stores the Workouts when the settings fetch fails', async () => {
     mockGetAthleteSettings.mockRejectedValue(new Error('settings unavailable'));
     mockGetCalendarEvents.mockResolvedValue([
-      workoutOnTheDayTheSuiteRuns({ workout_doc: ZONE_2_HOUR }),
+      workoutEvent({
+        start_date_local: '2026-10-11T08:00:00',
+        workout_doc: ZONE_2_HOUR,
+      }),
     ]);
 
     const client = createQueryClient();
-    const items = await client.fetchQuery(
-      upcomingQueryOptions(CREDENTIALS, toLocalDateString(new Date())),
+    const stored = await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-11',
+        selectUpcomingAsOf('2026-10-11'),
+      ),
     );
 
-    expect(items[0].kind === 'workout' && items[0].workout.blocks).toEqual([
-      { widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 },
+    expect(stored.itemsByDate['2026-10-11']).toMatchObject([
+      {
+        workout: {
+          blocks: [{ widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 }],
+        },
+      },
     ]);
   });
 
@@ -552,8 +603,20 @@ describe('upcomingQueryOptions', () => {
 
     const client = createQueryClient();
 
-    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11'));
-    await client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-12'));
+    await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-11',
+        selectUpcomingAsOf('2026-10-11'),
+      ),
+    );
+    await client.fetchQuery(
+      upcomingQueryOptions(
+        CREDENTIALS,
+        '2026-10-12',
+        selectUpcomingAsOf('2026-10-12'),
+      ),
+    );
 
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(2);
     expect(
@@ -576,7 +639,13 @@ describe('upcomingQueryOptions', () => {
     const client = createQueryClient();
 
     await expect(
-      client.fetchQuery(upcomingQueryOptions(CREDENTIALS, '2026-10-11')),
+      client.fetchQuery(
+        upcomingQueryOptions(
+          CREDENTIALS,
+          '2026-10-11',
+          selectUpcomingAsOf('2026-10-11'),
+        ),
+      ),
     ).rejects.toThrow('notes down');
   });
 });

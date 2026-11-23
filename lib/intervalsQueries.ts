@@ -60,7 +60,12 @@ import {
 } from './races';
 import { type RideSettings, resolveRideSettings } from './rideSettings';
 import { type Route, toRoute } from './route';
-import { getUpcomingItems, upcomingRange } from './upcomingWorkouts';
+import {
+  type StoredUpcoming,
+  type UpcomingItem,
+  getUpcomingItems,
+  upcomingRange,
+} from './upcomingWorkouts';
 import { type WellnessRow, toWellnessRows } from './wellness';
 import {
   type StoredWorkoutDetails,
@@ -136,14 +141,21 @@ export function athleteSettingsQueryOptions(
   });
 }
 
+export type UpcomingSelect = (stored: StoredUpcoming) => UpcomingItem[];
+
+export function selectUpcomingAsOf(today: LocalDateString): UpcomingSelect {
+  return stored => getUpcomingItems(stored, today);
+}
+
 export function upcomingQueryOptions(
   credentials: IntervalsCredentials | null,
   today: LocalDateString,
+  select: UpcomingSelect,
 ) {
   return queryOptions({
     queryKey: intervalsKeys.upcoming(credentials?.athleteId, today),
     queryFn: credentials
-      ? async ({ signal, client }) => {
+      ? async ({ signal, client }): Promise<StoredUpcoming> => {
           const range = upcomingRange(today);
           const [paired, zoneConfig, notes] = await Promise.all([
             readCalendarRange(
@@ -160,12 +172,13 @@ export function upcomingQueryOptions(
             ),
           ]);
 
-          return getUpcomingItems(
-            { ...toStoredCalendarItems(paired, range, zoneConfig), notes },
-            today,
-          );
+          return {
+            ...toStoredCalendarItems(paired, range, zoneConfig),
+            notes,
+          };
         }
       : skipToken,
+    select,
     ...CHANGING_DATA_FRESHNESS,
   });
 }
