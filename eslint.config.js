@@ -173,6 +173,32 @@ module.exports = defineConfig([
         'error',
         { paths: [sonnerPath, rhfBindingPath] },
       ],
+      // Intervals.icu reads go through useIntervalsRead. This is the
+      // typescript-eslint copy of the rule, so the blocks below that replace
+      // the core rule's paths don't drop it.
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@tanstack/react-query',
+              importNames: ['useQuery', 'useQueries'],
+              message:
+                "Read Intervals.icu data through useIntervalsRead from '@/hooks/useIntervalsRead'. Only it and useCalendarRange call useQuery or useQueries.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'hooks/useIntervalsRead.ts',
+      'hooks/calendar/useCalendarRange.ts',
+      '**/__tests__/**',
+    ],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': 'off',
     },
   },
   {
