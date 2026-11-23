@@ -149,6 +149,25 @@ describe('readCalendarRange', () => {
     ]);
     expect(completedEventIds).toEqual([7]);
   });
+  it('types the paired Activity to the fields asked for, and returns no other', async () => {
+    const { items } = await readCalendarRange(
+      fakeCalendarReads({
+        activities: [intervalsActivity({ icu_average_watts: 212 })],
+      }),
+      TWO_OCTOBER_WEEKS,
+      { activityFields: ['moving_time'] },
+    );
+    const [unplanned] = items;
+
+    expect(
+      unplanned.kind === 'activity' && unplanned.activity.moving_time,
+    ).toBe(1620);
+    expect(
+      unplanned.kind === 'activity' &&
+        // @ts-expect-error: a field the caller did not ask for must not compile
+        unplanned.activity.icu_average_watts,
+    ).toBeUndefined();
+  });
 });
 
 describe('toStoredCalendarItems', () => {
