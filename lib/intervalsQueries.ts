@@ -4,13 +4,15 @@ import {
   toStoredActivityDetails,
 } from './activityDetails';
 import {
+  type CalendarRange,
   type CalendarReads,
+  type StoredCalendarItems,
   TILE_ACTIVITY_FIELDS,
   readCalendarRange,
   toStoredCalendarItems,
   withItemStatuses,
 } from './calendarItems';
-import { type CalendarData, type StoredMonth } from './calendarWorkouts';
+import { type CalendarData, type StoredMonth } from './calendarMonth';
 import {
   FITNESS_FIELDS,
   type FitnessDay,
@@ -148,28 +150,13 @@ export function upcomingQueryOptions(
   return queryOptions({
     queryKey: intervalsKeys.upcoming(credentials?.athleteId, today),
     queryFn: credentials
-      ? async ({ signal, client }): Promise<StoredUpcoming> => {
-          const range = upcomingRange(today);
-          const [paired, zoneConfig, notes] = await Promise.all([
-            readCalendarRange(
-              intervalsCalendarReads(credentials, signal),
-              range,
-              { activityFields: TILE_ACTIVITY_FIELDS },
-            ),
-            fetchZoneConfigOrCoggan(client, credentials),
-            fetchNotes(
-              credentials,
-              fromLocalDateString(range.oldest),
-              fromLocalDateString(range.newest),
-              signal,
-            ),
-          ]);
-
-          return {
-            ...toStoredCalendarItems(paired, range, zoneConfig),
-            notes,
-          };
-        }
+      ? ({ signal, client }): Promise<StoredUpcoming> =>
+          readStoredCalendarRange(
+            credentials,
+            upcomingRange(today),
+            signal,
+            client,
+          )
       : skipToken,
     select,
     ...CHANGING_DATA_FRESHNESS,
@@ -279,26 +266,20 @@ export function monthQueryOptions(
     queryFn: credentials
       ? async ({ signal, client }): Promise<StoredMonth> => {
           const first = fromYearMonth(yearMonth);
-          const last = endOfMonth(first);
           const range = {
             oldest: toLocalDateString(first),
-            newest: toLocalDateString(last),
+            newest: toLocalDateString(endOfMonth(first)),
           };
-          const [paired, zoneConfig, notes] = await Promise.all([
-            readCalendarRange(
-              intervalsCalendarReads(credentials, signal),
-              range,
-              {
-                activityFields: TILE_ACTIVITY_FIELDS,
-              },
-            ),
-            fetchZoneConfigOrCoggan(client, credentials),
-            fetchNotes(credentials, first, last, signal),
-          ]);
+          const stored = await readStoredCalendarRange(
+            credentials,
+            range,
+            signal,
+            client,
+          );
 
           return {
-            ...toStoredCalendarItems(paired, range, zoneConfig),
-            notes: notesOverlapping(notes, range.oldest, range.newest),
+            ...stored,
+            notes: notesOverlapping(stored.notes, range.oldest, range.newest),
           };
         }
       : skipToken,
@@ -353,7 +334,7 @@ export function workoutDetailsQueryOptions(
               {
                 ...reads,
                 events: async (range, options) =>
-                  listedCopyOrSingleRead(
+                  appendIfUnlisted(
                     await reads.events(range, options),
                     eventRead,
                   ),
@@ -498,23 +479,39 @@ function intervalsCalendarReads(
   };
 }
 
+async function readStoredCalendarRange(
+  credentials: IntervalsCredentials,
+  range: CalendarRange,
+  signal: AbortSignal,
+  client: QueryClient,
+): Promise<StoredCalendarItems & { notes: Note[] }> {
+  const [paired, zoneConfig, notes] = await Promise.all([
+    readCalendarRange(intervalsCalendarReads(credentials, signal), range, {
+      activityFields: TILE_ACTIVITY_FIELDS,
+    }),
+    fetchZoneConfigOrCoggan(client, credentials),
+    fetchNotes(credentials, range, signal),
+  ]);
+
+  return { ...toStoredCalendarItems(paired, range, zoneConfig), notes };
+}
+
 async function fetchNotes(
   { accessToken, athleteId }: IntervalsCredentials,
-  first: Date,
-  last: Date,
+  range: CalendarRange,
   signal: AbortSignal,
 ): Promise<Note[]> {
   return toNotes(
     await getCalendarEvents(
       accessToken,
       athleteId,
-      { ...noteWindow(first, last), category: EVENT_CATEGORY.note },
+      { ...noteWindow(range), category: EVENT_CATEGORY.note },
       { signal },
     ),
   );
 }
 
-function listedCopyOrSingleRead(
+function appendIfUnlisted(
   listed: IntervalsCalendarEvent[],
   singleRead: IntervalsCalendarEvent,
 ): IntervalsCalendarEvent[] {
