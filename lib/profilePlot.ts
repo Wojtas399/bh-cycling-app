@@ -79,6 +79,10 @@ export function profilePlot(
 
 const MIN_BAR_WIDTH_PX = 2;
 
+const HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX = 1;
+
+const WIDTH_SPARING_HAIRLINES_PX = 4 * HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX;
+
 export interface SegmentPixels {
   x: number;
   width: number;
@@ -95,6 +99,13 @@ export function segmentPixels(
   const xOf = (seconds: number) => (seconds / durationSeconds) * plotWidth;
   const x = xOf(startSeconds);
   const width = xOf(endSeconds) - x;
+
+  if (width > WIDTH_SPARING_HAIRLINES_PX) {
+    return {
+      x: x + HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX,
+      width: width - 2 * HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX,
+    };
+  }
 
   if (width >= MIN_BAR_WIDTH_PX) return { x, width };
 

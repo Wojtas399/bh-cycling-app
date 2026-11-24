@@ -127,6 +127,24 @@ describe('segmentPixels', () => {
     ]);
   });
 
+  it('keeps a 1 px hairline inside each edge of a bar wider than 4 px, so repeats stay countable', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [0, 150],
+            [150, 600],
+          ],
+          600,
+        ),
+        300,
+      ),
+    ).toEqual([
+      { x: 1, width: 73 },
+      { x: 76, width: 223 },
+    ]);
+  });
+
   it('draws a segment narrower than 2 px 2 px wide, centred on its real time, even over its neighbour', () => {
     expect(
       pixelsOf(
