@@ -20,6 +20,10 @@ _Avoid_: Ride, completed workout
 An Activity not paired to any Workout, e.g. a spontaneous Zwift ride. It shows on its own day alongside that day's Workouts. It has no Workout Status: status describes a plan, and there is none.
 _Avoid_: Free ride (a kind of planned Workout), extra workout, unpaired ride
 
+**Calendar Item**:
+One entry on a day of the athlete's calendar: a Workout (with its paired Activity, if any), a Race (with its paired Activity, if any), or an Unplanned Activity. A Note is not a Calendar Item: it has no pairing and can span several days.
+_Avoid_: Entry, calendar event (the Intervals.icu name for anything on the calendar, Notes included)
+
 **Strava Activity**:
 An Activity intervals.icu received from Strava but can't share through its API, so only its id and start time are known. It has no details. Unless it is paired to a Workout, it's an Unplanned Activity.
 _Avoid_: Stub, hidden activity
