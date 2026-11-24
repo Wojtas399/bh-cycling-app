@@ -25,8 +25,9 @@ import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { type ActivityDetails, pairedEventIdOf } from '@/lib/activityDetails';
-import { NO_WORKOUT_PROFILE, profileCardSource } from '@/lib/profileCard';
+import { buildProfileCard } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
+import { resolveRideSettings } from '@/lib/rideSettings';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function ActivityDetailsScreen() {
@@ -114,7 +115,10 @@ function ActivityDetailsContent({
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const settings = useAthleteSettings();
-  const profile = profileCardSource(NO_WORKOUT_PROFILE, details, settings.data);
+  const profile = buildProfileCard(
+    { recorded: details.recorded },
+    settings.data ?? resolveRideSettings(null),
+  );
   const profileUnitsPending = settings.isLoading;
 
   return (
@@ -145,7 +149,7 @@ function ActivityDetailsContent({
         profile && (
           <WorkoutDetailsCard>
             <DetailedProfileCard
-              source={profile}
+              card={profile}
               plotTestID="activity-details-profile"
             />
           </WorkoutDetailsCard>

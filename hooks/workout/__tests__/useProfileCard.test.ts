@@ -1,7 +1,6 @@
 import { connectIntervals } from '@/test-utils/intervalsConnection';
 
 import { useProfileCard } from '../useProfileCard';
-import { buildDetailedProfile } from '@/lib/detailedProfile';
 import {
   type IntervalsActivity,
   getActivity,
@@ -74,16 +73,23 @@ function renderCardWithCurrentRideSettings(recordedActivityId: string | null) {
 }
 
 const PLAN_ALONE = {
-  card: {
-    durationSeconds: 1200,
-    recorded: null,
-    planned: {
-      blocks: PLANNED_BLOCKS,
-      summary: PLAN_SUMMARY,
-      ftp: CURRENT_FTP,
-    },
+  durationSeconds: 1200,
+  scale: { unit: 'watts' },
+  recorded: null,
+  planned: {
+    summary: PLAN_SUMMARY,
+    ftp: CURRENT_FTP,
+    segments: [
+      { startSeconds: 0, endSeconds: 600, maxPct: 60, maxWatts: 150, zone: 2 },
+      {
+        startSeconds: 600,
+        endSeconds: 1200,
+        maxPct: 100,
+        maxWatts: 250,
+        zone: 4,
+      },
+    ],
   },
-  settings: { ftp: CURRENT_FTP },
 };
 
 beforeEach(() => {
@@ -115,20 +121,32 @@ describe('useProfileCard', () => {
 
     resolveActivity(RIDE_DRAWING_A_600_S_PROFILE);
 
-    await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
+    await waitFor(() => expect(result.current?.recorded).not.toBeNull());
     expect(mockGetActivity).toHaveBeenCalledWith(
       'token-1',
       ACTIVITY_ID,
       { intervals: true },
       expect.anything(),
     );
-    expect(result.current?.card.durationSeconds).toBe(1200);
-    expect(result.current?.card.recorded).toMatchObject({
+    expect(result.current?.durationSeconds).toBe(1200);
+    expect(result.current?.recorded).toMatchObject({
       ftp: CURRENT_FTP,
-      blocks: [
-        expect.objectContaining({ minPct: 60, zone: 2 }),
-        expect.objectContaining({ minPct: 100, zone: 4 }),
-        expect.objectContaining({ maxPct: 0 }),
+      summary: { durationSeconds: 600 },
+      segments: [
+        {
+          startSeconds: 0,
+          endSeconds: 300,
+          maxPct: 60,
+          maxWatts: 150,
+          zone: 2,
+        },
+        {
+          startSeconds: 300,
+          endSeconds: 600,
+          maxPct: 100,
+          maxWatts: 250,
+          zone: 4,
+        },
       ],
     });
   });
@@ -145,10 +163,9 @@ describe('useProfileCard', () => {
     });
     const { result } = await renderCardWithCurrentRideSettings(ACTIVITY_ID);
 
-    await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
-    const { card, settings } = result.current!;
+    await waitFor(() => expect(result.current?.recorded).not.toBeNull());
 
-    expect(buildDetailedProfile(card, settings).timeInZone).toEqual([
+    expect(result.current?.timeInZone).toEqual([
       {
         zone: 1,
         planned: { seconds: 0, share: 0 },
@@ -204,7 +221,8 @@ describe('useProfileCard', () => {
       }),
     );
 
-    expect(result.current?.settings).toEqual(resolveRideSettings(null));
-    expect(result.current?.card.planned?.ftp).toBeNull();
+    expect(result.current?.scale.unit).toBe('ftpPct');
+    expect(result.current?.planned?.ftp).toBeNull();
+    expect(result.current?.planned?.power.unit).toBe('ftpPct');
   });
 });

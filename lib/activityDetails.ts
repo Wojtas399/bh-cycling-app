@@ -6,16 +6,15 @@ import {
 import type {
   IntervalsActivity,
   IntervalsActivityInterval,
-  Watts,
 } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateTimeString } from './localDateTime';
 import { type Zone, isZone } from './powerZones';
+import type { RecordedInterval, RecordedProfile } from './profileCard';
 import { resolveFtp } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
-import { type ZoneTimes, zoneTimesFromIcu } from './timeInZone';
+import { zoneTimesFromIcu } from './timeInZone';
 import { pick } from './typed';
-import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
 
 const STORED_ACTIVITY_FIELDS = [
   'id',
@@ -55,22 +54,13 @@ export type StoredActivityDetails =
   | { isStravaActivity: false; activity: StoredActivity }
   | { isStravaActivity: true };
 
-export interface ActivityProfileSummary {
-  durationSeconds: number;
-  segmentCount: number;
-  peakFtpPct: number;
-}
-
 export type ActivityDetails =
   | {
       isStravaActivity: false;
       title: string | null;
       type: string;
       startLocal: LocalDateTimeString;
-      blocks: WorkoutBlock[];
-      profileSummary: ActivityProfileSummary | null;
-      icuFtp: Watts | null;
-      zoneTimes: ZoneTimes | null;
+      recorded: RecordedProfile;
       metrics: ActivityMetric[];
       description?: string;
       route: RouteSummary | null;
@@ -112,9 +102,7 @@ export function buildActivityDetails(
     title: activity.name?.trim() || null,
     type: activity.type,
     startLocal: activity.start_date_local,
-    ...activityProfileOf(activity),
-    icuFtp: resolveFtp(activity.icu_ftp),
-    zoneTimes: zoneTimesFromIcu(activity.icu_zone_times),
+    recorded: recordedProfileOf(activity),
     metrics: summariseActivity(activity),
     ...descriptionOf(activity),
     route: summariseRoute(activity),
@@ -138,56 +126,41 @@ export function pairedEventIdOf(
   return details.pairedEventId;
 }
 
-function activityProfileOf({
+function recordedProfileOf({
   icu_intervals,
-}: StoredActivity): Pick<
-  Extract<ActivityDetails, { isStravaActivity: false }>,
-  'blocks' | 'profileSummary'
-> {
+  icu_ftp,
+  icu_zone_times,
+}: StoredActivity): RecordedProfile {
   const timed = (icu_intervals ?? [])
     .flatMap(toTimedIntervalIfTimesUsable)
     .sort((a, b) => a.start - b.start);
-  const segments = timed.filter(isProfileSegment);
-
-  if (segments.length === 0) {
-    return { blocks: [], profileSummary: null };
-  }
-
-  const spanStart = timed[0].start;
-  const spanEnd = Math.max(...timed.map(({ end }) => end));
-  const durationSeconds = spanEnd - spanStart;
-  const widthOf = (seconds: number) => seconds / durationSeconds;
-  const blocks: WorkoutBlock[] = [];
-  let drawnUntil = spanStart;
-
-  for (const { start, end, intensity, zone } of segments) {
-    if (start > drawnUntil) {
-      blocks.push({ widthFraction: widthOf(start - drawnUntil), ...GAP_BAND });
-    }
-
-    blocks.push({
-      widthFraction: widthOf(end - start),
-      minPct: intensity,
-      maxPct: intensity,
-      zone,
-    });
-    drawnUntil = end;
-  }
-
-  if (spanEnd > drawnUntil) {
-    blocks.push({ widthFraction: widthOf(spanEnd - drawnUntil), ...GAP_BAND });
-  }
+  const spanStart = timed.length > 0 ? timed[0].start : 0;
+  const spanEnd = Math.max(spanStart, ...timed.map(({ end }) => end));
 
   return {
-    blocks,
-    profileSummary: {
-      durationSeconds,
-      segmentCount: segments.length,
-      peakFtpPct: Math.round(
-        Math.max(...segments.map(({ intensity }) => intensity)),
-      ),
-    },
+    intervals: timed.flatMap(interval =>
+      powerIntervalFromSpanStart(interval, spanStart),
+    ),
+    endSeconds: spanEnd - spanStart,
+    icuFtp: resolveFtp(icu_ftp),
+    icuZoneTimes: zoneTimesFromIcu(icu_zone_times),
   };
+}
+
+function powerIntervalFromSpanStart(
+  { start, end, intensity, zone }: TimedInterval,
+  spanStart: number,
+): RecordedInterval[] {
+  if (intensity === null || zone === null) return [];
+
+  return [
+    {
+      startSeconds: start - spanStart,
+      endSeconds: end - spanStart,
+      intensity,
+      zone,
+    },
+  ];
 }
 
 interface TimedInterval {
@@ -196,8 +169,6 @@ interface TimedInterval {
   intensity: number | null;
   zone: Zone | null;
 }
-
-type ProfileSegment = TimedInterval & { intensity: number; zone: Zone };
 
 function toTimedIntervalIfTimesUsable({
   start_time,
@@ -223,10 +194,6 @@ function toTimedIntervalIfTimesUsable({
       zone: hasPower ? zone : null,
     },
   ];
-}
-
-function isProfileSegment(interval: TimedInterval): interval is ProfileSegment {
-  return interval.intensity !== null && interval.zone !== null;
 }
 
 function descriptionOf({ description }: StoredActivity): {

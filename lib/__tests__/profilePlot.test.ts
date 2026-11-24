@@ -1,9 +1,11 @@
-import type { ActivityDetails } from '../activityDetails';
-import { buildDetailedProfile } from '../detailedProfile';
-import type { NO_WORKOUT_PROFILE } from '../profileCard';
-import { buildProfileCard } from '../profileCard';
+import {
+  type PlannedProfile,
+  type ProfileCardInput,
+  type RecordedProfile,
+  buildProfileCard,
+} from '../profileCard';
 import { profilePlot } from '../profilePlot';
-import { resolveRideSettings } from '../rideSettings';
+import { type RideSettings, resolveRideSettings } from '../rideSettings';
 import { NO_ZONE_TIMES } from '../timeInZone';
 import i18n from '@/i18n';
 
@@ -11,79 +13,76 @@ const t = i18n.getFixedT('pl');
 
 const FTP = 250;
 
-const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100 = {
+const AT_THE_CURRENT_FTP = resolveRideSettings({ ftp: FTP });
+
+const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100: PlannedProfile = {
   blocks: [
-    { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 as const },
-    { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 as const },
+    { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
+    { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 },
   ],
-  profileSummary: { durationSeconds: 1200, stepCount: 2, peakFtpPct: 100 },
+  summary: { durationSeconds: 1200, stepCount: 2, peakFtpPct: 100 },
   zoneTimes: NO_ZONE_TIMES,
 };
 
-const RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT: ActivityDetails = {
-  isStravaActivity: false,
-  title: 'Popołudniowa jazda',
-  type: 'Ride',
-  startLocal: '2026-10-23T16:42:00',
-  blocks: [
-    { widthFraction: 0.25, minPct: 55, maxPct: 55, zone: 2 },
-    { widthFraction: 0.75, minPct: 98, maxPct: 98, zone: 4 },
+const RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT: RecordedProfile = {
+  intervals: [
+    { startSeconds: 0, endSeconds: 150, intensity: 55, zone: 2 },
+    { startSeconds: 150, endSeconds: 600, intensity: 98, zone: 4 },
   ],
-  profileSummary: {
-    durationSeconds: 600,
-    segmentCount: 2,
-    peakFtpPct: 98,
-  },
+  endSeconds: 600,
   icuFtp: FTP,
-  zoneTimes: null,
-  metrics: [],
-  route: null,
-  pairedEventId: null,
+  icuZoneTimes: null,
 };
 
 const PLAN_LABEL =
   'Profil treningu: 20m, 2 kroki, maks. 100% FTP. Moc szczytowa 250 W, średnia 200 W';
 
 function plotOf(
-  workout:
-    | typeof PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100
-    | typeof NO_WORKOUT_PROFILE,
-  activity: ActivityDetails | undefined,
+  input: ProfileCardInput,
+  settings: RideSettings = AT_THE_CURRENT_FTP,
 ) {
-  const card = buildProfileCard(workout, activity, FTP);
+  const card = buildProfileCard(input, settings);
 
   if (!card) throw new Error('No card to plot.');
 
-  const profile = buildDetailedProfile(card, resolveRideSettings({ ftp: FTP }));
-
-  return { profile, plot: profilePlot(profile, t) };
+  return { card, plot: profilePlot(card, t) };
 }
 
 describe('profilePlot', () => {
   it('plots the plan alone, labelled with its steps and power', () => {
-    const { profile, plot } = plotOf(
-      PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
-      undefined,
-    );
+    const { card, plot } = plotOf({
+      planned: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+    });
 
     expect(plot).toEqual({
-      strips: [{ segments: profile.planned?.segments, caption: 'Plan' }],
+      strips: [{ segments: card.planned?.segments, caption: 'Plan' }],
       accessibilityLabel: PLAN_LABEL,
     });
   });
 
   it('plots the plan above the ride, and labels both', () => {
-    const { profile, plot } = plotOf(
-      PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
-      RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT,
-    );
+    const { card, plot } = plotOf({
+      planned: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+      recorded: RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT,
+    });
 
     expect(plot.strips).toEqual([
-      { segments: profile.planned?.segments, caption: 'Plan' },
-      { segments: profile.recorded?.segments, caption: 'Wykonanie' },
+      { segments: card.planned?.segments, caption: 'Plan' },
+      { segments: card.recorded?.segments, caption: 'Wykonanie' },
     ]);
     expect(plot.accessibilityLabel).toBe(
       `Plan i wykonanie. ${PLAN_LABEL}. Profil aktywności: 10m, 2 odcinki, maks. 98% FTP. Moc szczytowa 245 W, średnia 218 W`,
+    );
+  });
+
+  it("labels the ride's power in %FTP, the unit of the scale, with no current FTP, even though the ride kept its own", () => {
+    const { plot } = plotOf(
+      { recorded: RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT },
+      resolveRideSettings(null),
+    );
+
+    expect(plot.accessibilityLabel).toBe(
+      'Profil aktywności: 10m, 2 odcinki, maks. 98% FTP. Moc szczytowa 98% FTP, średnia 87% FTP',
     );
   });
 

@@ -2,7 +2,6 @@ import type { IntervalsZoneTime } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import { resolvePowerTarget } from './powerTarget';
 import { type Zone, type ZoneConfig, isZone } from './powerZones';
-import type { StripSegment } from './stripSegment';
 import { type WorkoutStep, unrollRepeats } from './workoutProfile';
 
 export type ZoneTimes = Readonly<Record<Zone, number>>;
@@ -25,16 +24,6 @@ function noZoneTimes(): Record<Zone, number> {
 }
 
 export const NO_ZONE_TIMES: ZoneTimes = noZoneTimes();
-
-export function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
-  const times = noZoneTimes();
-
-  for (const { startSeconds, endSeconds, zone } of segments) {
-    times[zone] += endSeconds - startSeconds;
-  }
-
-  return times;
-}
 
 const Z1_TO_Z7_ID = /^Z(\d)$/;
 

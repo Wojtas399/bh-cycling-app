@@ -12,13 +12,16 @@ import Text from '@/components/Text';
 import { RANGE_CAP_OPACITY, ZONE_COLORS } from '@/components/WorkoutProfile';
 import { useAppTheme } from '@/constants/theme';
 import { NOTHING_CROSSED, crossesToJs } from '@/lib/crossesToJs';
-import { type ProfileScale, axisLabels } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
 import { rampPolygonPoints } from '@/lib/profileBars';
+import {
+  type ProfileScale,
+  type StripSegment,
+  axisLabels,
+} from '@/lib/profileCard';
 import type { PlotStrip } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
-import type { StripSegment } from '@/lib/stripSegment';
 
 const LONE_STRIP_PLOT_HEIGHT = 140;
 

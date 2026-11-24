@@ -149,39 +149,24 @@ describe('useActivityDetails', () => {
   });
 
   describe('Activity Profile', () => {
-    it('draws each interval as one flat block, as wide as its share of the elapsed time, in its zone', async () => {
+    it('carries each interval with power in seconds from the start of the first, with its intensity and zone', async () => {
       const details = await shownDetailsOf(
         activity({
           icu_intervals: [
-            { start_time: 0, end_time: 600, intensity: 55, zone: 1 },
-            { start_time: 600, end_time: 1800, intensity: 96.4, zone: 4 },
-            { start_time: 1800, end_time: 2400, intensity: 121, zone: 6 },
+            { start_time: 120, end_time: 720, intensity: 55, zone: 1 },
+            { start_time: 720, end_time: 1920, intensity: 96.4, zone: 4 },
+            { start_time: 1920, end_time: 2520, intensity: 121, zone: 6 },
           ],
         }),
       );
 
-      expect(details.blocks).toEqual([
-        { widthFraction: 0.25, minPct: 55, maxPct: 55, zone: 1 },
-        { widthFraction: 0.5, minPct: 96.4, maxPct: 96.4, zone: 4 },
-        { widthFraction: 0.25, minPct: 121, maxPct: 121, zone: 6 },
-      ]);
-    });
-
-    it('sums up its elapsed span, segment count and rounded peak', async () => {
-      const details = await shownDetailsOf(
-        activity({
-          icu_intervals: [
-            { start_time: 0, end_time: 1200, intensity: 64.2, zone: 2 },
-            { start_time: 1200, end_time: 1500, intensity: 178.6, zone: 7 },
-            { start_time: 1500, end_time: 9300, intensity: 71, zone: 2 },
-          ],
-        }),
-      );
-
-      expect(details.profileSummary).toEqual({
-        durationSeconds: 9300,
-        segmentCount: 3,
-        peakFtpPct: 179,
+      expect(details.recorded).toMatchObject({
+        intervals: [
+          { startSeconds: 0, endSeconds: 600, intensity: 55, zone: 1 },
+          { startSeconds: 600, endSeconds: 1800, intensity: 96.4, zone: 4 },
+          { startSeconds: 1800, endSeconds: 2400, intensity: 121, zone: 6 },
+        ],
+        endSeconds: 2400,
       });
     });
 
@@ -195,33 +180,13 @@ describe('useActivityDetails', () => {
           { start_time: 1800, end_time: 3600, intensity: null, zone: null },
         ],
       ],
-    ])('is not drawn with %s', async (_, icu_intervals) => {
+    ])('has no interval to draw with %s', async (_, icu_intervals) => {
       const details = await shownDetailsOf(activity({ icu_intervals }));
 
-      expect(details.blocks).toEqual([]);
-      expect(details.profileSummary).toBeNull();
+      expect(details.recorded.intervals).toEqual([]);
     });
 
-    it('draws a steady ride with one interval as one full-width block', async () => {
-      const details = await shownDetailsOf(
-        activity({
-          icu_intervals: [
-            { start_time: 0, end_time: 5400, intensity: 72, zone: 2 },
-          ],
-        }),
-      );
-
-      expect(details.blocks).toEqual([
-        { widthFraction: 1, minPct: 72, maxPct: 72, zone: 2 },
-      ]);
-      expect(details.profileSummary).toEqual({
-        durationSeconds: 5400,
-        segmentCount: 1,
-        peakFtpPct: 72,
-      });
-    });
-
-    it('keeps the empty gap beside the only interval with power', async () => {
+    it('spans the interval without power after the only one with power', async () => {
       const details = await shownDetailsOf(
         activity({
           icu_intervals: [
@@ -231,18 +196,15 @@ describe('useActivityDetails', () => {
         }),
       );
 
-      expect(details.blocks).toEqual([
-        { widthFraction: 0.5, minPct: 88, maxPct: 88, zone: 3 },
-        { widthFraction: 0.5, minPct: 0, maxPct: 0, zone: 1 },
-      ]);
-      expect(details.profileSummary).toEqual({
-        durationSeconds: 3600,
-        segmentCount: 1,
-        peakFtpPct: 88,
+      expect(details.recorded).toMatchObject({
+        intervals: [
+          { startSeconds: 0, endSeconds: 1800, intensity: 88, zone: 3 },
+        ],
+        endSeconds: 3600,
       });
     });
 
-    it('leaves an interval without power as an empty gap, over the whole elapsed span', async () => {
+    it('leaves an interval without power out, as a gap in the span', async () => {
       const details = await shownDetailsOf(
         activity({
           icu_intervals: [
@@ -253,15 +215,30 @@ describe('useActivityDetails', () => {
         }),
       );
 
-      expect(details.blocks).toEqual([
-        { widthFraction: 0.25, minPct: 60, maxPct: 60, zone: 2 },
-        { widthFraction: 0.25, minPct: 0, maxPct: 0, zone: 1 },
-        { widthFraction: 0.5, minPct: 105, maxPct: 105, zone: 5 },
-      ]);
-      expect(details.profileSummary).toEqual({
-        durationSeconds: 2400,
-        segmentCount: 2,
-        peakFtpPct: 105,
+      expect(details.recorded).toMatchObject({
+        intervals: [
+          { startSeconds: 0, endSeconds: 600, intensity: 60, zone: 2 },
+          { startSeconds: 1200, endSeconds: 2400, intensity: 105, zone: 5 },
+        ],
+        endSeconds: 2400,
+      });
+    });
+
+    it('starts the span at the first interval with usable times, even one without power', async () => {
+      const details = await shownDetailsOf(
+        activity({
+          icu_intervals: [
+            { start_time: 1200, end_time: 2400, intensity: 105, zone: 5 },
+            { start_time: 300, end_time: 1200, intensity: null, zone: null },
+          ],
+        }),
+      );
+
+      expect(details.recorded).toMatchObject({
+        intervals: [
+          { startSeconds: 900, endSeconds: 2100, intensity: 105, zone: 5 },
+        ],
+        endSeconds: 2100,
       });
     });
   });
@@ -440,7 +417,7 @@ describe('useActivityDetails', () => {
     it("is the FTP intervals.icu used for the ride, which the recorded strip's watts come from", async () => {
       const details = await shownDetailsOf(activity({ icu_ftp: 268 }));
 
-      expect(details.icuFtp).toBe(268);
+      expect(details.recorded.icuFtp).toBe(268);
     });
 
     it.each([
@@ -450,7 +427,7 @@ describe('useActivityDetails', () => {
     ])('is null when it is %s', async (_, icu_ftp) => {
       const details = await shownDetailsOf(activity({ icu_ftp }));
 
-      expect(details.icuFtp).toBeNull();
+      expect(details.recorded.icuFtp).toBeNull();
     });
   });
 
@@ -467,7 +444,7 @@ describe('useActivityDetails', () => {
         }),
       );
 
-      expect(details.zoneTimes).toEqual({
+      expect(details.recorded.icuZoneTimes).toEqual({
         1: 610,
         2: 3125,
         3: 0,
@@ -481,7 +458,7 @@ describe('useActivityDetails', () => {
     it('is null without it, so the card counts the Activity Profile', async () => {
       const details = await shownDetailsOf(activity());
 
-      expect(details.zoneTimes).toBeNull();
+      expect(details.recorded.icuZoneTimes).toBeNull();
     });
   });
 

@@ -1,7 +1,10 @@
-import type { ActivityProfileSummary } from './activityDetails';
-import type { DetailedProfile, StripPower } from './detailedProfile';
 import { formatDuration } from './formatDuration';
-import type { StripSegment } from './stripSegment';
+import type {
+  ActivityProfileSummary,
+  ProfileCard,
+  StripPower,
+  StripSegment,
+} from './profileCard';
 import type { WorkoutProfileSummary } from './workoutDetails';
 import type { TFunction } from 'i18next';
 
@@ -16,7 +19,7 @@ export interface ProfilePlot {
 }
 
 export function profilePlot(
-  { planned, recorded }: Pick<DetailedProfile, 'planned' | 'recorded'>,
+  { planned, recorded }: Pick<ProfileCard, 'planned' | 'recorded'>,
   t: TFunction,
 ): ProfilePlot {
   function powerLabel({ unit, peak, average }: StripPower) {
