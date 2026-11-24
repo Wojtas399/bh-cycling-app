@@ -129,13 +129,9 @@ export function buildProfileCard(
           unit,
         })
       : null;
-  const plannedStrip =
-    planned && hasWorkoutProfile(planned, settings.zoneConfig)
-      ? plannedStripOf(planned, settings.zoneConfig, {
-          ftp: settings.ftp,
-          unit,
-        })
-      : null;
+  const plannedStrip = planned
+    ? plannedStripOf(planned, settings.zoneConfig, { ftp: settings.ftp, unit })
+    : null;
 
   if (!plannedStrip && !recordedStrip) return null;
 
@@ -162,8 +158,11 @@ function plannedStripOf(
   steps: WorkoutStep[],
   zoneConfig: ZoneConfig,
   onScale: StripOnScale,
-): ProfileStrip<WorkoutProfileSummary> {
+): ProfileStrip<WorkoutProfileSummary> | null {
   const atTheirTime = stepsAtTheirTime(steps, zoneConfig);
+
+  if (!hasWorkoutProfile(atTheirTime)) return null;
+
   const timed = atTheirTime.flatMap(({ startSeconds, endSeconds, band }) =>
     band ? [{ ...band, startSeconds, endSeconds }] : [],
   );
