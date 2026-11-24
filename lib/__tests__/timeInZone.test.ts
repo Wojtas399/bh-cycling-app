@@ -1,50 +1,11 @@
 import { type Zone, resolveZoneConfig } from '../powerZones';
-import type { StripSegment } from '../stripSegment';
 import {
   type ZoneTimes,
   planZoneTimes,
   timeInZoneRows,
   zoneTimesFromIcu,
-  zoneTimesOfSegments,
 } from '../timeInZone';
 import type { WorkoutStep } from '../workoutProfile';
-
-function segment(
-  startSeconds: number,
-  endSeconds: number,
-  zone: Zone,
-): StripSegment {
-  return {
-    startSeconds,
-    endSeconds,
-    minPct: 0,
-    maxPct: 0,
-    minWatts: null,
-    maxWatts: null,
-    lowOnScale: 0,
-    highOnScale: 0,
-    zone,
-  };
-}
-
-describe('zoneTimesOfSegments', () => {
-  it('adds up the time each zone is drawn, in s', () => {
-    expect(
-      zoneTimesOfSegments([
-        segment(0, 600, 2),
-        segment(600, 900, 4),
-        segment(900, 1200, 2),
-        segment(1200, 1230, 7),
-      ]),
-    ).toEqual({ 1: 0, 2: 900, 3: 0, 4: 300, 5: 0, 6: 0, 7: 30 });
-  });
-
-  it("leaves out time the strip doesn't draw, such as a stop", () => {
-    expect(
-      zoneTimesOfSegments([segment(0, 300, 3), segment(500, 800, 3)]),
-    ).toEqual({ 1: 0, 2: 0, 3: 600, 4: 0, 5: 0, 6: 0, 7: 0 });
-  });
-});
 
 describe('zoneTimesFromIcu', () => {
   it("reads intervals.icu's seconds for Z1–Z7 and ignores Sweet Spot", () => {

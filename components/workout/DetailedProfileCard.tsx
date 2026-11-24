@@ -6,21 +6,17 @@ import Box from '@/components/Box';
 import ProfileWithTimeAxis from '@/components/workout/ProfileWithTimeAxis';
 import ScrubReadout from '@/components/workout/ScrubReadout';
 import TimeInZoneRows from '@/components/workout/TimeInZoneRows';
-import {
-  type DetailedProfile,
-  buildDetailedProfile,
-} from '@/lib/detailedProfile';
-import type { ProfileCardSource } from '@/lib/profileCard';
+import type { ProfileCard } from '@/lib/profileCard';
 import { profilePlot } from '@/lib/profilePlot';
 import { profileReadout } from '@/lib/profileReadout';
 
 export interface DetailedProfileCardProps {
-  source: ProfileCardSource;
+  card: ProfileCard;
   plotTestID: string;
 }
 
 export default function DetailedProfileCard({
-  source: { card, settings },
+  card,
   plotTestID,
 }: DetailedProfileCardProps) {
   const [width, setWidth] = useState(0);
@@ -28,35 +24,31 @@ export default function DetailedProfileCard({
   return (
     <View onLayout={({ nativeEvent: { layout } }) => setWidth(layout.width)}>
       {width > 0 && (
-        <LaidOutProfile
-          profile={buildDetailedProfile(card, settings)}
-          width={width}
-          plotTestID={plotTestID}
-        />
+        <LaidOutProfile card={card} width={width} plotTestID={plotTestID} />
       )}
     </View>
   );
 }
 
 function LaidOutProfile({
-  profile,
+  card,
   width,
   plotTestID,
 }: {
-  profile: DetailedProfile;
+  card: ProfileCard;
   width: number;
   plotTestID: string;
 }) {
   const { t } = useTranslation();
   const [pointerSeconds, setPointerSeconds] = useState<number | null>(null);
-  const { strips, accessibilityLabel } = profilePlot(profile, t);
+  const { strips, accessibilityLabel } = profilePlot(card, t);
 
   return (
     <Box gap="base">
       <ProfileWithTimeAxis
         strips={strips}
-        scale={profile.scale}
-        durationSeconds={profile.durationSeconds}
+        scale={card.scale}
+        durationSeconds={card.durationSeconds}
         width={width}
         accessibilityLabel={accessibilityLabel}
         pointerShown={pointerSeconds !== null}
@@ -65,12 +57,12 @@ function LaidOutProfile({
       />
       {pointerSeconds !== null && (
         <ScrubReadout
-          readout={profileReadout(profile, pointerSeconds)}
+          readout={profileReadout(card, pointerSeconds)}
           onHidePointer={() => setPointerSeconds(null)}
           plotTestID={plotTestID}
         />
       )}
-      <TimeInZoneRows rows={profile.timeInZone} />
+      <TimeInZoneRows rows={card.timeInZone} />
     </Box>
   );
 }

@@ -26,10 +26,12 @@ function shown({
     title: null,
     type: 'Ride',
     startLocal: '2026-10-23T16:42:00',
-    blocks: [],
-    profileSummary: null,
-    icuFtp: null,
-    zoneTimes: null,
+    recorded: {
+      intervals: [],
+      endSeconds: 0,
+      icuFtp: null,
+      icuZoneTimes: null,
+    },
     metrics: [],
     route,
     pairedEventId,
@@ -106,11 +108,11 @@ describe('buildActivityDetails', () => {
     });
 
     expect(details).toMatchObject({
-      blocks: [{ widthFraction: 1, minPct: 80, maxPct: 80, zone: 3 }],
-      profileSummary: {
-        durationSeconds: 600,
-        segmentCount: 1,
-        peakFtpPct: 80,
+      recorded: {
+        intervals: [
+          { startSeconds: 0, endSeconds: 600, intensity: 80, zone: 3 },
+        ],
+        endSeconds: 600,
       },
     });
   });
@@ -133,14 +135,11 @@ describe('buildActivityDetails', () => {
     });
 
     expect(details).toMatchObject({
-      blocks: [
-        { widthFraction: 1 / 3, minPct: 80, maxPct: 80, zone: 3 },
-        { widthFraction: 2 / 3, minPct: 0, maxPct: 0, zone: 1 },
-      ],
-      profileSummary: {
-        durationSeconds: 1800,
-        segmentCount: 1,
-        peakFtpPct: 80,
+      recorded: {
+        intervals: [
+          { startSeconds: 0, endSeconds: 600, intensity: 80, zone: 3 },
+        ],
+        endSeconds: 1800,
       },
     });
   });

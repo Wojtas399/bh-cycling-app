@@ -116,7 +116,7 @@ function WorkoutDetailsContent({
       {profile && (
         <WorkoutDetailsCard>
           <DetailedProfileCard
-            source={profile}
+            card={profile}
             plotTestID="workout-details-profile"
           />
         </WorkoutDetailsCard>
