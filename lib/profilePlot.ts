@@ -76,3 +76,21 @@ export function profilePlot(
         : (plannedText ?? recordedText ?? ''),
   };
 }
+
+export interface SegmentPixels {
+  x: number;
+  width: number;
+}
+
+export function segmentPixels(
+  {
+    startSeconds,
+    endSeconds,
+  }: Pick<StripSegment, 'startSeconds' | 'endSeconds'>,
+  durationSeconds: number,
+  plotWidth: number,
+): SegmentPixels {
+  const xOf = (seconds: number) => (seconds / durationSeconds) * plotWidth;
+
+  return { x: xOf(startSeconds), width: xOf(endSeconds) - xOf(startSeconds) };
+}

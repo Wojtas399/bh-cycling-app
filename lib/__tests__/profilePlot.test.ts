@@ -4,7 +4,7 @@ import {
   type RecordedProfile,
   buildProfileCard,
 } from '../profileCard';
-import { profilePlot } from '../profilePlot';
+import { profilePlot, segmentPixels } from '../profilePlot';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
 import { NO_ZONE_TIMES } from '../timeInZone';
 import i18n from '@/i18n';
@@ -90,5 +90,40 @@ describe('profilePlot', () => {
     expect(
       profilePlot({ planned: null, recorded: null }, t).accessibilityLabel,
     ).toBe('');
+  });
+});
+
+function rideOf(
+  intervals: [startSeconds: number, endSeconds: number][],
+  endSeconds: number,
+): RecordedProfile {
+  return {
+    intervals: intervals.map(([startSeconds, intervalEnd]) => ({
+      startSeconds,
+      endSeconds: intervalEnd,
+      intensity: 90,
+      zone: 3,
+    })),
+    endSeconds,
+    icuFtp: FTP,
+    icuZoneTimes: null,
+  };
+}
+
+function pixelsOf(ride: RecordedProfile, plotWidth: number) {
+  const card = buildProfileCard({ recorded: ride }, AT_THE_CURRENT_FTP);
+
+  if (!card?.recorded) throw new Error('No ride to plot.');
+
+  return card.recorded.segments.map(segment =>
+    segmentPixels(segment, card.durationSeconds, plotWidth),
+  );
+}
+
+describe('segmentPixels', () => {
+  it('places a segment at its seconds in proportion to the plot width', () => {
+    expect(pixelsOf(rideOf([[120, 126]], 600), 300)).toEqual([
+      { x: 60, width: 3 },
+    ]);
   });
 });
