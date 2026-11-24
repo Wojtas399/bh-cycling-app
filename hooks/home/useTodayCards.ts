@@ -28,7 +28,7 @@ export function useTodayCards() {
     requiredScope: 'WELLNESS:READ',
   });
 
-  return { state: toCardsState(read), refetch: read.refetch };
+  return { state: toCardsState(read) };
 }
 
 function toCardsState({

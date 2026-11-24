@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,15 +20,11 @@ import WorkoutDetailsSkeleton from '@/components/workout/WorkoutDetailsSkeleton'
 import { useAppTheme } from '@/constants/theme';
 import { useActivityDetails } from '@/hooks/activity/useActivityDetails';
 import { usePairedRace } from '@/hooks/activity/usePairedRace';
-import { useActivityRoute } from '@/hooks/useActivityRoute';
 import { useAthleteSettings } from '@/hooks/useAthleteSettings';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
-import {
-  type ActivityDetails,
-  pairedEventIdOf,
-  routeOf,
-} from '@/lib/activityDetails';
+import { type ActivityDetails, pairedEventIdOf } from '@/lib/activityDetails';
 import { NO_WORKOUT_PROFILE, profileCardSource } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
 import { useLocalSearchParams } from 'expo-router';
@@ -37,28 +32,13 @@ import { useLocalSearchParams } from 'expo-router';
 export default function ActivityDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'activityDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { availability, query, refetch } = useActivityDetails(id);
-  const bannerRoute = useActivityRoute(routeOf(query.data)?.activityId ?? null);
+  const { availability, query } = useActivityDetails(id);
+  const { refreshing, refresh } = useIntervalsRefresh();
   const pairedRace = usePairedRace(pairedEventIdOf(query.data));
   const raceSheet = useRaceSheet();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-
-    try {
-      await Promise.all([
-        refetch(),
-        bannerRoute.refetchIfFailed(),
-        pairedRace.refetch(),
-      ]);
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   function bodyPreferringDataOverError() {
     const skeleton = <WorkoutDetailsSkeleton loadingLabel={t('loading')} />;
@@ -106,7 +86,7 @@ export default function ActivityDetailsScreen() {
           availability === 'available' ? (
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refresh}
               tintColor={theme.colors.textSecondary}
               progressViewOffset={header.scrollInsetTop}
             />

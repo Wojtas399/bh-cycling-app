@@ -10,7 +10,6 @@ import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { restoreDefaultFocus } from '@/test-utils/focus';
 import { renderHookWithClient } from '@/test-utils/queryClient';
-import { settleQueries } from '@/test-utils/settle';
 import { focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -146,64 +145,6 @@ describe('useActivityRoute', () => {
 
     expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
     expect(client.getQueryState(otherKey)?.dataUpdatedAt).toBe(before);
-  });
-
-  it('refetches a failed Route on refetchIfFailed', async () => {
-    connectIntervals();
-    mockGetActivityMap.mockRejectedValueOnce(new IntervalsApiError(500));
-
-    const { result } = await renderRoute();
-
-    await waitFor(() => expect(result.current.query.isError).toBe(true));
-
-    await act(() => result.current.refetchIfFailed());
-
-    expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-    expect(result.current.query.data).not.toBeNull();
-  });
-
-  it('refetches a failed Route on refetchIfFailed when its caller never reads the query, as the details screens do', async () => {
-    connectIntervals();
-    let failRead: (error: Error) => void = () => undefined;
-
-    mockGetActivityMap.mockReturnValueOnce(
-      new Promise((_, reject) => {
-        failRead = reject;
-      }),
-    );
-
-    const { result, client } = await renderHookWithClient(
-      () => useActivityRoute(ACTIVITY_ID).refetchIfFailed,
-    );
-
-    await settleQueries();
-    await act(async () => failRead(new IntervalsApiError(500)));
-    await settleQueries();
-    expect(client.getQueryState(ROUTE_KEY)?.status).toBe('error');
-
-    await act(() => result.current());
-
-    expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
-  });
-
-  it('does nothing on refetchIfFailed once the Route has loaded, resolving by the next microtask with no request in flight', async () => {
-    connectIntervals();
-
-    const { result } = await renderRoute();
-
-    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-
-    let settled = false;
-    const pending = result.current.refetchIfFailed().then(() => {
-      settled = true;
-    });
-
-    await Promise.resolve();
-    expect(settled).toBe(true);
-    await act(() => pending);
-
-    expect(mockGetActivityMap).toHaveBeenCalledTimes(1);
   });
 
   it('is cleared when Intervals.icu is disconnected', async () => {
