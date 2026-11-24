@@ -20,14 +20,17 @@ import {
   type StripSegment,
   axisLabels,
 } from '@/lib/profileCard';
-import { type PlotStrip, segmentPixels } from '@/lib/profilePlot';
+import {
+  type PlotStrip,
+  Y_LABEL_GUTTER,
+  plotWidthOf,
+  segmentPixels,
+} from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 
 const LONE_STRIP_PLOT_HEIGHT = 140;
 
 const STACKED_STRIP_PLOT_HEIGHT = 100;
-
-const Y_LABEL_GUTTER = 44;
 
 const END_LABEL_CLEARANCE = 6;
 
@@ -42,10 +45,6 @@ const MIN_Y_LABEL_SPACING_PX = 12;
 const TIME_LABEL_DURATION_SHARES = [0, 0.25, 0.5, 0.75, 1];
 
 const POINTER_WIDTH = 1;
-
-export function plotWidthOf(stackWidth: number): number {
-  return Math.max(0, stackWidth - Y_LABEL_GUTTER);
-}
 
 export interface ProfileWithTimeAxisProps {
   strips: PlotStrip[];
