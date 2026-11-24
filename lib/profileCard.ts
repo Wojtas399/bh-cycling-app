@@ -218,12 +218,13 @@ function stripOf<Summary>(
 
 function segmentOf(
   { startSeconds, endSeconds, minPct, maxPct, zone, ramp }: TimedPower,
-  { ftp, unit }: StripOnScale,
+  onScale: StripOnScale,
 ): StripSegment[] {
   const drawsNothing = maxPct <= 0;
 
   if (drawsNothing) return [];
 
+  const { ftp } = onScale;
   const watts = (pct: number) =>
     ftp === null ? null : ftpPctToWatts(pct, ftp);
   const segment: StripSegment = {
@@ -233,8 +234,8 @@ function segmentOf(
     maxPct,
     minWatts: watts(minPct),
     maxWatts: watts(maxPct),
-    lowOnScale: inUnit(minPct, unit, ftp),
-    highOnScale: inUnit(maxPct, unit, ftp),
+    lowOnScale: inUnit(minPct, onScale),
+    highOnScale: inUnit(maxPct, onScale),
     zone,
   };
 
@@ -250,8 +251,8 @@ function segmentOf(
         endPct,
         startWatts: watts(startPct),
         endWatts: watts(endPct),
-        startOnScale: inUnit(startPct, unit, ftp),
-        endOnScale: inUnit(endPct, unit, ftp),
+        startOnScale: inUnit(startPct, onScale),
+        endOnScale: inUnit(endPct, onScale),
       },
     },
   ];
@@ -269,7 +270,7 @@ function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
 
 function stripPower(
   segments: StripSegment[],
-  { ftp, unit }: StripOnScale,
+  onScale: StripOnScale,
 ): StripPower {
   let seconds = 0;
   let pctSeconds = 0;
@@ -283,10 +284,10 @@ function stripPower(
   const averagePct = seconds > 0 ? pctSeconds / seconds : 0;
 
   return {
-    unit,
-    peak: Math.round(inUnit(peakPct, unit, ftp)),
+    unit: onScale.unit,
+    peak: Math.round(inUnit(peakPct, onScale)),
     peakFtpPct: Math.round(peakPct),
-    average: Math.round(inUnit(averagePct, unit, ftp)),
+    average: Math.round(inUnit(averagePct, onScale)),
   };
 }
 
@@ -318,7 +319,7 @@ function sharedScale(
 ): ProfileScale {
   const bandsBelowTheLastZone = zoneConfig.slice(0, -1);
   const edges = bandsBelowTheLastZone.map(({ maxPct }) => {
-    const edge = inUnit(maxPct, unit, ftp);
+    const edge = inUnit(maxPct, { unit, ftp });
 
     return unit === 'watts' ? Math.round(edge) : edge;
   });
@@ -333,7 +334,7 @@ function sharedScale(
   return { unit, ceiling, gridlines: edges.filter(edge => edge < ceiling) };
 }
 
-function inUnit(pct: number, unit: ScaleUnit, ftp: number | null): number {
+function inUnit(pct: number, { unit, ftp }: StripOnScale): number {
   return unit === 'watts' && ftp !== null ? ftpPctToWatts(pct, ftp) : pct;
 }
 
