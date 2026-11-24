@@ -1,54 +1,28 @@
+import {
+  connectIntervals,
+  disconnectIntervals,
+} from '@/test-utils/intervalsConnection';
+
 import { useActivityRoute } from '../useActivityRoute';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { IntervalsApiError, getActivityMap } from '@/lib/intervalsApi';
 import type { IntervalsActivityMap } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { restoreDefaultFocus } from '@/test-utils/focus';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
 import { focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
-
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
 
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getActivityMap: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockGetActivityMap = jest.mocked(getActivityMap);
 
 const ACTIVITY_ID = 'i42';
 const ROUTE_KEY = ['intervals', 'athlete-1', 'route', ACTIVITY_ID];
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected() {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-  });
-}
 
 const GPS_MAP: IntervalsActivityMap = {
   latlngs: [[52.2, 21.0], null, [52.201, 21.002]],
@@ -70,7 +44,7 @@ describe('useActivityRoute', () => {
   });
 
   it('makes no request without an Activity id', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderRoute(null);
 
@@ -79,7 +53,7 @@ describe('useActivityRoute', () => {
   });
 
   it('makes no request without credentials', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderRoute();
 
@@ -88,7 +62,7 @@ describe('useActivityRoute', () => {
   });
 
   it("resolves to the Activity's Route", async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderRoute();
 
@@ -111,7 +85,7 @@ describe('useActivityRoute', () => {
   });
 
   it('resolves to null, not an error, when intervals.icu has no track (404)', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetActivityMap.mockRejectedValue(new IntervalsApiError(404));
 
     const { result } = await renderRoute();
@@ -121,7 +95,7 @@ describe('useActivityRoute', () => {
   });
 
   it('resolves to null when the track has fewer than 2 usable points', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetActivityMap.mockResolvedValue({ latlngs: [[52.2, 21.0], null] });
 
     const { result } = await renderRoute();
@@ -131,7 +105,7 @@ describe('useActivityRoute', () => {
   });
 
   it('is an error for any other failure', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetActivityMap.mockRejectedValue(new IntervalsApiError(500));
 
     const { result } = await renderRoute();
@@ -141,7 +115,7 @@ describe('useActivityRoute', () => {
   });
 
   it('never refetches a loaded Route on its own, even on foreground', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result, rerender } = await renderRoute();
 
@@ -158,7 +132,7 @@ describe('useActivityRoute', () => {
   });
 
   it('refetches only the Route on refetch', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result, client } = await renderRoute();
 
@@ -175,7 +149,7 @@ describe('useActivityRoute', () => {
   });
 
   it('refetches a failed Route on refetchIfFailed', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetActivityMap.mockRejectedValueOnce(new IntervalsApiError(500));
 
     const { result } = await renderRoute();
@@ -189,8 +163,32 @@ describe('useActivityRoute', () => {
     expect(result.current.query.data).not.toBeNull();
   });
 
+  it('refetches a failed Route on refetchIfFailed when its caller never reads the query, as the details screens do', async () => {
+    connectIntervals();
+    let failRead: (error: Error) => void = () => undefined;
+
+    mockGetActivityMap.mockReturnValueOnce(
+      new Promise((_, reject) => {
+        failRead = reject;
+      }),
+    );
+
+    const { result, client } = await renderHookWithClient(
+      () => useActivityRoute(ACTIVITY_ID).refetchIfFailed,
+    );
+
+    await settleQueries();
+    await act(async () => failRead(new IntervalsApiError(500)));
+    await settleQueries();
+    expect(client.getQueryState(ROUTE_KEY)?.status).toBe('error');
+
+    await act(() => result.current());
+
+    expect(mockGetActivityMap).toHaveBeenCalledTimes(2);
+  });
+
   it('does nothing on refetchIfFailed once the Route has loaded, resolving by the next microtask with no request in flight', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderRoute();
 
@@ -209,14 +207,14 @@ describe('useActivityRoute', () => {
   });
 
   it('is cleared when Intervals.icu is disconnected', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result, client, rerender } = await renderRoute();
 
     await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
     expect(client.getQueryData(ROUTE_KEY)).toBeDefined();
 
-    mockConnection();
+    disconnectIntervals();
     await act(() => removeIntervalsQueries(client));
     await rerender({});
 

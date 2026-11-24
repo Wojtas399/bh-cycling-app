@@ -1,5 +1,6 @@
+import { connectIntervals } from '@/test-utils/intervalsConnection';
+
 import { useProfileCard } from '../useProfileCard';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { buildDetailedProfile } from '@/lib/detailedProfile';
 import {
   type IntervalsActivity,
@@ -13,18 +14,10 @@ import type { WorkoutBlock } from '@/lib/workoutProfile';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/lib/intervalsApi', () => ({
   ...jest.requireActual('@/lib/intervalsApi'),
   getActivity: jest.fn(),
   getAthleteSettings: jest.fn(),
-}));
-
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
 const mockGetActivity = jest.mocked(getActivity);
@@ -95,14 +88,7 @@ const PLAN_ALONE = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  jest.mocked(useIntervalsConnection).mockReturnValue({
-    isConnected: true,
-    athleteName: null,
-    athleteId: 'athlete-1',
-    accessToken: 'token-1',
-    scope: null,
-    loading: false,
-  });
+  connectIntervals();
 });
 
 describe('useProfileCard', () => {

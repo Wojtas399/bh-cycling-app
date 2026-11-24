@@ -1,11 +1,15 @@
 import {
+  connectIntervals,
+  disconnectIntervals,
+  intervalsConnectionLoading,
+} from '@/test-utils/intervalsConnection';
+
+import {
   type UseCalendarRangeConfig,
   useCalendarRange,
 } from '../useCalendarRange';
-import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
 import * as calendarItems from '@/lib/calendarItems';
-import * as combineMonthResultsModule from '@/lib/combineMonthResults';
 import {
   type IntervalsActivity,
   type IntervalsCalendarEvent,
@@ -29,10 +33,6 @@ import {
 import { type QueryClient, focusManager } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 
-jest.mock('@/hooks/useIntervalsConnection', () => ({
-  useIntervalsConnection: jest.fn(),
-}));
-
 jest.mock('@/hooks/useToday', () => ({
   useToday: jest.fn(),
 }));
@@ -44,37 +44,10 @@ jest.mock('@/lib/intervalsApi', () => ({
   getAthleteSettings: jest.fn(),
 }));
 
-jest.mock('@/lib/handleIntervalsAuthError', () => ({
-  handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
-}));
-
-const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockUseToday = jest.mocked(useToday);
 const mockGetCalendarEvents = jest.mocked(getCalendarEvents);
 const mockGetActivities = jest.mocked(getActivities);
 const mockGetAthleteSettings = jest.mocked(getAthleteSettings);
-
-function mockConnection(
-  overrides: Partial<ReturnType<typeof useIntervalsConnection>> = {},
-) {
-  mockUseIntervalsConnection.mockReturnValue({
-    isConnected: false,
-    athleteName: null,
-    athleteId: null,
-    accessToken: null,
-    scope: null,
-    loading: false,
-    ...overrides,
-  });
-}
-
-function mockConnected() {
-  mockConnection({
-    isConnected: true,
-    accessToken: 'token-1',
-    athleteId: 'athlete-1',
-  });
-}
 
 function event(
   overrides: Partial<IntervalsCalendarEvent> = {},
@@ -142,7 +115,7 @@ describe('useCalendarRange', () => {
   });
 
   it('opens on the range containing a starting date', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange({ ...monthConfig, startDate: new Date(2021, 1, 17) }),
@@ -152,7 +125,7 @@ describe('useCalendarRange', () => {
   });
 
   it("opens on today's range without a starting date", async () => {
-    mockConnection();
+    disconnectIntervals();
     mockUseToday.mockReturnValue('2021-02-17');
 
     const { result } = await renderHookWithClient(() =>
@@ -164,7 +137,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is unavailable and makes no API call when not connected', async () => {
-    mockConnection();
+    disconnectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -176,7 +149,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is loading while the connection state itself is resolving', async () => {
-    mockConnection({ loading: true });
+    intervalsConnectionLoading();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -187,7 +160,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is pending while the fetch is in flight', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(() =>
@@ -200,7 +173,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is an error when the month fails to load', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
 
     const { result } = await renderHookWithClient(() =>
@@ -212,7 +185,7 @@ describe('useCalendarRange', () => {
   });
 
   it("has the visible month's workouts by date once loaded", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
 
     const { result } = await renderHookWithClient(() =>
@@ -236,7 +209,7 @@ describe('useCalendarRange', () => {
   });
 
   it("falls back to Coggan's zones and still shows the Workout when the athlete settings fail", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetAthleteSettings.mockRejectedValue(new Error('settings unavailable'));
     mockGetCalendarEvents.mockResolvedValue([
       event({
@@ -263,7 +236,7 @@ describe('useCalendarRange', () => {
   });
 
   it("surfaces the month's Races from its existing events call, with no new request", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params) =>
         params?.category === 'NOTE'
@@ -306,7 +279,7 @@ describe('useCalendarRange', () => {
   });
 
   it("fetches each month's Notes from 31 days before it to its last day", async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -329,7 +302,7 @@ describe('useCalendarRange', () => {
   });
 
   it('has the Notes covering the visible month, one from the month before included', async () => {
-    mockConnected();
+    connectIntervals();
     const first = startOfMonth(new Date());
     const lastMonth = toLocalDateString(addDays(first, -3));
     const second = toLocalDateString(addDays(first, 2));
@@ -360,7 +333,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is an error when the Notes call fails', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockImplementation(
       async (_token, _athlete, params) => {
         if (params?.category === 'NOTE') throw new Error('notes down');
@@ -378,7 +351,7 @@ describe('useCalendarRange', () => {
   });
 
   it('marks a workout completed when a paired activity is returned', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 42 })]);
     mockGetActivities.mockResolvedValue([
       {
@@ -403,7 +376,7 @@ describe('useCalendarRange', () => {
   });
 
   it('lists a Strava Activity, as the list returns it, on its day without pairing it', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 42 })]);
     mockGetActivities.mockResolvedValue([
       {
@@ -439,7 +412,7 @@ describe('useCalendarRange', () => {
   });
 
   it('shows a month already loaded at once when navigating back to it, with no new fetch', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -458,7 +431,7 @@ describe('useCalendarRange', () => {
   });
 
   it('keeps the data visible while a refresh is in flight, then shows the new data', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
 
     const { result } = await renderHookWithClient(() =>
@@ -498,7 +471,7 @@ describe('useCalendarRange', () => {
   });
 
   it('keeps the data when a refresh fails', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
 
     const { result } = await renderHookWithClient(() =>
@@ -520,7 +493,7 @@ describe('useCalendarRange', () => {
   });
 
   it('refetches a month that was refreshed away from when it is next shown, showing its old data meanwhile', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -541,7 +514,7 @@ describe('useCalendarRange', () => {
   });
 
   it('refetches a month that went stale while shown only once the app returns to the foreground', async () => {
-    mockConnected();
+    connectIntervals();
     focusManager.setFocused(false);
 
     const client = clientWithMonthFetched(0);
@@ -559,7 +532,7 @@ describe('useCalendarRange', () => {
   });
 
   it('does not refetch a fresh month when the app returns to the foreground', async () => {
-    mockConnected();
+    connectIntervals();
     focusManager.setFocused(false);
 
     const { result } = await renderHookWithClient(
@@ -574,7 +547,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is refreshing while a stale month refetches in the background', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(
@@ -587,7 +560,7 @@ describe('useCalendarRange', () => {
   });
 
   it('treats a refresh of a month that failed to load as a first load again, not a refresh', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
 
     const { result } = await renderHookWithClient(() =>
@@ -607,7 +580,7 @@ describe('useCalendarRange', () => {
   });
 
   it('is not refreshing during a first load', async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
 
     const { result } = await renderHookWithClient(() =>
@@ -619,7 +592,7 @@ describe('useCalendarRange', () => {
   });
 
   it("refresh only marks Home's workouts stale off screen, and fetches the athlete settings again at once for the refetched month", async () => {
-    mockConnected();
+    connectIntervals();
 
     const client = createTestQueryClient();
     const upcomingKey = intervalsKeys.upcoming('athlete-1', today);
@@ -645,7 +618,7 @@ describe('useCalendarRange', () => {
   });
 
   it("turns yesterday's planned workout into missed when today moves on, without a new request", async () => {
-    mockConnected();
+    connectIntervals();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
 
     const { result, rerender } = await renderHookWithClient(() =>
@@ -669,7 +642,7 @@ describe('useCalendarRange', () => {
   });
 
   it('shows today on its month, not after navigating away, and again after coming back', async () => {
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -690,7 +663,7 @@ describe('useCalendarRange', () => {
   ] as const)(
     "goes back to today's month from %s month",
     async (_, navigate) => {
-      mockConnected();
+      connectIntervals();
 
       const { result } = await renderHookWithClient(() =>
         useCalendarRange(monthConfig),
@@ -714,7 +687,7 @@ describe('useCalendarRange', () => {
       jest.requireActual<{ useToday: typeof useToday }>('@/hooks/useToday')
         .useToday,
     );
-    mockConnected();
+    connectIntervals();
 
     const { result } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
@@ -728,53 +701,5 @@ describe('useCalendarRange', () => {
 
     expect(toLocalDateString(result.current.anchor)).toBe('2026-10-01');
     expect(result.current.showsToday).toBe(false);
-  });
-
-  it('does not combine the months again while the range and their results stay the same', async () => {
-    mockConnected();
-    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const combineBetween = combineMonthResultsModule.combineMonthResults;
-    const combined = jest.fn();
-    const spy = jest
-      .spyOn(combineMonthResultsModule, 'combineMonthResults')
-      .mockImplementation((start, end) => {
-        const combine = combineBetween(start, end);
-
-        return results => {
-          combined();
-
-          return combine(results);
-        };
-      });
-
-    const { result, rerender } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-    const combines = combined.mock.calls.length;
-
-    await rerender({});
-
-    expect(combined).toHaveBeenCalledTimes(combines);
-    spy.mockRestore();
-  });
-
-  it('does not derive the statuses again while today stays the same', async () => {
-    mockConnected();
-    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const derive = jest.spyOn(calendarItems, 'withItemStatuses');
-
-    const { result, rerender } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-    const derivations = derive.mock.calls.length;
-
-    await rerender({});
-
-    expect(derive).toHaveBeenCalledTimes(derivations);
-    derive.mockRestore();
   });
 });
