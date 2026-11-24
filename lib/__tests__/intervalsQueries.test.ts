@@ -4,6 +4,7 @@ import {
   athleteSettingsQueryOptions,
   fitnessQueryOptions,
   intervalsKeys,
+  isRouteKey,
   monthQueryOptions,
   nextRaceQueryOptions,
   noteDetailsQueryOptions,
@@ -16,7 +17,7 @@ import {
   workoutDetailsQueryOptions,
 } from '../intervalsQueries';
 import { getUpcomingItems } from '../upcomingWorkouts';
-import { skipToken } from '@tanstack/react-query';
+import { type QueryKey, skipToken } from '@tanstack/react-query';
 
 const TODAY = '2026-02-11';
 const CREDENTIALS = { accessToken: 'token-1', athleteId: 'athlete-1' };
@@ -63,6 +64,29 @@ describe('intervalsKeys', () => {
       'activity',
       'i42',
     ]);
+  });
+});
+
+describe('isRouteKey', () => {
+  it.each<[string, QueryKey]>([
+    ['a Route', intervalsKeys.route('athlete-1', 'i42')],
+    ["another athlete's Route", intervalsKeys.route('athlete-2', 'i7')],
+  ])('recognises %s', (_, queryKey) => {
+    expect(isRouteKey(queryKey)).toBe(true);
+  });
+
+  it.each<[string, QueryKey]>([
+    [
+      'an Activity with the same ID',
+      intervalsKeys.activity('athlete-1', 'i42'),
+    ],
+    ['a Workout', intervalsKeys.workout('athlete-1', 7)],
+    ['athlete settings', intervalsKeys.athleteSettings('athlete-1')],
+    ['a Calendar month', intervalsKeys.month('athlete-1', '2026-11')],
+    ['the athlete prefix', intervalsKeys.athlete('athlete-1')],
+    ['a key outside Intervals.icu', ['route', 'athlete-1', 'route', 'i42']],
+  ])('does not take %s for a Route', (_, queryKey) => {
+    expect(isRouteKey(queryKey)).toBe(false);
   });
 });
 
