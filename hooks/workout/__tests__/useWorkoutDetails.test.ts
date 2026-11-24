@@ -506,8 +506,8 @@ describe('useWorkoutDetails', () => {
       const { result } = await renderDetails();
 
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      expect(result.current.query.data?.blocks).toEqual([
-        { widthFraction: 1, minPct: 80, maxPct: 80, zone: 3 },
+      expect(result.current.query.data?.rideSteps).toEqual([
+        { duration: 600, power: { units: '%ftp', value: 80 } },
       ]);
       expect(result.current.query.data?.rideSettings).toEqual(
         resolveRideSettings(null),
@@ -516,7 +516,7 @@ describe('useWorkoutDetails', () => {
   });
 
   describe('profile', () => {
-    it('summarises the profile with its duration, step count and peak %FTP', async () => {
+    it("carries the ride's steps, unrolled by its profile card", async () => {
       connectIntervals();
       mockGetCalendarEvent.mockResolvedValue(
         event({
@@ -536,12 +536,7 @@ describe('useWorkoutDetails', () => {
       const { result } = await renderDetails();
 
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      expect(result.current.query.data?.blocks).toHaveLength(5);
-      expect(result.current.query.data?.profileSummary).toEqual({
-        durationSeconds: 4500,
-        stepCount: 5,
-        peakFtpPct: 120,
-      });
+      expect(result.current.query.data?.rideSteps).toHaveLength(5);
     });
 
     it("carries the athlete's Ride settings it's coloured by, current FTP included, for its profile card", async () => {
@@ -561,19 +556,6 @@ describe('useWorkoutDetails', () => {
           powerZones: [60, 80, 90, 105, 120, 150, 999],
         }),
       );
-    });
-
-    it('has no profile summary when there is no profile to draw', async () => {
-      connectIntervals();
-      mockGetCalendarEvent.mockResolvedValue(
-        event({ workout_doc: { duration: 3600, steps: [] } }),
-      );
-
-      const { result } = await renderDetails();
-
-      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      expect(result.current.query.data?.blocks).toEqual([]);
-      expect(result.current.query.data?.profileSummary).toBeNull();
     });
   });
 

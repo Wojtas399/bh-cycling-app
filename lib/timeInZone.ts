@@ -23,8 +23,6 @@ function noZoneTimes(): Record<Zone, number> {
   return { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
 }
 
-export const NO_ZONE_TIMES: ZoneTimes = noZoneTimes();
-
 const Z1_TO_Z7_ID = /^Z(\d)$/;
 
 export function zoneTimesFromIcu(

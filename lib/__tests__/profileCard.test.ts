@@ -1,32 +1,51 @@
 import type { Zone } from '../powerZones';
 import {
-  type PlannedProfile,
+  type ProfileStrip,
   type RecordedProfile,
   axisLabels,
   buildProfileCard,
 } from '../profileCard';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
-import type { ZoneTimes } from '../timeInZone';
-import type { WorkoutBlock } from '../workoutProfile';
+import type { WorkoutStep } from '../workoutProfile';
 
 const COGGAN_AT_250_W: RideSettings = resolveRideSettings({ ftp: 250 });
 
 const COGGAN_WITHOUT_FTP: RideSettings = resolveRideSettings(null);
 
-const NO_ZONE_TIMES: ZoneTimes = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 };
+function atFtpPct(duration: number, value: number): WorkoutStep {
+  return { duration, power: { units: '%ftp', value } };
+}
 
-const GAP = { minPct: 0, maxPct: 0, zone: 1 } as const;
+function atFtpPctRange(
+  duration: number,
+  start: number,
+  end: number,
+): WorkoutStep {
+  return { duration, power: { units: '%ftp', start, end } };
+}
 
-function plan(
-  blocks: WorkoutBlock[],
-  durationSeconds = 3600,
-  zoneTimes: ZoneTimes = NO_ZONE_TIMES,
-): PlannedProfile {
-  return {
-    blocks,
-    summary: { durationSeconds, stepCount: blocks.length, peakFtpPct: 0 },
-    zoneTimes,
-  };
+function rampOf(duration: number, start: number, end: number): WorkoutStep {
+  return { duration, ramp: true, power: { units: '%ftp', start, end } };
+}
+
+function byHeartRate(duration: number): WorkoutStep {
+  return { duration, hr: { units: '%hr', value: 75 } };
+}
+
+function repeat(reps: number, steps: WorkoutStep[]): WorkoutStep {
+  const repSeconds = steps.reduce(
+    (sum, { duration }) => sum + (duration ?? 0),
+    0,
+  );
+
+  return { reps, duration: reps * repSeconds, steps };
+}
+
+function spansOf(strip: ProfileStrip<unknown> | null | undefined) {
+  return strip?.segments.map(({ startSeconds, endSeconds }) => [
+    startSeconds,
+    endSeconds,
+  ]);
 }
 
 type IntervalRow = [
@@ -57,9 +76,9 @@ function ride(
   };
 }
 
-const PLAN_TO_110: WorkoutBlock[] = [
-  { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
-  { widthFraction: 0.5, minPct: 100, maxPct: 110, zone: 4 },
+const PLAN_TO_110: WorkoutStep[] = [
+  atFtpPct(1800, 60),
+  atFtpPctRange(1800, 100, 110),
 ];
 
 describe('buildProfileCard', () => {
@@ -148,11 +167,34 @@ describe('buildProfileCard', () => {
   });
 
   describe('planned strip', () => {
-    it("places the Tile's blocks across the plan's duration, as today", () => {
+    it('places each step at its real time, leaving a gap for a heart-rate step, so the first of 3 × 8 min intervals runs 22:00–30:00', () => {
       const card = buildProfileCard(
-        { planned: plan(PLAN_TO_110, 3600) },
+        {
+          planned: [
+            atFtpPctRange(600, 50, 65),
+            byHeartRate(720),
+            repeat(3, [atFtpPct(480, 105), atFtpPct(240, 50)]),
+            atFtpPct(120, 50),
+          ],
+        },
         COGGAN_AT_250_W,
       );
+
+      expect(spansOf(card?.planned)).toEqual([
+        [0, 600],
+        [1320, 1800],
+        [1800, 2040],
+        [2040, 2520],
+        [2520, 2760],
+        [2760, 3240],
+        [3240, 3480],
+        [3480, 3600],
+      ]);
+      expect(card?.durationSeconds).toBe(3600);
+    });
+
+    it('draws each step in %FTP and in watts at the current FTP', () => {
+      const card = buildProfileCard({ planned: PLAN_TO_110 }, COGGAN_AT_250_W);
 
       expect(card?.durationSeconds).toBe(3600);
       expect(card?.planned?.segments).toEqual([
@@ -181,72 +223,125 @@ describe('buildProfileCard', () => {
       ]);
     });
 
-    it('keeps its summary', () => {
-      const planned = plan(PLAN_TO_110, 3000);
+    it('sums up its length, its steps with a %FTP reading and its peak', () => {
+      const card = buildProfileCard(
+        { planned: [...PLAN_TO_110, byHeartRate(600)] },
+        COGGAN_AT_250_W,
+      );
+
+      expect(card?.planned?.summary).toEqual({
+        durationSeconds: 4200,
+        stepCount: 2,
+        peakFtpPct: 110,
+      });
+    });
+
+    it('keeps a 10 s sprint in a 2 h Workout 10 s long, and the steps after it in place', () => {
+      const card = buildProfileCard(
+        {
+          planned: [atFtpPct(3600, 65), atFtpPct(10, 200), atFtpPct(3590, 65)],
+        },
+        COGGAN_AT_250_W,
+      );
+
+      expect(spansOf(card?.planned)).toEqual([
+        [0, 3600],
+        [3600, 3610],
+        [3610, 7200],
+      ]);
+    });
+
+    it('unrolls a Repeat into every rep, from a parent that carries the total and children that carry one rep', () => {
+      const card = buildProfileCard(
+        {
+          planned: [
+            atFtpPct(600, 50),
+            repeat(4, [atFtpPct(300, 105)]),
+            atFtpPct(300, 50),
+          ],
+        },
+        COGGAN_AT_250_W,
+      );
+
+      expect(spansOf(card?.planned)).toEqual([
+        [0, 600],
+        [600, 900],
+        [900, 1200],
+        [1200, 1500],
+        [1500, 1800],
+        [1800, 2100],
+      ]);
+      expect(card?.planned?.summary).toMatchObject({
+        durationSeconds: 2100,
+        stepCount: 6,
+      });
+    });
+
+    it('leaves out a step with only a distance, which has no place in time', () => {
+      const card = buildProfileCard(
+        {
+          planned: [
+            atFtpPct(1800, 60),
+            { distance: 5000, power: { units: '%ftp', value: 90 } },
+            atFtpPct(1800, 100),
+          ],
+        },
+        COGGAN_AT_250_W,
+      );
+
+      expect(spansOf(card?.planned)).toEqual([
+        [0, 1800],
+        [1800, 3600],
+      ]);
+      expect(card?.planned?.summary.durationSeconds).toBe(3600);
+    });
+
+    it('ends where the last timed step ends, a trailing heart-rate step included', () => {
+      const card = buildProfileCard(
+        { planned: [atFtpPct(2400, 70), byHeartRate(600)] },
+        COGGAN_AT_250_W,
+      );
+
+      expect(spansOf(card?.planned)).toEqual([[0, 2400]]);
+      expect(card?.durationSeconds).toBe(3000);
+      expect(card?.planned?.summary.durationSeconds).toBe(3000);
+    });
+
+    it('is left out when the steps it can draw cover less than half the Workout, as the Workout Tile has no Workout Profile then', () => {
+      const underHalf = [atFtpPct(1200, 70), byHeartRate(2400)];
 
       expect(
-        buildProfileCard({ planned }, COGGAN_AT_250_W)?.planned?.summary,
-      ).toEqual(planned.summary);
+        buildProfileCard({ planned: underHalf }, COGGAN_AT_250_W),
+      ).toBeNull();
+      expect(
+        buildProfileCard(
+          {
+            planned: underHalf,
+            recorded: ride([[0, 3600, 70, 2]], 3600),
+          },
+          COGGAN_AT_250_W,
+        )?.planned,
+      ).toBeNull();
     });
 
-    it('draws no segment for a block flat on the axis', () => {
+    it('draws no segment for a step flat on the axis', () => {
       const card = buildProfileCard(
-        {
-          planned: plan([
-            { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
-            { widthFraction: 0.5, ...GAP },
-          ]),
-        },
+        { planned: [atFtpPct(1800, 60), atFtpPct(1800, 0)] },
         COGGAN_AT_250_W,
       );
 
-      expect(card?.planned?.segments).toHaveLength(1);
-    });
-
-    it('is dropped beside a ride when the plan has no known duration, as it can’t be placed in time', () => {
-      const card = buildProfileCard(
-        {
-          planned: plan(PLAN_TO_110, 0),
-          recorded: ride([[0, 2000, 80, 3]], 2000),
-        },
-        COGGAN_AT_250_W,
-      );
-
-      expect(card?.planned).toBeNull();
-      expect(card?.durationSeconds).toBe(2000);
-    });
-
-    it('stays alone with no known duration, on an empty span', () => {
-      const card = buildProfileCard(
-        { planned: plan(PLAN_TO_110, 0) },
-        COGGAN_AT_250_W,
-      );
-
-      expect(card?.durationSeconds).toBe(0);
-      expect(card?.planned?.segments).toHaveLength(2);
+      expect(spansOf(card?.planned)).toEqual([[0, 1800]]);
     });
 
     describe('ramps', () => {
-      const RAMP_UP_THEN_DOWN: WorkoutBlock[] = [
-        {
-          widthFraction: 0.5,
-          minPct: 50,
-          maxPct: 90,
-          zone: 2,
-          ramp: { startPct: 50, endPct: 90 },
-        },
-        {
-          widthFraction: 0.5,
-          minPct: 40,
-          maxPct: 80,
-          zone: 2,
-          ramp: { startPct: 80, endPct: 40 },
-        },
+      const RAMP_UP_THEN_DOWN: WorkoutStep[] = [
+        rampOf(1800, 50, 90),
+        rampOf(1800, 80, 40),
       ];
 
       it('carry their direction in %FTP, in watts and on a watts scale', () => {
         const card = buildProfileCard(
-          { planned: plan(RAMP_UP_THEN_DOWN) },
+          { planned: RAMP_UP_THEN_DOWN },
           resolveRideSettings({ ftp: 200 }),
         );
 
@@ -272,7 +367,7 @@ describe('buildProfileCard', () => {
 
       it('carry their direction on a %FTP scale, with no watts without a current FTP', () => {
         const card = buildProfileCard(
-          { planned: plan(RAMP_UP_THEN_DOWN) },
+          { planned: RAMP_UP_THEN_DOWN },
           COGGAN_WITHOUT_FTP,
         );
 
@@ -297,15 +392,14 @@ describe('buildProfileCard', () => {
       });
 
       it("leave a range's segment without a ramp, and the scale and power as a range's", () => {
-        const asRanges = RAMP_UP_THEN_DOWN.map(
-          ({ ramp: _ramp, ...block }) => block,
-        );
         const ramps = buildProfileCard(
-          { planned: plan(RAMP_UP_THEN_DOWN) },
+          { planned: RAMP_UP_THEN_DOWN },
           COGGAN_AT_250_W,
         );
         const ranges = buildProfileCard(
-          { planned: plan(asRanges) },
+          {
+            planned: [atFtpPctRange(1800, 50, 90), atFtpPctRange(1800, 40, 80)],
+          },
           COGGAN_AT_250_W,
         );
 
@@ -329,7 +423,7 @@ describe('buildProfileCard', () => {
     it('ends the planned strip early on a ride that ran longer', () => {
       const card = buildProfileCard(
         {
-          planned: plan(PLAN_TO_110, 3000),
+          planned: [atFtpPct(1500, 60), atFtpPctRange(1500, 100, 110)],
           recorded: ride([[0, 4000, 80, 3]], 4000),
         },
         COGGAN_AT_250_W,
@@ -350,7 +444,7 @@ describe('buildProfileCard', () => {
     it('ends the recorded strip early on a ride that was shorter', () => {
       const card = buildProfileCard(
         {
-          planned: plan(PLAN_TO_110, 4000),
+          planned: [atFtpPct(2000, 60), atFtpPctRange(2000, 100, 110)],
           recorded: ride([[0, 2000, 80, 3]], 2000),
         },
         COGGAN_AT_250_W,
@@ -371,7 +465,7 @@ describe('buildProfileCard', () => {
     it('draws the plan at the current FTP and the ride at the FTP intervals.icu used for it', () => {
       const card = buildProfileCard(
         {
-          planned: plan(PLAN_TO_110),
+          planned: PLAN_TO_110,
           recorded: ride([[0, 3600, 100, 4]], 3600, { icuFtp: 265 }),
         },
         resolveRideSettings({ ftp: 280 }),
@@ -400,9 +494,7 @@ describe('buildProfileCard', () => {
     it("keeps the card in %FTP with no current FTP, and no strip's power in watts, even for a ride with its own FTP", () => {
       const card = buildProfileCard(
         {
-          planned: plan([
-            { widthFraction: 1, minPct: 60, maxPct: 60, zone: 2 },
-          ]),
+          planned: [atFtpPct(3600, 60)],
           recorded: ride([[0, 3600, 95, 4]], 3600, { icuFtp: 240 }),
         },
         COGGAN_WITHOUT_FTP,
@@ -430,10 +522,7 @@ describe('buildProfileCard', () => {
 
   describe('scale', () => {
     it('is in watts, with dashed zone edges at the current FTP up to the first edge above the peak, the 300 W Z5 edge over a 275 W peak', () => {
-      const card = buildProfileCard(
-        { planned: plan(PLAN_TO_110) },
-        COGGAN_AT_250_W,
-      );
+      const card = buildProfileCard({ planned: PLAN_TO_110 }, COGGAN_AT_250_W);
 
       expect(card?.scale).toEqual({
         unit: 'watts',
@@ -445,7 +534,7 @@ describe('buildProfileCard', () => {
     it("is shared by both strips, topped by the higher one's peak: the ride's 312 W, 130% of its own 240 W FTP, past the plan's 275 W", () => {
       const card = buildProfileCard(
         {
-          planned: plan(PLAN_TO_110),
+          planned: PLAN_TO_110,
           recorded: ride(
             [
               [0, 1800, 70, 2],
@@ -533,10 +622,7 @@ describe('buildProfileCard', () => {
 
   describe('power', () => {
     it("is each strip's peak and time-weighted average watts, rounded, a range read at its middle", () => {
-      const card = buildProfileCard(
-        { planned: plan(PLAN_TO_110) },
-        COGGAN_AT_250_W,
-      );
+      const card = buildProfileCard({ planned: PLAN_TO_110 }, COGGAN_AT_250_W);
 
       expect(card?.planned?.power).toEqual({
         unit: 'watts',
@@ -570,25 +656,15 @@ describe('buildProfileCard', () => {
   });
 
   describe('time in zone', () => {
-    const PLAN_ZONE_TIMES: ZoneTimes = {
-      1: 0,
-      2: 1200,
-      3: 0,
-      4: 2400,
-      5: 0,
-      6: 0,
-      7: 0,
-    };
-
     const INTERVALS: IntervalRow[] = [
       [0, 900, 60, 2],
       [1800, 3600, 100, 4],
     ];
 
-    it("lists the plan's time from its steps above the ride's from intervals.icu", () => {
+    it("lists the plan's time from its steps, leaving out a heart-rate step, above the ride's from intervals.icu", () => {
       const card = buildProfileCard(
         {
-          planned: plan(PLAN_TO_110, 3600, PLAN_ZONE_TIMES),
+          planned: [atFtpPct(1200, 60), byHeartRate(600), atFtpPct(2400, 100)],
           recorded: ride(INTERVALS, 3600, {
             icuZoneTimes: { 1: 300, 2: 1500, 3: 0, 4: 1800, 5: 0, 6: 0, 7: 0 },
           }),
@@ -613,6 +689,29 @@ describe('buildProfileCard', () => {
           recorded: { seconds: 1800, share: 0.75 },
         },
       ]);
+    });
+
+    it("counts the plan's time at the athlete's zones, so 58% is Z1 under a 60% ceiling, not Coggan's Z2", () => {
+      const card = buildProfileCard(
+        {
+          planned: [
+            atFtpPct(600, 58),
+            { duration: 2400, power: { units: 'power_zone', value: 2 } },
+            atFtpPct(600, 90),
+          ],
+        },
+        resolveRideSettings({ ftp: 250, powerZones: [60, 80, 95] }),
+      );
+
+      expect(card?.planned?.zoneTimes).toEqual({
+        1: 600,
+        2: 2400,
+        3: 600,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0,
+      });
     });
 
     it("counts the ride's time from its intervals when intervals.icu kept none, leaving out the gaps", () => {

@@ -4,8 +4,8 @@ import type {
   ProfileCard,
   StripPower,
   StripSegment,
+  WorkoutProfileSummary,
 } from './profileCard';
-import type { WorkoutProfileSummary } from './workoutDetails';
 import type { TFunction } from 'i18next';
 
 export interface PlotStrip {

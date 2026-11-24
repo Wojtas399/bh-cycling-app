@@ -1,12 +1,11 @@
 import {
-  type PlannedProfile,
   type ProfileCardInput,
   type RecordedProfile,
   buildProfileCard,
 } from '../profileCard';
 import { profilePlot, segmentPixels } from '../profilePlot';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
-import { NO_ZONE_TIMES } from '../timeInZone';
+import type { WorkoutStep } from '../workoutProfile';
 import i18n from '@/i18n';
 
 const t = i18n.getFixedT('pl');
@@ -15,14 +14,10 @@ const FTP = 250;
 
 const AT_THE_CURRENT_FTP = resolveRideSettings({ ftp: FTP });
 
-const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100: PlannedProfile = {
-  blocks: [
-    { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
-    { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 },
-  ],
-  summary: { durationSeconds: 1200, stepCount: 2, peakFtpPct: 100 },
-  zoneTimes: NO_ZONE_TIMES,
-};
+const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100: WorkoutStep[] = [
+  { duration: 600, power: { units: '%ftp', value: 60 } },
+  { duration: 600, power: { units: '%ftp', value: 100 } },
+];
 
 const RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT: RecordedProfile = {
   intervals: [
@@ -58,6 +53,17 @@ describe('profilePlot', () => {
       strips: [{ segments: card.planned?.segments, caption: 'Plan' }],
       accessibilityLabel: PLAN_LABEL,
     });
+  });
+
+  it('labels the plan with the length of its timed steps, leaving out a step with only a distance', () => {
+    const { plot } = plotOf({
+      planned: [
+        ...PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+        { distance: 5000, power: { units: '%ftp', value: 50 } },
+      ],
+    });
+
+    expect(plot.accessibilityLabel).toBe(PLAN_LABEL);
   });
 
   it('plots the plan above the ride, and labels both', () => {

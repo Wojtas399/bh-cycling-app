@@ -7,11 +7,7 @@ import type { WorkoutDetails } from '@/lib/workoutDetails';
 export function useProfileCard(
   workout: Pick<
     WorkoutDetails,
-    | 'blocks'
-    | 'profileSummary'
-    | 'zoneTimes'
-    | 'rideSettings'
-    | 'recordedActivityId'
+    'rideSteps' | 'rideSettings' | 'recordedActivityId'
   >,
 ): ProfileCard | null {
   const { query } = useIntervalsRead({
@@ -20,14 +16,11 @@ export function useProfileCard(
     select: buildActivityDetails,
     selectArgs: [],
   });
-  const { blocks, profileSummary, zoneTimes } = workout;
   const activity = query.data;
 
   return buildProfileCard(
     {
-      ...(profileSummary && {
-        planned: { blocks, summary: profileSummary, zoneTimes },
-      }),
+      planned: workout.rideSteps,
       ...(activity &&
         !activity.isStravaActivity && { recorded: activity.recorded }),
     },
