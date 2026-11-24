@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 
@@ -18,6 +17,7 @@ import { useTodayCards } from '@/hooks/home/useTodayCards';
 import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useOpenNoteDetails } from '@/hooks/note/useOpenNoteDetails';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { upcomingItemKey } from '@/lib/upcomingWorkouts';
@@ -29,24 +29,14 @@ export default function HomeScreen() {
   const { t: tTabs } = useTranslation(undefined, { keyPrefix: 'tabs' });
   const theme = useAppTheme();
   const header = useGlassHeader('tab');
-  const { availability, query, refetch } = useUpcomingWorkouts();
-  const { state: todayCards, refetch: refetchTodayCards } = useTodayCards();
-  const { next: nextRace, refetch: refetchNextRace } = useNextRace();
+  const { availability, query } = useUpcomingWorkouts();
+  const { state: todayCards } = useTodayCards();
+  const { next: nextRace } = useNextRace();
+  const { refreshing, refresh } = useIntervalsRefresh();
   const openWorkout = useOpenWorkoutDetails();
   const openActivity = useOpenActivityDetails();
   const openNote = useOpenNoteDetails();
   const raceSheet = useRaceSheet();
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-
-    try {
-      await Promise.all([refetch(), refetchTodayCards(), refetchNextRace()]);
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   function body() {
     if (availability === 'unavailable') return <IntervalsConnectPrompt />;
@@ -113,7 +103,7 @@ export default function HomeScreen() {
           availability === 'available' ? (
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refresh}
               tintColor={theme.colors.textSecondary}
               progressViewOffset={header.scrollInsetTop}
             />

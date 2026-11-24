@@ -15,7 +15,7 @@ export interface NextRace {
 
 export function useNextRace() {
   const today = useToday();
-  const { query, refetch } = useIntervalsRead({
+  const { query } = useIntervalsRead({
     queryOptions: nextRaceQueryOptions,
     args: [today],
   });
@@ -25,5 +25,5 @@ export function useNextRace() {
     countdown: raceCountdown(race, today),
   };
 
-  return { next, refetch };
+  return { next };
 }
