@@ -96,6 +96,8 @@ export function segmentPixels(
   durationSeconds: number,
   plotWidth: number,
 ): SegmentPixels {
+  if (plotWidth <= 0) return { x: 0, width: 0 };
+
   const xOf = (seconds: number) => (seconds / durationSeconds) * plotWidth;
   const x = xOf(startSeconds);
   const width = xOf(endSeconds) - x;

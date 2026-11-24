@@ -162,4 +162,22 @@ describe('segmentPixels', () => {
       { x: 151.25, width: 2 },
     ]);
   });
+
+  it('draws nothing on a plot of zero width', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [0, 3],
+            [3, 600],
+          ],
+          600,
+        ),
+        0,
+      ),
+    ).toEqual([
+      { x: 0, width: 0 },
+      { x: 0, width: 0 },
+    ]);
+  });
 });
