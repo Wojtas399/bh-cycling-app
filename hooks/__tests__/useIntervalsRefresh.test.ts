@@ -290,10 +290,13 @@ describe('useIntervalsRefresh', () => {
       },
     ],
   ])(
-    'resolves at once with no request and never shows refreshing %s',
+    'resolves at once without touching the cache and never shows refreshing %s',
     async (_, arrangeConnection) => {
+      const home = await renderLoadedHome();
+
+      await home.unmount();
       arrangeConnection();
-      const { rendered, refreshingSeen } = renderRefreshAlone();
+      const { rendered, refreshingSeen } = renderRefreshAlone(home.client);
       const { result } = await rendered;
 
       let settled = false;
@@ -307,9 +310,12 @@ describe('useIntervalsRefresh', () => {
       await settleQueries();
 
       expect(refreshingSeen).not.toContain(true);
-      expect(mockGetCalendarEvent).not.toHaveBeenCalled();
-      expect(mockGetActivity).not.toHaveBeenCalled();
-      expect(mockGetAthleteSettings).not.toHaveBeenCalled();
+
+      setNeedsReconnect(false);
+      connectIntervals();
+      await renderLoadedHome(home.client);
+
+      expect(mockGetActivities).toHaveBeenCalledTimes(1);
     },
   );
 
