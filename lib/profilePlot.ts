@@ -77,10 +77,10 @@ export function profilePlot(
   };
 }
 
-export const Y_LABEL_GUTTER = 44;
+export const Y_LABEL_GUTTER_PX = 44;
 
 export function plotWidthOf(stackWidth: number): number {
-  return Math.max(0, stackWidth - Y_LABEL_GUTTER);
+  return Math.max(0, stackWidth - Y_LABEL_GUTTER_PX);
 }
 
 const MIN_BAR_WIDTH_PX = 2;

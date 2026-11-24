@@ -1,4 +1,4 @@
-import { Y_LABEL_GUTTER, plotWidthOf } from '../../lib/profilePlot';
+import { Y_LABEL_GUTTER_PX, plotWidthOf } from '../../lib/profilePlot';
 import type { Locator, Screen } from 'e2e';
 
 const HEIGHT_SHARE_ACROSS_THE_STRIPS = 0.4;
@@ -15,7 +15,7 @@ export function pointOnProfilePlot(
   plotShare: number,
 ): { x: number; y: number } {
   return {
-    x: card.x + Y_LABEL_GUTTER + plotShare * plotWidthOf(card.width),
+    x: card.x + Y_LABEL_GUTTER_PX + plotShare * plotWidthOf(card.width),
     y: card.y + card.height * HEIGHT_SHARE_ACROSS_THE_STRIPS,
   };
 }
