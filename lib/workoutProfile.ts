@@ -44,7 +44,16 @@ export interface RampEnds {
 
 export const GAP_BAND = { minPct: 0, maxPct: 0, zone: 1 } as const;
 
-type StepBand = Pick<WorkoutBlock, 'minPct' | 'maxPct' | 'zone' | 'ramp'>;
+export type StepBand = Pick<
+  WorkoutBlock,
+  'minPct' | 'maxPct' | 'zone' | 'ramp'
+>;
+
+export interface StepAtItsTime {
+  startSeconds: number;
+  endSeconds: number;
+  band: StepBand | null;
+}
 
 interface DrawableStep {
   durationSeconds: number;
@@ -143,33 +152,57 @@ function stepsWithLengthAndPlaceablePower(
   });
 }
 
+export function stepsAtTheirTime(
+  docSteps: WorkoutStep[] | null | undefined,
+  config: ZoneConfig,
+): StepAtItsTime[] {
+  let endSeconds = 0;
+
+  return unrollRepeats(docSteps ?? []).flatMap(step => {
+    if (!hasPositiveDuration(step)) return [];
+
+    const startSeconds = endSeconds;
+
+    endSeconds += step.duration;
+
+    return [
+      { startSeconds, endSeconds, band: resolveBandAboveAxis(step, config) },
+    ];
+  });
+}
+
+export function hasWorkoutProfile(
+  docSteps: WorkoutStep[] | null | undefined,
+  config: ZoneConfig,
+): boolean {
+  const steps = stepsAtTheirTime(docSteps, config);
+  const totalSeconds = steps.at(-1)?.endSeconds ?? 0;
+  let drawableSeconds = 0;
+  let asksForPower = false;
+
+  for (const { startSeconds, endSeconds, band } of steps) {
+    if (band === null) continue;
+
+    drawableSeconds += endSeconds - startSeconds;
+    asksForPower ||= band.maxPct > 0;
+  }
+
+  return (
+    asksForPower &&
+    drawableSeconds >= totalSeconds * MIN_DRAWABLE_DURATION_SHARE
+  );
+}
+
 export function buildWorkoutProfile(
   docSteps: WorkoutStep[] | null | undefined,
   config: ZoneConfig,
 ): WorkoutBlock[] {
-  if (!docSteps || docSteps.length === 0) return [];
+  if (!hasWorkoutProfile(docSteps, config)) return [];
 
-  const steps = unrollRepeats(docSteps);
-  const drawable = stepsWithLengthAndPlaceablePower(steps, config);
-
-  if (drawable.length === 0) return [];
-
-  const drawableSeconds = drawable.reduce(
-    (sum, step) => sum + step.durationSeconds,
-    0,
+  const drawable = stepsWithLengthAndPlaceablePower(
+    unrollRepeats(docSteps ?? []),
+    config,
   );
-  const totalSeconds = steps
-    .filter(hasPositiveDuration)
-    .reduce((sum, step) => sum + step.duration, 0);
-
-  if (drawableSeconds < totalSeconds * MIN_DRAWABLE_DURATION_SHARE) return [];
-
-  const everyBlockIsFlatOnTheAxis = drawable.every(
-    step => step.band.maxPct <= 0,
-  );
-
-  if (everyBlockIsFlatOnTheAxis) return [];
-
   const widthFractions = widthFractionsFlooredToVisible(
     drawable.map(step => step.durationSeconds),
   );

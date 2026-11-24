@@ -1,24 +1,23 @@
 import type { Watts } from './intervalsApi';
-import type { Zone } from './powerZones';
+import type { Zone, ZoneConfig } from './powerZones';
 import { type RideSettings, ftpPctToWatts } from './rideSettings';
 import { roundToMillionth } from './roundToMillionth';
 import {
   type TimeInZoneRow,
   type ZoneTimes,
+  planZoneTimes,
   timeInZoneRows,
 } from './timeInZone';
-import type { WorkoutProfileSummary } from './workoutDetails';
-import type { RampEnds, WorkoutBlock } from './workoutProfile';
+import {
+  type RampEnds,
+  type WorkoutStep,
+  hasWorkoutProfile,
+  stepsAtTheirTime,
+} from './workoutProfile';
 
 export type StripSide = 'planned' | 'recorded';
 
 export type ScaleUnit = 'watts' | 'ftpPct';
-
-export interface PlannedProfile {
-  blocks: WorkoutBlock[];
-  summary: WorkoutProfileSummary;
-  zoneTimes: ZoneTimes;
-}
 
 export interface RecordedInterval {
   startSeconds: number;
@@ -35,8 +34,14 @@ export interface RecordedProfile {
 }
 
 export interface ProfileCardInput {
-  planned?: PlannedProfile;
+  planned?: WorkoutStep[];
   recorded?: RecordedProfile;
+}
+
+export interface WorkoutProfileSummary {
+  durationSeconds: number;
+  stepCount: number;
+  peakFtpPct: number;
 }
 
 export interface ActivityProfileSummary {
@@ -123,10 +128,12 @@ export function buildProfileCard(
           unit,
         })
       : null;
-  const planHasNoKnownDuration = (planned?.summary.durationSeconds ?? 0) <= 0;
   const plannedStrip =
-    planned && !(recordedStrip && planHasNoKnownDuration)
-      ? plannedStripOf(planned, { ftp: settings.ftp, unit })
+    planned && hasWorkoutProfile(planned, settings.zoneConfig)
+      ? plannedStripOf(planned, settings.zoneConfig, {
+          ftp: settings.ftp,
+          unit,
+        })
       : null;
 
   if (!plannedStrip && !recordedStrip) return null;
@@ -151,20 +158,21 @@ export function buildProfileCard(
 }
 
 function plannedStripOf(
-  { blocks, summary, zoneTimes }: PlannedProfile,
+  steps: WorkoutStep[],
+  zoneConfig: ZoneConfig,
   onScale: StripOnScale,
 ): ProfileStrip<WorkoutProfileSummary> {
-  const durationSeconds = Math.max(0, summary.durationSeconds);
-  let endSeconds = 0;
-  const timed = blocks.map(({ widthFraction, ...power }) => {
-    const startSeconds = endSeconds;
+  const atTheirTime = stepsAtTheirTime(steps, zoneConfig);
+  const timed = atTheirTime.flatMap(({ startSeconds, endSeconds, band }) =>
+    band ? [{ ...band, startSeconds, endSeconds }] : [],
+  );
+  const summary = {
+    durationSeconds: atTheirTime.at(-1)?.endSeconds ?? 0,
+    stepCount: timed.length,
+    peakFtpPct: Math.max(0, ...timed.map(({ maxPct }) => maxPct)),
+  };
 
-    endSeconds += widthFraction * durationSeconds;
-
-    return { ...power, startSeconds, endSeconds };
-  });
-
-  return stripOf(summary, timed, zoneTimes, onScale);
+  return stripOf(summary, timed, planZoneTimes(steps, zoneConfig), onScale);
 }
 
 function recordedStripOf(

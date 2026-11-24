@@ -7,8 +7,7 @@ import {
 } from '../profileCard';
 import { pointerSeconds, profileReadout, segmentAt } from '../profileReadout';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
-import { NO_ZONE_TIMES } from '../timeInZone';
-import type { WorkoutBlock } from '../workoutProfile';
+import type { WorkoutStep } from '../workoutProfile';
 
 const AT_250_W_FTP = resolveRideSettings({ ftp: 250 });
 
@@ -35,12 +34,16 @@ function ride(rows: IntervalRow[], endSeconds: number): RecordedProfile {
   };
 }
 
-function plan(blocks: WorkoutBlock[], durationSeconds: number) {
-  return {
-    blocks,
-    summary: { durationSeconds, stepCount: blocks.length, peakFtpPct: 0 },
-    zoneTimes: NO_ZONE_TIMES,
-  };
+function atFtpPct(duration: number, start: number, end = start): WorkoutStep {
+  return { duration, power: { units: '%ftp', start, end } };
+}
+
+function rampOf(duration: number, start: number, end: number): WorkoutStep {
+  return { duration, ramp: true, power: { units: '%ftp', start, end } };
+}
+
+function byHeartRate(duration: number): WorkoutStep {
+  return { duration, hr: { units: '%hr', value: 75 } };
 }
 
 function cardOf(
@@ -129,57 +132,34 @@ describe('pointerSeconds', () => {
   });
 });
 
-const GAP = { minPct: 0, maxPct: 0, zone: 1 } as const;
-
-const SWEET_SPOT_FROM_88_TO_93_PCT_OVER_600_TO_2400_SECONDS = plan(
-  [
-    { widthFraction: 0.25, ...GAP },
-    { widthFraction: 0.75, minPct: 88, maxPct: 93, zone: 3 },
-  ],
-  2400,
-);
+const SWEET_SPOT_FROM_88_TO_92_PCT_OVER_600_TO_2400_SECONDS = [
+  byHeartRate(600),
+  atFtpPct(1800, 88, 92),
+];
 
 const RIDE_AT_100_PCT_FOR_AN_HOUR = ride([[0, 3600, 100, 4]], 3600);
 
-const RAMP_UP_FROM_50_TO_100_PCT_OVER_THE_FIRST_600_SECONDS = plan(
-  [
-    {
-      widthFraction: 1,
-      minPct: 50,
-      maxPct: 100,
-      zone: 2,
-      ramp: { startPct: 50, endPct: 100 },
-    },
-  ],
-  600,
-);
+const RAMP_UP_FROM_50_TO_100_PCT_OVER_THE_FIRST_600_SECONDS = [
+  rampOf(600, 50, 100),
+];
 
-const RAMP_DOWN_FROM_100_TO_50_PCT_OVER_600_TO_1200_SECONDS = plan(
-  [
-    { widthFraction: 0.5, ...GAP },
-    {
-      widthFraction: 0.5,
-      minPct: 50,
-      maxPct: 100,
-      zone: 2,
-      ramp: { startPct: 100, endPct: 50 },
-    },
-  ],
-  1200,
-);
+const RAMP_DOWN_FROM_100_TO_50_PCT_OVER_600_TO_1200_SECONDS = [
+  byHeartRate(600),
+  rampOf(600, 100, 50),
+];
 
 describe('profileReadout', () => {
   it('reads each strip at the pointer: its zone, then %FTP and W', () => {
     const readout = profileReadout(
       cardOf({
-        planned: SWEET_SPOT_FROM_88_TO_93_PCT_OVER_600_TO_2400_SECONDS,
+        planned: SWEET_SPOT_FROM_88_TO_92_PCT_OVER_600_TO_2400_SECONDS,
         recorded: RIDE_AT_100_PCT_FOR_AN_HOUR,
       }),
       1200,
     );
 
     expect(readout.strips).toEqual([
-      { side: 'planned', reading: { zone: 3, power: '88–93% · 220–233 W' } },
+      { side: 'planned', reading: { zone: 3, power: '88–92% · 220–230 W' } },
       { side: 'recorded', reading: { zone: 4, power: '100% · 250 W' } },
     ]);
   });
@@ -197,7 +177,7 @@ describe('profileReadout', () => {
     const readout = profileReadout(
       cardOf(
         {
-          planned: SWEET_SPOT_FROM_88_TO_93_PCT_OVER_600_TO_2400_SECONDS,
+          planned: SWEET_SPOT_FROM_88_TO_92_PCT_OVER_600_TO_2400_SECONDS,
           recorded: RIDE_AT_100_PCT_FOR_AN_HOUR,
         },
         WITHOUT_A_CURRENT_FTP,
@@ -206,14 +186,14 @@ describe('profileReadout', () => {
     );
 
     expect(readout.strips.map(({ reading }) => reading?.power)).toEqual([
-      '88–93%',
+      '88–92%',
       '100%',
     ]);
   });
 
   it('reads nothing for a strip with no data at the pointer, and still reads the other', () => {
     const card = cardOf({
-      planned: SWEET_SPOT_FROM_88_TO_93_PCT_OVER_600_TO_2400_SECONDS,
+      planned: SWEET_SPOT_FROM_88_TO_92_PCT_OVER_600_TO_2400_SECONDS,
       recorded: ride(
         [
           [0, 3000, 100, 4],
@@ -233,11 +213,38 @@ describe('profileReadout', () => {
     ]);
   });
 
+  it.each([
+    [900, '15:00', null],
+    [1500, '25:00', { zone: 4, power: '105% · 263 W' }],
+  ])(
+    'reads the plan at its real time at %p s: %p, nothing over a heart-rate step',
+    (seconds, time, reading) => {
+      const readout = profileReadout(
+        cardOf({
+          planned: [
+            atFtpPct(600, 50, 65),
+            byHeartRate(720),
+            atFtpPct(480, 105),
+            atFtpPct(240, 50),
+            atFtpPct(120, 50),
+          ],
+          recorded: RIDE_AT_100_PCT_FOR_AN_HOUR,
+        }),
+        seconds,
+      );
+
+      expect(readout).toEqual({
+        time,
+        strips: [
+          { side: 'planned', reading },
+          { side: 'recorded', reading: { zone: 4, power: '100% · 250 W' } },
+        ],
+      });
+    },
+  );
+
   it('rounds to whole %FTP and W, and reads a range that rounds to one value as one', () => {
-    const almostFlat = plan(
-      [{ widthFraction: 1, minPct: 99.9, maxPct: 100.1, zone: 4 }],
-      3600,
-    );
+    const almostFlat = [atFtpPct(3600, 99.9, 100.1)];
     const readout = profileReadout(cardOf({ planned: almostFlat }), 1200);
 
     expect(readout.strips[0].reading?.power).toBe('100% · 250 W');

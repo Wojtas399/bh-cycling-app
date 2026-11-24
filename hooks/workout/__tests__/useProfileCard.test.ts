@@ -7,9 +7,7 @@ import {
   getAthleteSettings,
 } from '@/lib/intervalsApi';
 import { resolveRideSettings } from '@/lib/rideSettings';
-import type { ZoneTimes } from '@/lib/timeInZone';
-import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
-import type { WorkoutBlock } from '@/lib/workoutProfile';
+import type { WorkoutStep } from '@/lib/workoutProfile';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
 
@@ -26,26 +24,10 @@ const CURRENT_FTP = 250;
 
 const ACTIVITY_ID = 'i196064284';
 
-const PLANNED_BLOCKS: WorkoutBlock[] = [
-  { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
-  { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 },
+const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100: WorkoutStep[] = [
+  { duration: 600, power: { units: '%ftp', value: 60 } },
+  { duration: 600, power: { units: '%ftp', value: 100 } },
 ];
-
-const PLAN_SUMMARY: WorkoutProfileSummary = {
-  durationSeconds: 1200,
-  stepCount: 2,
-  peakFtpPct: 100,
-};
-
-const PLAN_ZONE_TIMES_FROM_ITS_STEPS: ZoneTimes = {
-  1: 0,
-  2: 600,
-  3: 0,
-  4: 600,
-  5: 0,
-  6: 0,
-  7: 0,
-};
 
 const RIDE_DRAWING_A_600_S_PROFILE: IntervalsActivity = {
   id: ACTIVITY_ID,
@@ -63,9 +45,7 @@ const RIDE_DRAWING_A_600_S_PROFILE: IntervalsActivity = {
 function renderCardWithCurrentRideSettings(recordedActivityId: string | null) {
   return renderHookWithClient(() =>
     useProfileCard({
-      blocks: PLANNED_BLOCKS,
-      profileSummary: PLAN_SUMMARY,
-      zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
+      rideSteps: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
       rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
       recordedActivityId,
     }),
@@ -77,7 +57,7 @@ const PLAN_ALONE = {
   scale: { unit: 'watts' },
   recorded: null,
   planned: {
-    summary: PLAN_SUMMARY,
+    summary: { durationSeconds: 1200, stepCount: 2, peakFtpPct: 100 },
     ftp: CURRENT_FTP,
     segments: [
       { startSeconds: 0, endSeconds: 600, maxPct: 60, maxWatts: 150, zone: 2 },
@@ -198,9 +178,7 @@ describe('useProfileCard', () => {
 
     const { result } = await renderHookWithClient(() =>
       useProfileCard({
-        blocks: PLANNED_BLOCKS,
-        profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
+        rideSteps: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
         rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
         recordedActivityId: null,
       }),
@@ -210,12 +188,25 @@ describe('useProfileCard', () => {
     expect(mockGetAthleteSettings).not.toHaveBeenCalled();
   });
 
+  it('has no card for a Workout whose steps draw no Workout Profile, as its tile has none', async () => {
+    const { result } = await renderHookWithClient(() =>
+      useProfileCard({
+        rideSteps: [
+          { duration: 600, power: { units: '%ftp', value: 60 } },
+          { duration: 1800, hr: { units: '%hr', value: 75 } },
+        ],
+        rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
+        recordedActivityId: null,
+      }),
+    );
+
+    expect(result.current).toBeNull();
+  });
+
   it("draws the card on Coggan's zones with no FTP when the Workout was read without the athlete's settings", async () => {
     const { result } = await renderHookWithClient(() =>
       useProfileCard({
-        blocks: PLANNED_BLOCKS,
-        profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
+        rideSteps: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
         rideSettings: resolveRideSettings(null),
         recordedActivityId: null,
       }),

@@ -206,14 +206,9 @@ describe('buildWorkoutDetails', () => {
     it('come from the step parse for a ride', async () => {
       const planned = await details(ride);
 
-      expect(planned.blocks).toEqual([
-        { widthFraction: 1, minPct: 60, maxPct: 80, zone: 2 },
+      expect(planned.rideSteps).toEqual([
+        { duration: 3600, power: { units: 'power_zone', value: 2 } },
       ]);
-      expect(planned.profileSummary).toEqual({
-        durationSeconds: 3600,
-        stepCount: 1,
-        peakFtpPct: expect.any(Number),
-      });
       expect(planned.steps).toHaveLength(1);
       expect(planned.planMetrics).toEqual({
         durationSeconds: 3600,
@@ -228,55 +223,18 @@ describe('buildWorkoutDetails', () => {
       ]);
     });
 
-    it("time in zone comes from a ride's steps, at the athlete's zones, so 58% is Z1 under a 60% ceiling, not Coggan's Z2", async () => {
-      const planned = await details(
-        event({
-          type: 'Ride',
-          workout_doc: {
-            duration: 3600,
-            steps: [
-              { duration: 600, power: { units: '%ftp', value: 58 } },
-              { duration: 2400, power: { units: 'power_zone', value: 2 } },
-              { duration: 600, power: { units: '%ftp', value: 90 } },
-            ],
-          },
-        }),
-      );
-
-      expect(planned.zoneTimes).toEqual({
-        1: 600,
-        2: 2400,
-        3: 600,
-        4: 0,
-        5: 0,
-        6: 0,
-        7: 0,
-      });
-    });
-
     it('are left out for a non-cycling Workout in planned mode', async () => {
       const planned = await details(strength);
 
-      expect(planned.blocks).toEqual([]);
-      expect(planned.profileSummary).toBeNull();
+      expect(planned.rideSteps).toEqual([]);
       expect(planned.steps).toEqual([]);
-      expect(planned.zoneTimes).toEqual({
-        1: 0,
-        2: 0,
-        3: 0,
-        4: 0,
-        5: 0,
-        6: 0,
-        7: 0,
-      });
       expect(planned.planMetrics).toEqual({ durationSeconds: 3600 });
     });
 
     it('are left out for a non-cycling Workout in completed mode', async () => {
       const completed = await details(strength, pairedActivity);
 
-      expect(completed.blocks).toEqual([]);
-      expect(completed.profileSummary).toBeNull();
+      expect(completed.rideSteps).toEqual([]);
       expect(completed.steps).toEqual([]);
       expect(completed.comparison?.rows).toEqual([
         { metric: 'duration', planned: 3600, actual: 3500, difference: -100 },
@@ -302,36 +260,6 @@ describe('buildWorkoutDetails', () => {
       const strava = { ...pairedActivity, name: undefined, type: undefined };
 
       expect((await details(ride, strava)).recordedActivityId).toBeNull();
-    });
-  });
-
-  describe('profileSummary', () => {
-    const fourByFiveMinutesWithoutADocTotal = event({
-      type: 'Ride',
-      workout_doc: {
-        steps: [
-          { duration: 600, power: { units: 'power_zone', value: 1 } },
-          {
-            reps: 4,
-            duration: 1200,
-            steps: [{ duration: 300, power: { units: '%ftp', value: 105 } }],
-          },
-        ],
-      },
-    });
-
-    it('totals the top-level steps when the doc carries no total, since a repeat step covers all of its reps', async () => {
-      expect(
-        (await details(fourByFiveMinutesWithoutADocTotal)).profileSummary
-          ?.durationSeconds,
-      ).toBe(1800);
-    });
-
-    it('counts the steps of a repeat once per rep', async () => {
-      expect(
-        (await details(fourByFiveMinutesWithoutADocTotal)).profileSummary
-          ?.stepCount,
-      ).toBe(5);
     });
   });
 

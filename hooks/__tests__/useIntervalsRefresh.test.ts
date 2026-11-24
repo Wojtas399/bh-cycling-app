@@ -24,7 +24,6 @@ import {
 } from '@/lib/intervalsApi';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { resolveRideSettings } from '@/lib/rideSettings';
-import { NO_ZONE_TIMES } from '@/lib/timeInZone';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { settleQueries } from '@/test-utils/settle';
 import type { QueryClient } from '@tanstack/react-query';
@@ -80,9 +79,7 @@ function renderWorkoutDetailsReads() {
   return renderHookWithClient(() => ({
     workout: useWorkoutDetails(EVENT_ID),
     profile: useProfileCard({
-      blocks: [],
-      profileSummary: null,
-      zoneTimes: NO_ZONE_TIMES,
+      rideSteps: [],
       rideSettings: resolveRideSettings({ ftp: 250 }),
       recordedActivityId: RECORDED_ACTIVITY_ID,
     }),
