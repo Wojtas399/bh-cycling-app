@@ -5,6 +5,7 @@ import { roundToMillionth } from './roundToMillionth';
 import {
   type TimeInZoneRow,
   type ZoneTimes,
+  noZoneTimes,
   planZoneTimes,
   timeInZoneRows,
 } from './timeInZone';
@@ -258,15 +259,7 @@ function segmentOf(
 }
 
 function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
-  const times: Record<Zone, number> = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-    6: 0,
-    7: 0,
-  };
+  const times = noZoneTimes();
 
   for (const { startSeconds, endSeconds, zone } of segments) {
     times[zone] += endSeconds - startSeconds;
