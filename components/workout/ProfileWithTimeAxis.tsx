@@ -15,16 +15,14 @@ import { NOTHING_CROSSED, crossesToJs } from '@/lib/crossesToJs';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
 import { rampPolygonPoints } from '@/lib/profileBars';
-import {
-  type ProfileScale,
-  type StripSegment,
-  axisLabels,
-} from '@/lib/profileCard';
+import { type ProfileScale, type StripSegment } from '@/lib/profileCard';
 import {
   type PlotStrip,
-  Y_LABEL_GUTTER,
+  Y_LABEL_GUTTER_PX,
+  axisLabels,
   plotWidthOf,
   segmentPixels,
+  stackXOf,
 } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 
@@ -72,7 +70,7 @@ export default function ProfileWithTimeAxis({
     strips.length > 1 ? STACKED_STRIP_PLOT_HEIGHT : LONE_STRIP_PLOT_HEIGHT;
   const plotWidth = plotWidthOf(width);
 
-  const pointerX = useSharedValue(Y_LABEL_GUTTER);
+  const pointerX = useSharedValue(Y_LABEL_GUTTER_PX);
   const lastCrossedColumn = useSharedValue(NOTHING_CROSSED);
 
   function scrubToColumn(column: number) {
@@ -82,10 +80,10 @@ export default function ProfileWithTimeAxis({
   function moveTo(x: number) {
     'worklet';
     const column = Math.round(
-      Math.min(Math.max(x - Y_LABEL_GUTTER, 0), plotWidth),
+      Math.min(Math.max(x - Y_LABEL_GUTTER_PX, 0), plotWidth),
     );
 
-    pointerX.set(Y_LABEL_GUTTER + column);
+    pointerX.set(stackXOf(column));
 
     if (crossesToJs(column, lastCrossedColumn)) {
       scheduleOnRN(scrubToColumn, column);
@@ -144,7 +142,7 @@ export default function ProfileWithTimeAxis({
         <Box
           flexDirection="row"
           justifyContent="space-between"
-          style={{ marginLeft: Y_LABEL_GUTTER }}
+          style={{ marginLeft: Y_LABEL_GUTTER_PX }}
         >
           {TIME_LABEL_DURATION_SHARES.map(share => (
             <Text key={share} variant="body-xs-regular" color="textTertiary">
@@ -180,7 +178,7 @@ function Strips({
             <Text
               variant="body-xs-medium"
               color="textSecondary"
-              style={{ marginLeft: Y_LABEL_GUTTER }}
+              style={{ marginLeft: Y_LABEL_GUTTER_PX }}
             >
               {caption}
             </Text>
@@ -222,7 +220,7 @@ function StripPlot({
       {scale.gridlines.map(value => (
         <Line
           key={value}
-          x1={Y_LABEL_GUTTER}
+          x1={Y_LABEL_GUTTER_PX}
           x2={width}
           y1={yOf(value)}
           y2={yOf(value)}
@@ -232,7 +230,7 @@ function StripPlot({
         />
       ))}
       <Line
-        x1={Y_LABEL_GUTTER}
+        x1={Y_LABEL_GUTTER_PX}
         x2={width}
         y1={yOf(0)}
         y2={yOf(0)}
@@ -241,7 +239,7 @@ function StripPlot({
       {axisLabels(scale, height, MIN_Y_LABEL_SPACING_PX).map(value => (
         <SvgText
           key={value}
-          x={Y_LABEL_GUTTER - Y_LABEL_GAP_TO_PLOT}
+          x={Y_LABEL_GUTTER_PX - Y_LABEL_GAP_TO_PLOT}
           y={yOf(value) + BASELINE_LIFT_CENTRING_LABEL}
           fill={colors.textTertiary}
           fontSize={LABEL_SIZE}
@@ -257,7 +255,7 @@ function StripPlot({
             durationSeconds,
             plotWidth,
           );
-          const x = Y_LABEL_GUTTER + xInPlot;
+          const x = stackXOf(xInPlot);
           const color = colors[ZONE_COLORS[zone]];
 
           if (ramp) {

@@ -4,6 +4,7 @@ import {
   buildWorkoutProfile,
   hasWorkoutProfile,
   profileCeilingPct,
+  stepsAtTheirTime,
 } from '../workoutProfile';
 
 const SPELLED_OUT_COGGAN_BANDS: ZoneConfig = [
@@ -606,7 +607,9 @@ describe('hasWorkoutProfile', () => {
       [{ distance: 5000, power: { units: '%ftp', value: 70 } }],
     ],
   ])('is %p with %s', (expected, _, steps) => {
-    expect(hasWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)).toBe(expected);
+    expect(
+      hasWorkoutProfile(stepsAtTheirTime(steps, SPELLED_OUT_COGGAN_BANDS)),
+    ).toBe(expected);
   });
 
   it('is true exactly when the Workout Tile draws blocks', () => {
@@ -619,7 +622,9 @@ describe('hasWorkoutProfile', () => {
     ];
 
     expect(
-      workouts.map(steps => hasWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS)),
+      workouts.map(steps =>
+        hasWorkoutProfile(stepsAtTheirTime(steps, SPELLED_OUT_COGGAN_BANDS)),
+      ),
     ).toEqual(
       workouts.map(
         steps =>

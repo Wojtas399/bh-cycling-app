@@ -2,6 +2,7 @@ import { formatDuration } from './formatDuration';
 import type {
   ActivityProfileSummary,
   ProfileCard,
+  ProfileScale,
   StripPower,
   StripSegment,
   WorkoutProfileSummary,
@@ -77,10 +78,16 @@ export function profilePlot(
   };
 }
 
-export const Y_LABEL_GUTTER = 44;
+export const Y_LABEL_GUTTER_PX = 44;
 
 export function plotWidthOf(stackWidth: number): number {
-  return Math.max(0, stackWidth - Y_LABEL_GUTTER);
+  return Math.max(0, stackWidth - Y_LABEL_GUTTER_PX);
+}
+
+export function stackXOf(plotX: number): number {
+  'worklet';
+
+  return Y_LABEL_GUTTER_PX + plotX;
 }
 
 const MIN_BAR_WIDTH_PX = 2;
@@ -118,4 +125,25 @@ export function segmentPixels(
   if (width >= MIN_BAR_WIDTH_PX) return { x, width };
 
   return { x: x + (width - MIN_BAR_WIDTH_PX) / 2, width: MIN_BAR_WIDTH_PX };
+}
+
+export function axisLabels(
+  { ceiling, gridlines }: ProfileScale,
+  plotHeightPx: number,
+  minSpacingPx: number,
+): number[] {
+  const apart = (low: number, high: number) =>
+    ((high - low) / ceiling) * plotHeightPx >= minSpacingPx;
+  const labels = [0];
+
+  for (const gridline of gridlines) {
+    if (
+      apart(labels[labels.length - 1], gridline) &&
+      apart(gridline, ceiling)
+    ) {
+      labels.push(gridline);
+    }
+  }
+
+  return [...labels, ceiling];
 }

@@ -5,6 +5,7 @@ import { roundToMillionth } from './roundToMillionth';
 import {
   type TimeInZoneRow,
   type ZoneTimes,
+  noZoneTimes,
   planZoneTimes,
   timeInZoneRows,
 } from './timeInZone';
@@ -128,13 +129,9 @@ export function buildProfileCard(
           unit,
         })
       : null;
-  const plannedStrip =
-    planned && hasWorkoutProfile(planned, settings.zoneConfig)
-      ? plannedStripOf(planned, settings.zoneConfig, {
-          ftp: settings.ftp,
-          unit,
-        })
-      : null;
+  const plannedStrip = planned
+    ? plannedStripOf(planned, settings.zoneConfig, { ftp: settings.ftp, unit })
+    : null;
 
   if (!plannedStrip && !recordedStrip) return null;
 
@@ -161,8 +158,11 @@ function plannedStripOf(
   steps: WorkoutStep[],
   zoneConfig: ZoneConfig,
   onScale: StripOnScale,
-): ProfileStrip<WorkoutProfileSummary> {
+): ProfileStrip<WorkoutProfileSummary> | null {
   const atTheirTime = stepsAtTheirTime(steps, zoneConfig);
+
+  if (!hasWorkoutProfile(atTheirTime)) return null;
+
   const timed = atTheirTime.flatMap(({ startSeconds, endSeconds, band }) =>
     band ? [{ ...band, startSeconds, endSeconds }] : [],
   );
@@ -218,12 +218,13 @@ function stripOf<Summary>(
 
 function segmentOf(
   { startSeconds, endSeconds, minPct, maxPct, zone, ramp }: TimedPower,
-  { ftp, unit }: StripOnScale,
+  onScale: StripOnScale,
 ): StripSegment[] {
   const drawsNothing = maxPct <= 0;
 
   if (drawsNothing) return [];
 
+  const { ftp } = onScale;
   const watts = (pct: number) =>
     ftp === null ? null : ftpPctToWatts(pct, ftp);
   const segment: StripSegment = {
@@ -233,8 +234,8 @@ function segmentOf(
     maxPct,
     minWatts: watts(minPct),
     maxWatts: watts(maxPct),
-    lowOnScale: inUnit(minPct, unit, ftp),
-    highOnScale: inUnit(maxPct, unit, ftp),
+    lowOnScale: inUnit(minPct, onScale),
+    highOnScale: inUnit(maxPct, onScale),
     zone,
   };
 
@@ -250,23 +251,15 @@ function segmentOf(
         endPct,
         startWatts: watts(startPct),
         endWatts: watts(endPct),
-        startOnScale: inUnit(startPct, unit, ftp),
-        endOnScale: inUnit(endPct, unit, ftp),
+        startOnScale: inUnit(startPct, onScale),
+        endOnScale: inUnit(endPct, onScale),
       },
     },
   ];
 }
 
 function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
-  const times: Record<Zone, number> = {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-    6: 0,
-    7: 0,
-  };
+  const times = noZoneTimes();
 
   for (const { startSeconds, endSeconds, zone } of segments) {
     times[zone] += endSeconds - startSeconds;
@@ -277,7 +270,7 @@ function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
 
 function stripPower(
   segments: StripSegment[],
-  { ftp, unit }: StripOnScale,
+  onScale: StripOnScale,
 ): StripPower {
   let seconds = 0;
   let pctSeconds = 0;
@@ -291,10 +284,10 @@ function stripPower(
   const averagePct = seconds > 0 ? pctSeconds / seconds : 0;
 
   return {
-    unit,
-    peak: Math.round(inUnit(peakPct, unit, ftp)),
+    unit: onScale.unit,
+    peak: Math.round(inUnit(peakPct, onScale)),
     peakFtpPct: Math.round(peakPct),
-    average: Math.round(inUnit(averagePct, unit, ftp)),
+    average: Math.round(inUnit(averagePct, onScale)),
   };
 }
 
@@ -326,7 +319,7 @@ function sharedScale(
 ): ProfileScale {
   const bandsBelowTheLastZone = zoneConfig.slice(0, -1);
   const edges = bandsBelowTheLastZone.map(({ maxPct }) => {
-    const edge = inUnit(maxPct, unit, ftp);
+    const edge = inUnit(maxPct, { unit, ftp });
 
     return unit === 'watts' ? Math.round(edge) : edge;
   });
@@ -341,27 +334,6 @@ function sharedScale(
   return { unit, ceiling, gridlines: edges.filter(edge => edge < ceiling) };
 }
 
-function inUnit(pct: number, unit: ScaleUnit, ftp: number | null): number {
+function inUnit(pct: number, { unit, ftp }: StripOnScale): number {
   return unit === 'watts' && ftp !== null ? ftpPctToWatts(pct, ftp) : pct;
-}
-
-export function axisLabels(
-  { ceiling, gridlines }: ProfileScale,
-  plotHeightPx: number,
-  minSpacingPx: number,
-): number[] {
-  const apart = (low: number, high: number) =>
-    ((high - low) / ceiling) * plotHeightPx >= minSpacingPx;
-  const labels = [0];
-
-  for (const gridline of gridlines) {
-    if (
-      apart(labels[labels.length - 1], gridline) &&
-      apart(gridline, ceiling)
-    ) {
-      labels.push(gridline);
-    }
-  }
-
-  return [...labels, ceiling];
 }

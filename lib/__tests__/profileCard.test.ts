@@ -2,7 +2,6 @@ import type { Zone } from '../powerZones';
 import {
   type ProfileStrip,
   type RecordedProfile,
-  axisLabels,
   buildProfileCard,
 } from '../profileCard';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
@@ -734,20 +733,5 @@ describe('buildProfileCard', () => {
         { zone: 4, planned: null, recorded: { seconds: 1800, share: 1 } },
       ]);
     });
-  });
-});
-
-describe('axisLabels', () => {
-  it('labels zero, the ceiling and every gridline far enough from its neighbours, dropping 225 W and 300 W, under 12 px from the labels below', () => {
-    const plotHeightPx = 100;
-    const minSpacingPx = 12;
-
-    expect(
-      axisLabels(
-        { unit: 'watts', ceiling: 375, gridlines: [138, 188, 225, 263, 300] },
-        plotHeightPx,
-        minSpacingPx,
-      ),
-    ).toEqual([0, 138, 188, 263, 375]);
   });
 });

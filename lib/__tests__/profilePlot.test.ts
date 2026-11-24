@@ -3,7 +3,13 @@ import {
   type RecordedProfile,
   buildProfileCard,
 } from '../profileCard';
-import { profilePlot, segmentPixels } from '../profilePlot';
+import {
+  Y_LABEL_GUTTER_PX,
+  axisLabels,
+  profilePlot,
+  segmentPixels,
+  stackXOf,
+} from '../profilePlot';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
 import type { WorkoutStep } from '../workoutProfile';
 import i18n from '@/i18n';
@@ -185,5 +191,30 @@ describe('segmentPixels', () => {
       { x: 0, width: 0 },
       { x: 0, width: 0 },
     ]);
+  });
+});
+
+describe('stackXOf', () => {
+  it('starts the plot right of the label gutter', () => {
+    expect(stackXOf(0)).toBe(Y_LABEL_GUTTER_PX);
+  });
+
+  it('keeps a point its distance into the plot', () => {
+    expect(stackXOf(150)).toBe(Y_LABEL_GUTTER_PX + 150);
+  });
+});
+
+describe('axisLabels', () => {
+  it('labels zero, the ceiling and every gridline far enough from its neighbours, dropping 225 W and 300 W, under 12 px from the labels below', () => {
+    const plotHeightPx = 100;
+    const minSpacingPx = 12;
+
+    expect(
+      axisLabels(
+        { unit: 'watts', ceiling: 375, gridlines: [138, 188, 225, 263, 300] },
+        plotHeightPx,
+        minSpacingPx,
+      ),
+    ).toEqual([0, 138, 188, 263, 375]);
   });
 });

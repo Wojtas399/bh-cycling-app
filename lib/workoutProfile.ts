@@ -55,11 +55,6 @@ export interface StepAtItsTime {
   band: StepBand | null;
 }
 
-interface DrawableStep {
-  durationSeconds: number;
-  band: StepBand;
-}
-
 const MIN_VISIBLE_WIDTH_FRACTION = 0.01;
 
 const MIN_DRAWABLE_DURATION_SHARE = 0.5;
@@ -139,19 +134,6 @@ function hasPositiveDuration(
   return isFiniteNumber(step.duration) && step.duration > 0;
 }
 
-function stepsWithLengthAndPlaceablePower(
-  steps: WorkoutStep[],
-  config: ZoneConfig,
-): DrawableStep[] {
-  return steps.flatMap(step => {
-    const band = resolveBandAboveAxis(step, config);
-
-    return band !== null && hasPositiveDuration(step)
-      ? [{ durationSeconds: step.duration, band }]
-      : [];
-  });
-}
-
 export function stepsAtTheirTime(
   docSteps: WorkoutStep[] | null | undefined,
   config: ZoneConfig,
@@ -171,16 +153,12 @@ export function stepsAtTheirTime(
   });
 }
 
-export function hasWorkoutProfile(
-  docSteps: WorkoutStep[] | null | undefined,
-  config: ZoneConfig,
-): boolean {
-  const steps = stepsAtTheirTime(docSteps, config);
-  const totalSeconds = steps.at(-1)?.endSeconds ?? 0;
+export function hasWorkoutProfile(placed: StepAtItsTime[]): boolean {
+  const totalSeconds = placed.at(-1)?.endSeconds ?? 0;
   let drawableSeconds = 0;
   let asksForPower = false;
 
-  for (const { startSeconds, endSeconds, band } of steps) {
+  for (const { startSeconds, endSeconds, band } of placed) {
     if (band === null) continue;
 
     drawableSeconds += endSeconds - startSeconds;
@@ -197,11 +175,12 @@ export function buildWorkoutProfile(
   docSteps: WorkoutStep[] | null | undefined,
   config: ZoneConfig,
 ): WorkoutBlock[] {
-  if (!hasWorkoutProfile(docSteps, config)) return [];
+  const placed = stepsAtTheirTime(docSteps, config);
 
-  const drawable = stepsWithLengthAndPlaceablePower(
-    unrollRepeats(docSteps ?? []),
-    config,
+  if (!hasWorkoutProfile(placed)) return [];
+
+  const drawable = placed.flatMap(({ startSeconds, endSeconds, band }) =>
+    band ? [{ durationSeconds: endSeconds - startSeconds, band }] : [],
   );
   const widthFractions = widthFractionsFlooredToVisible(
     drawable.map(step => step.durationSeconds),
