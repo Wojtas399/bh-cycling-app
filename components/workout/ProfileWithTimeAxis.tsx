@@ -20,7 +20,7 @@ import {
   type StripSegment,
   axisLabels,
 } from '@/lib/profileCard';
-import type { PlotStrip } from '@/lib/profilePlot';
+import { type PlotStrip, segmentPixels } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 
 const LONE_STRIP_PLOT_HEIGHT = 140;
@@ -38,8 +38,6 @@ const LABEL_SIZE = 10;
 const BASELINE_LIFT_CENTRING_LABEL = 3.5;
 
 const MIN_Y_LABEL_SPACING_PX = 12;
-
-const HAIRLINE_KEEPING_REPEATS_COUNTABLE = 1;
 
 const TIME_LABEL_DURATION_SHARES = [0, 0.25, 0.5, 0.75, 1];
 
@@ -216,8 +214,6 @@ function StripPlot({
 }) {
   const { colors } = useAppTheme();
   const plotWidth = plotWidthOf(width);
-  const xOf = (seconds: number) =>
-    Y_LABEL_GUTTER + (seconds / durationSeconds) * plotWidth;
   const yOf = (value: number) =>
     END_LABEL_CLEARANCE + (1 - value / scale.ceiling) * height;
   const label = (value: number) => formatPower(scale.unit, value);
@@ -257,12 +253,12 @@ function StripPlot({
       ))}
       {segments.map(
         ({ startSeconds, endSeconds, lowOnScale, highOnScale, zone, ramp }) => {
-          const fullWidth = xOf(endSeconds) - xOf(startSeconds);
-          const sparesHairline =
-            fullWidth > 4 * HAIRLINE_KEEPING_REPEATS_COUNTABLE;
-          const inset = sparesHairline ? HAIRLINE_KEEPING_REPEATS_COUNTABLE : 0;
-          const x = xOf(startSeconds) + inset;
-          const barWidth = fullWidth - 2 * inset;
+          const { x: xInPlot, width: barWidth } = segmentPixels(
+            { startSeconds, endSeconds },
+            durationSeconds,
+            plotWidth,
+          );
+          const x = Y_LABEL_GUTTER + xInPlot;
           const color = colors[ZONE_COLORS[zone]];
 
           if (ramp) {

@@ -4,7 +4,7 @@ import {
   type RecordedProfile,
   buildProfileCard,
 } from '../profileCard';
-import { profilePlot } from '../profilePlot';
+import { profilePlot, segmentPixels } from '../profilePlot';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
 import { NO_ZONE_TIMES } from '../timeInZone';
 import i18n from '@/i18n';
@@ -90,5 +90,94 @@ describe('profilePlot', () => {
     expect(
       profilePlot({ planned: null, recorded: null }, t).accessibilityLabel,
     ).toBe('');
+  });
+});
+
+function rideOf(
+  intervals: [startSeconds: number, endSeconds: number][],
+  endSeconds: number,
+): RecordedProfile {
+  return {
+    intervals: intervals.map(([startSeconds, intervalEnd]) => ({
+      startSeconds,
+      endSeconds: intervalEnd,
+      intensity: 90,
+      zone: 3,
+    })),
+    endSeconds,
+    icuFtp: FTP,
+    icuZoneTimes: null,
+  };
+}
+
+function pixelsOf(ride: RecordedProfile, plotWidth: number) {
+  const card = buildProfileCard({ recorded: ride }, AT_THE_CURRENT_FTP);
+
+  if (!card?.recorded) throw new Error('No ride to plot.');
+
+  return card.recorded.segments.map(segment =>
+    segmentPixels(segment, card.durationSeconds, plotWidth),
+  );
+}
+
+describe('segmentPixels', () => {
+  it('places a segment at its seconds in proportion to the plot width', () => {
+    expect(pixelsOf(rideOf([[120, 126]], 600), 300)).toEqual([
+      { x: 60, width: 3 },
+    ]);
+  });
+
+  it('keeps a 1 px hairline inside each edge of a bar wider than 4 px, so repeats stay countable', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [0, 150],
+            [150, 600],
+          ],
+          600,
+        ),
+        300,
+      ),
+    ).toEqual([
+      { x: 1, width: 73 },
+      { x: 76, width: 223 },
+    ]);
+  });
+
+  it('draws a segment narrower than 2 px 2 px wide, centred on its real time, even over its neighbour', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [300, 303],
+            [303, 306],
+          ],
+          600,
+        ),
+        300,
+      ),
+    ).toEqual([
+      { x: 149.75, width: 2 },
+      { x: 151.25, width: 2 },
+    ]);
+  });
+
+  it('draws nothing on a plot of zero width', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [0, 3],
+            [3, 600],
+          ],
+          600,
+        ),
+        0,
+      ),
+    ).toEqual([
+      { x: 0, width: 0 },
+      { x: 0, width: 0 },
+    ]);
   });
 });
