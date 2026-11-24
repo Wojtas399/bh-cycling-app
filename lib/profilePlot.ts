@@ -83,6 +83,12 @@ export function plotWidthOf(stackWidth: number): number {
   return Math.max(0, stackWidth - Y_LABEL_GUTTER_PX);
 }
 
+export function stackXOf(plotX: number): number {
+  'worklet';
+
+  return Y_LABEL_GUTTER_PX + plotX;
+}
+
 const MIN_BAR_WIDTH_PX = 2;
 
 const HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX = 1;

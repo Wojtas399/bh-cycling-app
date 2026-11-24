@@ -25,6 +25,7 @@ import {
   Y_LABEL_GUTTER_PX,
   plotWidthOf,
   segmentPixels,
+  stackXOf,
 } from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
 
@@ -85,7 +86,7 @@ export default function ProfileWithTimeAxis({
       Math.min(Math.max(x - Y_LABEL_GUTTER_PX, 0), plotWidth),
     );
 
-    pointerX.set(Y_LABEL_GUTTER_PX + column);
+    pointerX.set(stackXOf(column));
 
     if (crossesToJs(column, lastCrossedColumn)) {
       scheduleOnRN(scrubToColumn, column);
@@ -257,7 +258,7 @@ function StripPlot({
             durationSeconds,
             plotWidth,
           );
-          const x = Y_LABEL_GUTTER_PX + xInPlot;
+          const x = stackXOf(xInPlot);
           const color = colors[ZONE_COLORS[zone]];
 
           if (ramp) {

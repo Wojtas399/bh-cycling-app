@@ -3,7 +3,12 @@ import {
   type RecordedProfile,
   buildProfileCard,
 } from '../profileCard';
-import { profilePlot, segmentPixels } from '../profilePlot';
+import {
+  Y_LABEL_GUTTER_PX,
+  profilePlot,
+  segmentPixels,
+  stackXOf,
+} from '../profilePlot';
 import { type RideSettings, resolveRideSettings } from '../rideSettings';
 import type { WorkoutStep } from '../workoutProfile';
 import i18n from '@/i18n';
@@ -185,5 +190,15 @@ describe('segmentPixels', () => {
       { x: 0, width: 0 },
       { x: 0, width: 0 },
     ]);
+  });
+});
+
+describe('stackXOf', () => {
+  it('starts the plot right of the label gutter', () => {
+    expect(stackXOf(0)).toBe(Y_LABEL_GUTTER_PX);
+  });
+
+  it('keeps a point its distance into the plot', () => {
+    expect(stackXOf(150)).toBe(Y_LABEL_GUTTER_PX + 150);
   });
 });
