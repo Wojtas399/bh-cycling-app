@@ -7,6 +7,7 @@ import {
 import { useActivityRoute } from '../useActivityRoute';
 import { useAthleteSettings } from '../useAthleteSettings';
 import { useIntervalsRefresh } from '../useIntervalsRefresh';
+import { useUpcomingWorkouts } from '@/hooks/home/useUpcomingWorkouts';
 import { useToday } from '@/hooks/useToday';
 import { useProfileCard } from '@/hooks/workout/useProfileCard';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
@@ -26,6 +27,7 @@ import { NO_WORKOUT_PROFILE } from '@/lib/profileCard';
 import { resolveRideSettings } from '@/lib/rideSettings';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { settleQueries } from '@/test-utils/settle';
+import type { QueryClient } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 
 jest.mock('@/hooks/useToday', () => ({
@@ -100,15 +102,29 @@ function renderSettingsWithRefresh() {
   }));
 }
 
-function renderRefreshAlone() {
-  const refreshingSeen: boolean[] = [];
-  const rendered = renderHookWithClient(() => {
-    const screen = useIntervalsRefresh();
-
-    refreshingSeen.push(screen.refreshing);
-
-    return screen;
+async function renderLoadedHome(client?: QueryClient) {
+  const home = await renderHookWithClient(() => useUpcomingWorkouts(), {
+    client,
   });
+
+  await waitFor(() => expect(home.result.current.query.isSuccess).toBe(true));
+  await settleQueries();
+
+  return home;
+}
+
+function renderRefreshAlone(client?: QueryClient) {
+  const refreshingSeen: boolean[] = [];
+  const rendered = renderHookWithClient(
+    () => {
+      const screen = useIntervalsRefresh();
+
+      refreshingSeen.push(screen.refreshing);
+
+      return screen;
+    },
+    { client },
+  );
 
   return { rendered, refreshingSeen };
 }
@@ -185,6 +201,31 @@ describe('useIntervalsRefresh', () => {
 
     expect(mockGetAthleteSettings).toHaveBeenCalledTimes(2);
     expect(result.current.settings.data?.ftp).toBe(270);
+  });
+
+  it('keeps Home fresh in the cache when the athlete navigates back without a refresh', async () => {
+    const home = await renderLoadedHome();
+
+    await home.unmount();
+    await renderLoadedHome(home.client);
+
+    expect(mockGetActivities).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks Home stale without refetching it while it is off screen, so it refetches when the athlete navigates back', async () => {
+    const home = await renderLoadedHome();
+    const { rendered } = renderRefreshAlone(home.client);
+    const { result } = await rendered;
+
+    await home.unmount();
+    await act(() => result.current.refresh());
+    await settleQueries();
+
+    expect(mockGetActivities).toHaveBeenCalledTimes(1);
+
+    await renderLoadedHome(home.client);
+
+    await waitFor(() => expect(mockGetActivities).toHaveBeenCalledTimes(2));
   });
 
   it('is refreshing from the start of a refresh until its refetches settle', async () => {
