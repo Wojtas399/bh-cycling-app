@@ -311,8 +311,10 @@ describe('useIntervalsRefresh', () => {
 
       expect(refreshingSeen).not.toContain(true);
 
-      setNeedsReconnect(false);
-      connectIntervals();
+      await act(() => {
+        setNeedsReconnect(false);
+        connectIntervals();
+      });
       await renderLoadedHome(home.client);
 
       expect(mockGetActivities).toHaveBeenCalledTimes(1);
