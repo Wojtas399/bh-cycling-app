@@ -21,6 +21,12 @@ export function resolveRideSettings(
   };
 }
 
+export function rideSettingsOrCoggan(
+  loaded: RideSettings | undefined,
+): RideSettings {
+  return loaded ?? resolveRideSettings(null);
+}
+
 export function ftpPctToWatts(ftpPct: number, ftpWatts: number): number {
   return (ftpPct * ftpWatts) / 100;
 }

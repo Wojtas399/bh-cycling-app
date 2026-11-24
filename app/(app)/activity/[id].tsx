@@ -27,7 +27,7 @@ import { useRaceSheet } from '@/hooks/useRaceSheet';
 import { type ActivityDetails, pairedEventIdOf } from '@/lib/activityDetails';
 import { buildProfileCard } from '@/lib/profileCard';
 import type { Race } from '@/lib/races';
-import { resolveRideSettings } from '@/lib/rideSettings';
+import { rideSettingsOrCoggan } from '@/lib/rideSettings';
 import { useLocalSearchParams } from 'expo-router';
 
 export default function ActivityDetailsScreen() {
@@ -117,7 +117,7 @@ function ActivityDetailsContent({
   const settings = useAthleteSettings();
   const profile = buildProfileCard(
     { recorded: details.recorded },
-    settings.data ?? resolveRideSettings(null),
+    rideSettingsOrCoggan(settings.data),
   );
   const profileUnitsPending = settings.isLoading;
 
