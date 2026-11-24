@@ -9,7 +9,6 @@ import {
   useCalendarRange,
 } from '../useCalendarRange';
 import { useToday } from '@/hooks/useToday';
-import * as calendarItems from '@/lib/calendarItems';
 import {
   type IntervalsActivity,
   type IntervalsCalendarEvent,
@@ -430,89 +429,6 @@ describe('useCalendarRange', () => {
     expect(monthFetches()).toBe(2);
   });
 
-  it('keeps the data visible while a refresh is in flight, then shows the new data', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-
-    const { result } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-
-    let resolveRefresh: (value: IntervalsCalendarEvent[]) => void = () => {};
-
-    mockGetCalendarEvents.mockReturnValue(
-      new Promise(resolve => {
-        resolveRefresh = resolve;
-      }),
-    );
-
-    await act(async () => result.current.refresh());
-
-    await waitFor(() => expect(result.current.refreshing).toBe(true));
-    expect(
-      result.current.query.data?.itemsByDate[today].map(
-        calendarItems.calendarItemKey,
-      ),
-    ).toEqual(['workout-1']);
-
-    await act(async () => {
-      resolveRefresh([event({ id: 2 })]);
-    });
-
-    await waitFor(() => expect(result.current.refreshing).toBe(false));
-    expect(
-      result.current.query.data?.itemsByDate[today].map(
-        calendarItems.calendarItemKey,
-      ),
-    ).toEqual(['workout-2']);
-    expect(monthFetches()).toBe(2);
-  });
-
-  it('keeps the data when a refresh fails', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-
-    const { result } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-
-    const before = result.current.query.data;
-
-    mockGetCalendarEvents.mockRejectedValue(new Error('offline'));
-
-    await act(async () => result.current.refresh());
-    await waitFor(() => expect(result.current.refreshing).toBe(false));
-
-    expect(monthFetches()).toBe(2);
-    expect(result.current.query.isError).toBe(false);
-    expect(result.current.query.data).toEqual(before);
-  });
-
-  it('refetches a month that was refreshed away from when it is next shown, showing its old data meanwhile', async () => {
-    connectIntervals();
-
-    const { result } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-    await act(async () => result.current.goToNext());
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-
-    await act(async () => result.current.refresh());
-    await waitFor(() => expect(result.current.refreshing).toBe(false));
-    expect(monthFetches()).toBe(3);
-
-    await act(async () => result.current.goToPrevious());
-
-    await waitFor(() => expect(monthFetches()).toBe(4));
-    expect(result.current.query.data).toBeDefined();
-  });
-
   it('refetches a month that went stale while shown only once the app returns to the foreground', async () => {
     connectIntervals();
     focusManager.setFocused(false);
@@ -544,77 +460,6 @@ describe('useCalendarRange', () => {
 
     expect(result.current.query.data).toBeDefined();
     expect(mockGetCalendarEvents).not.toHaveBeenCalled();
-  });
-
-  it('is refreshing while a stale month refetches in the background', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
-
-    const { result } = await renderHookWithClient(
-      () => useCalendarRange(monthConfig),
-      { client: clientWithMonthFetched(SIX_MINUTES) },
-    );
-
-    await waitFor(() => expect(result.current.refreshing).toBe(true));
-    expect(result.current.query.data).toBeDefined();
-  });
-
-  it('treats a refresh of a month that failed to load as a first load again, not a refresh', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockRejectedValue(new Error('network down'));
-
-    const { result } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    await waitFor(() => expect(result.current.query.isError).toBe(true));
-    expect(result.current.refreshing).toBe(false);
-
-    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
-    await act(async () => result.current.refresh());
-
-    await waitFor(() => expect(result.current.query.isError).toBe(false));
-    expect(result.current.query.isPending).toBe(true);
-    expect(result.current.query.isFetching).toBe(true);
-    expect(result.current.refreshing).toBe(false);
-  });
-
-  it('is not refreshing during a first load', async () => {
-    connectIntervals();
-    mockGetCalendarEvents.mockReturnValue(new Promise(() => {}));
-
-    const { result } = await renderHookWithClient(() =>
-      useCalendarRange(monthConfig),
-    );
-
-    expect(result.current.query.isFetching).toBe(true);
-    expect(result.current.refreshing).toBe(false);
-  });
-
-  it("refresh only marks Home's workouts stale off screen, and fetches the athlete settings again at once for the refetched month", async () => {
-    connectIntervals();
-
-    const client = createTestQueryClient();
-    const upcomingKey = intervalsKeys.upcoming('athlete-1', today);
-    const settingsKey = intervalsKeys.athleteSettings('athlete-1');
-
-    client.setQueryData(upcomingKey, []);
-    client.setQueryData(settingsKey, []);
-
-    const { result } = await renderHookWithClient(
-      () => useCalendarRange(monthConfig),
-      { client },
-    );
-
-    await waitFor(() => expect(result.current.query.data).toBeDefined());
-    expect(mockGetAthleteSettings).not.toHaveBeenCalled();
-
-    await act(async () => result.current.refresh());
-
-    expect(client.getQueryState(upcomingKey)?.isInvalidated).toBe(true);
-    await waitFor(() =>
-      expect(mockGetAthleteSettings).toHaveBeenCalledTimes(1),
-    );
   });
 
   it("turns yesterday's planned workout into missed when today moves on, without a new request", async () => {

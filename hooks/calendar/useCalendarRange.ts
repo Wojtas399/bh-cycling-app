@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 
 import {
   type IntervalsAvailability,
@@ -11,17 +11,13 @@ import {
   type CombinedMonthResult,
   combineMonthResults,
 } from '@/lib/combineMonthResults';
-import {
-  intervalsKeys,
-  monthQueryOptions,
-  selectMonth,
-} from '@/lib/intervalsQueries';
+import { monthQueryOptions, selectMonth } from '@/lib/intervalsQueries';
 import {
   type YearMonth,
   fromLocalDateString,
   toLocalDateString,
 } from '@/lib/localDate';
-import { useQueries, useQueryClient } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {
   availability: IntervalsAvailability;
@@ -31,18 +27,11 @@ export interface UseCalendarRangeResult {
   goToNext: () => void;
   goToToday: () => void;
   showsToday: boolean;
-  refresh: () => void;
-  refreshing: boolean;
 }
 
 export type CalendarRangeView = Pick<
   UseCalendarRangeResult,
-  | 'availability'
-  | 'query'
-  | 'goToToday'
-  | 'showsToday'
-  | 'refresh'
-  | 'refreshing'
+  'availability' | 'query' | 'goToToday' | 'showsToday'
 >;
 
 export interface UseCalendarRangeConfig {
@@ -69,7 +58,6 @@ export function useCalendarRange({
   step,
 }: UseCalendarRangeConfig): UseCalendarRangeResult {
   const { availability, credentials } = useIntervalsAvailability();
-  const queryClient = useQueryClient();
   const today = useToday();
   const [anchor, setAnchor] = useState(() =>
     startOf(startDate ?? fromLocalDateString(today)),
@@ -85,16 +73,6 @@ export function useCalendarRange({
     combine,
   });
 
-  const athleteId = credentials?.athleteId;
-
-  const markAthleteDataStale = useCallback(() => {
-    if (!athleteId) return;
-
-    queryClient.invalidateQueries({
-      queryKey: intervalsKeys.athlete(athleteId),
-    });
-  }, [athleteId, queryClient]);
-
   return {
     availability,
     query,
@@ -105,7 +83,5 @@ export function useCalendarRange({
     showsToday:
       toLocalDateString(startOf(anchor)) <= today &&
       today <= toLocalDateString(endOf(anchor)),
-    refresh: markAthleteDataStale,
-    refreshing: query.data !== undefined && query.isFetching,
   };
 }
