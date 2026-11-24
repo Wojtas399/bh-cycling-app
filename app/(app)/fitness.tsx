@@ -21,6 +21,7 @@ import {
 } from '@/hooks/fitness/useFitnessChart';
 import { useFitnessLabels } from '@/hooks/fitness/useFitnessLabels';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useStableSelect } from '@/hooks/useStableSelect';
 import {
   DEFAULT_FITNESS_RANGE,
@@ -34,21 +35,11 @@ import {
 export default function FitnessChartScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'fitness.chart' });
   const { state, refetch } = useFitnessChart();
+  const { refreshing, refresh } = useIntervalsRefresh();
   const [range, setRange] = useState<FitnessRange>(DEFAULT_FITNESS_RANGE);
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-
-    try {
-      await refetch();
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   return (
     <Box flex={1} backgroundColor="bgPrimary">
@@ -64,7 +55,7 @@ export default function FitnessChartScreen() {
           state.status === 'notConnected' ? undefined : (
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refresh}
               tintColor={theme.colors.textSecondary}
               progressViewOffset={header.scrollInsetTop}
             />
