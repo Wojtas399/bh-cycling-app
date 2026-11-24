@@ -104,8 +104,10 @@ export const intervalsKeys = {
     [...intervalsKeys.athlete(athleteId), 'race', eventId] as const,
   activity: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.athlete(athleteId), 'activity', activityId] as const,
+  routes: (athleteId: string | undefined) =>
+    [...intervalsKeys.athlete(athleteId), 'route'] as const,
   route: (athleteId: string | undefined, activityId: string | null) =>
-    [...intervalsKeys.athlete(athleteId), 'route', activityId] as const,
+    [...intervalsKeys.routes(athleteId), activityId] as const,
 };
 
 export async function removeIntervalsQueries(
