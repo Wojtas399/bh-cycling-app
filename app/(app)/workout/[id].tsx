@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,8 +18,8 @@ import WorkoutDetailsSteps from '@/components/workout/WorkoutDetailsSteps';
 import WorkoutPlanCard from '@/components/workout/WorkoutPlanCard';
 import WorkoutStravaCard from '@/components/workout/WorkoutStravaCard';
 import { useAppTheme } from '@/constants/theme';
-import { useActivityRoute } from '@/hooks/useActivityRoute';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useProfileCard } from '@/hooks/workout/useProfileCard';
 import { useWorkoutDetails } from '@/hooks/workout/useWorkoutDetails';
 import type { WorkoutDetails } from '@/lib/workoutDetails';
@@ -29,22 +28,11 @@ import { useLocalSearchParams } from 'expo-router';
 export default function WorkoutDetailsScreen() {
   const { t } = useTranslation(undefined, { keyPrefix: 'workoutDetails' });
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { availability, query, refetch } = useWorkoutDetails(Number(id));
-  const bannerRoute = useActivityRoute(query.data?.route?.activityId ?? null);
+  const { availability, query } = useWorkoutDetails(Number(id));
+  const { refreshing, refresh } = useIntervalsRefresh();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-
-    try {
-      await Promise.all([refetch(), bannerRoute.refetchIfFailed()]);
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   function bodyPreferringDataOverError() {
     if (availability === 'loading') return <WorkoutDetailsSkeleton />;
@@ -81,7 +69,7 @@ export default function WorkoutDetailsScreen() {
           availability === 'available' ? (
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refresh}
               tintColor={theme.colors.textSecondary}
               progressViewOffset={header.scrollInsetTop}
             />
