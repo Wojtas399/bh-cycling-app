@@ -5,6 +5,7 @@ import {
 } from '@/test-utils/intervalsConnection';
 
 import { useTodayCards } from '../useTodayCards';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useToday } from '@/hooks/useToday';
 import { handleIntervalsAuthError } from '@/lib/handleIntervalsAuthError';
 import {
@@ -70,15 +71,28 @@ const FULLY_FILLED_ENTRY_ON_BOTH_CARDS = {
   wellness: FULLY_FILLED_ENTRY_WELLNESS_ROWS,
 };
 
-async function refetchAndSettle(hook: {
-  result: { current: { refetch: () => Promise<void> } };
+async function refreshScreenAndSettle(hook: {
+  result: { current: { refreshScreen: () => Promise<void> } };
 }) {
-  await act(() => hook.result.current.refetch());
+  await act(() => hook.result.current.refreshScreen());
   await settleQueries();
 }
 
 async function renderSettled() {
   const rendered = await renderHookWithClient(() => useTodayCards());
+
+  await waitFor(() =>
+    expect(rendered.result.current.state.status).not.toBe('loading'),
+  );
+
+  return rendered;
+}
+
+async function renderSettledOnScreen() {
+  const rendered = await renderHookWithClient(() => ({
+    state: useTodayCards().state,
+    refreshScreen: useIntervalsRefresh().refresh,
+  }));
 
   await waitFor(() =>
     expect(rendered.result.current.state.status).not.toBe('loading'),
@@ -164,10 +178,10 @@ describe('useTodayCards', () => {
     connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
-    const hook = await renderSettled();
+    const hook = await renderSettledOnScreen();
 
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
-    await refetchAndSettle(hook);
+    await refreshScreenAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
   });
@@ -221,14 +235,14 @@ describe('useTodayCards', () => {
     });
   });
 
-  it("keeps today's values on both cards when a refetch fails", async () => {
+  it("keeps today's values on both cards when a screen refresh fails", async () => {
     connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
-    const hook = await renderSettled();
+    const hook = await renderSettledOnScreen();
 
     mockGetWellness.mockRejectedValue(new IntervalsApiError(500));
-    await refetchAndSettle(hook);
+    await refreshScreenAndSettle(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
     expect(hook.result.current.state).toEqual(FULLY_FILLED_ENTRY_ON_BOTH_CARDS);
@@ -386,11 +400,11 @@ describe('useTodayCards', () => {
     );
   });
 
-  it('refetch reads the entry again, one request feeding both cards', async () => {
+  it('reads the entry again on a screen refresh, one request feeding both cards', async () => {
     connectIntervals();
     mockGetWellness.mockResolvedValue(DAY_WITHOUT_DATA_ALL_NULL);
 
-    const hook = await renderSettled();
+    const hook = await renderSettledOnScreen();
 
     expect(hook.result.current.state).toEqual({
       status: 'ready',
@@ -404,7 +418,7 @@ describe('useTodayCards', () => {
       atl: 43.1,
       restingHR: 48,
     });
-    await refetchAndSettle(hook);
+    await refreshScreenAndSettle(hook);
 
     expect(mockGetWellness).toHaveBeenCalledTimes(2);
     expect(hook.result.current.state).toEqual({
@@ -414,15 +428,15 @@ describe('useTodayCards', () => {
     });
   });
 
-  it('refetch asks for nothing once a reconnect takes Wellness away', async () => {
+  it('asks for nothing on a screen refresh once a reconnect takes Wellness away', async () => {
     connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
-    const hook = await renderSettled();
+    const hook = await renderSettledOnScreen();
 
     connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
     await hook.rerender({});
-    await refetchAndSettle(hook);
+    await refreshScreenAndSettle(hook);
 
     expect(hook.result.current.state).toEqual({ status: 'needsScope' });
     expect(mockGetWellness).toHaveBeenCalledTimes(1);

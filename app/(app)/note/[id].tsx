@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   type LayoutChangeEvent,
@@ -17,6 +16,7 @@ import NoteDetailsSkeleton from '@/components/note/NoteDetailsSkeleton';
 import { useAppTheme } from '@/constants/theme';
 import { useNoteDetails } from '@/hooks/note/useNoteDetails';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useNoteDateLabels } from '@/hooks/useNoteDateLabels';
 import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useScrolledUnderHeader } from '@/hooks/useScrolledUnderHeader';
@@ -27,23 +27,13 @@ import { useLocalSearchParams } from 'expo-router';
 
 export default function NoteDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { availability, query, refetch } = useNoteDetails(Number(id));
+  const { availability, query } = useNoteDetails(Number(id));
+  const { refreshing, refresh } = useIntervalsRefresh();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const header = useGlassHeader('pushed');
   const topBlock = useScrolledUnderHeader(header.height);
   const noteTitle = useNoteTitle();
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function handleRefresh() {
-    setRefreshing(true);
-
-    try {
-      await refetch();
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   function bodyPreferringDataOverError() {
     if (availability === 'loading') return <NoteDetailsSkeleton />;
@@ -87,7 +77,7 @@ export default function NoteDetailsScreen() {
           availability === 'available' ? (
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={refresh}
               tintColor={theme.colors.textSecondary}
               progressViewOffset={header.scrollInsetTop}
             />
