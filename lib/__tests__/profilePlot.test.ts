@@ -126,4 +126,22 @@ describe('segmentPixels', () => {
       { x: 60, width: 3 },
     ]);
   });
+
+  it('draws a segment narrower than 2 px 2 px wide, centred on its real time, even over its neighbour', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [300, 303],
+            [303, 306],
+          ],
+          600,
+        ),
+        300,
+      ),
+    ).toEqual([
+      { x: 149.75, width: 2 },
+      { x: 151.25, width: 2 },
+    ]);
+  });
 });

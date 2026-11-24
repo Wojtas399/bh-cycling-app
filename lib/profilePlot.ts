@@ -77,6 +77,8 @@ export function profilePlot(
   };
 }
 
+const MIN_BAR_WIDTH_PX = 2;
+
 export interface SegmentPixels {
   x: number;
   width: number;
@@ -91,6 +93,10 @@ export function segmentPixels(
   plotWidth: number,
 ): SegmentPixels {
   const xOf = (seconds: number) => (seconds / durationSeconds) * plotWidth;
+  const x = xOf(startSeconds);
+  const width = xOf(endSeconds) - x;
 
-  return { x: xOf(startSeconds), width: xOf(endSeconds) - xOf(startSeconds) };
+  if (width >= MIN_BAR_WIDTH_PX) return { x, width };
+
+  return { x: x + (width - MIN_BAR_WIDTH_PX) / 2, width: MIN_BAR_WIDTH_PX };
 }
