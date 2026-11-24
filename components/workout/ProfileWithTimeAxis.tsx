@@ -15,14 +15,11 @@ import { NOTHING_CROSSED, crossesToJs } from '@/lib/crossesToJs';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
 import { rampPolygonPoints } from '@/lib/profileBars';
-import {
-  type ProfileScale,
-  type StripSegment,
-  axisLabels,
-} from '@/lib/profileCard';
+import { type ProfileScale, type StripSegment } from '@/lib/profileCard';
 import {
   type PlotStrip,
   Y_LABEL_GUTTER_PX,
+  axisLabels,
   plotWidthOf,
   segmentPixels,
   stackXOf,

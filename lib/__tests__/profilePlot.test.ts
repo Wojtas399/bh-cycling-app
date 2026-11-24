@@ -5,6 +5,7 @@ import {
 } from '../profileCard';
 import {
   Y_LABEL_GUTTER_PX,
+  axisLabels,
   profilePlot,
   segmentPixels,
   stackXOf,
@@ -200,5 +201,20 @@ describe('stackXOf', () => {
 
   it('keeps a point its distance into the plot', () => {
     expect(stackXOf(150)).toBe(Y_LABEL_GUTTER_PX + 150);
+  });
+});
+
+describe('axisLabels', () => {
+  it('labels zero, the ceiling and every gridline far enough from its neighbours, dropping 225 W and 300 W, under 12 px from the labels below', () => {
+    const plotHeightPx = 100;
+    const minSpacingPx = 12;
+
+    expect(
+      axisLabels(
+        { unit: 'watts', ceiling: 375, gridlines: [138, 188, 225, 263, 300] },
+        plotHeightPx,
+        minSpacingPx,
+      ),
+    ).toEqual([0, 138, 188, 263, 375]);
   });
 });

@@ -337,24 +337,3 @@ function sharedScale(
 function inUnit(pct: number, { unit, ftp }: StripOnScale): number {
   return unit === 'watts' && ftp !== null ? ftpPctToWatts(pct, ftp) : pct;
 }
-
-export function axisLabels(
-  { ceiling, gridlines }: ProfileScale,
-  plotHeightPx: number,
-  minSpacingPx: number,
-): number[] {
-  const apart = (low: number, high: number) =>
-    ((high - low) / ceiling) * plotHeightPx >= minSpacingPx;
-  const labels = [0];
-
-  for (const gridline of gridlines) {
-    if (
-      apart(labels[labels.length - 1], gridline) &&
-      apart(gridline, ceiling)
-    ) {
-      labels.push(gridline);
-    }
-  }
-
-  return [...labels, ceiling];
-}
