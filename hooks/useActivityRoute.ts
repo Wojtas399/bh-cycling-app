@@ -7,11 +7,5 @@ export function useActivityRoute(activityId: string | null) {
     args: [activityId],
   });
 
-  async function refetchIfFailed() {
-    if (!query.isError) return;
-
-    await refetch();
-  }
-
-  return { query, refetch, refetchIfFailed };
+  return { query, refetch };
 }

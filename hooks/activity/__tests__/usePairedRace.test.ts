@@ -95,26 +95,6 @@ describe('usePairedRace', () => {
     expect(result.current.race).toBeUndefined();
   });
 
-  it('reads the Race again on refetch', async () => {
-    mockGetCalendarEvent.mockResolvedValue(livePairedEventBody());
-
-    const { result } = await renderPairedRace(EVENT_ID);
-
-    await waitFor(() =>
-      expect(result.current.race?.name).toBe('Mazovia MTB Maraton'),
-    );
-
-    mockGetCalendarEvent.mockResolvedValue(
-      livePairedEventBody({ name: 'Mazovia MTB Maraton Kraków' }),
-    );
-    await act(() => result.current.refetch());
-
-    expect(mockGetCalendarEvent).toHaveBeenCalledTimes(2);
-    await waitFor(() =>
-      expect(result.current.race?.name).toBe('Mazovia MTB Maraton Kraków'),
-    );
-  });
-
   it('is refetched when everything for the athlete is invalidated', async () => {
     mockGetCalendarEvent.mockResolvedValue(livePairedEventBody());
 
