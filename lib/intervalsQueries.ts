@@ -69,6 +69,8 @@ import {
 } from './workoutDetails';
 import {
   type QueryClient,
+  type QueryKey,
+  partialMatchKey,
   queryOptions,
   skipToken,
 } from '@tanstack/react-query';
@@ -109,6 +111,15 @@ export const intervalsKeys = {
   route: (athleteId: string | undefined, activityId: string | null) =>
     [...intervalsKeys.routes(athleteId), activityId] as const,
 };
+
+export function isRouteKey(queryKey: QueryKey): boolean {
+  const [, athleteId] = queryKey;
+
+  return (
+    typeof athleteId === 'string' &&
+    partialMatchKey(queryKey, intervalsKeys.routes(athleteId))
+  );
+}
 
 export async function removeIntervalsQueries(
   client: QueryClient,

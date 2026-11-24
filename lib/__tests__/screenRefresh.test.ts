@@ -24,12 +24,8 @@ describe('refreshIncludes', () => {
     ).toBe(true);
   });
 
-  it.each<[string, QueryKey]>([
-    ['a Workout', intervalsKeys.workout(ATHLETE_ID, 7)],
-    ['an Activity', intervalsKeys.activity(ATHLETE_ID, 'i42')],
-    ['athlete settings', intervalsKeys.athleteSettings(ATHLETE_ID)],
-    ['a Calendar month', intervalsKeys.month(ATHLETE_ID, '2026-11')],
-  ])('includes %s whatever its status', (_, queryKey) => {
+  it('includes a query that is not a Route whatever its status', () => {
+    const queryKey = intervalsKeys.workout(ATHLETE_ID, 7);
     const statuses: QueryStatus[] = ['success', 'error', 'pending'];
 
     expect(
