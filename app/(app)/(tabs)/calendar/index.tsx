@@ -19,6 +19,7 @@ import { useMonthlyCalendar } from '@/hooks/calendar/useMonthlyCalendar';
 import { useWeeklyCalendar } from '@/hooks/calendar/useWeeklyCalendar';
 import { useOpenNoteDetails } from '@/hooks/note/useOpenNoteDetails';
 import { useGlassHeader } from '@/hooks/useGlassHeader';
+import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useToday } from '@/hooks/useToday';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
 import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
@@ -159,12 +160,13 @@ function CalendarLayout({
   fillWithoutScrollOrPadding,
   onViewChange,
   title,
-  range: { availability, query, goToToday, showsToday, refresh, refreshing },
+  range: { availability, query, goToToday, showsToday },
   onPrevious,
   onNext,
   children,
 }: CalendarLayoutProps) {
   const header = useGlassHeader('tab');
+  const { refreshing, refresh } = useIntervalsRefresh();
   const sheet = useDaySheet(query.data);
   const raceSheet = useCalendarRaceSheet(sheet.closeThen);
   const openWorkout = useOpenWorkoutDetails();
