@@ -1,6 +1,6 @@
 import type { CalendarItemsByDate } from './calendarItems';
-import { type CalendarData, eachDate } from './calendarWorkouts';
-import { toLocalDateString } from './localDate';
+import type { CalendarData } from './calendarMonth';
+import { eachDate, toLocalDateString } from './localDate';
 import { type Note, byNoteId, notesOverlapping } from './notes';
 
 export interface MonthResult {

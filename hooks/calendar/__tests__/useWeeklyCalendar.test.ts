@@ -1,20 +1,22 @@
 import { useWeeklyCalendar } from '../useWeeklyCalendar';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
-  endOfMonth,
-  endOfWeek,
-  pairingWindow,
-  startOfMonth,
-  startOfWeek,
-  toYearMonth,
-} from '@/lib/calendarWorkouts';
-import {
   getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { monthQueryOptions, selectMonthAsOf } from '@/lib/intervalsQueries';
-import { addDays, toLocalDateString } from '@/lib/localDate';
+import {
+  intervalsKeys,
+  monthQueryOptions,
+  selectMonthAsOf,
+} from '@/lib/intervalsQueries';
+import {
+  addDays,
+  endOfWeek,
+  startOfWeek,
+  toLocalDateString,
+  toYearMonth,
+} from '@/lib/localDate';
 import { createQueryClient } from '@/lib/queryClient';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
@@ -60,7 +62,9 @@ describe('useWeeklyCalendar', () => {
   afterEach(() => jest.useRealTimers());
 
   it('exposes the visible week (Monday) and its seven days, fetching the whole months it touches', async () => {
-    const { result } = await renderHookWithClient(() => useWeeklyCalendar());
+    const { result, client } = await renderHookWithClient(() =>
+      useWeeklyCalendar(),
+    );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
 
@@ -75,18 +79,12 @@ describe('useWeeklyCalendar', () => {
         toLocalDateString(addDays(monday, index)),
       ),
     );
-    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
-      'token-1',
-      'athlete-1',
-      pairingWindow(startOfMonth(monday), endOfMonth(monday)),
-      expect.anything(),
-    );
-    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
-      'token-1',
-      'athlete-1',
-      pairingWindow(startOfMonth(endOfWeek(now)), endOfMonth(endOfWeek(now))),
-      expect.anything(),
-    );
+
+    for (const day of [monday, endOfWeek(now)]) {
+      expect(
+        client.getQueryData(intervalsKeys.month('athlete-1', toYearMonth(day))),
+      ).toBeDefined();
+    }
   });
 
   it('opens on the week containing a starting date, fetching the months it touches', async () => {

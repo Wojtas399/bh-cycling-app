@@ -9,6 +9,7 @@ import {
   getAthleteSettings,
   getCalendarEvent,
   getCalendarEvents,
+  isNotFoundError,
 } from '@/lib/intervalsApi';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
@@ -238,6 +239,33 @@ describe('useWorkoutDetails', () => {
       );
     });
 
+    it("opens a Workout ridden on a different day with that Activity's numbers", async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(
+        event({ start_date_local: '2026-10-14T08:00:00' }),
+      );
+      mockGetActivities.mockResolvedValue([
+        activity({
+          start_date_local: '2026-10-17T18:00:00',
+          paired_event_id: EVENT_ID,
+          icu_training_load: 55,
+        }),
+      ]);
+
+      const { result } = await renderDetails();
+
+      await waitFor(() =>
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          date: '2026-10-14',
+          recordedActivityId: 'i1',
+          activityMetrics: expect.arrayContaining([
+            { metric: 'load', value: 55 },
+          ]),
+        }),
+      );
+    });
+
     it('is completed by a Strava Activity the event names, read from the events list since the single read lacks the paired Activity id', async () => {
       mockConnected();
       const planned = event({ start_date_local: '2026-10-16T00:00:00' });
@@ -344,19 +372,17 @@ describe('useWorkoutDetails', () => {
     it('keeps the earliest Activity when several are paired to the Workout', async () => {
       mockConnected();
       mockGetCalendarEvent.mockResolvedValue(event());
-      const earliest = activity({
-        id: 'early',
-        start_date_local: '2026-10-17T07:00:00',
-        paired_event_id: EVENT_ID,
-      });
-
       mockGetActivities.mockResolvedValue([
         activity({
           id: 'late',
           start_date_local: '2026-10-17T19:00:00',
           paired_event_id: EVENT_ID,
         }),
-        earliest,
+        activity({
+          id: 'early',
+          start_date_local: '2026-10-17T07:00:00',
+          paired_event_id: EVENT_ID,
+        }),
         activity({
           id: 'middle',
           start_date_local: '2026-10-17T12:00:00',
@@ -364,19 +390,14 @@ describe('useWorkoutDetails', () => {
         }),
       ]);
 
-      const { result, client } = await renderDetails();
+      const { result } = await renderDetails();
 
       await waitFor(() =>
-        expect(result.current.query.data?.mode).toBe('completed'),
+        expect(result.current.query.data).toMatchObject({
+          mode: 'completed',
+          recordedActivityId: 'early',
+        }),
       );
-      expect(
-        client.getQueryData<{ activity: IntervalsActivity | null }>([
-          'intervals',
-          'athlete-1',
-          'workout',
-          EVENT_ID,
-        ])?.activity,
-      ).toEqual(earliest);
     });
   });
 
@@ -412,7 +433,7 @@ describe('useWorkoutDetails', () => {
   });
 
   describe('events list', () => {
-    it("reads the Workouts listed on the event's local day", async () => {
+    it("reads the Workouts listed a week past each side of the event's local day, step watts resolved", async () => {
       mockConnected();
       mockGetCalendarEvent.mockResolvedValue(
         event({ start_date_local: '2026-11-02T08:00:00' }),
@@ -425,8 +446,8 @@ describe('useWorkoutDetails', () => {
         'token-1',
         'athlete-1',
         {
-          oldest: '2026-11-02',
-          newest: '2026-11-02',
+          oldest: '2026-10-26',
+          newest: '2026-11-09',
           category: 'WORKOUT',
           resolve: true,
         },
@@ -469,6 +490,19 @@ describe('useWorkoutDetails', () => {
 
       await waitFor(() => expect(result.current.query.isError).toBe(true));
       expect(result.current.query.data).toBeUndefined();
+    });
+
+    it('surfaces an event that is not a Workout as not found', async () => {
+      mockConnected();
+      mockGetCalendarEvent.mockResolvedValue(
+        event({ category: 'NOTE', name: 'Obóz' }),
+      );
+
+      const { result } = await renderDetails();
+
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
+      expect(result.current.query.data).toBeUndefined();
+      expect(isNotFoundError(result.current.query.error)).toBe(true);
     });
 
     it('surfaces a deleted Workout as an API error with status 404', async () => {

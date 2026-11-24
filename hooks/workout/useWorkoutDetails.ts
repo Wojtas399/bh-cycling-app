@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 export function useWorkoutDetails(eventId: number) {
   const { availability, credentials } = useIntervalsAvailability();
   const today = useToday();
-  const select = useStableSelect(selectWorkoutDetailsAsOf, today);
+  const select = useStableSelect(selectWorkoutDetailsAsOf, eventId, today);
   const options = workoutDetailsQueryOptions(credentials, eventId, select);
 
   const query = useQuery(options);

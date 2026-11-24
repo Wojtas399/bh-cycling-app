@@ -5,7 +5,7 @@ import {
   formatDayLabel,
 } from '../calendarDayCounts';
 import type { CalendarItem } from '../calendarItems';
-import type { CalendarData } from '../calendarWorkouts';
+import type { CalendarData } from '../calendarMonth';
 import type { Note } from '../notes';
 import type { RacePriority } from '../races';
 

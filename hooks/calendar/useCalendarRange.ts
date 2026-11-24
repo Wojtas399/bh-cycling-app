@@ -6,7 +6,6 @@ import {
 } from '@/hooks/useIntervalsAvailability';
 import { useStableSelect } from '@/hooks/useStableSelect';
 import { useToday } from '@/hooks/useToday';
-import type { YearMonth } from '@/lib/calendarWorkouts';
 import {
   type CombinedMonthResult,
   combineMonthResults,
@@ -16,7 +15,11 @@ import {
   monthQueryOptions,
   selectMonthAsOf,
 } from '@/lib/intervalsQueries';
-import { fromLocalDateString, toLocalDateString } from '@/lib/localDate';
+import {
+  type YearMonth,
+  fromLocalDateString,
+  toLocalDateString,
+} from '@/lib/localDate';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 
 export interface UseCalendarRangeResult {

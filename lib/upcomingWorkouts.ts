@@ -1,11 +1,10 @@
 import {
   type CalendarItem,
-  calendarItemDate,
+  type CalendarRange,
+  type StoredCalendarItems,
   calendarItemKey,
-  joinCalendarItems,
-  withWorkoutStatus,
+  withItemStatuses,
 } from './calendarItems';
-import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import {
   type LocalDateString,
   addDays,
@@ -13,53 +12,52 @@ import {
   toLocalDateString,
 } from './localDate';
 import { type Note, notesOn } from './notes';
-import type { ZoneConfig } from './powerZones';
+
+type DayLabel = 'today' | 'tomorrow';
 
 export type UpcomingItem = (CalendarItem | { kind: 'note'; note: Note }) & {
-  dayLabel: 'today' | 'tomorrow';
+  dayLabel: DayLabel;
 };
+
+export interface StoredUpcoming extends StoredCalendarItems {
+  notes: Note[];
+}
 
 export function upcomingItemKey(item: UpcomingItem): string {
   return item.kind === 'note' ? `note-${item.note.id}` : calendarItemKey(item);
 }
 
+export function upcomingRange(today: LocalDateString): CalendarRange {
+  return {
+    oldest: today,
+    newest: toLocalDateString(addDays(fromLocalDateString(today), 1)),
+  };
+}
+
 export function getUpcomingItems(
-  events: IntervalsCalendarEvent[],
-  activities: IntervalsActivity[],
-  notesInIdOrder: Note[],
+  stored: StoredUpcoming,
   today: LocalDateString,
-  zoneConfig: ZoneConfig,
 ): UpcomingItem[] {
-  const tomorrow = toLocalDateString(addDays(fromLocalDateString(today), 1));
-  const { items, completedEventIds } = joinCalendarItems(
-    events,
-    activities,
-    zoneConfig,
-  );
-  const completed = new Set(completedEventIds);
-  const todays: UpcomingItem[] = [];
-  const tomorrows: UpcomingItem[] = [];
+  const { newest: tomorrow } = upcomingRange(today);
+  const itemsByDate = withItemStatuses(stored, today);
 
-  for (const item of items) {
-    const date = calendarItemDate(item);
-    const withStatus = withWorkoutStatus(item, completed, today);
+  return [
+    ...onDay(itemsByDate[today] ?? [], notesOn(stored.notes, today), 'today'),
+    ...onDay(
+      (itemsByDate[tomorrow] ?? []).filter(item => item.kind !== 'activity'),
+      stored.notes.filter(note => note.start === tomorrow),
+      'tomorrow',
+    ),
+  ];
+}
 
-    if (date === today) todays.push({ ...withStatus, dayLabel: 'today' });
-
-    if (date === tomorrow && item.kind !== 'activity') {
-      tomorrows.push({ ...withStatus, dayLabel: 'tomorrow' });
-    }
-  }
-
-  for (const note of notesOn(notesInIdOrder, today)) {
-    todays.push({ kind: 'note', note, dayLabel: 'today' });
-  }
-
-  for (const note of notesInIdOrder) {
-    if (note.start === tomorrow) {
-      tomorrows.push({ kind: 'note', note, dayLabel: 'tomorrow' });
-    }
-  }
-
-  return [...todays, ...tomorrows];
+function onDay(
+  items: CalendarItem[],
+  notesInIdOrder: Note[],
+  dayLabel: DayLabel,
+): UpcomingItem[] {
+  return [
+    ...items.map(item => ({ ...item, dayLabel })),
+    ...notesInIdOrder.map(note => ({ kind: 'note' as const, note, dayLabel })),
+  ];
 }

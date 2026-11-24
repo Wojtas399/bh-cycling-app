@@ -1,5 +1,5 @@
 import type { CalendarItem, RaceItem } from './calendarItems';
-import type { CalendarData } from './calendarWorkouts';
+import type { CalendarData } from './calendarMonth';
 import type { LocalDateString } from './localDate';
 import { notesOn } from './notes';
 import type { RacePriority } from './races';

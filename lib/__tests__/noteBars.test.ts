@@ -1,4 +1,4 @@
-import type { MondayBasedWeekday } from '../calendarWorkouts';
+import type { MondayBasedWeekday } from '../localDate';
 import { type RowLength, layoutNoteRow, noteBarInsets } from '../noteBars';
 import type { Note } from '../notes';
 

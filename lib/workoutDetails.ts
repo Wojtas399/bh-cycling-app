@@ -1,14 +1,14 @@
 import { type ActivityMetric, summariseActivity } from './activitySummary';
+import {
+  type ActivityField,
+  type PairedCalendarRange,
+  findWorkout,
+} from './calendarItems';
 import { isCyclingWorkout, rideSteps } from './cyclingWorkout';
-import type {
-  IntervalsActivity,
-  IntervalsCalendarEvent,
-  IntervalsField,
-} from './intervalsApi';
+import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
 import type { LocalDateString } from './localDate';
 import type { LocalTimeString } from './localDateTime';
-import type { WorkoutPairing } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
 import type { RideSettings } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
@@ -25,35 +25,32 @@ import {
 import { type WorkoutStatus, workoutStatus } from './workoutStatus';
 import { type WorkoutDetailsStep, buildWorkoutSteps } from './workoutSteps';
 
-export const WORKOUT_DETAILS_ACTIVITY_FIELDS: readonly IntervalsField<IntervalsActivity>[] =
-  [
-    'id',
-    'start_date_local',
-    'name',
-    'type',
-    'paired_event_id',
-    'moving_time',
-    'distance',
-    'elapsed_time',
-    'icu_training_load',
-    'icu_intensity',
-    'icu_average_watts',
-    'icu_weighted_avg_watts',
-    'icu_variability_index',
-    'average_heartrate',
-    'max_heartrate',
-    'average_cadence',
-    'total_elevation_gain',
-    'calories',
-    'icu_joules',
-    'average_speed',
-    'compliance',
-    'stream_types',
-    'trainer',
-  ];
+export const WORKOUT_DETAILS_ACTIVITY_FIELDS = [
+  'moving_time',
+  'distance',
+  'elapsed_time',
+  'icu_training_load',
+  'icu_intensity',
+  'icu_average_watts',
+  'icu_weighted_avg_watts',
+  'icu_variability_index',
+  'average_heartrate',
+  'max_heartrate',
+  'average_cadence',
+  'total_elevation_gain',
+  'calories',
+  'icu_joules',
+  'average_speed',
+  'compliance',
+  'stream_types',
+  'trainer',
+] as const satisfies readonly ActivityField[];
 
-export interface StoredWorkoutDetails extends WorkoutPairing {
-  event: IntervalsCalendarEvent;
+type WorkoutDetailsActivityField =
+  (typeof WORKOUT_DETAILS_ACTIVITY_FIELDS)[number];
+
+export interface StoredWorkoutDetails {
+  paired: PairedCalendarRange<WorkoutDetailsActivityField>;
   rideSettings: RideSettings;
 }
 
@@ -114,16 +111,22 @@ export interface WorkoutComparison {
 }
 
 export function buildWorkoutDetails(
-  { event, completed, activity, rideSettings }: StoredWorkoutDetails,
+  { paired, rideSettings }: StoredWorkoutDetails,
+  eventId: number,
   today: LocalDateString,
-): WorkoutDetails {
+): WorkoutDetails | null {
+  const workout = findWorkout(paired, eventId);
+
+  if (!workout) return null;
+
+  const { event, activity } = workout;
   const { zoneConfig } = rideSettings;
   const date = event.start_date_local.slice(0, 10);
   const steps = rideSteps(event);
   const blocks = buildWorkoutProfile(steps, zoneConfig);
   const status = workoutStatus(
     { id: event.id, date },
-    new Set(completed ? [event.id] : []),
+    new Set(paired.completedEventIds),
     today,
   );
   const measured = activity && !isStravaActivity(activity) ? activity : null;

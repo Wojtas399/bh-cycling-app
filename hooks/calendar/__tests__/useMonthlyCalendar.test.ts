@@ -1,16 +1,17 @@
 import { useMonthlyCalendar } from '../useMonthlyCalendar';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import {
-  endOfMonth,
-  pairingWindow,
-  startOfMonth,
-} from '@/lib/calendarWorkouts';
-import {
   getActivities,
   getAthleteSettings,
   getCalendarEvents,
 } from '@/lib/intervalsApi';
-import { toLocalDateString } from '@/lib/localDate';
+import { intervalsKeys } from '@/lib/intervalsQueries';
+import {
+  endOfMonth,
+  startOfMonth,
+  toLocalDateString,
+  toYearMonth,
+} from '@/lib/localDate';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { act, waitFor } from '@testing-library/react-native';
 
@@ -51,7 +52,9 @@ describe('useMonthlyCalendar', () => {
   });
 
   it('exposes the visible calendar month and fetches it', async () => {
-    const { result } = await renderHookWithClient(() => useMonthlyCalendar());
+    const { result, client } = await renderHookWithClient(() =>
+      useMonthlyCalendar(),
+    );
 
     await waitFor(() => expect(result.current.query.data).toBeDefined());
 
@@ -61,12 +64,9 @@ describe('useMonthlyCalendar', () => {
     expect(
       Object.keys(result.current.query.data?.itemsByDate ?? {}),
     ).toHaveLength(endOfMonth(now).getDate());
-    expect(mockGetCalendarEvents).toHaveBeenCalledWith(
-      'token-1',
-      'athlete-1',
-      pairingWindow(startOfMonth(now), endOfMonth(now)),
-      expect.anything(),
-    );
+    expect(
+      client.getQueryData(intervalsKeys.month('athlete-1', toYearMonth(now))),
+    ).toBeDefined();
   });
 
   it('opens on and fetches the month containing a starting date', async () => {

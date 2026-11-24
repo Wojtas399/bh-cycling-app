@@ -1,8 +1,8 @@
 import {
+  type LocalDateString,
   MONDAY_BASED_WEEKDAYS,
   type MondayBasedWeekday,
-} from './calendarWorkouts';
-import type { LocalDateString } from './localDate';
+} from './localDate';
 import { type Note, noteLastDay, noteOverlaps } from './notes';
 
 export type LaneFromTop = number;

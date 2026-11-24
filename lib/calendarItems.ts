@@ -1,7 +1,19 @@
 import { rideSteps } from './cyclingWorkout';
-import type { IntervalsActivity, IntervalsCalendarEvent } from './intervalsApi';
+import type {
+  IntervalsActivity,
+  IntervalsCalendarEvent,
+  IntervalsCalendarEventsParams,
+  IntervalsField,
+} from './intervalsApi';
 import { isFiniteNumber } from './isFiniteNumber';
-import { type LocalDateString, toSortedDatedWorkoutEvents } from './localDate';
+import {
+  type LocalDateString,
+  addDays,
+  eachDate,
+  fromLocalDateString,
+  toLocalDateString,
+  toSortedDatedWorkoutEvents,
+} from './localDate';
 import type { LocalDateTimeString } from './localDateTime';
 import { pairWorkouts } from './pairing';
 import { plannedDurationSeconds } from './plannedDuration';
@@ -14,6 +26,88 @@ import {
   type StoredWorkout,
   workoutStatus,
 } from './workoutStatus';
+
+const PAIRING_WINDOW_DAYS = 7;
+
+const PAIRING_ACTIVITY_FIELDS = [
+  'id',
+  'start_date_local',
+  'type',
+  'paired_event_id',
+  'name',
+] as const satisfies readonly IntervalsField<IntervalsActivity>[];
+
+type PairingActivityField = (typeof PAIRING_ACTIVITY_FIELDS)[number];
+
+export type ActivityField = IntervalsField<IntervalsActivity>;
+
+export type PairedActivity<Field extends ActivityField> = Pick<
+  IntervalsActivity,
+  PairingActivityField | Field
+>;
+
+export const TILE_ACTIVITY_FIELDS = [
+  'moving_time',
+  'distance',
+  'icu_training_load',
+] as const satisfies readonly ActivityField[];
+
+export type TileActivityField = (typeof TILE_ACTIVITY_FIELDS)[number];
+
+export interface CalendarRange {
+  oldest: LocalDateString;
+  newest: LocalDateString;
+}
+
+export type CalendarEventOptions = Pick<
+  IntervalsCalendarEventsParams,
+  'category' | 'resolve'
+>;
+
+export interface CalendarReads {
+  events(
+    range: CalendarRange,
+    options: CalendarEventOptions,
+  ): Promise<IntervalsCalendarEvent[]>;
+  activities<Field extends ActivityField>(
+    range: CalendarRange,
+    fields: readonly Field[],
+  ): Promise<Pick<IntervalsActivity, Field>[]>;
+}
+
+export interface CalendarRangeReadOptions<Field extends ActivityField> {
+  activityFields: readonly Field[];
+  eventOptions?: CalendarEventOptions;
+}
+
+export interface PairedWorkout<Field extends ActivityField> {
+  kind: 'workout';
+  event: IntervalsCalendarEvent;
+  activity: PairedActivity<Field> | null;
+  completed: boolean;
+}
+
+export interface PairedRace<Field extends ActivityField> {
+  kind: 'race';
+  event: IntervalsCalendarEvent;
+  race: Race;
+  activity: PairedActivity<Field> | null;
+}
+
+export interface PairedUnplannedActivity<Field extends ActivityField> {
+  kind: 'activity';
+  activity: PairedActivity<Field>;
+}
+
+export type PairedCalendarItem<Field extends ActivityField> =
+  | PairedWorkout<Field>
+  | PairedRace<Field>
+  | PairedUnplannedActivity<Field>;
+
+export interface PairedCalendarRange<in out Field extends ActivityField> {
+  items: PairedCalendarItem<Field>[];
+  completedEventIds: number[];
+}
 
 interface UnplannedActivityBase {
   id: string;
@@ -49,8 +143,8 @@ export type StoredCalendarItem =
 
 export type CalendarItemsByDate = Record<LocalDateString, CalendarItem[]>;
 
-export interface JoinedCalendarItems {
-  items: StoredCalendarItem[];
+export interface StoredCalendarItems {
+  itemsByDate: Record<LocalDateString, StoredCalendarItem[]>;
   completedEventIds: number[];
 }
 
@@ -59,69 +153,171 @@ interface SortableItem {
   item: StoredCalendarItem;
 }
 
-export function joinCalendarItems(
-  events: IntervalsCalendarEvent[],
-  activities: IntervalsActivity[],
+export async function readCalendarRange<Field extends ActivityField>(
+  reads: CalendarReads,
+  range: CalendarRange,
+  { activityFields, eventOptions = {} }: CalendarRangeReadOptions<Field>,
+): Promise<PairedCalendarRange<Field>> {
+  const padded = padByPairingWindow(range);
+  const [events, activities] = await Promise.all([
+    reads.events(padded, eventOptions),
+    reads.activities(padded, [
+      ...new Set([...PAIRING_ACTIVITY_FIELDS, ...activityFields]),
+    ]),
+  ]);
+
+  return pairCalendarItems(events, activities);
+}
+
+export function findWorkout<Field extends ActivityField>(
+  { items }: PairedCalendarRange<Field>,
+  eventId: number,
+): PairedWorkout<Field> | undefined {
+  return items
+    .filter(item => item.kind === 'workout')
+    .find(({ event }) => event.id === eventId);
+}
+
+export function toStoredCalendarItems(
+  { items, completedEventIds }: PairedCalendarRange<TileActivityField>,
+  { oldest, newest }: CalendarRange,
   zoneConfig: ZoneConfig,
-): JoinedCalendarItems {
-  const workoutEvents = toSortedDatedWorkoutEvents(events);
+): StoredCalendarItems {
+  const itemsByDate: StoredCalendarItems['itemsByDate'] = {};
+
+  for (const date of eachDate(
+    fromLocalDateString(oldest),
+    fromLocalDateString(newest),
+  )) {
+    itemsByDate[date] = [];
+  }
+
+  for (const item of toSortedStoredItems(items, zoneConfig)) {
+    itemsByDate[calendarItemDate(item)]?.push(item);
+  }
+
+  return { itemsByDate, completedEventIds };
+}
+
+function padByPairingWindow({ oldest, newest }: CalendarRange): CalendarRange {
+  return {
+    oldest: shiftDays(oldest, -PAIRING_WINDOW_DAYS),
+    newest: shiftDays(newest, PAIRING_WINDOW_DAYS),
+  };
+}
+
+function shiftDays(date: LocalDateString, days: number): LocalDateString {
+  return toLocalDateString(addDays(fromLocalDateString(date), days));
+}
+
+function pairCalendarItems<Field extends ActivityField>(
+  events: IntervalsCalendarEvent[],
+  activities: readonly PairedActivity<Field>[],
+): PairedCalendarRange<Field> {
+  const workoutEvents = toSortedDatedWorkoutEvents(events).map(
+    ({ event }) => event,
+  );
   const raceEvents = events.flatMap(event => {
     const race = toRace(event);
 
     return race ? [{ event, race }] : [];
   });
   const { byEventId, pairedActivityIds, completedEventIds } = pairWorkouts(
-    [...workoutEvents, ...raceEvents].map(({ event }) => event),
+    [...workoutEvents, ...raceEvents.map(({ event }) => event)],
     activities,
   );
+
+  const races = raceEvents.map(
+    ({ event, race }): PairedRace<Field> => ({
+      kind: 'race',
+      event,
+      race,
+      activity: byEventId.get(event.id)?.activity ?? null,
+    }),
+  );
+
+  const workouts = workoutEvents.map((event): PairedWorkout<Field> => {
+    const pairing = byEventId.get(event.id);
+
+    return {
+      kind: 'workout',
+      event,
+      activity: pairing?.activity ?? null,
+      completed: pairing?.completed ?? false,
+    };
+  });
 
   const unplanned = activities
     .filter(activity => !pairedActivityIds.has(activity.id))
     .map(
-      (activity): SortableItem => ({
-        startDateLocal: activity.start_date_local,
-        item: { kind: 'activity', activity: toUnplannedActivity(activity) },
+      (activity): PairedUnplannedActivity<Field> => ({
+        kind: 'activity',
+        activity,
       }),
     );
 
-  const workouts = workoutEvents.map(({ event, date }): SortableItem => {
-    const paired = byEventId.get(event.id)?.activity;
+  return {
+    items: [...races, ...workouts, ...unplanned],
+    completedEventIds: [...completedEventIds],
+  };
+}
 
-    return {
-      startDateLocal: paired?.start_date_local ?? event.start_date_local,
-      item: {
-        kind: 'workout',
-        workout: {
-          id: event.id,
-          name: event.name,
-          date: paired ? toDate(paired.start_date_local) : date,
-          durationSeconds: plannedDurationSeconds(event),
-          blocks: buildWorkoutProfile(rideSteps(event), zoneConfig),
-          completedWithStravaActivity:
-            paired != null && isStravaActivity(paired),
-        },
-      },
-    };
-  });
-
-  const races = raceEvents.map(({ event, race }): SortableItem => {
-    const paired = byEventId.get(event.id)?.activity;
-
-    return {
-      startDateLocal: event.start_date_local,
-      item: {
-        kind: 'race',
-        race,
-        ...(paired && { activity: toUnplannedActivity(paired) }),
-      },
-    };
-  });
-
-  const items = [...races, ...workouts, ...unplanned]
+function toSortedStoredItems(
+  items: PairedCalendarItem<TileActivityField>[],
+  zoneConfig: ZoneConfig,
+): StoredCalendarItem[] {
+  return items
+    .map(item => toSortableItem(item, zoneConfig))
     .sort(compareItems)
     .map(({ item }) => item);
+}
 
-  return { items, completedEventIds: [...completedEventIds] };
+function toSortableItem(
+  paired: PairedCalendarItem<TileActivityField>,
+  zoneConfig: ZoneConfig,
+): SortableItem {
+  switch (paired.kind) {
+    case 'workout': {
+      const { event, activity } = paired;
+      const startDateLocal =
+        activity?.start_date_local ?? event.start_date_local;
+
+      return {
+        startDateLocal,
+        item: {
+          kind: 'workout',
+          workout: {
+            id: event.id,
+            name: event.name,
+            date: toDate(startDateLocal),
+            durationSeconds: plannedDurationSeconds(event),
+            blocks: buildWorkoutProfile(rideSteps(event), zoneConfig),
+            completedWithStravaActivity:
+              activity != null && isStravaActivity(activity),
+          },
+        },
+      };
+    }
+    case 'race':
+      return {
+        startDateLocal: paired.event.start_date_local,
+        item: {
+          kind: 'race',
+          race: paired.race,
+          ...(paired.activity && {
+            activity: toUnplannedActivity(paired.activity),
+          }),
+        },
+      };
+    case 'activity':
+      return {
+        startDateLocal: paired.activity.start_date_local,
+        item: {
+          kind: 'activity',
+          activity: toUnplannedActivity(paired.activity),
+        },
+      };
+  }
 }
 
 const WORKOUT_BEFORE_ACTIVITY_AT_SAME_START = { workout: 0, activity: 1 };
@@ -172,7 +368,9 @@ export function calendarItemKey(item: StoredCalendarItem): string {
   }
 }
 
-function toUnplannedActivity(source: IntervalsActivity): UnplannedActivity {
+function toUnplannedActivity(
+  source: PairedActivity<TileActivityField>,
+): UnplannedActivity {
   const activity: UnplannedActivityBase = {
     id: source.id,
     date: toDate(source.start_date_local),
@@ -190,7 +388,7 @@ function positiveOrUndefined(value: number | undefined): number | undefined {
   return isFiniteNumber(value) && value > 0 ? value : undefined;
 }
 
-export function withWorkoutStatus(
+function withWorkoutStatus(
   item: StoredCalendarItem,
   completedEventIds: ReadonlySet<number>,
   today: LocalDateString,
@@ -204,6 +402,20 @@ export function withWorkoutStatus(
       status: workoutStatus(item.workout, completedEventIds, today),
     },
   };
+}
+
+export function withItemStatuses(
+  { itemsByDate, completedEventIds }: StoredCalendarItems,
+  today: LocalDateString,
+): CalendarItemsByDate {
+  const completed = new Set(completedEventIds);
+  const result: CalendarItemsByDate = {};
+
+  for (const [date, items] of Object.entries(itemsByDate)) {
+    result[date] = items.map(item => withWorkoutStatus(item, completed, today));
+  }
+
+  return result;
 }
 
 export interface ActivityMetric {

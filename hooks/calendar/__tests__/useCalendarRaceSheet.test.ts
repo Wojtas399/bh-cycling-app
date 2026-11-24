@@ -1,7 +1,7 @@
 import { useCalendarRaceSheet } from '../useCalendarRaceSheet';
 import { useDaySheet } from '../useDaySheet';
 import type { CalendarDay } from '@/lib/calendarGrid';
-import type { CalendarData } from '@/lib/calendarWorkouts';
+import type { CalendarData } from '@/lib/calendarMonth';
 import type { Race } from '@/lib/races';
 import { act, renderHook } from '@testing-library/react-native';
 

@@ -4,7 +4,7 @@ import {
   endOfMonth,
   startOfMonth,
   toYearMonth,
-} from '@/lib/calendarWorkouts';
+} from '@/lib/localDate';
 
 export interface UseMonthlyCalendarResult extends CalendarRangeView {
   month: Date;

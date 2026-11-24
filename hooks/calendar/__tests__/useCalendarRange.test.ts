@@ -4,9 +4,7 @@ import {
 } from '../useCalendarRange';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 import { useToday } from '@/hooks/useToday';
-import { calendarItemKey } from '@/lib/calendarItems';
-import * as calendarWorkouts from '@/lib/calendarWorkouts';
-import { endOfMonth, startOfMonth, toYearMonth } from '@/lib/calendarWorkouts';
+import * as calendarItems from '@/lib/calendarItems';
 import * as combineMonthResultsModule from '@/lib/combineMonthResults';
 import {
   type IntervalsActivity,
@@ -16,7 +14,13 @@ import {
   getCalendarEvents,
 } from '@/lib/intervalsApi';
 import { intervalsKeys } from '@/lib/intervalsQueries';
-import { addDays, toLocalDateString } from '@/lib/localDate';
+import {
+  addDays,
+  endOfMonth,
+  startOfMonth,
+  toLocalDateString,
+  toYearMonth,
+} from '@/lib/localDate';
 import { restoreDefaultFocus } from '@/test-utils/focus';
 import {
   createTestQueryClient,
@@ -226,6 +230,33 @@ describe('useCalendarRange', () => {
           status: 'planned',
           blocks: [],
           completedWithStravaActivity: false,
+        },
+      },
+    ]);
+  });
+
+  it("falls back to Coggan's zones and still shows the Workout when the athlete settings fail", async () => {
+    mockConnected();
+    mockGetAthleteSettings.mockRejectedValue(new Error('settings unavailable'));
+    mockGetCalendarEvents.mockResolvedValue([
+      event({
+        id: 1,
+        workout_doc: {
+          duration: 3600,
+          steps: [{ duration: 3600, power: { units: 'power_zone', value: 2 } }],
+        },
+      }),
+    ]);
+
+    const { result } = await renderHookWithClient(() =>
+      useCalendarRange(monthConfig),
+    );
+
+    await waitFor(() => expect(result.current.query.data).toBeDefined());
+    expect(result.current.query.data?.itemsByDate[today]).toMatchObject([
+      {
+        workout: {
+          blocks: [{ widthFraction: 1, minPct: 55, maxPct: 75, zone: 2 }],
         },
       },
     ]);
@@ -448,7 +479,9 @@ describe('useCalendarRange', () => {
 
     await waitFor(() => expect(result.current.refreshing).toBe(true));
     expect(
-      result.current.query.data?.itemsByDate[today].map(calendarItemKey),
+      result.current.query.data?.itemsByDate[today].map(
+        calendarItems.calendarItemKey,
+      ),
     ).toEqual(['workout-1']);
 
     await act(async () => {
@@ -457,7 +490,9 @@ describe('useCalendarRange', () => {
 
     await waitFor(() => expect(result.current.refreshing).toBe(false));
     expect(
-      result.current.query.data?.itemsByDate[today].map(calendarItemKey),
+      result.current.query.data?.itemsByDate[today].map(
+        calendarItems.calendarItemKey,
+      ),
     ).toEqual(['workout-2']);
     expect(monthFetches()).toBe(2);
   });
@@ -728,7 +763,7 @@ describe('useCalendarRange', () => {
   it('does not derive the statuses again while today stays the same', async () => {
     mockConnected();
     mockGetCalendarEvents.mockResolvedValue([event({ id: 1 })]);
-    const derive = jest.spyOn(calendarWorkouts, 'withItemStatuses');
+    const derive = jest.spyOn(calendarItems, 'withItemStatuses');
 
     const { result, rerender } = await renderHookWithClient(() =>
       useCalendarRange(monthConfig),
