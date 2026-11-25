@@ -6,6 +6,7 @@ import theme from '@/constants/theme';
 import { useAuthState } from '@/hooks/useAuthState';
 import '@/i18n';
 import { setupAppFocus } from '@/lib/appFocus';
+import { startErrorReporting } from '@/lib/errorReporting';
 import { queryClient } from '@/lib/queryClient';
 import { hideSplashScreen } from '@/lib/splashScreen';
 import { ToastHost } from '@/lib/toast/ToastHost';
@@ -26,6 +27,7 @@ function keepSystemGlassSheetsAndAlertsDark() {
   Appearance.setColorScheme('dark');
 }
 
+startErrorReporting();
 keepSystemGlassSheetsAndAlertsDark();
 SplashScreen.preventAutoHideAsync();
 setupAppFocus();
