@@ -153,6 +153,7 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
     '@react-native-firebase/app',
     '@react-native-google-signin/google-signin',
     '@maplibre/maplibre-react-native',
+    '@sentry/react-native',
   ],
   experiments: {
     typedRoutes: true,
