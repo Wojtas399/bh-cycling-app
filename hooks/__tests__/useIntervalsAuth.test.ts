@@ -2,6 +2,7 @@ import { Alert, type AlertButton } from 'react-native';
 
 import { useIntervalsAuth } from '../useIntervalsAuth';
 import { useIntervalsConnection } from '../useIntervalsConnection';
+import { reportError } from '@/lib/errorReporting';
 import {
   getNeedsReconnect,
   setNeedsReconnect,
@@ -34,6 +35,10 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@/lib/firebase', () => ({
   functions: () => ({ httpsCallable: mockHttpsCallable }),
+}));
+
+jest.mock('@/lib/errorReporting', () => ({
+  reportError: jest.fn(),
 }));
 
 jest.mock('@/lib/toast', () => ({
@@ -70,6 +75,7 @@ async function confirmDisconnect(
 }
 
 const mockToast = jest.mocked(toast);
+const mockReportError = jest.mocked(reportError);
 const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
@@ -295,6 +301,42 @@ describe('useIntervalsAuth', () => {
       expect(mockToast.error).not.toHaveBeenCalled();
       expect(result.current.connecting).toBe(false);
     });
+
+    it('reports a failed exchange to Sentry', async () => {
+      const failure = new Error('boom');
+
+      mockHttpsCallable.mockReturnValue(jest.fn().mockRejectedValue(failure));
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleConnect();
+      });
+
+      await waitFor(() => expect(result.current.connecting).toBe(false));
+      expect(mockReportError).toHaveBeenCalledTimes(1);
+      expect(mockReportError).toHaveBeenCalledWith(failure);
+    });
+
+    it.each(['cancel', 'dismiss'])(
+      "doesn't report a consent window the athlete closed with %s",
+      async type => {
+        mockPromptAsync.mockResolvedValue({ type });
+
+        const { result } = await renderAuth();
+
+        await act(async () => {
+          result.current.handleConnect();
+        });
+
+        expect(result.current.connecting).toBe(false);
+        expect(mockReportError).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('handleDisconnect', () => {
