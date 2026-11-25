@@ -222,7 +222,7 @@ export function weekView(
   );
 
   return {
-    laneCount: 0,
+    laneCount: notes.lanes.length,
     days: days.map(day => {
       const isToday = day.date === today;
 
@@ -232,7 +232,7 @@ export function weekView(
         weekday: words.weekdaysShort[day.weekday].toUpperCase(),
         isToday,
         railLabel: isToday ? words.todayRail(words.day(day)) : words.day(day),
-        crossings: [],
+        crossings: notes.days[day.date].crossings,
         rows: [
           ...notes.days[day.date].rows.map(row => noteRow(row, day, words)),
           ...itemRows(data.itemsByDate[day.date] ?? [], words),

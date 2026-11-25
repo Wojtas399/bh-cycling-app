@@ -857,8 +857,32 @@ describe('weekView', () => {
       expect(dayOn(week, WED).rows.map(row => row.kind)).toEqual(['rest']);
       expect(dayOn(week, THU).rows.map(row => row.kind)).toEqual(['rest']);
     });
+
+    it('runs a multi-day Note’s lane from its first to its last day, starting and ending there', () => {
+      const obozTuesdayToThursday = note({ id: 1, start: TUE, end: FRI });
+      const oboz = obozTuesdayToThursday;
+
+      const week = weekWith([oboz]);
+
+      expect(week.laneCount).toBe(1);
+      expect(crossingsByDay(week)).toEqual({
+        [MON]: [],
+        [TUE]: [{ note: oboz, lane: 0, starts: true, ends: false }],
+        [WED]: [{ note: oboz, lane: 0, starts: false, ends: false }],
+        [THU]: [{ note: oboz, lane: 0, starts: false, ends: true }],
+        [FRI]: [],
+        [SAT]: [],
+        [SUN]: [],
+      });
+    });
   });
 });
+
+function crossingsByDay({
+  days,
+}: ReturnType<typeof weekView>): Record<LocalDateString, WeekDay['crossings']> {
+  return Object.fromEntries(days.map(day => [day.date, day.crossings]));
+}
 
 function dayOn(
   { days }: ReturnType<typeof weekView>,
