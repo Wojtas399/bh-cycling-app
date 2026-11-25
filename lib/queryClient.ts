@@ -2,7 +2,7 @@ import { reportError } from './errorReporting';
 import { handleIntervalsAuthError } from './handleIntervalsAuthError';
 import { ignoreFailure } from './ignoreFailure';
 import { IntervalsAuthError } from './intervalsApi';
-import { QueryCache, QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
 const KEPT_FOR_THE_SESSION_UNTIL_REFRESHED = {
   staleTime: Infinity,
@@ -21,6 +21,9 @@ export function createQueryClient(): QueryClient {
 
         reportError(error);
       },
+    }),
+    mutationCache: new MutationCache({
+      onError: error => reportError(error),
     }),
     defaultOptions: {
       queries: {

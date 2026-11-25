@@ -4,6 +4,7 @@ import { ignoreFailure } from '../ignoreFailure';
 import { IntervalsAuthError } from '../intervalsApi';
 import { removeIntervalsQueries } from '../intervalsQueries';
 import { createQueryClient } from '../queryClient';
+import { MutationObserver } from '@tanstack/react-query';
 
 jest.mock('../handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
@@ -80,6 +81,19 @@ describe('createQueryClient', () => {
         queryFn: () => Promise.reject(error),
       }),
     ).rejects.toBe(error);
+
+    expect(mockReportError).toHaveBeenCalledTimes(1);
+    expect(mockReportError).toHaveBeenCalledWith(error);
+  });
+
+  it('reports an unexpected mutation error once', async () => {
+    const client = createQueryClient();
+    const error = new Error('delete failed');
+    const mutation = new MutationObserver(client, {
+      mutationFn: () => Promise.reject(error),
+    });
+
+    await expect(mutation.mutate()).rejects.toBe(error);
 
     expect(mockReportError).toHaveBeenCalledTimes(1);
     expect(mockReportError).toHaveBeenCalledWith(error);
