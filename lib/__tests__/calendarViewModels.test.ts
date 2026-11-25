@@ -900,8 +900,201 @@ describe('weekView', () => {
         day: expect.objectContaining({ date: THU }),
       });
     });
+
+    it('titles an untitled Note’s row, and reads it, with the untitled fallback', () => {
+      const untitled = note({ id: 1, name: null, start: WED, end: THU });
+
+      expect(dayOn(weekWith([untitled]), WED).rows).toEqual([
+        expect.objectContaining({
+          title: 'Untitled',
+          label: `Note Untitled, day ${WED}`,
+        }),
+        expect.objectContaining({ kind: 'rest' }),
+      ]);
+    });
+
+    it('lists a Note carried in from last week on Monday only, its lane running off the top', () => {
+      const blokFromLastWeekToTuesday = note({
+        id: 1,
+        name: 'Blok',
+        start: '2026-10-12',
+        end: WED,
+      });
+      const blok = blokFromLastWeekToTuesday;
+
+      const week = weekWith([blok]);
+
+      expect(crossingsByDay(week)).toMatchObject({
+        [MON]: [{ note: blok, lane: 0, starts: false, ends: false }],
+        [TUE]: [{ note: blok, lane: 0, starts: false, ends: true }],
+      });
+      expect(noteKeysByDay(week)).toMatchObject({
+        [MON]: ['note-1'],
+        [TUE]: [],
+      });
+      expect(dayOn(week, MON).rows[0]).toMatchObject({
+        shortRange: '12.10 – 20.10',
+        label: 'Note Blok, 12 – 20 October',
+      });
+    });
+
+    it('runs a Note going into next week off the bottom on Sunday', () => {
+      const wyjazdFromFridayToNextTuesday = note({
+        id: 1,
+        start: FRI,
+        end: '2026-10-28',
+      });
+      const wyjazd = wyjazdFromFridayToNextTuesday;
+
+      const week = weekWith([wyjazd]);
+
+      expect(crossingsByDay(week)).toMatchObject({
+        [FRI]: [{ note: wyjazd, lane: 0, starts: true, ends: false }],
+        [SUN]: [{ note: wyjazd, lane: 0, starts: false, ends: false }],
+      });
+      expect(noteKeysByDay(week)[FRI]).toEqual(['note-1']);
+    });
+
+    it('keeps each overlapping multi-day Note in its own lane all week, in id order, even once the lanes below it are free', () => {
+      const blok = note({ id: 1, start: '2026-10-12', end: FRI });
+      const chory = note({ id: 2, start: TUE, end: THU });
+      const wyjazd = note({ id: 3, start: WED, end: '2026-10-28' });
+
+      const week = weekWith([blok, chory, wyjazd]);
+      const lanes = (date: LocalDateString) =>
+        dayOn(week, date).crossings.map(({ note: { id }, lane }) => [id, lane]);
+
+      expect(week.laneCount).toBe(3);
+      expect(lanes(MON)).toEqual([[1, 0]]);
+      expect(lanes(TUE)).toEqual([
+        [1, 0],
+        [2, 1],
+      ]);
+      expect(lanes(WED)).toEqual([
+        [1, 0],
+        [2, 1],
+        [3, 2],
+      ]);
+      expect(lanes(FRI)).toEqual([[3, 2]]);
+      expect(lanes(SUN)).toEqual([[3, 2]]);
+    });
+
+    it('lays out Notes on Sunday only', () => {
+      const wyjazdIntoNextWeek = note({ id: 1, start: SUN, end: '2026-10-28' });
+      const wolne = note({ id: 2, start: SUN, end: '2026-10-26' });
+
+      const week = weekWith([wyjazdIntoNextWeek, wolne]);
+
+      expect(week.laneCount).toBe(1);
+      expect(dayOn(week, SAT)).toMatchObject({
+        crossings: [],
+        rows: [{ kind: 'rest' }],
+      });
+      expect(dayOn(week, SUN)).toMatchObject({
+        crossings: [
+          { note: wyjazdIntoNextWeek, lane: 0, starts: true, ends: false },
+        ],
+        rows: [
+          { kind: 'note', note: wyjazdIntoNextWeek, multiDay: true },
+          { kind: 'note', note: wolne, multiDay: false },
+          { kind: 'rest' },
+        ],
+      });
+    });
+
+    it('stops hiding Notes on a day where two or fewer start', () => {
+      const notes = [
+        note({ id: 1, start: THU, end: FRI }),
+        note({ id: 2, start: THU, end: FRI }),
+        note({ id: 3, start: THU, end: FRI }),
+        note({ id: 4, start: THU, end: FRI }),
+        note({ id: 5, start: FRI, end: SAT }),
+        note({ id: 6, start: FRI, end: SAT }),
+      ];
+
+      expect(dayOn(weekWith(notes), FRI).rows.map(row => row.key)).toEqual([
+        'note-5',
+        'note-6',
+        'rest',
+      ]);
+    });
+
+    it('lists first-day multi-day Notes before single-day ones, each in id order', () => {
+      const singleDay = note({ id: 1, start: WED, end: THU });
+      const multiDayFromWednesday = note({ id: 2, start: WED, end: SAT });
+      const anotherSingleDay = note({ id: 3, start: WED, end: THU });
+      const multiDayFromTuesdayWithNoRowOnWednesday = note({
+        id: 4,
+        start: TUE,
+        end: FRI,
+      });
+      const anotherMultiDayFromWednesday = note({
+        id: 5,
+        start: WED,
+        end: FRI,
+      });
+
+      const wednesday = dayOn(
+        weekWith([
+          singleDay,
+          multiDayFromWednesday,
+          anotherSingleDay,
+          multiDayFromTuesdayWithNoRowOnWednesday,
+          anotherMultiDayFromWednesday,
+        ]),
+        WED,
+      );
+
+      expect(wednesday.rows).toEqual([
+        expect.objectContaining({ note: multiDayFromWednesday }),
+        expect.objectContaining({ note: anotherMultiDayFromWednesday }),
+        expect.objectContaining({ kind: 'moreNotes', count: 2 }),
+        expect.objectContaining({ kind: 'rest' }),
+      ]);
+    });
+
+    it('leaves out Notes that ended before Monday or start after Sunday', () => {
+      const endedOnTheSundayBefore = note({
+        id: 1,
+        start: '2026-10-10',
+        end: MON,
+      });
+      const nextWeekOnly = note({
+        id: 2,
+        start: '2026-10-26',
+        end: '2026-10-29',
+      });
+      const singleDayOnTheSundayBefore = note({
+        id: 3,
+        start: '2026-10-18',
+        end: MON,
+      });
+
+      const week = weekWith([
+        endedOnTheSundayBefore,
+        nextWeekOnly,
+        singleDayOnTheSundayBefore,
+      ]);
+
+      expect(week.laneCount).toBe(0);
+      expect(
+        week.days.flatMap(day => [...day.crossings, ...noteRowsOf(day)]),
+      ).toEqual([]);
+    });
   });
 });
+
+function noteRowsOf(day: WeekDay): WeekDay['rows'] {
+  return day.rows.filter(row => row.kind === 'note');
+}
+
+function noteKeysByDay({
+  days,
+}: ReturnType<typeof weekView>): Record<LocalDateString, string[]> {
+  return Object.fromEntries(
+    days.map(day => [day.date, noteRowsOf(day).map(row => row.key)]),
+  );
+}
 
 function crossingsByDay({
   days,
