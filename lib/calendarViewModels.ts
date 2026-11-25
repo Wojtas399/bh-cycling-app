@@ -180,15 +180,19 @@ export function weekView(
 ): WeekViewModel {
   return {
     laneCount: 0,
-    days: getWeekDays(week).map(day => ({
-      date: day.date,
-      dayOfMonth: day.dayOfMonth,
-      weekday: words.weekdaysShort[day.weekday].toUpperCase(),
-      isToday: day.date === today,
-      railLabel: words.day(day),
-      crossings: [],
-      rows: [{ kind: 'rest', key: 'rest', press: undefined }],
-      press: { kind: 'day', day },
-    })),
+    days: getWeekDays(week).map(day => {
+      const isToday = day.date === today;
+
+      return {
+        date: day.date,
+        dayOfMonth: day.dayOfMonth,
+        weekday: words.weekdaysShort[day.weekday].toUpperCase(),
+        isToday,
+        railLabel: isToday ? words.todayRail(words.day(day)) : words.day(day),
+        crossings: [],
+        rows: [{ kind: 'rest', key: 'rest', press: undefined }],
+        press: { kind: 'day', day },
+      };
+    }),
   };
 }

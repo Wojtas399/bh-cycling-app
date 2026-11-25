@@ -533,6 +533,22 @@ describe('weekView', () => {
       },
     });
   });
+
+  it('marks today, and only today, as today, and says so on its date rail', () => {
+    const { days } = weekView(WEEK, NOTHING, THU, WEEK_WORDS);
+
+    expect(
+      days.map(({ date, isToday, railLabel }) => [date, isToday, railLabel]),
+    ).toEqual([
+      [MON, false, `day ${MON}`],
+      [TUE, false, `day ${TUE}`],
+      [WED, false, `day ${WED}`],
+      [THU, true, `day ${THU}, today`],
+      [FRI, false, `day ${FRI}`],
+      [SAT, false, `day ${SAT}`],
+      [SUN, false, `day ${SUN}`],
+    ]);
+  });
 });
 
 function hiddenNoteCounts(row: MonthRow): Record<LocalDateString, number> {
