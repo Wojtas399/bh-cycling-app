@@ -4,13 +4,19 @@ import {
   dayMarkers,
   formatDayLabel,
 } from './calendarDayCounts';
-import { type CalendarDay, getMonthGrid } from './calendarGrid';
-import type {
-  CalendarItem,
-  RaceItem,
-  UnplannedActivity,
+import { type CalendarDay, getMonthGrid, getWeekDays } from './calendarGrid';
+import {
+  type CalendarItem,
+  type RaceItem,
+  type UnplannedActivity,
+  calendarItemKey,
 } from './calendarItems';
 import type { CalendarData } from './calendarMonth';
+import {
+  type CompactItemRow,
+  type CompactItemRowWords,
+  compactItemRow,
+} from './compactItemRow';
 import {
   type LocalDateString,
   eachDate,
@@ -18,14 +24,33 @@ import {
   startOfMonth,
 } from './localDate';
 import { type NoteBarSegment, layoutNoteRow } from './noteBars';
+import {
+  type MonthNamesFromJanuary,
+  type WeekdayNamesFromMonday,
+  formatNoteRange,
+  formatNoteShortRange,
+} from './noteDates';
 import type { Note } from './notes';
 import type { Race } from './races';
+import { type LaneCrossing, type NoteRow, weekNotes } from './weekNotes';
 import type { CalendarWorkout } from './workoutStatus';
 
 export interface MonthWords {
   day: (day: CalendarDay) => string;
   dayCounts: DayCountLabels;
   untitledNote: string;
+}
+
+export interface WeekWords
+  extends Pick<MonthWords, 'day' | 'untitledNote'>, CompactItemRowWords {
+  weekdaysShort: WeekdayNamesFromMonday;
+  monthNamesGenitive: MonthNamesFromJanuary;
+  todayRail: (dayLabel: string) => string;
+  noteLabel: (title: string, when: string) => string;
+  moreNotes: {
+    shown: (count: number) => string;
+    spoken: (count: number) => string;
+  };
 }
 
 export interface DayPressTarget {
@@ -116,6 +141,169 @@ export function monthView(
   });
 }
 
-function noteTitle(note: Note, words: MonthWords): string {
+function noteTitle(
+  note: Note,
+  words: Pick<MonthWords, 'untitledNote'>,
+): string {
   return note.name ?? words.untitledNote;
+}
+
+export interface RestRow {
+  kind: 'rest';
+  key: 'rest';
+  press: undefined;
+}
+
+export interface ItemRow extends CompactItemRow {
+  kind: 'item';
+  key: string;
+  press: CalendarPressTarget | undefined;
+}
+
+export type WeekNoteRow = {
+  kind: 'note';
+  key: string;
+  note: Note;
+  title: string;
+  label: string;
+  press: { kind: 'note'; note: Note };
+} & ({ multiDay: false } | { multiDay: true; shortRange: string });
+
+export interface MoreNotesRow {
+  kind: 'moreNotes';
+  key: 'more-notes';
+  count: number;
+  text: string;
+  label: string;
+  press: DayPressTarget;
+}
+
+export type WeekRow = WeekNoteRow | MoreNotesRow | ItemRow | RestRow;
+
+export interface WeekDay {
+  date: LocalDateString;
+  dayOfMonth: number;
+  weekday: string;
+  isToday: boolean;
+  railLabel: string;
+  crossings: LaneCrossing[];
+  rows: WeekRow[];
+  press: DayPressTarget;
+}
+
+export interface WeekViewModel {
+  laneCount: number;
+  days: WeekDay[];
+}
+
+export function weekView(
+  week: Date,
+  data: CalendarData,
+  today: LocalDateString,
+  words: WeekWords,
+): WeekViewModel {
+  const days = getWeekDays(week);
+  const notes = weekNotes(
+    data.notes,
+    days.map(day => day.date),
+  );
+
+  return {
+    laneCount: notes.lanes.length,
+    days: days.map(day => {
+      const isToday = day.date === today;
+      const dayLabel = words.day(day);
+      const { crossings, rows, hiddenCount } = notes.days[day.date];
+      const press: DayPressTarget = { kind: 'day', day };
+
+      return {
+        date: day.date,
+        dayOfMonth: day.dayOfMonth,
+        weekday: words.weekdaysShort[day.weekday].toUpperCase(),
+        isToday,
+        railLabel: isToday ? words.todayRail(dayLabel) : dayLabel,
+        crossings,
+        rows: [
+          ...rows.map(row => noteRow(row, dayLabel, words)),
+          ...moreNotesRows(hiddenCount, press, words),
+          ...itemRowsOrRest(data.itemsByDate[day.date] ?? [], words),
+        ],
+        press,
+      };
+    }),
+  };
+}
+
+function noteRow(
+  { note, multiDay }: NoteRow,
+  dayLabel: string,
+  words: WeekWords,
+): WeekNoteRow {
+  const title = noteTitle(note, words);
+  const when = multiDay
+    ? formatNoteRange(note, words.monthNamesGenitive)
+    : dayLabel;
+
+  return {
+    kind: 'note',
+    key: `note-${note.id}`,
+    note,
+    title,
+    label: words.noteLabel(title, when),
+    press: { kind: 'note', note },
+    ...(multiDay
+      ? { multiDay, shortRange: formatNoteShortRange(note) }
+      : { multiDay }),
+  };
+}
+
+function moreNotesRows(
+  count: number,
+  press: DayPressTarget,
+  words: WeekWords,
+): MoreNotesRow[] {
+  if (count === 0) return [];
+
+  return [
+    {
+      kind: 'moreNotes',
+      key: 'more-notes',
+      count,
+      text: words.moreNotes.shown(count),
+      label: words.moreNotes.spoken(count),
+      press,
+    },
+  ];
+}
+
+function itemRowsOrRest(items: CalendarItem[], words: WeekWords): WeekRow[] {
+  if (items.length === 0) {
+    return [{ kind: 'rest', key: 'rest', press: undefined }];
+  }
+
+  return items.map(item => itemRow(item, words));
+}
+
+function itemRow(item: CalendarItem, words: WeekWords): ItemRow {
+  return {
+    kind: 'item',
+    key: calendarItemKey(item),
+    ...compactItemRow(item, words),
+    press: itemPress(item),
+  };
+}
+
+function itemPress(item: CalendarItem): CalendarPressTarget | undefined {
+  switch (item.kind) {
+    case 'workout':
+      return { kind: 'workout', workout: item.workout };
+    case 'race':
+      return item.activity
+        ? { kind: 'activity', activity: item.activity }
+        : { kind: 'race', race: item.race };
+    case 'activity':
+      return item.activity.isStravaActivity
+        ? undefined
+        : { kind: 'activity', activity: item.activity };
+  }
 }
