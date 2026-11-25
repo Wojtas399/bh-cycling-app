@@ -261,7 +261,9 @@ function itemPress(item: CalendarItem): CalendarPressTarget | undefined {
     case 'workout':
       return { kind: 'workout', workout: item.workout };
     case 'race':
-      return undefined;
+      return item.activity
+        ? { kind: 'activity', activity: item.activity }
+        : { kind: 'race', race: item.race };
     case 'activity':
       return item.activity.isStravaActivity
         ? undefined

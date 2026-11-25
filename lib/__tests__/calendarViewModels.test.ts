@@ -637,6 +637,60 @@ describe('weekView', () => {
         },
       ]);
     });
+
+    it('shows an unpaired Race’s priority, name and planned duration, reads them, and opens the Race', () => {
+      const race = raceItem({
+        id: 7,
+        name: 'Mazovia Maraton',
+        priority: 'B',
+        date: WED,
+        durationSeconds: 7200,
+      });
+
+      expect(rowsOn(WED, [race])).toEqual([
+        {
+          kind: 'item',
+          key: 'race-7',
+          display: { kind: 'race', priority: 'B', paired: false },
+          title: 'Mazovia Maraton',
+          figures: '7200s',
+          label: 'B race, Mazovia Maraton, 7200 seconds',
+          press: { kind: 'race', race: race.race },
+        },
+      ]);
+    });
+
+    it('shows a paired Race as raced, with its own name but the Activity’s figures, and opens the Activity', () => {
+      const raced = unplannedActivity({
+        id: 'raced',
+        name: 'Morning Ride',
+        date: WED,
+        durationSeconds: 10920,
+        load: 209.7,
+      });
+      const race = raceItem(
+        {
+          id: 7,
+          name: 'Mazovia Maraton',
+          priority: 'A',
+          date: WED,
+          durationSeconds: 7200,
+        },
+        raced,
+      );
+
+      expect(rowsOn(WED, [race])).toEqual([
+        {
+          kind: 'item',
+          key: 'race-7',
+          display: { kind: 'race', priority: 'A', paired: true },
+          title: 'Mazovia Maraton',
+          figures: '10920s · TL 210',
+          label: 'A race, raced, Mazovia Maraton, 10920 seconds, load 210',
+          press: { kind: 'activity', activity: raced },
+        },
+      ]);
+    });
   });
 });
 
