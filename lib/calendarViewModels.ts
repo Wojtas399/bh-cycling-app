@@ -5,7 +5,11 @@ import {
   formatDayLabel,
 } from './calendarDayCounts';
 import { type CalendarDay, getMonthGrid } from './calendarGrid';
-import type { CalendarItem, RaceItem } from './calendarItems';
+import type {
+  CalendarItem,
+  RaceItem,
+  UnplannedActivity,
+} from './calendarItems';
 import type { CalendarData } from './calendarMonth';
 import {
   type LocalDateString,
@@ -15,6 +19,8 @@ import {
 } from './localDate';
 import { type NoteBarSegment, layoutNoteRow } from './noteBars';
 import type { Note } from './notes';
+import type { Race } from './races';
+import type { CalendarWorkout } from './workoutStatus';
 
 export interface MonthWords {
   day: (day: CalendarDay) => string;
@@ -26,6 +32,13 @@ export interface DayPressTarget {
   kind: 'day';
   day: CalendarDay;
 }
+
+export type CalendarPressTarget =
+  | { kind: 'workout'; workout: CalendarWorkout }
+  | { kind: 'activity'; activity: UnplannedActivity }
+  | { kind: 'race'; race: Race }
+  | { kind: 'note'; note: Note }
+  | DayPressTarget;
 
 export interface NeighbouringMonthCell {
   inMonth: false;

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { TouchableOpacity, View } from 'react-native';
 
 import Box from '@/components/Box';
@@ -8,31 +7,21 @@ import WorkoutStatusDot from '@/components/WorkoutStatusDot';
 import CalendarDayTile, {
   TILE_GAP,
 } from '@/components/calendar/CalendarDayTile';
-import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import { useCalendarWords } from '@/components/calendar/useCalendarWords';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { RACE_RANKS } from '@/components/race/raceRanks';
 import { useAppTheme } from '@/constants/theme';
-import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
-import { dayCounts, dayMarkers, formatDayLabel } from '@/lib/calendarDayCounts';
+import { type CalendarItemsByDate, calendarItemKey } from '@/lib/calendarItems';
 import {
-  type CalendarDay,
-  type CalendarGridCell,
-  getMonthGrid,
-} from '@/lib/calendarGrid';
-import {
-  type CalendarItemsByDate,
-  type RaceItem,
-  calendarItemKey,
-} from '@/lib/calendarItems';
-import type { CalendarData } from '@/lib/calendarMonth';
-import { eachDate, endOfMonth, startOfMonth } from '@/lib/localDate';
-import {
-  type NoteBarSegment,
-  type NoteRowLayout,
-  layoutNoteRow,
-  noteBarInsets,
-} from '@/lib/noteBars';
+  type CalendarPressTarget,
+  type InMonthCell,
+  type MonthNoteBar,
+  type MonthRow,
+  type NeighbouringMonthCell,
+  monthView,
+} from '@/lib/calendarViewModels';
+import { noteBarInsets } from '@/lib/noteBarInsets';
 import { noteFill, noteLabelColor } from '@/lib/noteColors';
 import type { Note } from '@/lib/notes';
 
@@ -54,30 +43,21 @@ export interface CalendarMonthGridProps {
   month: Date;
   itemsByDate: CalendarItemsByDate;
   notes: Note[];
-  onDayPress: (day: CalendarDay) => void;
+  onPress: (target: CalendarPressTarget) => void;
 }
 
 export default function CalendarMonthGrid({
   month,
   itemsByDate,
   notes,
-  onDayPress,
+  onPress,
 }: CalendarMonthGridProps) {
-  const labels = useCalendarLabels();
+  const words = useCalendarWords();
   const today = useToday();
-  const data = useMemo(() => ({ itemsByDate, notes }), [itemsByDate, notes]);
-  const rows = useMemo(() => {
-    const monthDates = eachDate(startOfMonth(month), endOfMonth(month));
-
-    return getMonthGrid(month).map(week => ({
-      week,
-      layout: layoutNoteRow(
-        week.map(cell => cell.date),
-        monthDates,
-        notes,
-      ),
-    }));
-  }, [month, notes]);
+  const rows = useMemo(
+    () => monthView(month, { itemsByDate, notes }, today, words),
+    [month, itemsByDate, notes, today, words],
+  );
 
   return (
     <Box
@@ -87,7 +67,7 @@ export default function CalendarMonthGrid({
       testID="calendar-month-grid"
     >
       <Box flexDirection="row" marginBottom="sm" style={{ gap: TILE_GAP }}>
-        {labels.weekdaysShort.map(weekday => (
+        {words.weekdaysShort.map(weekday => (
           <Text
             key={weekday}
             variant="body-xs-medium"
@@ -101,15 +81,8 @@ export default function CalendarMonthGrid({
       </Box>
 
       <Box flex={1} style={{ gap: TILE_GAP }}>
-        {rows.map(({ week, layout }) => (
-          <GridRow
-            key={week[0].date}
-            week={week}
-            layout={layout}
-            data={data}
-            today={today}
-            onDayPress={onDayPress}
-          />
+        {rows.map(row => (
+          <GridRow key={row.cells[0].date} row={row} onPress={onPress} />
         ))}
       </Box>
     </Box>
@@ -117,16 +90,15 @@ export default function CalendarMonthGrid({
 }
 
 interface GridRowProps {
-  week: CalendarGridCell[];
-  layout: NoteRowLayout;
-  data: CalendarData;
-  today: string;
-  onDayPress: (day: CalendarDay) => void;
+  row: MonthRow;
+  onPress: (target: CalendarPressTarget) => void;
 }
 
-function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
+function GridRow({
+  row: { cells, noteBars, laneCount },
+  onPress,
+}: GridRowProps) {
   const theme = useAppTheme();
-  const laneCount = Math.max(0, ...layout.segments.map(s => s.lane + 1));
   const barsHeight =
     laneCount > 0 ? laneCount * BAR_HEIGHT + (laneCount - 1) * BAR_GAP : 0;
 
@@ -137,23 +109,20 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
       overflow="hidden"
       style={{ gap: TILE_GAP }}
     >
-      {week.map(cell =>
+      {cells.map(cell =>
         cell.inMonth ? (
           <GridCell
             key={cell.date}
             cell={cell}
-            data={data}
             rowNoteBarsHeight={barsHeight}
-            hiddenNoteCount={layout.overflowByDate[cell.date] ?? 0}
-            isToday={cell.date === today}
-            onDayPress={onDayPress}
+            onPress={onPress}
           />
         ) : (
-          <NeighbouringMonthCell key={cell.date} cell={cell} />
+          <NeighbouringMonthGridCell key={cell.date} cell={cell} />
         ),
       )}
 
-      {layout.segments.length > 0 && (
+      {noteBars.length > 0 && (
         <View
           {...DECORATION_LEAVING_TAP_AND_LABEL_TO_TILE}
           style={{
@@ -166,8 +135,8 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
             right: 0,
           }}
         >
-          {layout.segments.map(segment => (
-            <NoteBar key={segment.note.id} segment={segment} />
+          {noteBars.map(bar => (
+            <NoteBar key={bar.note.id} bar={bar} />
           ))}
         </View>
       )}
@@ -175,12 +144,11 @@ function GridRow({ week, layout, data, today, onDayPress }: GridRowProps) {
   );
 }
 
-function NoteBar({ segment }: { segment: NoteBarSegment }) {
-  const { note, lane, roundedStart, roundedEnd } = segment;
-  const noteTitle = useNoteTitle();
+function NoteBar({ bar }: { bar: MonthNoteBar }) {
+  const { note, lane, roundedStart, roundedEnd, title } = bar;
   const theme = useAppTheme();
   const radius = theme.borderRadii.sm;
-  const { left, right } = noteBarInsets(segment, TILE_GAP);
+  const { left, right } = noteBarInsets(bar, TILE_GAP);
 
   return (
     <View
@@ -217,7 +185,7 @@ function NoteBar({ segment }: { segment: NoteBarSegment }) {
             paddingHorizontal: BAR_ROUNDED_END_INSET_FROM_CELL_EDGE,
           }}
         >
-          {noteTitle(note)}
+          {title}
         </Text>
       </View>
     </View>
@@ -225,33 +193,20 @@ function NoteBar({ segment }: { segment: NoteBarSegment }) {
 }
 
 interface GridCellProps {
-  cell: CalendarGridCell;
-  data: CalendarData;
+  cell: InMonthCell;
   rowNoteBarsHeight: number;
-  hiddenNoteCount: number;
-  isToday: boolean;
-  onDayPress: (day: CalendarDay) => void;
+  onPress: (target: CalendarPressTarget) => void;
 }
 
-function GridCell({
-  cell,
-  data,
-  rowNoteBarsHeight,
-  hiddenNoteCount,
-  isToday,
-  onDayPress,
-}: GridCellProps) {
-  const { races, markers, hasARace } = dayMarkers(
-    data.itemsByDate[cell.date] ?? [],
-  );
-  const label = useDayLabel(cell, data);
+function GridCell({ cell, rowNoteBarsHeight, onPress }: GridCellProps) {
+  const { isToday, races, markers, hasARace, hiddenNoteCount } = cell;
 
   return (
     <TouchableOpacity
       style={{ flex: 1 }}
-      onPress={() => onDayPress(cell)}
+      onPress={() => onPress(cell.press)}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={cell.label}
       testID={`calendar-day-${cell.date}`}
     >
       <CalendarDayTile
@@ -327,7 +282,7 @@ function GridCell({
   );
 }
 
-function RankIconsBesideDayNumber({ races }: { races: RaceItem[] }) {
+function RankIconsBesideDayNumber({ races }: { races: InMonthCell['races'] }) {
   return (
     <Box
       flex={1}
@@ -364,20 +319,7 @@ function ARaceRingOverTileEdge() {
   );
 }
 
-function useDayLabel(cell: CalendarGridCell, data: CalendarData): string {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.dayCounts' });
-  const labels = useCalendarLabels();
-
-  return formatDayLabel(labels.day(cell), dayCounts(data, cell.date), {
-    race: priority => t('race', { priority }),
-    races: (count, priorities) => t('races', { count, priorities }),
-    workouts: count => t('workouts', { count }),
-    activities: count => t('activities', { count }),
-    notes: count => t('notes', { count }),
-  });
-}
-
-function NeighbouringMonthCell({ cell }: { cell: CalendarGridCell }) {
+function NeighbouringMonthGridCell({ cell }: { cell: NeighbouringMonthCell }) {
   return (
     <Box flex={1} testID={`calendar-day-${cell.date}`}>
       <CalendarDayTile
