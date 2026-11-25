@@ -111,7 +111,7 @@ function WeekRowView({ row, onPress }: { row: WeekRow; onPress: OnPress }) {
     case 'item':
       return <ItemRowView row={row} onPress={onPress} />;
     case 'rest':
-      return <RestRow />;
+      return <RestRow text={row.text} />;
   }
 }
 
@@ -200,13 +200,11 @@ function DateRail({
   );
 }
 
-function RestRow() {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
-
+function RestRow({ text }: { text: string }) {
   return (
     <Box minHeight={ROW_MIN_TAP_TARGET_HEIGHT} justifyContent="center">
       <Text variant="body-s-regular" color="textTertiary">
-        {t('rest')}
+        {text}
       </Text>
     </Box>
   );

@@ -43,6 +43,7 @@ export interface WeekWords
   extends Pick<MonthWords, 'day' | 'untitledNote'>, CompactItemRowWords {
   weekdaysShort: WeekdayNamesFromMonday;
   monthNamesGenitive: MonthNamesFromJanuary;
+  rest: string;
   todayRail: (dayLabel: string) => string;
   noteLabel: (title: string, when: string) => string;
   moreNotes: {
@@ -151,6 +152,7 @@ function noteTitle(
 export interface RestRow {
   kind: 'rest';
   key: 'rest';
+  text: string;
   press: undefined;
 }
 
@@ -277,7 +279,7 @@ function moreNotesRows(
 
 function itemRowsOrRest(items: CalendarItem[], words: WeekWords): WeekRow[] {
   if (items.length === 0) {
-    return [{ kind: 'rest', key: 'rest', press: undefined }];
+    return [{ kind: 'rest', key: 'rest', text: words.rest, press: undefined }];
   }
 
   return items.map(item => itemRow(item, words));
