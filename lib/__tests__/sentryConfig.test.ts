@@ -31,6 +31,12 @@ describe('sentryOptions', () => {
     ).toMatchObject({ sendDefaultPii: false });
   });
 
+  it('turns off the network breadcrumbs the native iOS SDK records, since they skip the JS breadcrumb scrubber', () => {
+    expect(
+      sentryOptions({ dsn: DSN, appEnv: 'production', isDev: false }),
+    ).toMatchObject({ enableNetworkBreadcrumbs: false });
+  });
+
   it('sets no sample rate, since even a rate of 0 installs the tracing, replay or profiling integrations', () => {
     const options = sentryOptions({
       dsn: DSN,

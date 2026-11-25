@@ -132,6 +132,7 @@ export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
     dsn,
     environment: appEnv,
     sendDefaultPii: false,
+    enableNetworkBreadcrumbs: false,
     beforeSend: scrubEvent,
     beforeBreadcrumb: scrubBreadcrumb,
   };
