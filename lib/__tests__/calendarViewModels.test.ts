@@ -835,6 +835,28 @@ describe('weekView', () => {
         { kind: 'rest', key: 'rest', press: undefined },
       ]);
     });
+
+    it('lists a multi-day Note on its first day only, with its short range, read with its whole range', () => {
+      const oboz = note({ id: 1, name: 'Obóz', start: TUE, end: FRI });
+
+      const week = weekWith([oboz]);
+
+      expect(dayOn(week, TUE).rows).toEqual([
+        {
+          kind: 'note',
+          key: 'note-1',
+          note: oboz,
+          multiDay: true,
+          title: 'Obóz',
+          shortRange: '20.10 – 22.10',
+          label: 'Note Obóz, 20 – 22 October',
+          press: { kind: 'note', note: oboz },
+        },
+        { kind: 'rest', key: 'rest', press: undefined },
+      ]);
+      expect(dayOn(week, WED).rows.map(row => row.kind)).toEqual(['rest']);
+      expect(dayOn(week, THU).rows.map(row => row.kind)).toEqual(['rest']);
+    });
   });
 });
 

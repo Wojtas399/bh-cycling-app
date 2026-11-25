@@ -25,9 +25,11 @@ import {
   startOfMonth,
 } from './localDate';
 import { type NoteBarSegment, layoutNoteRow } from './noteBars';
-import type {
-  MonthNamesFromJanuary,
-  WeekdayNamesFromMonday,
+import {
+  type MonthNamesFromJanuary,
+  type WeekdayNamesFromMonday,
+  formatNoteRange,
+  formatNoteShortRange,
 } from './noteDates';
 import type { Note } from './notes';
 import type { Race, RacePriority } from './races';
@@ -180,15 +182,14 @@ export interface ItemRow {
   press: CalendarPressTarget | undefined;
 }
 
-export interface WeekNoteRow {
+export type WeekNoteRow = {
   kind: 'note';
   key: string;
   note: Note;
-  multiDay: boolean;
   title: string;
   label: string;
   press: { kind: 'note'; note: Note };
-}
+} & ({ multiDay: false } | { multiDay: true; shortRange: string });
 
 export type WeekRow = WeekNoteRow | ItemRow | RestRow;
 
@@ -248,15 +249,20 @@ function noteRow(
   words: WeekWords,
 ): WeekNoteRow {
   const title = noteTitle(note, words);
+  const when = multiDay
+    ? formatNoteRange(note, words.monthNamesGenitive)
+    : words.day(day);
 
   return {
     kind: 'note',
     key: `note-${note.id}`,
     note,
-    multiDay,
     title,
-    label: words.noteLabel(title, words.day(day)),
+    label: words.noteLabel(title, when),
     press: { kind: 'note', note },
+    ...(multiDay
+      ? { multiDay, shortRange: formatNoteShortRange(note) }
+      : { multiDay }),
   };
 }
 
