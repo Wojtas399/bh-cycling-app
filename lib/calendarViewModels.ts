@@ -14,9 +14,8 @@ import {
 import type { CalendarData } from './calendarMonth';
 import {
   type CompactItemRow,
+  type CompactItemRowWords,
   compactItemRow,
-  compactItemRowLabel,
-  rowFigures,
 } from './compactItemRow';
 import {
   type LocalDateString,
@@ -32,10 +31,9 @@ import {
   formatNoteShortRange,
 } from './noteDates';
 import type { Note } from './notes';
-import type { Race, RacePriority } from './races';
+import type { Race } from './races';
 import { type LaneCrossing, type NoteRow, weekNotes } from './weekNotes';
-import type { WorkoutBlock } from './workoutProfile';
-import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
+import type { CalendarWorkout } from './workoutStatus';
 
 export interface MonthWords {
   day: (day: CalendarDay) => string;
@@ -43,12 +41,8 @@ export interface MonthWords {
   untitledNote: string;
 }
 
-export interface FigureWords {
-  duration: (seconds: number) => string;
-  load: (load: number) => string;
-}
-
-export interface WeekWords extends Pick<MonthWords, 'day' | 'untitledNote'> {
+export interface WeekWords
+  extends Pick<MonthWords, 'day' | 'untitledNote'>, CompactItemRowWords {
   weekdaysShort: WeekdayNamesFromMonday;
   monthNamesGenitive: MonthNamesFromJanuary;
   todayRail: (dayLabel: string) => string;
@@ -57,13 +51,6 @@ export interface WeekWords extends Pick<MonthWords, 'day' | 'untitledNote'> {
     shown: (count: number) => string;
     spoken: (count: number) => string;
   };
-  stravaActivity: string;
-  itemKind: {
-    workout: (status: WorkoutStatus) => string;
-    activity: string;
-    race: (priority: RacePriority, paired: boolean) => string;
-  };
-  figures: { shown: FigureWords; spoken: FigureWords };
 }
 
 export interface DayPressTarget {
@@ -167,18 +154,9 @@ export interface RestRow {
   press: undefined;
 }
 
-export type ItemDisplay =
-  | { kind: 'workout'; status: WorkoutStatus; blocks: WorkoutBlock[] }
-  | { kind: 'activity' }
-  | { kind: 'race'; priority: RacePriority; paired: boolean };
-
-export interface ItemRow {
+export interface ItemRow extends CompactItemRow {
   kind: 'item';
   key: string;
-  display: ItemDisplay;
-  title: string;
-  figures?: string;
-  label: string;
   press: CalendarPressTarget | undefined;
 }
 
@@ -247,7 +225,7 @@ export function weekView(
         rows: [
           ...rows.map(row => noteRow(row, day, words)),
           ...moreNotesRows(hiddenCount, press, words),
-          ...itemRows(data.itemsByDate[day.date] ?? [], words),
+          ...itemRowsOrRest(data.itemsByDate[day.date] ?? [], words),
         ],
         press,
       };
@@ -297,40 +275,21 @@ function moreNotesRows(
   ];
 }
 
-function itemRows(items: CalendarItem[], words: WeekWords): WeekRow[] {
-  if (items.length === 0)
+function itemRowsOrRest(items: CalendarItem[], words: WeekWords): WeekRow[] {
+  if (items.length === 0) {
     return [{ kind: 'rest', key: 'rest', press: undefined }];
+  }
 
   return items.map(item => itemRow(item, words));
 }
 
 function itemRow(item: CalendarItem, words: WeekWords): ItemRow {
-  const row = compactItemRow(item, words.stravaActivity);
-  const figures = rowFigures(row, words.figures.shown);
-
   return {
     kind: 'item',
     key: calendarItemKey(item),
-    display: itemDisplay(row),
-    title: row.title,
-    ...(figures.length > 0 && { figures: figures.join(' · ') }),
-    label: compactItemRowLabel(row, {
-      ...words.itemKind,
-      ...words.figures.spoken,
-    }),
+    ...compactItemRow(item, words),
     press: itemPress(item),
   };
-}
-
-function itemDisplay(row: CompactItemRow): ItemDisplay {
-  switch (row.kind) {
-    case 'workout':
-      return { kind: 'workout', status: row.status, blocks: row.blocks };
-    case 'activity':
-      return { kind: 'activity' };
-    case 'race':
-      return { kind: 'race', priority: row.priority, paired: row.paired };
-  }
 }
 
 function itemPress(item: CalendarItem): CalendarPressTarget | undefined {

@@ -1,4 +1,4 @@
-import { type ReactElement, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Pressable,
@@ -11,33 +11,24 @@ import Box from '@/components/Box';
 import Text from '@/components/Text';
 import WorkoutProfile from '@/components/WorkoutProfile';
 import WorkoutStatusDot from '@/components/WorkoutStatusDot';
-import { useCalendarLabels } from '@/components/calendar/useCalendarLabels';
+import { useCalendarWords } from '@/components/calendar/useCalendarWords';
 import RaceRankIcon from '@/components/race/RaceRankIcon';
 import { useAppTheme } from '@/constants/theme';
-import { useNoteTitle } from '@/hooks/useNoteTitle';
 import { useToday } from '@/hooks/useToday';
 import { bleedHitArea, bleedPastVerticalPadding } from '@/lib/bleed';
-import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
+import type { CalendarItemsByDate } from '@/lib/calendarItems';
 import {
-  type CalendarItem,
-  type CalendarItemsByDate,
-  calendarItemKey,
-} from '@/lib/calendarItems';
-import {
-  type CompactItemRow,
-  type CompactItemRowWords,
-  type ItemPressHandlers,
-  compactItemRow,
-  compactItemRowLabel,
-  compactItemRowPress,
-  rowFigures,
-} from '@/lib/compactItemRow';
-import { formatDuration, formatSpokenDuration } from '@/lib/formatDuration';
+  type CalendarPressTarget,
+  type ItemRow,
+  type MoreNotesRow,
+  type WeekDay,
+  type WeekNoteRow,
+  type WeekRow,
+  weekView,
+} from '@/lib/calendarViewModels';
 import { noteFill } from '@/lib/noteColors';
-import { formatNoteRange, formatNoteShortRange } from '@/lib/noteDates';
 import type { Note } from '@/lib/notes';
 import type { Race } from '@/lib/races';
-import { type LaneCrossing, type NoteRow, weekNotes } from '@/lib/weekNotes';
 
 const RAIL_WIDTH = 44;
 const DAY_PADDING_VERTICAL = 'md';
@@ -52,118 +43,81 @@ const SCREEN_READER_REACHES_RAIL_AND_ROWS_ONE_BY_ONE = {
   accessible: false,
 } as const;
 
-export interface CalendarWeekAgendaProps extends ItemPressHandlers {
+type OnPress = (target: CalendarPressTarget) => void;
+
+export interface CalendarWeekAgendaProps {
   week: Date;
   itemsByDate: CalendarItemsByDate;
   notes: Note[];
-  onDayPress: (day: CalendarDay) => void;
-  onNotePress: (note: Note) => void;
+  onPress: OnPress;
 }
 
 export default function CalendarWeekAgenda({
   week,
   itemsByDate,
   notes,
-  onDayPress,
-  onNotePress,
-  ...handlers
+  onPress,
 }: CalendarWeekAgendaProps) {
-  const labels = useCalendarLabels();
+  const words = useCalendarWords();
   const today = useToday();
-  const days = getWeekDays(week);
-  const layout = weekNotes(
-    notes,
-    days.map(day => day.date),
+  const { laneCount, days } = useMemo(
+    () => weekView(week, { itemsByDate, notes }, today, words),
+    [week, itemsByDate, notes, today, words],
   );
 
   return (
     <Box testID="calendar-week-agenda">
-      {days.map((day, index) => {
-        const {
-          crossings,
-          rows: noteRows,
-          hiddenCount,
-        } = layout.days[day.date];
-        const items = itemsByDate[day.date] ?? [];
-        const rows: ReactElement[] = [
-          ...noteRows.map(row => (
-            <NoteRowButton
-              key={`note-${row.note.id}`}
-              row={row}
-              spokenWhen={
-                row.multiDay
-                  ? formatNoteRange(row.note, labels.monthNamesGenitive)
-                  : labels.day(day)
-              }
-              onPress={() => onNotePress(row.note)}
-            />
-          )),
-          ...(hiddenCount > 0
-            ? [
-                <MoreNotesRow
-                  key="more-notes"
-                  count={hiddenCount}
-                  onPress={() => onDayPress(day)}
-                />,
-              ]
-            : []),
-          ...(items.length > 0
-            ? items.map(item => (
-                <ItemRow
-                  key={calendarItemKey(item)}
-                  item={item}
-                  {...handlers}
-                />
-              ))
-            : [<RestRow key="rest" />]),
-        ];
-
-        return (
-          <TouchableOpacity
-            key={day.date}
-            onPress={() => onDayPress(day)}
-            {...SCREEN_READER_REACHES_RAIL_AND_ROWS_ONE_BY_ONE}
-            testID={`calendar-day-${day.date}`}
+      {days.map((day, index) => (
+        <TouchableOpacity
+          key={day.date}
+          onPress={() => onPress(day.press)}
+          {...SCREEN_READER_REACHES_RAIL_AND_ROWS_ONE_BY_ONE}
+          testID={`calendar-day-${day.date}`}
+        >
+          <Box
+            flexDirection="row"
+            paddingVertical={DAY_PADDING_VERTICAL}
+            borderTopWidth={index === 0 ? 0 : 1}
+            borderColor="hairline"
           >
-            <Box
-              flexDirection="row"
-              paddingVertical={DAY_PADDING_VERTICAL}
-              borderTopWidth={index === 0 ? 0 : 1}
-              borderColor="hairline"
-            >
-              <NoteLanes
-                weekLaneCount={layout.lanes.length}
-                crossings={crossings}
-              />
+            <NoteLanes weekLaneCount={laneCount} crossings={day.crossings} />
 
-              <DateRail
-                day={day}
-                isToday={day.date === today}
-                onPress={() => onDayPress(day)}
-              />
+            <DateRail day={day} onPress={() => onPress(day.press)} />
 
-              <Box flex={1} minWidth={0} marginLeft="md">
-                {rows.map((row, i) => (
-                  <Box
-                    key={row.key}
-                    borderTopWidth={i === 0 ? 0 : 1}
-                    borderColor="hairline"
-                  >
-                    {row}
-                  </Box>
-                ))}
-              </Box>
+            <Box flex={1} minWidth={0} marginLeft="md">
+              {day.rows.map((row, i) => (
+                <Box
+                  key={row.key}
+                  borderTopWidth={i === 0 ? 0 : 1}
+                  borderColor="hairline"
+                >
+                  <WeekRowView row={row} onPress={onPress} />
+                </Box>
+              ))}
             </Box>
-          </TouchableOpacity>
-        );
-      })}
+          </Box>
+        </TouchableOpacity>
+      ))}
     </Box>
   );
 }
 
+function WeekRowView({ row, onPress }: { row: WeekRow; onPress: OnPress }) {
+  switch (row.kind) {
+    case 'note':
+      return <NoteRowButton row={row} onPress={() => onPress(row.press)} />;
+    case 'moreNotes':
+      return <MoreNotesButton row={row} onPress={() => onPress(row.press)} />;
+    case 'item':
+      return <ItemRowView row={row} onPress={onPress} />;
+    case 'rest':
+      return <RestRow />;
+  }
+}
+
 interface NoteLanesProps {
   weekLaneCount: number;
-  crossings: LaneCrossing[];
+  crossings: WeekDay['crossings'];
 }
 
 function NoteLanes({ weekLaneCount, crossings }: NoteLanesProps) {
@@ -197,22 +151,22 @@ function NoteLanes({ weekLaneCount, crossings }: NoteLanesProps) {
 }
 
 interface DateRailProps {
-  day: CalendarDay;
-  isToday: boolean;
+  day: WeekDay;
   onPress: () => void;
 }
 
-function DateRail({ day, isToday, onPress }: DateRailProps) {
+function DateRail({
+  day: { weekday, dayOfMonth, isToday, railLabel },
+  onPress,
+}: DateRailProps) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
   const { colors, spacing } = useAppTheme();
-  const labels = useCalendarLabels();
-  const dayLabel = labels.day(day);
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="header"
-      accessibilityLabel={isToday ? t('today', { day: dayLabel }) : dayLabel}
+      accessibilityLabel={railLabel}
       accessibilityHint={t('opensDay')}
       style={{
         width: RAIL_WIDTH,
@@ -225,7 +179,7 @@ function DateRail({ day, isToday, onPress }: DateRailProps) {
         color={isToday ? 'textPrimary' : 'textSecondary'}
         style={{ letterSpacing: 0.5 }}
       >
-        {labels.weekdaysShort[day.weekday].toUpperCase()}
+        {weekday}
       </Text>
       <Box
         marginTop="xs"
@@ -239,7 +193,7 @@ function DateRail({ day, isToday, onPress }: DateRailProps) {
         }
       >
         <Text variant="h2" color={isToday ? 'textInverse' : 'textPrimary'}>
-          {day.dayOfMonth}
+          {dayOfMonth}
         </Text>
       </Box>
     </Pressable>
@@ -258,23 +212,15 @@ function RestRow() {
   );
 }
 
-interface ItemRowProps extends ItemPressHandlers {
-  item: CalendarItem;
-}
-
-function ItemRow({ item, ...handlers }: ItemRowProps) {
-  const { t } = useTranslation();
-  const words = useCompactRowWords();
-  const row = compactItemRow(item, t('common.stravaActivity'));
-  const label = compactItemRowLabel(row, words);
-  const onPress = compactItemRowPress(item, handlers);
+function ItemRowView({ row, onPress }: { row: ItemRow; onPress: OnPress }) {
+  const { press } = row;
   const content = <ItemRowContent row={row} />;
 
-  if (!onPress) {
+  if (!press) {
     return (
       <Box
         accessible
-        accessibilityLabel={label}
+        accessibilityLabel={row.label}
         minHeight={ROW_MIN_TAP_TARGET_HEIGHT}
         justifyContent="center"
       >
@@ -285,9 +231,9 @@ function ItemRow({ item, ...handlers }: ItemRowProps) {
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => onPress(press)}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={row.label}
       style={rowPressStyle({ justifyContent: 'center' })}
     >
       {content}
@@ -295,62 +241,63 @@ function ItemRow({ item, ...handlers }: ItemRowProps) {
   );
 }
 
-function ItemRowContent({ row }: { row: CompactItemRow }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
-  const figures = rowFigures(row, {
-    duration: formatDuration,
-    load: load => t('load', { load }),
-  });
-
+function ItemRowContent({
+  row: { display, title, figures },
+}: {
+  row: ItemRow;
+}) {
   return (
     <Box flexDirection="row" alignItems="center">
-      <RowMarker row={row} />
+      <RowMarker display={display} />
       <Text
         variant="body-s-medium"
         numberOfLines={1}
         marginLeft="sm"
         style={{ flex: 1 }}
       >
-        {row.title}
+        {title}
       </Text>
-      {row.kind === 'workout' && row.blocks.length > 0 && (
+      {display.kind === 'workout' && display.blocks.length > 0 && (
         <Box
           width={MINI_PROFILE.width}
           marginLeft="sm"
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          <WorkoutProfile blocks={row.blocks} height={MINI_PROFILE.height} />
+          <WorkoutProfile
+            blocks={display.blocks}
+            height={MINI_PROFILE.height}
+          />
         </Box>
       )}
-      {row.kind === 'race' && <PriorityTag priority={row.priority} />}
-      {figures.length > 0 && (
+      {display.kind === 'race' && <PriorityTag priority={display.priority} />}
+      {figures !== undefined && (
         <Text
           variant="body-xs-regular"
           color="textSecondary"
           marginLeft="sm"
           style={{ fontVariant: ['tabular-nums'] }}
         >
-          {figures.join(' · ')}
+          {figures}
         </Text>
       )}
     </Box>
   );
 }
 
-function RowMarker({ row }: { row: CompactItemRow }) {
-  switch (row.kind) {
+function RowMarker({ display }: { display: ItemRow['display'] }) {
+  switch (display.kind) {
     case 'workout':
-      return <WorkoutStatusDot status={row.status} size={MARKER_SIZE} />;
+      return <WorkoutStatusDot status={display.status} size={MARKER_SIZE} />;
     case 'activity':
       return <ActivityRing />;
     case 'race':
       return (
         <Box flexDirection="row" alignItems="center" gap="xs">
-          {row.paired && (
+          {display.paired && (
             <WorkoutStatusDot status="completed" size={MARKER_SIZE} />
           )}
-          <RaceRankIcon priority={row.priority} size={14} />
+          <RaceRankIcon priority={display.priority} size={14} />
         </Box>
       );
   }
@@ -384,53 +331,22 @@ function PriorityTag({ priority }: { priority: Race['priority'] }) {
   );
 }
 
-function useCompactRowWords(): CompactItemRowWords {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
-
-  return useMemo(
-    () => ({
-      workout: status => t(`workout.${status}`),
-      activity: t('activity'),
-      race: (priority, paired) =>
-        t(paired ? 'racePaired' : 'race', { priority }),
-      duration: seconds =>
-        formatSpokenDuration(seconds, {
-          hours: hours => t('hours', { hours }),
-          minutes: minutes => t('minutes', { minutes }),
-        }),
-      load: load => t('loadSpoken', { load }),
-    }),
-    [t],
-  );
-}
-
 interface NoteRowButtonProps {
-  row: NoteRow;
-  spokenWhen: string;
+  row: WeekNoteRow;
   onPress: () => void;
 }
 
-function NoteRowButton({
-  row: { note, multiDay },
-  spokenWhen,
-  onPress,
-}: NoteRowButtonProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'note' });
-  const noteTitle = useNoteTitle();
-  const title = noteTitle(note);
-  const fill = noteFill(note.color);
+function NoteRowButton({ row, onPress }: NoteRowButtonProps) {
+  const fill = noteFill(row.note.color);
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t('accessibilityLabel', {
-        title,
-        when: spokenWhen,
-      })}
+      accessibilityLabel={row.label}
       style={rowPressStyle({ flexDirection: 'row', alignItems: 'center' })}
     >
-      {!multiDay && (
+      {!row.multiDay && (
         <Box
           width={MARKER_SIZE}
           height={MARKER_SIZE}
@@ -443,24 +359,24 @@ function NoteRowButton({
         variant="body-s-medium"
         color="textPrimary"
         numberOfLines={1}
-        style={[{ flexShrink: 1 }, multiDay && { color: fill }]}
+        style={[{ flexShrink: 1 }, row.multiDay && { color: fill }]}
       >
-        {title}
+        {row.title}
       </Text>
-      {multiDay && (
+      {row.multiDay && (
         <Text variant="body-xs-regular" color="textSecondary" marginLeft="sm">
-          {formatNoteShortRange(note)}
+          {row.shortRange}
         </Text>
       )}
     </Pressable>
   );
 }
 
-function MoreNotesRow({
-  count,
+function MoreNotesButton({
+  row: { text, label },
   onPress,
 }: {
-  count: number;
+  row: MoreNotesRow;
   onPress: () => void;
 }) {
   const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
@@ -469,12 +385,12 @@ function MoreNotesRow({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t('moreNotesLabel', { count })}
+      accessibilityLabel={label}
       accessibilityHint={t('opensDay')}
       style={rowPressStyle({ justifyContent: 'center' })}
     >
       <Text variant="body-xs-medium" color="textSecondary">
-        {t('moreNotes', { count })}
+        {text}
       </Text>
     </Pressable>
   );
