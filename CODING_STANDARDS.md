@@ -99,6 +99,21 @@ For reviewers:
 - Report a named `x is T` predicate whose body checks less than its type claims, such as one that checks a single field of a type with several.
 - Report a new path in the assertion allowlist in `eslint.config.js` or `functions/eslint.config.js`, a new wrapper in `lib/typed.ts`, or a rule dropped from the comment check's never-disabled list, unless the same PR adds an ADR for it.
 
+## Report unexpected errors to Sentry, and only those
+
+The app reports errors to Sentry ([ADR 0017](docs/adr/0017-error-tracking-uses-sentry.md)). Sentry records unhandled errors, native crashes and render errors on its own. Caught errors reach it through one place: the `onError` of the TanStack Query `QueryCache` and `MutationCache`.
+
+- **Expected errors aren't reported.** An expected error is one the app already handles as a normal outcome: an `IntervalsAuthError`, no network or a timeout, the athlete cancelling (closing the OAuth or Google sign-in window), or a Firebase Auth error the athlete caused and sees a message for, such as a wrong password or an email already in use.
+- **`ignoreFailure` doesn't report.** Its work is best effort by design. If a failure there matters, the work stops being best effort.
+- **No ad hoc reporting in a `catch`.** Add one only when a specific case needs it, and say why in the PR.
+- **No personal data in an event.** The user is the Firebase uid alone. Never attach an email, a token, an OAuth code or an Intervals.icu response body.
+
+For reviewers:
+
+- Report a new `Sentry.capture*` call outside the query caches that its PR doesn't justify.
+- Report an expected error that reaches Sentry, and an unexpected one that the filter drops.
+- Report personal data or a secret attached to an event, a breadcrumb or the user.
+
 ## ADRs are binding
 
 - `docs/adr/` records accepted decisions, and code must follow them.
