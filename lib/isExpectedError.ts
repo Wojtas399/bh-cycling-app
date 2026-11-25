@@ -24,10 +24,13 @@ const AUTH_CODES_A_SCREEN_SHOWS_AS_A_SPECIFIC_MESSAGE = [
   'auth/user-mismatch',
 ];
 
+const EMAIL_NOT_VERIFIED_YET_CODE = 'verify/not-verified';
+
 const EXPECTED_CODES = new Set([
   ...NETWORK_FAILURE_CODES,
   statusCodes.SIGN_IN_CANCELLED,
   ...AUTH_CODES_A_SCREEN_SHOWS_AS_A_SPECIFIC_MESSAGE,
+  EMAIL_NOT_VERIFIED_YET_CODE,
 ]);
 
 function isFetchNetworkFailure(error: unknown): boolean {

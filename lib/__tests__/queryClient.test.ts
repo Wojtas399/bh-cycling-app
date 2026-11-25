@@ -9,7 +9,10 @@ import { mapDeleteAccountError } from '@/app/(app)/delete-account/deleteAccountE
 import { mapForgotPasswordError } from '@/app/(auth)/forgot-password/forgotPasswordErrors';
 import { mapSignInError } from '@/app/(auth)/sign-in/signInErrors';
 import { mapSignUpError } from '@/app/(auth)/sign-up/signUpErrors';
-import { mapVerifyEmailError } from '@/app/(auth)/verify-email/verifyEmailErrors';
+import {
+  NOT_VERIFIED_CODE,
+  mapVerifyEmailError,
+} from '@/app/(auth)/verify-email/verifyEmailErrors';
 import { MutationObserver } from '@tanstack/react-query';
 
 jest.mock('../handleIntervalsAuthError', () => ({
@@ -159,6 +162,10 @@ describe('createQueryClient', () => {
     ['a Cloud Function call with no network', codedError('unavailable')],
     ['a Cloud Function call that timed out', codedError('deadline-exceeded')],
     ['a cancelled Google sign-in', codedError('GOOGLE_SIGN_IN_CANCELLED')],
+    [
+      'an email the athlete checked before verifying it',
+      codedError(NOT_VERIFIED_CODE),
+    ],
     ...AUTH_CODES_WITH_A_SPECIFIC_MESSAGE.map(code => [
       `${code}, which a screen shows as a specific message`,
       codedError(code),
