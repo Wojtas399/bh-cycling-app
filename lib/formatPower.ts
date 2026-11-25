@@ -1,4 +1,4 @@
-import type { ScaleUnit } from './detailedProfile';
+import type { ScaleUnit } from './profileCard';
 
 export function formatPower(unit: ScaleUnit, low: number, high = low): string {
   const [from, to] = [Math.round(low), Math.round(high)];

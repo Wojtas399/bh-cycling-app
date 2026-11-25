@@ -23,7 +23,6 @@ import {
   getCalendarEvents,
 } from '@/lib/intervalsApi';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
-import { NO_WORKOUT_PROFILE } from '@/lib/profileCard';
 import { resolveRideSettings } from '@/lib/rideSettings';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { settleQueries } from '@/test-utils/settle';
@@ -80,7 +79,7 @@ function renderWorkoutDetailsReads() {
   return renderHookWithClient(() => ({
     workout: useWorkoutDetails(EVENT_ID),
     profile: useProfileCard({
-      ...NO_WORKOUT_PROFILE,
+      rideSteps: [],
       rideSettings: resolveRideSettings({ ftp: 250 }),
       recordedActivityId: RECORDED_ACTIVITY_ID,
     }),
@@ -152,7 +151,7 @@ describe('useIntervalsRefresh', () => {
     const { result } = await renderWorkoutDetailsReads();
 
     await waitFor(() =>
-      expect(result.current.profile?.card.durationSeconds).toBe(600),
+      expect(result.current.profile?.durationSeconds).toBe(600),
     );
     await waitFor(() =>
       expect(result.current.workout.query.isSuccess).toBe(true),
@@ -163,7 +162,7 @@ describe('useIntervalsRefresh', () => {
 
     expect(mockGetCalendarEvent).toHaveBeenCalledTimes(2);
     expect(mockGetActivity).toHaveBeenCalledTimes(2);
-    expect(result.current.profile?.card.durationSeconds).toBe(900);
+    expect(result.current.profile?.durationSeconds).toBe(900);
   });
 
   it('leaves out a Route that has loaded, since a recorded GPS track does not change', async () => {

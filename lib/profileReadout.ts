@@ -1,8 +1,11 @@
-import type { DetailedProfile, ScaleUnit } from './detailedProfile';
 import { formatPower } from './formatPower';
 import type { Zone } from './powerZones';
-import type { StripSide } from './profileCard';
-import type { StripSegment } from './stripSegment';
+import type {
+  ProfileCard,
+  ScaleUnit,
+  StripSegment,
+  StripSide,
+} from './profileCard';
 
 function lastSegmentStartingBy(
   timeOrderedSegments: StripSegment[],
@@ -62,7 +65,7 @@ export function profileReadout(
     scale,
     planned,
     recorded,
-  }: Pick<DetailedProfile, 'scale' | 'planned' | 'recorded'>,
+  }: Pick<ProfileCard, 'scale' | 'planned' | 'recorded'>,
   seconds: number,
 ): ProfileReadout {
   const read = (segments: StripSegment[]) => {

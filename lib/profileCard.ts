@@ -1,107 +1,339 @@
-import type {
-  ActivityDetails,
-  ActivityProfileSummary,
-} from './activityDetails';
-import { type RideSettings, resolveRideSettings } from './rideSettings';
-import { NO_ZONE_TIMES, type ZoneTimes } from './timeInZone';
-import type { WorkoutDetails, WorkoutProfileSummary } from './workoutDetails';
-import { GAP_BAND, type WorkoutBlock } from './workoutProfile';
+import type { Watts } from './intervalsApi';
+import type { Zone, ZoneConfig } from './powerZones';
+import { type RideSettings, ftpPctToWatts } from './rideSettings';
+import { roundToMillionth } from './roundToMillionth';
+import {
+  type TimeInZoneRow,
+  type ZoneTimes,
+  noZoneTimes,
+  planZoneTimes,
+  timeInZoneRows,
+} from './timeInZone';
+import {
+  type RampEnds,
+  type WorkoutStep,
+  hasWorkoutProfile,
+  stepsAtTheirTime,
+} from './workoutProfile';
 
 export type StripSide = 'planned' | 'recorded';
 
+export type ScaleUnit = 'watts' | 'ftpPct';
+
+export interface RecordedInterval {
+  startSeconds: number;
+  endSeconds: number;
+  intensity: number;
+  zone: Zone;
+}
+
+export interface RecordedProfile {
+  intervals: RecordedInterval[];
+  endSeconds: number;
+  icuFtp: Watts | null;
+  icuZoneTimes: ZoneTimes | null;
+}
+
+export interface ProfileCardInput {
+  planned?: WorkoutStep[];
+  recorded?: RecordedProfile;
+}
+
+export interface WorkoutProfileSummary {
+  durationSeconds: number;
+  stepCount: number;
+  peakFtpPct: number;
+}
+
+export interface ActivityProfileSummary {
+  durationSeconds: number;
+  segmentCount: number;
+  peakFtpPct: number;
+}
+
+export interface SegmentRamp extends RampEnds {
+  startWatts: number | null;
+  endWatts: number | null;
+  startOnScale: number;
+  endOnScale: number;
+}
+
+export interface StripSegment {
+  startSeconds: number;
+  endSeconds: number;
+  minPct: number;
+  maxPct: number;
+  minWatts: number | null;
+  maxWatts: number | null;
+  lowOnScale: number;
+  highOnScale: number;
+  zone: Zone;
+  ramp?: SegmentRamp;
+}
+
+export interface StripPower {
+  unit: ScaleUnit;
+  peak: number;
+  peakFtpPct: number;
+  average: number;
+}
+
 export interface ProfileStrip<Summary> {
-  blocks: WorkoutBlock[];
   summary: Summary;
   ftp: number | null;
-  zoneTimes: ZoneTimes | null;
+  segments: StripSegment[];
+  power: StripPower;
+  zoneTimes: ZoneTimes;
+}
+
+export interface ProfileScale {
+  unit: ScaleUnit;
+  ceiling: number;
+  gridlines: number[];
 }
 
 export interface ProfileCard {
   durationSeconds: number;
-  recorded: ProfileStrip<ActivityProfileSummary> | null;
+  scale: ProfileScale;
   planned: ProfileStrip<WorkoutProfileSummary> | null;
+  recorded: ProfileStrip<ActivityProfileSummary> | null;
+  timeInZone: TimeInZoneRow[];
 }
 
-export interface ProfileCardSource {
-  card: ProfileCard;
-  settings: RideSettings;
+interface SegmentPower {
+  minPct: number;
+  maxPct: number;
+  zone: Zone;
+  ramp?: RampEnds;
 }
 
-export const NO_WORKOUT_PROFILE: Pick<
-  WorkoutDetails,
-  'blocks' | 'profileSummary' | 'zoneTimes'
-> = { blocks: [], profileSummary: null, zoneTimes: NO_ZONE_TIMES };
+interface TimedPower extends SegmentPower {
+  startSeconds: number;
+  endSeconds: number;
+}
+
+interface StripOnScale {
+  ftp: number | null;
+  unit: ScaleUnit;
+}
 
 export function buildProfileCard(
-  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
-  activity: ActivityDetails | undefined,
-  currentFtp: number | null,
+  { planned, recorded }: ProfileCardInput,
+  settings: RideSettings,
 ): ProfileCard | null {
-  const recorded =
-    activity && !activity.isStravaActivity && activity.profileSummary
-      ? {
-          blocks: activity.blocks,
-          summary: activity.profileSummary,
-          ftp: activity.icuFtp ?? currentFtp,
-          zoneTimes: activity.zoneTimes,
-        }
+  const unit: ScaleUnit = settings.ftp === null ? 'ftpPct' : 'watts';
+  const recordedStrip =
+    recorded && recorded.intervals.length > 0
+      ? recordedStripOf(recorded, {
+          ftp: recorded.icuFtp ?? settings.ftp,
+          unit,
+        })
       : null;
-  const planHasNoKnownDuration =
-    (workout.profileSummary?.durationSeconds ?? 0) <= 0;
-  const planned =
-    workout.profileSummary && !(recorded && planHasNoKnownDuration)
-      ? {
-          blocks: workout.blocks,
-          summary: workout.profileSummary,
-          ftp: currentFtp,
-          zoneTimes: workout.zoneTimes,
-        }
-      : null;
+  const plannedStrip = planned
+    ? plannedStripOf(planned, settings.zoneConfig, { ftp: settings.ftp, unit })
+    : null;
 
-  if (!planned && !recorded) return null;
+  if (!plannedStrip && !recordedStrip) return null;
 
-  const durationSeconds = Math.max(
-    planned?.summary.durationSeconds ?? 0,
-    recorded?.summary.durationSeconds ?? 0,
+  return {
+    durationSeconds: Math.max(
+      plannedStrip?.summary.durationSeconds ?? 0,
+      recordedStrip?.summary.durationSeconds ?? 0,
+    ),
+    scale: sharedScale(
+      [plannedStrip, recordedStrip].filter(strip => strip !== null),
+      unit,
+      settings,
+    ),
+    planned: plannedStrip,
+    recorded: recordedStrip,
+    timeInZone: timeInZoneRows(
+      plannedStrip?.zoneTimes ?? null,
+      recordedStrip?.zoneTimes ?? null,
+    ),
+  };
+}
+
+function plannedStripOf(
+  steps: WorkoutStep[],
+  zoneConfig: ZoneConfig,
+  onScale: StripOnScale,
+): ProfileStrip<WorkoutProfileSummary> | null {
+  const atTheirTime = stepsAtTheirTime(steps, zoneConfig);
+
+  if (!hasWorkoutProfile(atTheirTime)) return null;
+
+  const timed = atTheirTime.flatMap(({ startSeconds, endSeconds, band }) =>
+    band ? [{ ...band, startSeconds, endSeconds }] : [],
   );
+  const summary = {
+    durationSeconds: atTheirTime.at(-1)?.endSeconds ?? 0,
+    stepCount: timed.length,
+    peakFtpPct: Math.max(0, ...timed.map(({ maxPct }) => maxPct)),
+  };
+
+  return stripOf(summary, timed, planZoneTimes(steps, zoneConfig), onScale);
+}
+
+function recordedStripOf(
+  { intervals, endSeconds, icuZoneTimes }: RecordedProfile,
+  onScale: StripOnScale,
+): ProfileStrip<ActivityProfileSummary> {
+  const timed = intervals.map(
+    ({ startSeconds, endSeconds: intervalEnd, intensity, zone }) => ({
+      startSeconds,
+      endSeconds: intervalEnd,
+      minPct: intensity,
+      maxPct: intensity,
+      zone,
+    }),
+  );
+  const summary = {
+    durationSeconds: endSeconds,
+    segmentCount: intervals.length,
+    peakFtpPct: Math.round(
+      Math.max(...intervals.map(({ intensity }) => intensity)),
+    ),
+  };
+
+  return stripOf(summary, timed, icuZoneTimes, onScale);
+}
+
+function stripOf<Summary>(
+  summary: Summary,
+  timed: TimedPower[],
+  zoneTimes: ZoneTimes | null,
+  onScale: StripOnScale,
+): ProfileStrip<Summary> {
+  const segments = timed.flatMap(power => segmentOf(power, onScale));
 
   return {
-    durationSeconds,
-    recorded: recorded && onCardTimeScale(recorded, durationSeconds),
-    planned: planned && onCardTimeScale(planned, durationSeconds),
+    summary,
+    ftp: onScale.ftp,
+    segments,
+    power: stripPower(segments, onScale),
+    zoneTimes: zoneTimes ?? zoneTimesOfSegments(segments),
   };
 }
 
-function onCardTimeScale<
-  Strip extends ProfileStrip<{ durationSeconds: number }>,
->(strip: Strip, cardDurationSeconds: number): Strip {
-  const ownDurationSeconds = strip.summary.durationSeconds;
-  const spanUnknownOrWholeCard =
-    ownDurationSeconds <= 0 || ownDurationSeconds >= cardDurationSeconds;
+function segmentOf(
+  { startSeconds, endSeconds, minPct, maxPct, zone, ramp }: TimedPower,
+  onScale: StripOnScale,
+): StripSegment[] {
+  const drawsNothing = maxPct <= 0;
 
-  if (spanUnknownOrWholeCard) return strip;
+  if (drawsNothing) return [];
 
-  const share = ownDurationSeconds / cardDurationSeconds;
+  const { ftp } = onScale;
+  const watts = (pct: number) =>
+    ftp === null ? null : ftpPctToWatts(pct, ftp);
+  const segment: StripSegment = {
+    startSeconds,
+    endSeconds,
+    minPct,
+    maxPct,
+    minWatts: watts(minPct),
+    maxWatts: watts(maxPct),
+    lowOnScale: inUnit(minPct, onScale),
+    highOnScale: inUnit(maxPct, onScale),
+    zone,
+  };
+
+  if (!ramp) return [segment];
+
+  const { startPct, endPct } = ramp;
+
+  return [
+    {
+      ...segment,
+      ramp: {
+        startPct,
+        endPct,
+        startWatts: watts(startPct),
+        endWatts: watts(endPct),
+        startOnScale: inUnit(startPct, onScale),
+        endOnScale: inUnit(endPct, onScale),
+      },
+    },
+  ];
+}
+
+function zoneTimesOfSegments(segments: StripSegment[]): ZoneTimes {
+  const times = noZoneTimes();
+
+  for (const { startSeconds, endSeconds, zone } of segments) {
+    times[zone] += endSeconds - startSeconds;
+  }
+
+  return times;
+}
+
+function stripPower(
+  segments: StripSegment[],
+  onScale: StripOnScale,
+): StripPower {
+  let seconds = 0;
+  let pctSeconds = 0;
+
+  for (const { startSeconds, endSeconds, minPct, maxPct } of segments) {
+    seconds += endSeconds - startSeconds;
+    pctSeconds += ((minPct + maxPct) / 2) * (endSeconds - startSeconds);
+  }
+
+  const peakPct = Math.max(0, ...segments.map(({ maxPct }) => maxPct));
+  const averagePct = seconds > 0 ? pctSeconds / seconds : 0;
 
   return {
-    ...strip,
-    blocks: [
-      ...strip.blocks.map(block => ({
-        ...block,
-        widthFraction: block.widthFraction * share,
-      })),
-      { widthFraction: 1 - share, ...GAP_BAND },
-    ],
+    unit: onScale.unit,
+    peak: Math.round(inUnit(peakPct, onScale)),
+    peakFtpPct: Math.round(peakPct),
+    average: Math.round(inUnit(averagePct, onScale)),
   };
 }
 
-export function profileCardSource(
-  workout: Pick<WorkoutDetails, 'blocks' | 'profileSummary' | 'zoneTimes'>,
-  activity: ActivityDetails | undefined,
-  settings: RideSettings | undefined,
-): ProfileCardSource | null {
-  const drawnBy = settings ?? resolveRideSettings(null);
-  const card = buildProfileCard(workout, activity, drawnBy.ftp);
+const MAX_EDGE_REACH_OVER_PEAK = 1.5;
 
-  return card && { card, settings: drawnBy };
+const HEADROOM_OVER_PEAK = 1.05;
+
+const CEILING_STEP = 10;
+
+function niceCeiling(peak: number, edges: number[]): number {
+  const edge = edges.find(candidate => candidate > peak);
+
+  if (edge !== undefined && edge <= peak * MAX_EDGE_REACH_OVER_PEAK) {
+    return edge;
+  }
+
+  const padded = roundToMillionth(peak * HEADROOM_OVER_PEAK);
+
+  return Math.max(
+    CEILING_STEP,
+    Math.ceil(padded / CEILING_STEP) * CEILING_STEP,
+  );
+}
+
+function sharedScale(
+  strips: ProfileStrip<unknown>[],
+  unit: ScaleUnit,
+  { zoneConfig, ftp }: RideSettings,
+): ProfileScale {
+  const bandsBelowTheLastZone = zoneConfig.slice(0, -1);
+  const edges = bandsBelowTheLastZone.map(({ maxPct }) => {
+    const edge = inUnit(maxPct, { unit, ftp });
+
+    return unit === 'watts' ? Math.round(edge) : edge;
+  });
+  const peak = Math.max(
+    0,
+    ...strips.flatMap(({ segments }) =>
+      segments.map(({ highOnScale }) => highOnScale),
+    ),
+  );
+  const ceiling = niceCeiling(peak, edges);
+
+  return { unit, ceiling, gridlines: edges.filter(edge => edge < ceiling) };
+}
+
+function inUnit(pct: number, { unit, ftp }: StripOnScale): number {
+  return unit === 'watts' && ftp !== null ? ftpPctToWatts(pct, ftp) : pct;
 }

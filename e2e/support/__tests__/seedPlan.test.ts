@@ -114,19 +114,25 @@ describe('planSeed', () => {
 
   describe('descriptions', () => {
     const WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP = /^- \d+m \d+(-\d+)?%$/;
+    const WORKOUT_SYNTAX_MINUTES_IN_HEART_RATE_ZONE_STEP = /^- \d+m Z\d HR$/;
+    const stepLines = (description: string) =>
+      description.split('\n').filter(line => line.startsWith('-'));
     const steps = (description: string) =>
-      description
-        .split('\n')
-        .filter(line => WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP.test(line));
+      stepLines(description).filter(line =>
+        WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP.test(line),
+      );
+    const minutes = (lines: string[]) =>
+      lines.reduce((sum, line) => sum + Number(/^- (\d+)m/.exec(line)?.[1]), 0);
     const { sweetSpot, endurance } = planSeed(new Date(2026, 10, 8)).events;
 
     it.each(Object.entries({ sweetSpot, endurance }))(
       '%s is written in Intervals.icu workout syntax',
       (_, workout) => {
-        for (const line of workout.description.split('\n')) {
-          if (line.startsWith('-')) {
-            expect(line).toMatch(WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP);
-          }
+        for (const line of stepLines(workout.description)) {
+          expect(
+            WORKOUT_SYNTAX_MINUTES_AT_FTP_PERCENT_STEP.test(line) ||
+              WORKOUT_SYNTAX_MINUTES_IN_HEART_RATE_ZONE_STEP.test(line),
+          ).toBe(true);
         }
 
         expect(steps(workout.description).length).toBeGreaterThan(0);
@@ -135,6 +141,20 @@ describe('planSeed', () => {
 
     it('gives E2E Sweet Spot at least three steps, so Workout Details draws a Workout Profile', () => {
       expect(steps(sweetSpot.description).length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('puts a 10 min heart-rate step between the warm-up and the sweet spot, so the Planned strip has a gap at 10:00–20:00', () => {
+      expect(stepLines(sweetSpot.description)).toEqual([
+        '- 10m 50-65%',
+        '- 10m Z2 HR',
+        '- 30m 88-93%',
+        '- 10m 50%',
+      ]);
+    });
+
+    it('plans E2E Sweet Spot for 60 min with 50 min at %FTP, so it keeps its Workout Profile', () => {
+      expect(minutes(stepLines(sweetSpot.description))).toBe(60);
+      expect(minutes(steps(sweetSpot.description))).toBe(50);
     });
   });
 

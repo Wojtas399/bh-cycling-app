@@ -1,89 +1,100 @@
-import type { ActivityDetails } from '../activityDetails';
-import { buildDetailedProfile } from '../detailedProfile';
-import type { NO_WORKOUT_PROFILE } from '../profileCard';
-import { buildProfileCard } from '../profileCard';
-import { profilePlot } from '../profilePlot';
-import { resolveRideSettings } from '../rideSettings';
-import { NO_ZONE_TIMES } from '../timeInZone';
+import {
+  type ProfileCardInput,
+  type RecordedProfile,
+  buildProfileCard,
+} from '../profileCard';
+import {
+  Y_LABEL_GUTTER_PX,
+  axisLabels,
+  profilePlot,
+  segmentPixels,
+  stackXOf,
+} from '../profilePlot';
+import { type RideSettings, resolveRideSettings } from '../rideSettings';
+import type { WorkoutStep } from '../workoutProfile';
 import i18n from '@/i18n';
 
 const t = i18n.getFixedT('pl');
 
 const FTP = 250;
 
-const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100 = {
-  blocks: [
-    { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 as const },
-    { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 as const },
-  ],
-  profileSummary: { durationSeconds: 1200, stepCount: 2, peakFtpPct: 100 },
-  zoneTimes: NO_ZONE_TIMES,
-};
+const AT_THE_CURRENT_FTP = resolveRideSettings({ ftp: FTP });
 
-const RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT: ActivityDetails = {
-  isStravaActivity: false,
-  title: 'Popołudniowa jazda',
-  type: 'Ride',
-  startLocal: '2026-10-23T16:42:00',
-  blocks: [
-    { widthFraction: 0.25, minPct: 55, maxPct: 55, zone: 2 },
-    { widthFraction: 0.75, minPct: 98, maxPct: 98, zone: 4 },
+const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100: WorkoutStep[] = [
+  { duration: 600, power: { units: '%ftp', value: 60 } },
+  { duration: 600, power: { units: '%ftp', value: 100 } },
+];
+
+const RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT: RecordedProfile = {
+  intervals: [
+    { startSeconds: 0, endSeconds: 150, intensity: 55, zone: 2 },
+    { startSeconds: 150, endSeconds: 600, intensity: 98, zone: 4 },
   ],
-  profileSummary: {
-    durationSeconds: 600,
-    segmentCount: 2,
-    peakFtpPct: 98,
-  },
+  endSeconds: 600,
   icuFtp: FTP,
-  zoneTimes: null,
-  metrics: [],
-  route: null,
-  pairedEventId: null,
+  icuZoneTimes: null,
 };
 
 const PLAN_LABEL =
   'Profil treningu: 20m, 2 kroki, maks. 100% FTP. Moc szczytowa 250 W, średnia 200 W';
 
 function plotOf(
-  workout:
-    | typeof PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100
-    | typeof NO_WORKOUT_PROFILE,
-  activity: ActivityDetails | undefined,
+  input: ProfileCardInput,
+  settings: RideSettings = AT_THE_CURRENT_FTP,
 ) {
-  const card = buildProfileCard(workout, activity, FTP);
+  const card = buildProfileCard(input, settings);
 
   if (!card) throw new Error('No card to plot.');
 
-  const profile = buildDetailedProfile(card, resolveRideSettings({ ftp: FTP }));
-
-  return { profile, plot: profilePlot(profile, t) };
+  return { card, plot: profilePlot(card, t) };
 }
 
 describe('profilePlot', () => {
   it('plots the plan alone, labelled with its steps and power', () => {
-    const { profile, plot } = plotOf(
-      PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
-      undefined,
-    );
+    const { card, plot } = plotOf({
+      planned: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+    });
 
     expect(plot).toEqual({
-      strips: [{ segments: profile.planned?.segments, caption: 'Plan' }],
+      strips: [{ segments: card.planned?.segments, caption: 'Plan' }],
       accessibilityLabel: PLAN_LABEL,
     });
   });
 
+  it('labels the plan with the length of its timed steps, leaving out a step with only a distance', () => {
+    const { plot } = plotOf({
+      planned: [
+        ...PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+        { distance: 5000, power: { units: '%ftp', value: 50 } },
+      ],
+    });
+
+    expect(plot.accessibilityLabel).toBe(PLAN_LABEL);
+  });
+
   it('plots the plan above the ride, and labels both', () => {
-    const { profile, plot } = plotOf(
-      PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
-      RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT,
-    );
+    const { card, plot } = plotOf({
+      planned: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
+      recorded: RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT,
+    });
 
     expect(plot.strips).toEqual([
-      { segments: profile.planned?.segments, caption: 'Plan' },
-      { segments: profile.recorded?.segments, caption: 'Wykonanie' },
+      { segments: card.planned?.segments, caption: 'Plan' },
+      { segments: card.recorded?.segments, caption: 'Wykonanie' },
     ]);
     expect(plot.accessibilityLabel).toBe(
       `Plan i wykonanie. ${PLAN_LABEL}. Profil aktywności: 10m, 2 odcinki, maks. 98% FTP. Moc szczytowa 245 W, średnia 218 W`,
+    );
+  });
+
+  it("labels the ride's power in %FTP, the unit of the scale, with no current FTP, even though the ride kept its own", () => {
+    const { plot } = plotOf(
+      { recorded: RIDE_OF_10_MINUTES_PEAKING_AT_98_PCT },
+      resolveRideSettings(null),
+    );
+
+    expect(plot.accessibilityLabel).toBe(
+      'Profil aktywności: 10m, 2 odcinki, maks. 98% FTP. Moc szczytowa 98% FTP, średnia 87% FTP',
     );
   });
 
@@ -91,5 +102,119 @@ describe('profilePlot', () => {
     expect(
       profilePlot({ planned: null, recorded: null }, t).accessibilityLabel,
     ).toBe('');
+  });
+});
+
+function rideOf(
+  intervals: [startSeconds: number, endSeconds: number][],
+  endSeconds: number,
+): RecordedProfile {
+  return {
+    intervals: intervals.map(([startSeconds, intervalEnd]) => ({
+      startSeconds,
+      endSeconds: intervalEnd,
+      intensity: 90,
+      zone: 3,
+    })),
+    endSeconds,
+    icuFtp: FTP,
+    icuZoneTimes: null,
+  };
+}
+
+function pixelsOf(ride: RecordedProfile, plotWidth: number) {
+  const card = buildProfileCard({ recorded: ride }, AT_THE_CURRENT_FTP);
+
+  if (!card?.recorded) throw new Error('No ride to plot.');
+
+  return card.recorded.segments.map(segment =>
+    segmentPixels(segment, card.durationSeconds, plotWidth),
+  );
+}
+
+describe('segmentPixels', () => {
+  it('places a segment at its seconds in proportion to the plot width', () => {
+    expect(pixelsOf(rideOf([[120, 126]], 600), 300)).toEqual([
+      { x: 60, width: 3 },
+    ]);
+  });
+
+  it('keeps a 1 px hairline inside each edge of a bar wider than 4 px, so repeats stay countable', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [0, 150],
+            [150, 600],
+          ],
+          600,
+        ),
+        300,
+      ),
+    ).toEqual([
+      { x: 1, width: 73 },
+      { x: 76, width: 223 },
+    ]);
+  });
+
+  it('draws a segment narrower than 2 px 2 px wide, centred on its real time, even over its neighbour', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [300, 303],
+            [303, 306],
+          ],
+          600,
+        ),
+        300,
+      ),
+    ).toEqual([
+      { x: 149.75, width: 2 },
+      { x: 151.25, width: 2 },
+    ]);
+  });
+
+  it('draws nothing on a plot of zero width', () => {
+    expect(
+      pixelsOf(
+        rideOf(
+          [
+            [0, 3],
+            [3, 600],
+          ],
+          600,
+        ),
+        0,
+      ),
+    ).toEqual([
+      { x: 0, width: 0 },
+      { x: 0, width: 0 },
+    ]);
+  });
+});
+
+describe('stackXOf', () => {
+  it('starts the plot right of the label gutter', () => {
+    expect(stackXOf(0)).toBe(Y_LABEL_GUTTER_PX);
+  });
+
+  it('keeps a point its distance into the plot', () => {
+    expect(stackXOf(150)).toBe(Y_LABEL_GUTTER_PX + 150);
+  });
+});
+
+describe('axisLabels', () => {
+  it('labels zero, the ceiling and every gridline far enough from its neighbours, dropping 225 W and 300 W, under 12 px from the labels below', () => {
+    const plotHeightPx = 100;
+    const minSpacingPx = 12;
+
+    expect(
+      axisLabels(
+        { unit: 'watts', ceiling: 375, gridlines: [138, 188, 225, 263, 300] },
+        plotHeightPx,
+        minSpacingPx,
+      ),
+    ).toEqual([0, 138, 188, 263, 375]);
   });
 });

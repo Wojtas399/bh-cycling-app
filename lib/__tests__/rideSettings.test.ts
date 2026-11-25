@@ -2,6 +2,7 @@ import {
   ftpPctToWatts,
   resolveFtp,
   resolveRideSettings,
+  rideSettingsOrCoggan,
 } from '../rideSettings';
 
 describe('resolveFtp', () => {
@@ -23,6 +24,18 @@ describe('resolveRideSettings', () => {
       zoneConfig: expect.arrayContaining([{ zone: 1, minPct: 0, maxPct: 55 }]),
       ftp: null,
     });
+  });
+});
+
+describe('rideSettingsOrCoggan', () => {
+  it('keeps the settings it read', () => {
+    const loaded = resolveRideSettings({ ftp: 265 });
+
+    expect(rideSettingsOrCoggan(loaded)).toBe(loaded);
+  });
+
+  it('falls back to Coggan zones and no FTP without settings read', () => {
+    expect(rideSettingsOrCoggan(undefined)).toEqual(resolveRideSettings(null));
   });
 });
 

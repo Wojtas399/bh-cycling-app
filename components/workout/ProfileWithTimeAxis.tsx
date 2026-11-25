@@ -12,19 +12,23 @@ import Text from '@/components/Text';
 import { RANGE_CAP_OPACITY, ZONE_COLORS } from '@/components/WorkoutProfile';
 import { useAppTheme } from '@/constants/theme';
 import { NOTHING_CROSSED, crossesToJs } from '@/lib/crossesToJs';
-import { type ProfileScale, axisLabels } from '@/lib/detailedProfile';
 import { formatDuration } from '@/lib/formatDuration';
 import { formatPower } from '@/lib/formatPower';
 import { rampPolygonPoints } from '@/lib/profileBars';
-import type { PlotStrip } from '@/lib/profilePlot';
+import { type ProfileScale, type StripSegment } from '@/lib/profileCard';
+import {
+  type PlotStrip,
+  Y_LABEL_GUTTER_PX,
+  axisLabels,
+  plotWidthOf,
+  segmentPixels,
+  stackXOf,
+} from '@/lib/profilePlot';
 import { pointerSeconds } from '@/lib/profileReadout';
-import type { StripSegment } from '@/lib/stripSegment';
 
 const LONE_STRIP_PLOT_HEIGHT = 140;
 
 const STACKED_STRIP_PLOT_HEIGHT = 100;
-
-const Y_LABEL_GUTTER = 44;
 
 const END_LABEL_CLEARANCE = 6;
 
@@ -36,15 +40,9 @@ const BASELINE_LIFT_CENTRING_LABEL = 3.5;
 
 const MIN_Y_LABEL_SPACING_PX = 12;
 
-const HAIRLINE_KEEPING_REPEATS_COUNTABLE = 1;
-
 const TIME_LABEL_DURATION_SHARES = [0, 0.25, 0.5, 0.75, 1];
 
 const POINTER_WIDTH = 1;
-
-export function plotWidthOf(stackWidth: number): number {
-  return Math.max(0, stackWidth - Y_LABEL_GUTTER);
-}
 
 export interface ProfileWithTimeAxisProps {
   strips: PlotStrip[];
@@ -72,7 +70,7 @@ export default function ProfileWithTimeAxis({
     strips.length > 1 ? STACKED_STRIP_PLOT_HEIGHT : LONE_STRIP_PLOT_HEIGHT;
   const plotWidth = plotWidthOf(width);
 
-  const pointerX = useSharedValue(Y_LABEL_GUTTER);
+  const pointerX = useSharedValue(Y_LABEL_GUTTER_PX);
   const lastCrossedColumn = useSharedValue(NOTHING_CROSSED);
 
   function scrubToColumn(column: number) {
@@ -82,10 +80,10 @@ export default function ProfileWithTimeAxis({
   function moveTo(x: number) {
     'worklet';
     const column = Math.round(
-      Math.min(Math.max(x - Y_LABEL_GUTTER, 0), plotWidth),
+      Math.min(Math.max(x - Y_LABEL_GUTTER_PX, 0), plotWidth),
     );
 
-    pointerX.set(Y_LABEL_GUTTER + column);
+    pointerX.set(stackXOf(column));
 
     if (crossesToJs(column, lastCrossedColumn)) {
       scheduleOnRN(scrubToColumn, column);
@@ -144,7 +142,7 @@ export default function ProfileWithTimeAxis({
         <Box
           flexDirection="row"
           justifyContent="space-between"
-          style={{ marginLeft: Y_LABEL_GUTTER }}
+          style={{ marginLeft: Y_LABEL_GUTTER_PX }}
         >
           {TIME_LABEL_DURATION_SHARES.map(share => (
             <Text key={share} variant="body-xs-regular" color="textTertiary">
@@ -180,7 +178,7 @@ function Strips({
             <Text
               variant="body-xs-medium"
               color="textSecondary"
-              style={{ marginLeft: Y_LABEL_GUTTER }}
+              style={{ marginLeft: Y_LABEL_GUTTER_PX }}
             >
               {caption}
             </Text>
@@ -213,8 +211,6 @@ function StripPlot({
 }) {
   const { colors } = useAppTheme();
   const plotWidth = plotWidthOf(width);
-  const xOf = (seconds: number) =>
-    Y_LABEL_GUTTER + (seconds / durationSeconds) * plotWidth;
   const yOf = (value: number) =>
     END_LABEL_CLEARANCE + (1 - value / scale.ceiling) * height;
   const label = (value: number) => formatPower(scale.unit, value);
@@ -224,7 +220,7 @@ function StripPlot({
       {scale.gridlines.map(value => (
         <Line
           key={value}
-          x1={Y_LABEL_GUTTER}
+          x1={Y_LABEL_GUTTER_PX}
           x2={width}
           y1={yOf(value)}
           y2={yOf(value)}
@@ -234,7 +230,7 @@ function StripPlot({
         />
       ))}
       <Line
-        x1={Y_LABEL_GUTTER}
+        x1={Y_LABEL_GUTTER_PX}
         x2={width}
         y1={yOf(0)}
         y2={yOf(0)}
@@ -243,7 +239,7 @@ function StripPlot({
       {axisLabels(scale, height, MIN_Y_LABEL_SPACING_PX).map(value => (
         <SvgText
           key={value}
-          x={Y_LABEL_GUTTER - Y_LABEL_GAP_TO_PLOT}
+          x={Y_LABEL_GUTTER_PX - Y_LABEL_GAP_TO_PLOT}
           y={yOf(value) + BASELINE_LIFT_CENTRING_LABEL}
           fill={colors.textTertiary}
           fontSize={LABEL_SIZE}
@@ -254,12 +250,12 @@ function StripPlot({
       ))}
       {segments.map(
         ({ startSeconds, endSeconds, lowOnScale, highOnScale, zone, ramp }) => {
-          const fullWidth = xOf(endSeconds) - xOf(startSeconds);
-          const sparesHairline =
-            fullWidth > 4 * HAIRLINE_KEEPING_REPEATS_COUNTABLE;
-          const inset = sparesHairline ? HAIRLINE_KEEPING_REPEATS_COUNTABLE : 0;
-          const x = xOf(startSeconds) + inset;
-          const barWidth = fullWidth - 2 * inset;
+          const { x: xInPlot, width: barWidth } = segmentPixels(
+            { startSeconds, endSeconds },
+            durationSeconds,
+            plotWidth,
+          );
+          const x = stackXOf(xInPlot);
           const color = colors[ZONE_COLORS[zone]];
 
           if (ramp) {

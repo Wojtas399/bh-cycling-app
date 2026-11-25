@@ -1,5 +1,11 @@
 import type { ZoneConfig } from '../powerZones';
-import { buildWorkoutProfile, profileCeilingPct } from '../workoutProfile';
+import {
+  type WorkoutStep,
+  buildWorkoutProfile,
+  hasWorkoutProfile,
+  profileCeilingPct,
+  stepsAtTheirTime,
+} from '../workoutProfile';
 
 const SPELLED_OUT_COGGAN_BANDS: ZoneConfig = [
   { zone: 1, minPct: 0, maxPct: 55 },
@@ -557,5 +563,73 @@ describe('workoutProfile', () => {
 
   it('profileCeilingPct is zero for an empty profile', () => {
     expect(profileCeilingPct([])).toBe(0);
+  });
+});
+
+describe('hasWorkoutProfile', () => {
+  const byHeartRate = (duration: number): WorkoutStep => ({
+    duration,
+    hr: { units: '%hr', value: 75 },
+  });
+  const atFtpPct = (duration: number, value: number): WorkoutStep => ({
+    duration,
+    power: { units: '%ftp', value },
+  });
+
+  it.each<[boolean, string, WorkoutStep[]]>([
+    [
+      true,
+      'power over exactly half the time',
+      [atFtpPct(1800, 70), byHeartRate(1800)],
+    ],
+    [
+      false,
+      'power over less than half the time',
+      [atFtpPct(1799, 70), byHeartRate(1801)],
+    ],
+    [
+      true,
+      'a Repeat counted once per rep, not on top of its reps',
+      [
+        { reps: 2, duration: 1200, steps: [atFtpPct(600, 90)] },
+        byHeartRate(1000),
+      ],
+    ],
+    [
+      false,
+      'no step asking for any power',
+      [atFtpPct(1800, 0), atFtpPct(1800, 0)],
+    ],
+    [false, 'no steps', []],
+    [
+      false,
+      'steps with only a distance',
+      [{ distance: 5000, power: { units: '%ftp', value: 70 } }],
+    ],
+  ])('is %p with %s', (expected, _, steps) => {
+    expect(
+      hasWorkoutProfile(stepsAtTheirTime(steps, SPELLED_OUT_COGGAN_BANDS)),
+    ).toBe(expected);
+  });
+
+  it('is true exactly when the Workout Tile draws blocks', () => {
+    const workouts: WorkoutStep[][] = [
+      THRESHOLD_2X20,
+      SPRINT_IN_A_LONG_RIDE,
+      [atFtpPct(1200, 70), byHeartRate(2400)],
+      [atFtpPct(600, 0)],
+      [],
+    ];
+
+    expect(
+      workouts.map(steps =>
+        hasWorkoutProfile(stepsAtTheirTime(steps, SPELLED_OUT_COGGAN_BANDS)),
+      ),
+    ).toEqual(
+      workouts.map(
+        steps =>
+          buildWorkoutProfile(steps, SPELLED_OUT_COGGAN_BANDS).length > 0,
+      ),
+    );
   });
 });

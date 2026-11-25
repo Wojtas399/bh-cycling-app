@@ -14,14 +14,8 @@ import type { RideSettings } from './rideSettings';
 import { type RouteSummary, summariseRoute } from './route';
 import { isStravaActivity, stravaActivityUrl } from './stravaActivity';
 import { stripNoteHtml } from './stripNoteHtml';
-import { type ZoneTimes, planZoneTimes } from './timeInZone';
 import { entries, fromEntries } from './typed';
-import {
-  type WorkoutBlock,
-  type WorkoutStep,
-  buildWorkoutProfile,
-  profileCeilingPct,
-} from './workoutProfile';
+import type { WorkoutStep } from './workoutProfile';
 import { type WorkoutStatus, workoutStatus } from './workoutStatus';
 import { type WorkoutDetailsStep, buildWorkoutSteps } from './workoutSteps';
 
@@ -56,12 +50,6 @@ export interface StoredWorkoutDetails {
 
 export type WorkoutDetailsMode = 'planned' | 'completed';
 
-export interface WorkoutProfileSummary {
-  durationSeconds: number;
-  stepCount: number;
-  peakFtpPct: number;
-}
-
 export interface WorkoutPlanMetrics {
   durationSeconds?: number;
   load?: number;
@@ -76,9 +64,7 @@ export interface WorkoutDetails {
   isCyclingWorkout: boolean;
   title: string;
   date: LocalDateString;
-  blocks: WorkoutBlock[];
-  profileSummary: WorkoutProfileSummary | null;
-  zoneTimes: ZoneTimes;
+  rideSteps: WorkoutStep[];
   rideSettings: RideSettings;
   steps: WorkoutDetailsStep[];
   comparison: WorkoutComparison | null;
@@ -122,8 +108,7 @@ export function buildWorkoutDetails(
   const { event, activity } = workout;
   const { zoneConfig } = rideSettings;
   const date = event.start_date_local.slice(0, 10);
-  const steps = rideSteps(event);
-  const blocks = buildWorkoutProfile(steps, zoneConfig);
+  const steps = rideSteps(event) ?? [];
   const status = workoutStatus(
     { id: event.id, date },
     new Set(paired.completedEventIds),
@@ -138,9 +123,7 @@ export function buildWorkoutDetails(
     isCyclingWorkout: isCyclingWorkout(event),
     title: event.name,
     date,
-    blocks,
-    profileSummary: summariseProfile(event, blocks),
-    zoneTimes: planZoneTimes(steps, zoneConfig),
+    rideSteps: steps,
     rideSettings,
     steps: buildWorkoutSteps(steps, zoneConfig),
     comparison: measured ? compareWithPlan(event, measured) : null,
@@ -207,27 +190,6 @@ function descriptionWithoutStepLines(event: IntervalsCalendarEvent): {
   const description = text && stripNoteHtml(text).trim();
 
   return description ? { description } : {};
-}
-
-function summariseProfile(
-  event: IntervalsCalendarEvent,
-  blocks: WorkoutBlock[],
-): WorkoutProfileSummary | null {
-  if (blocks.length === 0) return null;
-
-  const durationSeconds =
-    event.workout_doc?.duration ??
-    secondsOfTopLevelStepsCoveringTheirReps(event.workout_doc?.steps ?? []);
-
-  return {
-    durationSeconds,
-    stepCount: blocks.length,
-    peakFtpPct: profileCeilingPct(blocks),
-  };
-}
-
-function secondsOfTopLevelStepsCoveringTheirReps(steps: WorkoutStep[]): number {
-  return steps.reduce((sum, step) => sum + (step.duration ?? 0), 0);
 }
 
 function buildPlanMetrics(event: IntervalsCalendarEvent): WorkoutPlanMetrics {

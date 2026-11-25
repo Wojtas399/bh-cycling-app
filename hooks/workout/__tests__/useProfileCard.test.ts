@@ -1,16 +1,13 @@
 import { connectIntervals } from '@/test-utils/intervalsConnection';
 
 import { useProfileCard } from '../useProfileCard';
-import { buildDetailedProfile } from '@/lib/detailedProfile';
 import {
   type IntervalsActivity,
   getActivity,
   getAthleteSettings,
 } from '@/lib/intervalsApi';
 import { resolveRideSettings } from '@/lib/rideSettings';
-import type { ZoneTimes } from '@/lib/timeInZone';
-import type { WorkoutProfileSummary } from '@/lib/workoutDetails';
-import type { WorkoutBlock } from '@/lib/workoutProfile';
+import type { WorkoutStep } from '@/lib/workoutProfile';
 import { renderHookWithClient } from '@/test-utils/queryClient';
 import { waitFor } from '@testing-library/react-native';
 
@@ -27,26 +24,10 @@ const CURRENT_FTP = 250;
 
 const ACTIVITY_ID = 'i196064284';
 
-const PLANNED_BLOCKS: WorkoutBlock[] = [
-  { widthFraction: 0.5, minPct: 60, maxPct: 60, zone: 2 },
-  { widthFraction: 0.5, minPct: 100, maxPct: 100, zone: 4 },
+const PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100: WorkoutStep[] = [
+  { duration: 600, power: { units: '%ftp', value: 60 } },
+  { duration: 600, power: { units: '%ftp', value: 100 } },
 ];
-
-const PLAN_SUMMARY: WorkoutProfileSummary = {
-  durationSeconds: 1200,
-  stepCount: 2,
-  peakFtpPct: 100,
-};
-
-const PLAN_ZONE_TIMES_FROM_ITS_STEPS: ZoneTimes = {
-  1: 0,
-  2: 600,
-  3: 0,
-  4: 600,
-  5: 0,
-  6: 0,
-  7: 0,
-};
 
 const RIDE_DRAWING_A_600_S_PROFILE: IntervalsActivity = {
   id: ACTIVITY_ID,
@@ -64,9 +45,7 @@ const RIDE_DRAWING_A_600_S_PROFILE: IntervalsActivity = {
 function renderCardWithCurrentRideSettings(recordedActivityId: string | null) {
   return renderHookWithClient(() =>
     useProfileCard({
-      blocks: PLANNED_BLOCKS,
-      profileSummary: PLAN_SUMMARY,
-      zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
+      rideSteps: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
       rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
       recordedActivityId,
     }),
@@ -74,16 +53,23 @@ function renderCardWithCurrentRideSettings(recordedActivityId: string | null) {
 }
 
 const PLAN_ALONE = {
-  card: {
-    durationSeconds: 1200,
-    recorded: null,
-    planned: {
-      blocks: PLANNED_BLOCKS,
-      summary: PLAN_SUMMARY,
-      ftp: CURRENT_FTP,
-    },
+  durationSeconds: 1200,
+  scale: { unit: 'watts' },
+  recorded: null,
+  planned: {
+    summary: { durationSeconds: 1200, stepCount: 2, peakFtpPct: 100 },
+    ftp: CURRENT_FTP,
+    segments: [
+      { startSeconds: 0, endSeconds: 600, maxPct: 60, maxWatts: 150, zone: 2 },
+      {
+        startSeconds: 600,
+        endSeconds: 1200,
+        maxPct: 100,
+        maxWatts: 250,
+        zone: 4,
+      },
+    ],
   },
-  settings: { ftp: CURRENT_FTP },
 };
 
 beforeEach(() => {
@@ -115,20 +101,32 @@ describe('useProfileCard', () => {
 
     resolveActivity(RIDE_DRAWING_A_600_S_PROFILE);
 
-    await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
+    await waitFor(() => expect(result.current?.recorded).not.toBeNull());
     expect(mockGetActivity).toHaveBeenCalledWith(
       'token-1',
       ACTIVITY_ID,
       { intervals: true },
       expect.anything(),
     );
-    expect(result.current?.card.durationSeconds).toBe(1200);
-    expect(result.current?.card.recorded).toMatchObject({
+    expect(result.current?.durationSeconds).toBe(1200);
+    expect(result.current?.recorded).toMatchObject({
       ftp: CURRENT_FTP,
-      blocks: [
-        expect.objectContaining({ minPct: 60, zone: 2 }),
-        expect.objectContaining({ minPct: 100, zone: 4 }),
-        expect.objectContaining({ maxPct: 0 }),
+      summary: { durationSeconds: 600 },
+      segments: [
+        {
+          startSeconds: 0,
+          endSeconds: 300,
+          maxPct: 60,
+          maxWatts: 150,
+          zone: 2,
+        },
+        {
+          startSeconds: 300,
+          endSeconds: 600,
+          maxPct: 100,
+          maxWatts: 250,
+          zone: 4,
+        },
       ],
     });
   });
@@ -145,10 +143,9 @@ describe('useProfileCard', () => {
     });
     const { result } = await renderCardWithCurrentRideSettings(ACTIVITY_ID);
 
-    await waitFor(() => expect(result.current?.card.recorded).not.toBeNull());
-    const { card, settings } = result.current!;
+    await waitFor(() => expect(result.current?.recorded).not.toBeNull());
 
-    expect(buildDetailedProfile(card, settings).timeInZone).toEqual([
+    expect(result.current?.timeInZone).toEqual([
       {
         zone: 1,
         planned: { seconds: 0, share: 0 },
@@ -181,9 +178,7 @@ describe('useProfileCard', () => {
 
     const { result } = await renderHookWithClient(() =>
       useProfileCard({
-        blocks: PLANNED_BLOCKS,
-        profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
+        rideSteps: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
         rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
         recordedActivityId: null,
       }),
@@ -193,18 +188,32 @@ describe('useProfileCard', () => {
     expect(mockGetAthleteSettings).not.toHaveBeenCalled();
   });
 
+  it('has no card for a Workout whose steps draw no Workout Profile, as its tile has none', async () => {
+    const { result } = await renderHookWithClient(() =>
+      useProfileCard({
+        rideSteps: [
+          { duration: 600, power: { units: '%ftp', value: 60 } },
+          { duration: 1800, hr: { units: '%hr', value: 75 } },
+        ],
+        rideSettings: resolveRideSettings({ ftp: CURRENT_FTP }),
+        recordedActivityId: null,
+      }),
+    );
+
+    expect(result.current).toBeNull();
+  });
+
   it("draws the card on Coggan's zones with no FTP when the Workout was read without the athlete's settings", async () => {
     const { result } = await renderHookWithClient(() =>
       useProfileCard({
-        blocks: PLANNED_BLOCKS,
-        profileSummary: PLAN_SUMMARY,
-        zoneTimes: PLAN_ZONE_TIMES_FROM_ITS_STEPS,
+        rideSteps: PLAN_OF_10_MINUTES_AT_60_PCT_THEN_10_AT_100,
         rideSettings: resolveRideSettings(null),
         recordedActivityId: null,
       }),
     );
 
-    expect(result.current?.settings).toEqual(resolveRideSettings(null));
-    expect(result.current?.card.planned?.ftp).toBeNull();
+    expect(result.current?.scale.unit).toBe('ftpPct');
+    expect(result.current?.planned?.ftp).toBeNull();
+    expect(result.current?.planned?.power.unit).toBe('ftpPct');
   });
 });

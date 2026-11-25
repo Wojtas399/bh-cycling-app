@@ -1,8 +1,12 @@
-import type { ActivityProfileSummary } from './activityDetails';
-import type { DetailedProfile, StripPower } from './detailedProfile';
 import { formatDuration } from './formatDuration';
-import type { StripSegment } from './stripSegment';
-import type { WorkoutProfileSummary } from './workoutDetails';
+import type {
+  ActivityProfileSummary,
+  ProfileCard,
+  ProfileScale,
+  StripPower,
+  StripSegment,
+  WorkoutProfileSummary,
+} from './profileCard';
 import type { TFunction } from 'i18next';
 
 export interface PlotStrip {
@@ -16,7 +20,7 @@ export interface ProfilePlot {
 }
 
 export function profilePlot(
-  { planned, recorded }: Pick<DetailedProfile, 'planned' | 'recorded'>,
+  { planned, recorded }: Pick<ProfileCard, 'planned' | 'recorded'>,
   t: TFunction,
 ): ProfilePlot {
   function powerLabel({ unit, peak, average }: StripPower) {
@@ -72,4 +76,74 @@ export function profilePlot(
           })
         : (plannedText ?? recordedText ?? ''),
   };
+}
+
+export const Y_LABEL_GUTTER_PX = 44;
+
+export function plotWidthOf(stackWidth: number): number {
+  return Math.max(0, stackWidth - Y_LABEL_GUTTER_PX);
+}
+
+export function stackXOf(plotX: number): number {
+  'worklet';
+
+  return Y_LABEL_GUTTER_PX + plotX;
+}
+
+const MIN_BAR_WIDTH_PX = 2;
+
+const HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX = 1;
+
+const WIDTH_SPARING_HAIRLINES_PX = 4 * HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX;
+
+export interface SegmentPixels {
+  x: number;
+  width: number;
+}
+
+export function segmentPixels(
+  {
+    startSeconds,
+    endSeconds,
+  }: Pick<StripSegment, 'startSeconds' | 'endSeconds'>,
+  durationSeconds: number,
+  plotWidth: number,
+): SegmentPixels {
+  if (plotWidth <= 0) return { x: 0, width: 0 };
+
+  const xOf = (seconds: number) => (seconds / durationSeconds) * plotWidth;
+  const x = xOf(startSeconds);
+  const width = xOf(endSeconds) - x;
+
+  if (width > WIDTH_SPARING_HAIRLINES_PX) {
+    return {
+      x: x + HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX,
+      width: width - 2 * HAIRLINE_KEEPING_REPEATS_COUNTABLE_PX,
+    };
+  }
+
+  if (width >= MIN_BAR_WIDTH_PX) return { x, width };
+
+  return { x: x + (width - MIN_BAR_WIDTH_PX) / 2, width: MIN_BAR_WIDTH_PX };
+}
+
+export function axisLabels(
+  { ceiling, gridlines }: ProfileScale,
+  plotHeightPx: number,
+  minSpacingPx: number,
+): number[] {
+  const apart = (low: number, high: number) =>
+    ((high - low) / ceiling) * plotHeightPx >= minSpacingPx;
+  const labels = [0];
+
+  for (const gridline of gridlines) {
+    if (
+      apart(labels[labels.length - 1], gridline) &&
+      apart(gridline, ceiling)
+    ) {
+      labels.push(gridline);
+    }
+  }
+
+  return [...labels, ceiling];
 }
