@@ -91,7 +91,7 @@ describe('createQueryClient', () => {
     expect(mockHandleIntervalsAuthError).toHaveBeenCalledWith(client);
   });
 
-  it('leaves any other error alone', async () => {
+  it("doesn't route any other error to the auth-error handler", async () => {
     const client = createQueryClient();
 
     await expect(
@@ -104,7 +104,7 @@ describe('createQueryClient', () => {
     expect(mockHandleIntervalsAuthError).not.toHaveBeenCalled();
   });
 
-  it('drops a failed auth-error handler, whose integration delete is best-effort', async () => {
+  it('drops a failed auth-error handler without reporting it, since its integration delete is best-effort', async () => {
     const unhandledRejection = jest.fn();
     const client = createQueryClient();
 
@@ -121,6 +121,7 @@ describe('createQueryClient', () => {
     process.off('unhandledRejection', unhandledRejection);
 
     expect(unhandledRejection).not.toHaveBeenCalled();
+    expect(mockReportError).not.toHaveBeenCalled();
   });
 
   it('reports an unexpected query error once', async () => {
