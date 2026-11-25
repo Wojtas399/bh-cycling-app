@@ -7,11 +7,27 @@ const FETCH_NETWORK_FAILURES = [
   'Network request timed out',
 ];
 
-const EXPECTED_CODES = new Set([
+const NETWORK_FAILURE_CODES = [
   'auth/network-request-failed',
   'unavailable',
   'deadline-exceeded',
+];
+
+const AUTH_CODES_A_SCREEN_SHOWS_AS_A_SPECIFIC_MESSAGE = [
+  'auth/wrong-password',
+  'auth/invalid-credential',
+  'auth/email-already-in-use',
+  'auth/weak-password',
+  'auth/invalid-email',
+  'auth/user-not-found',
+  'auth/too-many-requests',
+  'auth/user-mismatch',
+];
+
+const EXPECTED_CODES = new Set([
+  ...NETWORK_FAILURE_CODES,
   statusCodes.SIGN_IN_CANCELLED,
+  ...AUTH_CODES_A_SCREEN_SHOWS_AS_A_SPECIFIC_MESSAGE,
 ]);
 
 function isFetchNetworkFailure(error: unknown): boolean {

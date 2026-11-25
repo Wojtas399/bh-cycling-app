@@ -4,6 +4,12 @@ import { ignoreFailure } from '../ignoreFailure';
 import { IntervalsAuthError } from '../intervalsApi';
 import { removeIntervalsQueries } from '../intervalsQueries';
 import { createQueryClient } from '../queryClient';
+import { mapChangePasswordError } from '@/app/(app)/change-password/changePasswordErrors';
+import { mapDeleteAccountError } from '@/app/(app)/delete-account/deleteAccountErrors';
+import { mapForgotPasswordError } from '@/app/(auth)/forgot-password/forgotPasswordErrors';
+import { mapSignInError } from '@/app/(auth)/sign-in/signInErrors';
+import { mapSignUpError } from '@/app/(auth)/sign-up/signUpErrors';
+import { mapVerifyEmailError } from '@/app/(auth)/verify-email/verifyEmailErrors';
 import { MutationObserver } from '@tanstack/react-query';
 
 jest.mock('../handleIntervalsAuthError', () => ({
@@ -21,8 +27,43 @@ jest.mock('../errorReporting', () => ({
 const mockHandleIntervalsAuthError = jest.mocked(handleIntervalsAuthError);
 const mockReportError = jest.mocked(reportError);
 
+const AUTH_CODES_WITH_A_SPECIFIC_MESSAGE = [
+  'auth/wrong-password',
+  'auth/invalid-credential',
+  'auth/email-already-in-use',
+  'auth/weak-password',
+  'auth/invalid-email',
+  'auth/user-not-found',
+  'auth/too-many-requests',
+  'auth/user-mismatch',
+];
+
+const AUTH_CODES_WITH_ONLY_A_GENERIC_MESSAGE = [
+  'auth/user-disabled',
+  'auth/operation-not-allowed',
+  'auth/requires-recent-login',
+  'auth/user-token-expired',
+  'auth/invalid-user-token',
+  'auth/credential-already-in-use',
+  'auth/account-exists-with-different-credential',
+  'auth/internal-error',
+  'auth/unknown',
+];
+
 function codedError(code: string): Error {
   return Object.assign(new Error(`[${code}]`), { code });
+}
+
+function aScreenShowsASpecificMessage(code: string): boolean {
+  return [
+    mapSignInError('emailSignIn', code),
+    mapSignUpError('emailSignUp', code),
+    mapForgotPasswordError(code),
+    mapChangePasswordError('changePassword', code),
+    mapChangePasswordError('sendResetEmail', code),
+    mapDeleteAccountError(code),
+    mapVerifyEmailError(code),
+  ].some(({ key }) => !key.endsWith('.generic'));
 }
 
 describe('createQueryClient', () => {
@@ -118,6 +159,10 @@ describe('createQueryClient', () => {
     ['a Cloud Function call with no network', codedError('unavailable')],
     ['a Cloud Function call that timed out', codedError('deadline-exceeded')],
     ['a cancelled Google sign-in', codedError('GOOGLE_SIGN_IN_CANCELLED')],
+    ...AUTH_CODES_WITH_A_SPECIFIC_MESSAGE.map(code => [
+      `${code}, which a screen shows as a specific message`,
+      codedError(code),
+    ]),
   ])("doesn't report %s", (_kind, error) => {
     it('from a query', async () => {
       const client = createQueryClient();
@@ -144,6 +189,21 @@ describe('createQueryClient', () => {
     });
   });
 
+  it.each(AUTH_CODES_WITH_ONLY_A_GENERIC_MESSAGE)(
+    'reports %s, which screens show only as a generic message',
+    async code => {
+      const client = createQueryClient();
+      const error = codedError(code);
+      const mutation = new MutationObserver(client, {
+        mutationFn: () => Promise.reject(error),
+      });
+
+      await expect(mutation.mutate()).rejects.toBe(error);
+
+      expect(mockReportError).toHaveBeenCalledWith(error);
+    },
+  );
+
   it('keeps data for the whole session until an explicit refresh', () => {
     jest.useFakeTimers();
 
@@ -155,6 +215,19 @@ describe('createQueryClient', () => {
 
     expect(client.getQueryData(queryKey)).toBe('cached');
     expect(client.getQueryCache().find({ queryKey })?.isStale()).toBe(false);
+  });
+});
+
+describe('the Firebase Auth codes kept out of Sentry', () => {
+  it('match the codes a screen maps to a specific message', () => {
+    const codes = [
+      ...AUTH_CODES_WITH_ONLY_A_GENERIC_MESSAGE,
+      ...AUTH_CODES_WITH_A_SPECIFIC_MESSAGE,
+    ];
+
+    expect(codes.filter(aScreenShowsASpecificMessage)).toEqual(
+      AUTH_CODES_WITH_A_SPECIFIC_MESSAGE,
+    );
   });
 });
 
