@@ -6,6 +6,12 @@ import {
   monthView,
 } from '../calendarViewModels';
 import type { LocalDateString } from '../localDate';
+import {
+  activityItem,
+  raceItem,
+  unplannedActivity,
+  workoutItem,
+} from '@/test-utils/calendarItems';
 
 const OCTOBER_2026_FROM_THURSDAY_1ST = new Date(2026, 9, 1);
 const OCTOBER = OCTOBER_2026_FROM_THURSDAY_1ST;
@@ -64,6 +70,58 @@ describe('monthView', () => {
         },
       },
     });
+  });
+
+  it('marks today, and only today, as today', () => {
+    const rows = monthView(OCTOBER, NOTHING, '2026-10-14', WORDS);
+
+    expect(
+      rows
+        .flatMap(row => row.cells)
+        .filter(cell => cell.inMonth && cell.isToday)
+        .map(cell => cell.date),
+    ).toEqual(['2026-10-14']);
+  });
+
+  it('splits a day’s Races, in the order the day holds them, from its Workout and Activity markers', () => {
+    const bRace = raceItem({ id: 1, priority: 'B', date: '2026-10-14' });
+    const cRace = raceItem({ id: 2, priority: 'C', date: '2026-10-14' });
+    const workout = workoutItem({ id: 3, date: '2026-10-14' });
+    const ride = activityItem(unplannedActivity({ date: '2026-10-14' }));
+    const data: CalendarData = {
+      itemsByDate: { '2026-10-14': [bRace, workout, cRace, ride] },
+      notes: [],
+    };
+
+    const cell = cellOn(
+      monthView(OCTOBER, data, A_DAY_OUTSIDE_OCTOBER, WORDS),
+      '2026-10-14',
+    );
+
+    expect(cell).toMatchObject({
+      races: [bRace, cRace],
+      markers: [workout, ride],
+      hasARace: false,
+    });
+  });
+
+  it('rings the day when any of its Races is an A Race', () => {
+    const data: CalendarData = {
+      itemsByDate: {
+        '2026-10-14': [
+          raceItem({ id: 1, priority: 'C', date: '2026-10-14' }),
+          raceItem({ id: 2, priority: 'A', date: '2026-10-14' }),
+        ],
+      },
+      notes: [],
+    };
+
+    expect(
+      cellOn(
+        monthView(OCTOBER, data, A_DAY_OUTSIDE_OCTOBER, WORDS),
+        '2026-10-14',
+      ),
+    ).toMatchObject({ hasARace: true });
   });
 });
 

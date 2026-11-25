@@ -1,4 +1,4 @@
-import type { DayCountLabels } from './calendarDayCounts';
+import { type DayCountLabels, dayMarkers } from './calendarDayCounts';
 import { type CalendarDay, getMonthGrid } from './calendarGrid';
 import type { CalendarItem, RaceItem } from './calendarItems';
 import type { CalendarData } from './calendarMonth';
@@ -42,8 +42,8 @@ export interface MonthRow {
 
 export function monthView(
   month: Date,
-  _data: CalendarData,
-  _today: LocalDateString,
+  { itemsByDate }: CalendarData,
+  today: LocalDateString,
   words: MonthWords,
 ): MonthRow[] {
   return getMonthGrid(month).map(week => ({
@@ -56,10 +56,8 @@ export function monthView(
         inMonth,
         date: day.date,
         dayOfMonth: day.dayOfMonth,
-        isToday: false,
-        races: [],
-        markers: [],
-        hasARace: false,
+        isToday: day.date === today,
+        ...dayMarkers(itemsByDate[day.date] ?? []),
         hiddenNoteCount: 0,
         label: words.day(day),
         press: { kind: 'day', day },
