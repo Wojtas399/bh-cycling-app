@@ -9,10 +9,11 @@ platform="${1:-}"
 # The e2e config runs against the staging bundle id, whatever .env.local says.
 export APP_ENV=staging
 
-# The e2e build reports nothing to Sentry, whatever .env.local says. An empty
-# value set here wins over .env.local. With no auth token on this machine, the
+# The e2e build reports nothing to Sentry, whatever .env.local says. A value
+# set here wins over .env.local, and a DSN that isn't an https URL turns Sentry
+# off, as in the e2e profile in eas.json. With no auth token on this machine, the
 # Sentry build steps would fail the build, so they upload no source maps.
-export EXPO_PUBLIC_SENTRY_DSN=
+export EXPO_PUBLIC_SENTRY_DSN=off
 export SENTRY_DISABLE_AUTO_UPLOAD=true
 
 # Stamped before the build, so an edit made while it runs still counts as unbuilt.

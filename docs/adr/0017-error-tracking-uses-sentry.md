@@ -12,7 +12,7 @@ The app had no error tracking. Most errors are caught before they crash anything
 
 - The mobile app reports errors to Sentry through `@sentry/react-native` and its Expo config plugin, on Sentry's free Developer plan: one seat, about 5,000 errors a month.
 - One Sentry project. Each event is tagged with `APP_ENV` (`dev`, `staging`, `production`) as its environment.
-- Release builds send events. `__DEV__` with Metro doesn't, and neither does the `e2e` build. A build without `EXPO_PUBLIC_SENTRY_DSN` has Sentry off.
+- Release builds send events. `__DEV__` with Metro doesn't, and neither does the `e2e` build. A build whose `EXPO_PUBLIC_SENTRY_DSN` is missing or not an `https` URL, such as the `off` the `e2e` build sets, has Sentry off.
 - Errors only: no tracing, no Session Replay, no profiling.
 - Events name the athlete by Firebase uid only. No email, no IP (`sendDefaultPii: false`). Tokens, OAuth codes and `Authorization` headers are scrubbed, and response bodies aren't attached.
 - Source maps are uploaded for EAS builds and for OTA updates. A failed upload warns in the run and doesn't block the release.

@@ -126,7 +126,7 @@ function scrubBreadcrumb<Breadcrumb extends ScrubbableBreadcrumb>(
 }
 
 export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
-  if (!dsn || isDev) return null;
+  if (!dsn?.startsWith('https://') || isDev) return null;
 
   return {
     dsn,

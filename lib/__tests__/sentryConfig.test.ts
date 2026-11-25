@@ -12,6 +12,12 @@ describe('sentryOptions', () => {
     ).toBeNull();
   });
 
+  it('turns Sentry off when the DSN is not an https URL, such as the e2e profile off value', () => {
+    expect(
+      sentryOptions({ dsn: 'off', appEnv: 'staging', isDev: false }),
+    ).toBeNull();
+  });
+
   it('turns Sentry off in a debug run with Metro, even with a DSN', () => {
     expect(sentryOptions({ dsn: DSN, appEnv: 'dev', isDev: true })).toBeNull();
   });
