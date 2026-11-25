@@ -54,6 +54,7 @@
     "@react-native-firebase/firestore": "^24.0.0",
     "@react-native-firebase/functions": "^24.0.0",
     "@react-native-google-signin/google-signin": "^16.1.2",
+    "@sentry/react-native": "~7.11.0",
     "@shopify/restyle": "^2.4.5",
     "@tanstack/react-query": "^5.104.1",
     "expo": "~57.0.26",
