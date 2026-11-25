@@ -212,6 +212,7 @@ export function weekView(
     laneCount: notes.lanes.length,
     days: days.map(day => {
       const isToday = day.date === today;
+      const dayLabel = words.day(day);
       const { crossings, rows, hiddenCount } = notes.days[day.date];
       const press: DayPressTarget = { kind: 'day', day };
 
@@ -220,10 +221,10 @@ export function weekView(
         dayOfMonth: day.dayOfMonth,
         weekday: words.weekdaysShort[day.weekday].toUpperCase(),
         isToday,
-        railLabel: isToday ? words.todayRail(words.day(day)) : words.day(day),
+        railLabel: isToday ? words.todayRail(dayLabel) : dayLabel,
         crossings,
         rows: [
-          ...rows.map(row => noteRow(row, day, words)),
+          ...rows.map(row => noteRow(row, dayLabel, words)),
           ...moreNotesRows(hiddenCount, press, words),
           ...itemRowsOrRest(data.itemsByDate[day.date] ?? [], words),
         ],
@@ -235,13 +236,13 @@ export function weekView(
 
 function noteRow(
   { note, multiDay }: NoteRow,
-  day: CalendarDay,
+  dayLabel: string,
   words: WeekWords,
 ): WeekNoteRow {
   const title = noteTitle(note, words);
   const when = multiDay
     ? formatNoteRange(note, words.monthNamesGenitive)
-    : words.day(day);
+    : dayLabel;
 
   return {
     kind: 'note',
