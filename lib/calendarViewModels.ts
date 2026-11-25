@@ -129,7 +129,7 @@ export function monthView(
             dayCounts(data, day.date),
             words.dayCounts,
           ),
-          press: { kind: 'day', day },
+          press: dayPress(day),
         };
       }),
       noteBars: segments.map(segment => ({
@@ -139,6 +139,10 @@ export function monthView(
       laneCount: Math.max(0, ...segments.map(segment => segment.lane + 1)),
     };
   });
+}
+
+function dayPress(day: CalendarDay): DayPressTarget {
+  return { kind: 'day', day };
 }
 
 function noteTitle(
@@ -214,7 +218,7 @@ export function weekView(
       const isToday = day.date === today;
       const dayLabel = words.day(day);
       const { crossings, rows, hiddenCount } = notes.days[day.date];
-      const press: DayPressTarget = { kind: 'day', day };
+      const press = dayPress(day);
 
       return {
         date: day.date,
