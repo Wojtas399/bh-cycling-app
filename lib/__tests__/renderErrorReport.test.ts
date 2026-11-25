@@ -1,10 +1,6 @@
 import { reportError } from '../errorReporting';
 import { reportOnFirstLayout } from '../renderErrorReport';
 
-jest.mock('../errorReporting', () => ({
-  reportError: jest.fn(),
-}));
-
 const mockReportError = jest.mocked(reportError);
 
 const COMPONENT_STACK = '\n    at WorkoutScreen\n    at RootLayout';

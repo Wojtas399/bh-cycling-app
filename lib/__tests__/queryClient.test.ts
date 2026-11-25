@@ -23,10 +23,6 @@ jest.mock('@react-native-google-signin/google-signin', () => ({
   statusCodes: { SIGN_IN_CANCELLED: 'GOOGLE_SIGN_IN_CANCELLED' },
 }));
 
-jest.mock('../errorReporting', () => ({
-  reportError: jest.fn(),
-}));
-
 const mockHandleIntervalsAuthError = jest.mocked(handleIntervalsAuthError);
 const mockReportError = jest.mocked(reportError);
 

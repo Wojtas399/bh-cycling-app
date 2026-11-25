@@ -37,10 +37,6 @@ jest.mock('@/lib/firebase', () => ({
   functions: () => ({ httpsCallable: mockHttpsCallable }),
 }));
 
-jest.mock('@/lib/errorReporting', () => ({
-  reportError: jest.fn(),
-}));
-
 jest.mock('@/lib/toast', () => ({
   toast: { success: jest.fn(), warning: jest.fn(), error: jest.fn() },
 }));
