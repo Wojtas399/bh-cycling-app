@@ -29,6 +29,7 @@ import type {
 } from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import { type CalendarView, otherViewStartDate } from '@/lib/calendarView';
+import type { CalendarPressTarget } from '@/lib/calendarViewModels';
 import type { Note } from '@/lib/notes';
 import type { Race } from '@/lib/races';
 import type { CalendarWorkout } from '@/lib/workoutStatus';
@@ -84,12 +85,12 @@ function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
     >
-      {({ itemsByDate, notes, onDayPress }) => (
+      {({ itemsByDate, notes, onPress }) => (
         <CalendarMonthGrid
           month={month}
           itemsByDate={itemsByDate}
           notes={notes}
-          onDayPress={onDayPress}
+          onPress={onPress}
         />
       )}
     </CalendarLayout>
@@ -148,6 +149,7 @@ interface CalendarLayoutProps {
 interface LoadedViewProps {
   itemsByDate: CalendarItemsByDate;
   notes: Note[];
+  onPress: (target: CalendarPressTarget) => void;
   onDayPress: (day: CalendarDay) => void;
   onWorkoutPress: (workout: CalendarWorkout) => void;
   onActivityPress: (activity: UnplannedActivity) => void;
@@ -173,6 +175,21 @@ function CalendarLayout({
   const openActivity = useOpenActivityDetails();
   const openNote = useOpenNoteDetails();
 
+  function openTarget(target: CalendarPressTarget) {
+    switch (target.kind) {
+      case 'workout':
+        return openWorkout(target.workout.id);
+      case 'activity':
+        return openActivity(target.activity.id);
+      case 'race':
+        return raceSheet.open(target.race);
+      case 'note':
+        return openNote(target.note.id);
+      case 'day':
+        return sheet.open(target.day);
+    }
+  }
+
   if (availability === 'unavailable') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
   }
@@ -188,6 +205,7 @@ function CalendarLayout({
           children({
             itemsByDate,
             notes,
+            onPress: openTarget,
             onDayPress: sheet.open,
             onWorkoutPress: workout => openWorkout(workout.id),
             onActivityPress: activity => openActivity(activity.id),
