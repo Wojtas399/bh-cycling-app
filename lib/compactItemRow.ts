@@ -1,18 +1,24 @@
-import type { CalendarItem } from './calendarItems';
-import type { RacePriority } from './races';
+import type { CalendarItem, UnplannedActivity } from './calendarItems';
+import type { Race, RacePriority } from './races';
 import type { WorkoutBlock } from './workoutProfile';
-import type { WorkoutStatus } from './workoutStatus';
+import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
 
 export type CompactItemDisplay =
   | { kind: 'workout'; status: WorkoutStatus; blocks: WorkoutBlock[] }
   | { kind: 'activity' }
   | { kind: 'race'; priority: RacePriority; paired: boolean };
 
+export type ItemPressTarget =
+  | { kind: 'workout'; workout: CalendarWorkout }
+  | { kind: 'activity'; activity: UnplannedActivity }
+  | { kind: 'race'; race: Race };
+
 export interface CompactItemRow {
   display: CompactItemDisplay;
   title: string;
   figures?: string;
   label: string;
+  press: ItemPressTarget | undefined;
 }
 
 export interface FigureWords {
@@ -34,7 +40,10 @@ export function compactItemRow(
   item: CalendarItem,
   words: CompactItemRowWords,
 ): CompactItemRow {
-  const { display, title, ...facts } = itemFacts(item, words.stravaActivity);
+  const { display, title, press, ...facts } = itemFacts(
+    item,
+    words.stravaActivity,
+  );
   const shown = figures(facts, words.figures.shown);
 
   return {
@@ -46,6 +55,7 @@ export function compactItemRow(
       title,
       ...figures(facts, words.figures.spoken),
     ].join(', '),
+    press,
   };
 }
 
@@ -57,6 +67,7 @@ interface Figures {
 interface ItemFacts extends Figures {
   display: CompactItemDisplay;
   title: string;
+  press: ItemPressTarget | undefined;
 }
 
 function itemFacts(item: CalendarItem, stravaActivityTitle: string): ItemFacts {
@@ -67,6 +78,9 @@ function itemFacts(item: CalendarItem, stravaActivityTitle: string): ItemFacts {
       return {
         display: { kind: 'activity' },
         title: activity.isStravaActivity ? stravaActivityTitle : activity.name,
+        press: activity.isStravaActivity
+          ? undefined
+          : { kind: 'activity', activity },
         ...durationAndRoundedLoad(activity.durationSeconds, activity.load),
       };
     }
@@ -80,6 +94,9 @@ function itemFacts(item: CalendarItem, stravaActivityTitle: string): ItemFacts {
           paired: activity !== undefined,
         },
         title: race.name,
+        press: activity
+          ? { kind: 'activity', activity }
+          : { kind: 'race', race },
         ...(activity
           ? durationAndRoundedLoad(activity.durationSeconds, activity.load)
           : durationAndRoundedLoad(race.durationSeconds)),
@@ -95,6 +112,7 @@ function itemFacts(item: CalendarItem, stravaActivityTitle: string): ItemFacts {
           blocks: workout.blocks,
         },
         title: workout.name,
+        press: { kind: 'workout', workout },
         ...durationAndRoundedLoad(workout.durationSeconds),
       };
     }

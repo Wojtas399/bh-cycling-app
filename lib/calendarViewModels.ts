@@ -8,13 +8,13 @@ import { type CalendarDay, getMonthGrid, getWeekDays } from './calendarGrid';
 import {
   type CalendarItem,
   type RaceItem,
-  type UnplannedActivity,
   calendarItemKey,
 } from './calendarItems';
 import type { CalendarData } from './calendarMonth';
 import {
   type CompactItemRow,
   type CompactItemRowWords,
+  type ItemPressTarget,
   compactItemRow,
 } from './compactItemRow';
 import {
@@ -31,9 +31,7 @@ import {
   formatNoteShortRange,
 } from './noteDates';
 import type { Note } from './notes';
-import type { Race } from './races';
 import { type LaneCrossing, type NoteRow, weekNotes } from './weekNotes';
-import type { CalendarWorkout } from './workoutStatus';
 
 export interface MonthWords {
   day: (day: CalendarDay) => string;
@@ -45,6 +43,8 @@ export interface WeekWords
   extends Pick<MonthWords, 'day' | 'untitledNote'>, CompactItemRowWords {
   weekdaysShort: WeekdayNamesFromMonday;
   monthNamesGenitive: MonthNamesFromJanuary;
+  rest: string;
+  opensDay: string;
   todayRail: (dayLabel: string) => string;
   noteLabel: (title: string, when: string) => string;
   moreNotes: {
@@ -59,9 +59,7 @@ export interface DayPressTarget {
 }
 
 export type CalendarPressTarget =
-  | { kind: 'workout'; workout: CalendarWorkout }
-  | { kind: 'activity'; activity: UnplannedActivity }
-  | { kind: 'race'; race: Race }
+  | ItemPressTarget
   | { kind: 'note'; note: Note }
   | DayPressTarget;
 
@@ -129,7 +127,7 @@ export function monthView(
             dayCounts(data, day.date),
             words.dayCounts,
           ),
-          press: { kind: 'day', day },
+          press: dayPress(day),
         };
       }),
       noteBars: segments.map(segment => ({
@@ -139,6 +137,10 @@ export function monthView(
       laneCount: Math.max(0, ...segments.map(segment => segment.lane + 1)),
     };
   });
+}
+
+function dayPress(day: CalendarDay): DayPressTarget {
+  return { kind: 'day', day };
 }
 
 function noteTitle(
@@ -151,13 +153,13 @@ function noteTitle(
 export interface RestRow {
   kind: 'rest';
   key: 'rest';
+  text: string;
   press: undefined;
 }
 
 export interface ItemRow extends CompactItemRow {
   kind: 'item';
   key: string;
-  press: CalendarPressTarget | undefined;
 }
 
 export type WeekNoteRow = {
@@ -175,6 +177,7 @@ export interface MoreNotesRow {
   count: number;
   text: string;
   label: string;
+  hint: string;
   press: DayPressTarget;
 }
 
@@ -186,6 +189,7 @@ export interface WeekDay {
   weekday: string;
   isToday: boolean;
   railLabel: string;
+  railHint: string;
   crossings: LaneCrossing[];
   rows: WeekRow[];
   press: DayPressTarget;
@@ -214,7 +218,7 @@ export function weekView(
       const isToday = day.date === today;
       const dayLabel = words.day(day);
       const { crossings, rows, hiddenCount } = notes.days[day.date];
-      const press: DayPressTarget = { kind: 'day', day };
+      const press = dayPress(day);
 
       return {
         date: day.date,
@@ -222,6 +226,7 @@ export function weekView(
         weekday: words.weekdaysShort[day.weekday].toUpperCase(),
         isToday,
         railLabel: isToday ? words.todayRail(dayLabel) : dayLabel,
+        railHint: words.opensDay,
         crossings,
         rows: [
           ...rows.map(row => noteRow(row, dayLabel, words)),
@@ -271,6 +276,7 @@ function moreNotesRows(
       count,
       text: words.moreNotes.shown(count),
       label: words.moreNotes.spoken(count),
+      hint: words.opensDay,
       press,
     },
   ];
@@ -278,7 +284,7 @@ function moreNotesRows(
 
 function itemRowsOrRest(items: CalendarItem[], words: WeekWords): WeekRow[] {
   if (items.length === 0) {
-    return [{ kind: 'rest', key: 'rest', press: undefined }];
+    return [{ kind: 'rest', key: 'rest', text: words.rest, press: undefined }];
   }
 
   return items.map(item => itemRow(item, words));
@@ -289,21 +295,5 @@ function itemRow(item: CalendarItem, words: WeekWords): ItemRow {
     kind: 'item',
     key: calendarItemKey(item),
     ...compactItemRow(item, words),
-    press: itemPress(item),
   };
-}
-
-function itemPress(item: CalendarItem): CalendarPressTarget | undefined {
-  switch (item.kind) {
-    case 'workout':
-      return { kind: 'workout', workout: item.workout };
-    case 'race':
-      return item.activity
-        ? { kind: 'activity', activity: item.activity }
-        : { kind: 'race', race: item.race };
-    case 'activity':
-      return item.activity.isStravaActivity
-        ? undefined
-        : { kind: 'activity', activity: item.activity };
-  }
 }

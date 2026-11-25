@@ -50,6 +50,8 @@ const WEEK_WORDS: WeekWords = {
     'December',
   ],
   untitledNote: 'Untitled',
+  rest: 'Rest',
+  opensDay: 'Opens the day',
   todayRail: dayLabel => `${dayLabel}, today`,
   noteLabel: (title, when) => `Note ${title}, ${when}`,
   moreNotes: {
@@ -100,8 +102,9 @@ describe('weekView', () => {
       weekday: 'WED',
       isToday: false,
       railLabel: `day ${WED}`,
+      railHint: 'Opens the day',
       crossings: [],
-      rows: [{ kind: 'rest', key: 'rest', press: undefined }],
+      rows: [{ kind: 'rest', key: 'rest', text: 'Rest', press: undefined }],
       press: {
         kind: 'day',
         day: {
@@ -406,7 +409,7 @@ describe('weekView', () => {
         ],
       });
       expect(dayOn({ laneCount, days }, TUE).rows).toEqual([
-        { kind: 'rest', key: 'rest', press: undefined },
+        { kind: 'rest', key: 'rest', text: 'Rest', press: undefined },
       ]);
     });
 
@@ -426,7 +429,7 @@ describe('weekView', () => {
           label: 'Note Obóz, 20 – 22 October',
           press: { kind: 'note', note: oboz },
         },
-        { kind: 'rest', key: 'rest', press: undefined },
+        { kind: 'rest', key: 'rest', text: 'Rest', press: undefined },
       ]);
       expect(dayOn(week, WED).rows.map(row => row.kind)).toEqual(['rest']);
       expect(dayOn(week, THU).rows.map(row => row.kind)).toEqual(['rest']);
@@ -465,6 +468,7 @@ describe('weekView', () => {
           count: 2,
           text: '+2 more',
           label: '2 more notes',
+          hint: 'Opens the day',
           press: thursday.press,
         },
         expect.objectContaining({ kind: 'item', key: 'workout-1' }),
