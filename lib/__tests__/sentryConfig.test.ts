@@ -71,4 +71,27 @@ describe('beforeSend', () => {
       }).request?.headers,
     ).toEqual({});
   });
+
+  it('filters tokens and the OAuth code and state out of the request URL', () => {
+    const { beforeSend } = releaseOptions();
+
+    expect(
+      beforeSend({
+        request: {
+          url: 'blackhorsecyclingapp://oauth?code=abc123&state=xyz&scope=ACTIVITY',
+        },
+      }).request?.url,
+    ).toBe(
+      'blackhorsecyclingapp://oauth?code=[Filtered]&state=[Filtered]&scope=ACTIVITY',
+    );
+    expect(
+      beforeSend({
+        request: {
+          url: 'https://example.com/cb?Access_Token=t1&refresh_token=t2#id_token=t3',
+        },
+      }).request?.url,
+    ).toBe(
+      'https://example.com/cb?Access_Token=[Filtered]&refresh_token=[Filtered]#id_token=[Filtered]',
+    );
+  });
 });

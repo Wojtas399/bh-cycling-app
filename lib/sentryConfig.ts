@@ -7,6 +7,7 @@ export type SentryBuild = {
 type Headers = Record<string, string>;
 
 type ScrubbableRequest = {
+  url?: string;
   headers?: Headers;
 };
 
@@ -14,8 +15,18 @@ type ScrubbableEvent = {
   request?: ScrubbableRequest;
 };
 
+const FILTERED = '[Filtered]';
+
 function isSecretName(name: string): boolean {
-  return /authorization/i.test(name);
+  return /authorization|token|^code$|^state$/i.test(name);
+}
+
+function scrubUrl(url: string): string {
+  return url.replace(
+    /([?&#])([^=&#]+)=([^&#]*)/g,
+    (param, separator: string, name: string) =>
+      isSecretName(name) ? `${separator}${name}=${FILTERED}` : param,
+  );
 }
 
 function withoutSecretHeaders(headers: Headers): Headers {
@@ -29,6 +40,7 @@ function scrubRequest<Request extends ScrubbableRequest>(
 ): Request {
   return {
     ...request,
+    url: request.url && scrubUrl(request.url),
     headers: request.headers && withoutSecretHeaders(request.headers),
   };
 }
