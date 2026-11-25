@@ -4,8 +4,8 @@ export type SentryBuild = {
   isDev: boolean;
 };
 
-export function sentryOptions({ dsn }: SentryBuild) {
-  if (!dsn) return null;
+export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
+  if (!dsn || isDev) return null;
 
-  return { dsn };
+  return { dsn, environment: appEnv };
 }
