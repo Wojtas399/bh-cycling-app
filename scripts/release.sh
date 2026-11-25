@@ -107,9 +107,20 @@ skip_dev_build() {
   echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 }
 
+# Called with `|| die` on main, where `set -e` is off, so a failed update must
+# return here. Otherwise the upload after it would turn the run green.
 update() {
   eas update --channel "$channel" --platform "$platform" --environment "$environment" \
-    --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
+    --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@" || return
+  upload_update_source_maps
+}
+
+# eas update leaves the bundle and its source maps in dist/. A failed upload
+# only warns, so a Sentry outage or a missing SENTRY_AUTH_TOKEN never holds up
+# a release.
+upload_update_source_maps() {
+  npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist ||
+    echo "${warning_prefix}Could not upload the source maps of this update to Sentry. Its errors will show minified stack traces."
 }
 
 # A shallow checkout lacks the branch and its history, so they're fetched
