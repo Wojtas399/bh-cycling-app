@@ -263,6 +263,8 @@ function itemPress(item: CalendarItem): CalendarPressTarget | undefined {
     case 'race':
       return undefined;
     case 'activity':
-      return undefined;
+      return item.activity.isStravaActivity
+        ? undefined
+        : { kind: 'activity', activity: item.activity };
   }
 }

@@ -595,6 +595,48 @@ describe('weekView', () => {
         },
       ]);
     });
+
+    it('shows an Unplanned Activity’s name, duration and rounded Training Load, reads them, and opens the Activity', () => {
+      const ride = unplannedActivity({
+        id: 'a1',
+        name: 'Dojazd do pracy',
+        date: WED,
+        durationSeconds: 3600,
+        load: 25.6,
+      });
+
+      expect(rowsOn(WED, [activityItem(ride)])).toEqual([
+        {
+          kind: 'item',
+          key: 'activity-a1',
+          display: { kind: 'activity' },
+          title: 'Dojazd do pracy',
+          figures: '3600s · TL 26',
+          label: 'Activity, Dojazd do pracy, 3600 seconds, load 26',
+          press: { kind: 'activity', activity: ride },
+        },
+      ]);
+    });
+
+    it('calls a Strava Activity by the Strava title and opens nothing, so the tap reaches its day', () => {
+      const strava = unplannedStravaActivity({
+        id: 'a2',
+        date: WED,
+        durationSeconds: 1800,
+      });
+
+      expect(rowsOn(WED, [activityItem(strava)])).toEqual([
+        {
+          kind: 'item',
+          key: 'activity-a2',
+          display: { kind: 'activity' },
+          title: 'Strava Activity',
+          figures: '1800s',
+          label: 'Activity, Strava Activity, 1800 seconds',
+          press: undefined,
+        },
+      ]);
+    });
   });
 });
 
