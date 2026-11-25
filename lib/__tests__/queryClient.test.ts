@@ -111,6 +111,8 @@ describe('createQueryClient', () => {
       'Firebase Auth with no network',
       codedError('auth/network-request-failed'),
     ],
+    ['a Cloud Function call with no network', codedError('unavailable')],
+    ['a Cloud Function call that timed out', codedError('deadline-exceeded')],
   ])("doesn't report %s", (_kind, error) => {
     it('from a query', async () => {
       const client = createQueryClient();

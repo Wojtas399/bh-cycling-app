@@ -6,7 +6,11 @@ const FETCH_NETWORK_FAILURES = [
   'Network request timed out',
 ];
 
-const EXPECTED_CODES = new Set(['auth/network-request-failed']);
+const EXPECTED_CODES = new Set([
+  'auth/network-request-failed',
+  'unavailable',
+  'deadline-exceeded',
+]);
 
 function isFetchNetworkFailure(error: unknown): boolean {
   return (
