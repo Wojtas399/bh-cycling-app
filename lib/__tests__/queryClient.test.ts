@@ -10,6 +10,10 @@ jest.mock('../handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  statusCodes: { SIGN_IN_CANCELLED: 'GOOGLE_SIGN_IN_CANCELLED' },
+}));
+
 jest.mock('../errorReporting', () => ({
   reportError: jest.fn(),
 }));
@@ -113,6 +117,7 @@ describe('createQueryClient', () => {
     ],
     ['a Cloud Function call with no network', codedError('unavailable')],
     ['a Cloud Function call that timed out', codedError('deadline-exceeded')],
+    ['a cancelled Google sign-in', codedError('GOOGLE_SIGN_IN_CANCELLED')],
   ])("doesn't report %s", (_kind, error) => {
     it('from a query', async () => {
       const client = createQueryClient();

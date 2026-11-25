@@ -1,5 +1,6 @@
 import { getErrorCode } from './getErrorCode';
 import { IntervalsAuthError } from './intervalsApi';
+import { statusCodes } from '@react-native-google-signin/google-signin';
 
 const FETCH_NETWORK_FAILURES = [
   'Network request failed',
@@ -10,6 +11,7 @@ const EXPECTED_CODES = new Set([
   'auth/network-request-failed',
   'unavailable',
   'deadline-exceeded',
+  statusCodes.SIGN_IN_CANCELLED,
 ]);
 
 function isFetchNetworkFailure(error: unknown): boolean {
