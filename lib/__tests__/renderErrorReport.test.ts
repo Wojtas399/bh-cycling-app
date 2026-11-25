@@ -31,4 +31,22 @@ describe('reportOnFirstLayout', () => {
       componentStack: COMPONENT_STACK,
     });
   });
+
+  it('reports it only once, however often the fallback lays out again', () => {
+    const reportWhenLaidOut = reportOnFirstLayout(caughtRenderError());
+
+    reportWhenLaidOut();
+    reportWhenLaidOut();
+    reportWhenLaidOut();
+
+    expect(mockReportError).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a thrown string without a stack, since React Native attaches it only to an Error', () => {
+    reportOnFirstLayout('workout missing')();
+
+    expect(mockReportError).toHaveBeenCalledWith('workout missing', {
+      componentStack: undefined,
+    });
+  });
 });

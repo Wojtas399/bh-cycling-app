@@ -11,5 +11,12 @@ function componentStackOf(error: unknown): string | undefined {
 }
 
 export function reportOnFirstLayout(error: unknown): () => void {
-  return () => reportError(error, { componentStack: componentStackOf(error) });
+  let reported = false;
+
+  return () => {
+    if (reported) return;
+
+    reported = true;
+    reportError(error, { componentStack: componentStackOf(error) });
+  };
 }
