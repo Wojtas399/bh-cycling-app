@@ -30,4 +30,45 @@ describe('sentryOptions', () => {
       sentryOptions({ dsn: DSN, appEnv: 'production', isDev: false }),
     ).toMatchObject({ sendDefaultPii: false });
   });
+
+  it('sets no sample rate, since even a rate of 0 installs the tracing, replay or profiling integrations', () => {
+    const options = sentryOptions({
+      dsn: DSN,
+      appEnv: 'production',
+      isDev: false,
+    });
+
+    expect(options).not.toHaveProperty('tracesSampleRate');
+    expect(options).not.toHaveProperty('tracesSampler');
+    expect(options).not.toHaveProperty('profilesSampleRate');
+    expect(options).not.toHaveProperty('replaysSessionSampleRate');
+    expect(options).not.toHaveProperty('replaysOnErrorSampleRate');
+  });
+});
+
+function releaseOptions() {
+  return sentryOptions({ dsn: DSN, appEnv: 'production', isDev: false })!;
+}
+
+describe('beforeSend', () => {
+  it('drops the Authorization header from the request, in any case', () => {
+    const { beforeSend } = releaseOptions();
+
+    expect(
+      beforeSend({
+        request: {
+          url: 'https://intervals.icu/api/v1/athlete/0/events',
+          headers: {
+            Authorization: 'Bearer secret-token',
+            accept: 'application/json',
+          },
+        },
+      }).request?.headers,
+    ).toEqual({ accept: 'application/json' });
+    expect(
+      beforeSend({
+        request: { headers: { authorization: 'Basic c2VjcmV0' } },
+      }).request?.headers,
+    ).toEqual({});
+  });
 });
