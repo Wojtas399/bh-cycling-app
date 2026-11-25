@@ -99,34 +99,35 @@ describe('createQueryClient', () => {
     expect(mockReportError).toHaveBeenCalledWith(error);
   });
 
-  describe.each([['an IntervalsAuthError', new IntervalsAuthError()]])(
-    "doesn't report %s",
-    (_kind, error) => {
-      it('from a query', async () => {
-        const client = createQueryClient();
+  describe.each([
+    ['an IntervalsAuthError', new IntervalsAuthError()],
+    ['a fetch with no network', new TypeError('Network request failed')],
+    ['a fetch that timed out', new TypeError('Network request timed out')],
+  ])("doesn't report %s", (_kind, error) => {
+    it('from a query', async () => {
+      const client = createQueryClient();
 
-        await expect(
-          client.fetchQuery({
-            queryKey: ['intervals', 'athlete-1', 'x'],
-            queryFn: () => Promise.reject(error),
-          }),
-        ).rejects.toBe(error);
+      await expect(
+        client.fetchQuery({
+          queryKey: ['intervals', 'athlete-1', 'x'],
+          queryFn: () => Promise.reject(error),
+        }),
+      ).rejects.toBe(error);
 
-        expect(mockReportError).not.toHaveBeenCalled();
+      expect(mockReportError).not.toHaveBeenCalled();
+    });
+
+    it('from a mutation', async () => {
+      const client = createQueryClient();
+      const mutation = new MutationObserver(client, {
+        mutationFn: () => Promise.reject(error),
       });
 
-      it('from a mutation', async () => {
-        const client = createQueryClient();
-        const mutation = new MutationObserver(client, {
-          mutationFn: () => Promise.reject(error),
-        });
+      await expect(mutation.mutate()).rejects.toBe(error);
 
-        await expect(mutation.mutate()).rejects.toBe(error);
-
-        expect(mockReportError).not.toHaveBeenCalled();
-      });
-    },
-  );
+      expect(mockReportError).not.toHaveBeenCalled();
+    });
+  });
 
   it('keeps data for the whole session until an explicit refresh', () => {
     jest.useFakeTimers();
