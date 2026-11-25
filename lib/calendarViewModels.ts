@@ -8,13 +8,13 @@ import { type CalendarDay, getMonthGrid, getWeekDays } from './calendarGrid';
 import {
   type CalendarItem,
   type RaceItem,
-  type UnplannedActivity,
   calendarItemKey,
 } from './calendarItems';
 import type { CalendarData } from './calendarMonth';
 import {
   type CompactItemRow,
   type CompactItemRowWords,
+  type ItemPressTarget,
   compactItemRow,
 } from './compactItemRow';
 import {
@@ -31,9 +31,7 @@ import {
   formatNoteShortRange,
 } from './noteDates';
 import type { Note } from './notes';
-import type { Race } from './races';
 import { type LaneCrossing, type NoteRow, weekNotes } from './weekNotes';
-import type { CalendarWorkout } from './workoutStatus';
 
 export interface MonthWords {
   day: (day: CalendarDay) => string;
@@ -59,9 +57,7 @@ export interface DayPressTarget {
 }
 
 export type CalendarPressTarget =
-  | { kind: 'workout'; workout: CalendarWorkout }
-  | { kind: 'activity'; activity: UnplannedActivity }
-  | { kind: 'race'; race: Race }
+  | ItemPressTarget
   | { kind: 'note'; note: Note }
   | DayPressTarget;
 
@@ -161,7 +157,6 @@ export interface RestRow {
 export interface ItemRow extends CompactItemRow {
   kind: 'item';
   key: string;
-  press: CalendarPressTarget | undefined;
 }
 
 export type WeekNoteRow = {
@@ -293,21 +288,5 @@ function itemRow(item: CalendarItem, words: WeekWords): ItemRow {
     kind: 'item',
     key: calendarItemKey(item),
     ...compactItemRow(item, words),
-    press: itemPress(item),
   };
-}
-
-function itemPress(item: CalendarItem): CalendarPressTarget | undefined {
-  switch (item.kind) {
-    case 'workout':
-      return { kind: 'workout', workout: item.workout };
-    case 'race':
-      return item.activity
-        ? { kind: 'activity', activity: item.activity }
-        : { kind: 'race', race: item.race };
-    case 'activity':
-      return item.activity.isStravaActivity
-        ? undefined
-        : { kind: 'activity', activity: item.activity };
-  }
 }
