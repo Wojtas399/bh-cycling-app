@@ -8,13 +8,11 @@ const RELEASE_SCRIPT = path.join(__dirname, '..', 'release.sh');
 const UPLOAD =
   'npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist';
 
-const MATCHING_BUILD = '[{"status":"FINISHED"}]';
-
 const STUBS: Record<string, string> = {
   eas: `
 case "$1" in
   fingerprint:generate) echo '{"hash":"abc"}' ;;
-  build:list) echo "$EAS_BUILDS" ;;
+  build:list) echo '[{"status":"FINISHED"}]' ;;
   update) exit "$EAS_UPDATE_EXIT" ;;
 esac`,
   npx: 'exit "$UPLOAD_EXIT"',
@@ -28,7 +26,6 @@ esac`,
 type ReleaseRun = {
   refType: 'branch' | 'tag';
   refName: string;
-  builds?: string;
   updateExit?: number;
   uploadExit?: number;
 };
@@ -36,7 +33,6 @@ type ReleaseRun = {
 function release({
   refType,
   refName,
-  builds = MATCHING_BUILD,
   updateExit = 0,
   uploadExit = 0,
 }: ReleaseRun) {
@@ -70,7 +66,6 @@ function release({
       REF_TYPE: refType,
       REF_NAME: refName,
       CALLS_LOG: callsLog,
-      EAS_BUILDS: builds,
       EAS_UPDATE_EXIT: String(updateExit),
       UPLOAD_EXIT: String(uploadExit),
     },
