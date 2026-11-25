@@ -2,8 +2,10 @@ import { type IntervalsJson, fromIntervalsJson } from './intervalsJson';
 import type {
   ActivityField,
   CalendarEventOptions,
+  CalendarItem,
   CalendarRange,
   CalendarReads,
+  RaceItem,
   UnplannedActivity,
 } from '@/lib/calendarItems';
 import type {
@@ -11,8 +13,12 @@ import type {
   IntervalsCalendarEvent,
 } from '@/lib/intervalsApi';
 import type { LocalDateTimeString } from '@/lib/localDateTime';
+import type { Race } from '@/lib/races';
 import { pick } from '@/lib/typed';
+import type { CalendarWorkout } from '@/lib/workoutStatus';
 
+type WorkoutItem = Extract<CalendarItem, { kind: 'workout' }>;
+type ActivityItem = Extract<CalendarItem, { kind: 'activity' }>;
 type UnplannedSharedActivity = Extract<UnplannedActivity, { name: string }>;
 type UnplannedStravaActivity = Extract<
   UnplannedActivity,
@@ -39,6 +45,47 @@ export function unplannedStravaActivity(
     date: '2026-11-14',
     isStravaActivity: true,
     ...overrides,
+  };
+}
+
+export function workoutItem(
+  overrides: Partial<CalendarWorkout> = {},
+): WorkoutItem {
+  return {
+    kind: 'workout',
+    workout: {
+      id: 1,
+      name: 'Sweet spot',
+      date: '2026-11-14',
+      status: 'planned',
+      blocks: [],
+      completedWithStravaActivity: false,
+      ...overrides,
+    },
+  };
+}
+
+export function activityItem(
+  activity: UnplannedActivity = unplannedActivity(),
+): ActivityItem {
+  return { kind: 'activity', activity };
+}
+
+export function raceItem(
+  overrides: Partial<Race> = {},
+  pairedActivity?: UnplannedActivity,
+): RaceItem {
+  return {
+    kind: 'race',
+    race: {
+      id: 7,
+      name: 'Mazovia Maraton',
+      priority: 'A',
+      date: '2026-11-14',
+      sport: 'Ride',
+      ...overrides,
+    },
+    ...(pairedActivity && { activity: pairedActivity }),
   };
 }
 

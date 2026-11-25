@@ -3,148 +3,149 @@ import type { Race, RacePriority } from './races';
 import type { WorkoutBlock } from './workoutProfile';
 import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
 
-interface CompactItemRowBase {
+export type CompactItemDisplay =
+  | { kind: 'workout'; status: WorkoutStatus; blocks: WorkoutBlock[] }
+  | { kind: 'activity' }
+  | { kind: 'race'; priority: RacePriority; paired: boolean };
+
+export type ItemPressTarget =
+  | { kind: 'workout'; workout: CalendarWorkout }
+  | { kind: 'activity'; activity: UnplannedActivity }
+  | { kind: 'race'; race: Race };
+
+export interface CompactItemRow {
+  display: CompactItemDisplay;
   title: string;
-  durationSeconds?: number;
+  figures?: string;
+  label: string;
+  press: ItemPressTarget | undefined;
 }
 
-export type CompactItemRow =
-  | (CompactItemRowBase & {
-      kind: 'workout';
-      status: WorkoutStatus;
-      blocks: WorkoutBlock[];
-    })
-  | (CompactItemRowBase & {
-      kind: 'activity';
-      load?: number;
-    })
-  | (CompactItemRowBase & {
-      kind: 'race';
-      priority: RacePriority;
-      paired: boolean;
-      load?: number;
-    });
+export interface FigureWords {
+  duration: (seconds: number) => string;
+  load: (load: number) => string;
+}
+
+export interface CompactItemRowWords {
+  stravaActivity: string;
+  itemKind: {
+    workout: (status: WorkoutStatus) => string;
+    activity: string;
+    race: (priority: RacePriority, paired: boolean) => string;
+  };
+  figures: { shown: FigureWords; spoken: FigureWords };
+}
 
 export function compactItemRow(
   item: CalendarItem,
-  stravaActivityTitle: string,
+  words: CompactItemRowWords,
 ): CompactItemRow {
-  if (item.kind === 'activity') {
-    const { activity } = item;
-
-    return {
-      kind: 'activity',
-      title: activity.isStravaActivity ? stravaActivityTitle : activity.name,
-      ...durationAndRoundedLoad(activity.durationSeconds, activity.load),
-    };
-  }
-
-  if (item.kind === 'race') {
-    const { race, activity } = item;
-
-    return {
-      kind: 'race',
-      priority: race.priority,
-      paired: activity !== undefined,
-      title: race.name,
-      ...(activity
-        ? durationAndRoundedLoad(activity.durationSeconds, activity.load)
-        : durationAndRoundedLoad(race.durationSeconds)),
-    };
-  }
-
-  const { workout } = item;
+  const { display, title, press, ...facts } = itemFacts(
+    item,
+    words.stravaActivity,
+  );
+  const shown = figures(facts, words.figures.shown);
 
   return {
-    kind: 'workout',
-    status: workout.status,
-    title: workout.name,
-    ...durationAndRoundedLoad(workout.durationSeconds),
-    blocks: workout.blocks,
+    display,
+    title,
+    ...(shown.length > 0 && { figures: shown.join(' · ') }),
+    label: [
+      kindPhrase(display, words.itemKind),
+      title,
+      ...figures(facts, words.figures.spoken),
+    ].join(', '),
+    press,
   };
+}
+
+interface Figures {
+  durationSeconds?: number;
+  load?: number;
+}
+
+interface ItemFacts extends Figures {
+  display: CompactItemDisplay;
+  title: string;
+  press: ItemPressTarget | undefined;
+}
+
+function itemFacts(item: CalendarItem, stravaActivityTitle: string): ItemFacts {
+  switch (item.kind) {
+    case 'activity': {
+      const { activity } = item;
+
+      return {
+        display: { kind: 'activity' },
+        title: activity.isStravaActivity ? stravaActivityTitle : activity.name,
+        press: activity.isStravaActivity
+          ? undefined
+          : { kind: 'activity', activity },
+        ...durationAndRoundedLoad(activity.durationSeconds, activity.load),
+      };
+    }
+    case 'race': {
+      const { race, activity } = item;
+
+      return {
+        display: {
+          kind: 'race',
+          priority: race.priority,
+          paired: activity !== undefined,
+        },
+        title: race.name,
+        press: activity
+          ? { kind: 'activity', activity }
+          : { kind: 'race', race },
+        ...(activity
+          ? durationAndRoundedLoad(activity.durationSeconds, activity.load)
+          : durationAndRoundedLoad(race.durationSeconds)),
+      };
+    }
+    case 'workout': {
+      const { workout } = item;
+
+      return {
+        display: {
+          kind: 'workout',
+          status: workout.status,
+          blocks: workout.blocks,
+        },
+        title: workout.name,
+        press: { kind: 'workout', workout },
+        ...durationAndRoundedLoad(workout.durationSeconds),
+      };
+    }
+  }
 }
 
 function durationAndRoundedLoad(
   durationSeconds: number | undefined,
   load?: number,
-): Pick<CompactItemRowBase, 'durationSeconds'> & { load?: number } {
+): Figures {
   return {
     ...(durationSeconds !== undefined && { durationSeconds }),
     ...(load !== undefined && { load: Math.round(load) }),
   };
 }
 
-export interface ItemPressHandlers {
-  onWorkoutPress: (workout: CalendarWorkout) => void;
-  onActivityPress: (activity: UnplannedActivity) => void;
-  onRacePress: (race: Race) => void;
-}
-
-export function compactItemRowPress(
-  item: CalendarItem,
-  { onWorkoutPress, onActivityPress, onRacePress }: ItemPressHandlers,
-): (() => void) | undefined {
-  switch (item.kind) {
-    case 'workout':
-      return () => onWorkoutPress(item.workout);
-    case 'race': {
-      const { race, activity } = item;
-
-      return activity
-        ? () => onActivityPress(activity)
-        : () => onRacePress(race);
-    }
-    case 'activity': {
-      const { activity } = item;
-
-      return activity.isStravaActivity
-        ? undefined
-        : () => onActivityPress(activity);
-    }
-  }
-}
-
-export interface RowFigureWords {
-  duration: (seconds: number) => string;
-  load: (load: number) => string;
-}
-
-export function rowFigures(
-  row: CompactItemRow,
-  words: RowFigureWords,
-): string[] {
-  const load = row.kind === 'workout' ? undefined : row.load;
-
+function figures({ durationSeconds, load }: Figures, words: FigureWords) {
   return [
-    ...(row.durationSeconds === undefined
-      ? []
-      : [words.duration(row.durationSeconds)]),
+    ...(durationSeconds === undefined ? [] : [words.duration(durationSeconds)]),
     ...(load === undefined ? [] : [words.load(load)]),
   ];
 }
 
-export interface CompactItemRowWords extends RowFigureWords {
-  workout: (status: WorkoutStatus) => string;
-  activity: string;
-  race: (priority: RacePriority, paired: boolean) => string;
-}
-
-export function compactItemRowLabel(
-  row: CompactItemRow,
-  words: CompactItemRowWords,
+function kindPhrase(
+  display: CompactItemDisplay,
+  words: CompactItemRowWords['itemKind'],
 ): string {
-  return [kindPhrase(row, words), row.title, ...rowFigures(row, words)].join(
-    ', ',
-  );
-}
-
-function kindPhrase(row: CompactItemRow, words: CompactItemRowWords): string {
-  switch (row.kind) {
+  switch (display.kind) {
     case 'workout':
-      return words.workout(row.status);
+      return words.workout(display.status);
     case 'activity':
       return words.activity;
     case 'race':
-      return words.race(row.priority, row.paired);
+      return words.race(display.priority, display.paired);
   }
 }

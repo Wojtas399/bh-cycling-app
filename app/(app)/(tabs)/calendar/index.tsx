@@ -22,16 +22,12 @@ import { useGlassHeader } from '@/hooks/useGlassHeader';
 import { useIntervalsRefresh } from '@/hooks/useIntervalsRefresh';
 import { useToday } from '@/hooks/useToday';
 import { useOpenWorkoutDetails } from '@/hooks/workout/useOpenWorkoutDetails';
-import { type CalendarDay, getWeekDays } from '@/lib/calendarGrid';
-import type {
-  CalendarItemsByDate,
-  UnplannedActivity,
-} from '@/lib/calendarItems';
+import { getWeekDays } from '@/lib/calendarGrid';
+import type { CalendarItemsByDate } from '@/lib/calendarItems';
 import { calendarRefreshStatus } from '@/lib/calendarRefreshStatus';
 import { type CalendarView, otherViewStartDate } from '@/lib/calendarView';
+import type { CalendarPressTarget } from '@/lib/calendarViewModels';
 import type { Note } from '@/lib/notes';
-import type { Race } from '@/lib/races';
-import type { CalendarWorkout } from '@/lib/workoutStatus';
 
 interface CalendarPlace {
   view: CalendarView;
@@ -84,12 +80,12 @@ function MonthlyCalendar({ startDate, onViewChange }: ViewProps) {
       onPrevious={goToPreviousMonth}
       onNext={goToNextMonth}
     >
-      {({ itemsByDate, notes, onDayPress }) => (
+      {({ itemsByDate, notes, onPress }) => (
         <CalendarMonthGrid
           month={month}
           itemsByDate={itemsByDate}
           notes={notes}
-          onDayPress={onDayPress}
+          onPress={onPress}
         />
       )}
     </CalendarLayout>
@@ -110,24 +106,12 @@ function WeeklyCalendar({ startDate, onViewChange }: ViewProps) {
       onPrevious={goToPreviousWeek}
       onNext={goToNextWeek}
     >
-      {({
-        itemsByDate,
-        notes,
-        onDayPress,
-        onWorkoutPress,
-        onActivityPress,
-        onRacePress,
-        onNotePress,
-      }) => (
+      {({ itemsByDate, notes, onPress }) => (
         <CalendarWeekAgenda
           week={week}
           itemsByDate={itemsByDate}
           notes={notes}
-          onDayPress={onDayPress}
-          onWorkoutPress={onWorkoutPress}
-          onActivityPress={onActivityPress}
-          onRacePress={onRacePress}
-          onNotePress={onNotePress}
+          onPress={onPress}
         />
       )}
     </CalendarLayout>
@@ -148,11 +132,7 @@ interface CalendarLayoutProps {
 interface LoadedViewProps {
   itemsByDate: CalendarItemsByDate;
   notes: Note[];
-  onDayPress: (day: CalendarDay) => void;
-  onWorkoutPress: (workout: CalendarWorkout) => void;
-  onActivityPress: (activity: UnplannedActivity) => void;
-  onRacePress: (race: Race) => void;
-  onNotePress: (note: Note) => void;
+  onPress: (target: CalendarPressTarget) => void;
 }
 
 function CalendarLayout({
@@ -173,6 +153,21 @@ function CalendarLayout({
   const openActivity = useOpenActivityDetails();
   const openNote = useOpenNoteDetails();
 
+  function openTarget(target: CalendarPressTarget) {
+    switch (target.kind) {
+      case 'workout':
+        return openWorkout(target.workout.id);
+      case 'activity':
+        return openActivity(target.activity.id);
+      case 'race':
+        return raceSheet.open(target.race);
+      case 'note':
+        return openNote(target.note.id);
+      case 'day':
+        return sheet.open(target.day);
+    }
+  }
+
   if (availability === 'unavailable') {
     return <Box flex={1} backgroundColor="bgPrimary" />;
   }
@@ -188,11 +183,7 @@ function CalendarLayout({
           children({
             itemsByDate,
             notes,
-            onDayPress: sheet.open,
-            onWorkoutPress: workout => openWorkout(workout.id),
-            onActivityPress: activity => openActivity(activity.id),
-            onRacePress: raceSheet.open,
-            onNotePress: note => openNote(note.id),
+            onPress: openTarget,
           })
         }
       </CalendarBody>
