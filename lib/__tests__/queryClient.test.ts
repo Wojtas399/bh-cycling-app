@@ -1,3 +1,4 @@
+import { reportError } from '../errorReporting';
 import { handleIntervalsAuthError } from '../handleIntervalsAuthError';
 import { ignoreFailure } from '../ignoreFailure';
 import { IntervalsAuthError } from '../intervalsApi';
@@ -8,7 +9,12 @@ jest.mock('../handleIntervalsAuthError', () => ({
   handleIntervalsAuthError: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../errorReporting', () => ({
+  reportError: jest.fn(),
+}));
+
 const mockHandleIntervalsAuthError = jest.mocked(handleIntervalsAuthError);
+const mockReportError = jest.mocked(reportError);
 
 describe('createQueryClient', () => {
   beforeEach(() => {
@@ -62,6 +68,21 @@ describe('createQueryClient', () => {
     process.off('unhandledRejection', unhandledRejection);
 
     expect(unhandledRejection).not.toHaveBeenCalled();
+  });
+
+  it('reports an unexpected query error once', async () => {
+    const client = createQueryClient();
+    const error = new Error('parse failed');
+
+    await expect(
+      client.fetchQuery({
+        queryKey: ['intervals', 'athlete-1', 'x'],
+        queryFn: () => Promise.reject(error),
+      }),
+    ).rejects.toBe(error);
+
+    expect(mockReportError).toHaveBeenCalledTimes(1);
+    expect(mockReportError).toHaveBeenCalledWith(error);
   });
 
   it('keeps data for the whole session until an explicit refresh', () => {

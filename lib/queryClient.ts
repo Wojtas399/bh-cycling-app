@@ -1,3 +1,4 @@
+import { reportError } from './errorReporting';
 import { handleIntervalsAuthError } from './handleIntervalsAuthError';
 import { ignoreFailure } from './ignoreFailure';
 import { IntervalsAuthError } from './intervalsApi';
@@ -17,6 +18,8 @@ export function createQueryClient(): QueryClient {
         if (error instanceof IntervalsAuthError) {
           ignoreFailure(() => handleIntervalsAuthError(client));
         }
+
+        reportError(error);
       },
     }),
     defaultOptions: {
