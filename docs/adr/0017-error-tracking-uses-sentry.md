@@ -28,4 +28,4 @@ The app had no error tracking. Most errors are caught before they crash anything
 - `@sentry/react-native` is a native module, so it changes the fingerprint and first ships in a store build.
 - A second person reviewing errors needs Sentry's paid Team plan.
 - The App Store privacy labels and Google Play Data safety form must list crash and diagnostic data linked to a user id.
-- The DSN reaches the app bundle, so it isn't secret. Sentry's allowed bundle IDs filter keeps strangers from spending the event quota.
+- The DSN reaches the app bundle, so it isn't secret. Sentry has no inbound filter that accepts events only from given bundle IDs, so a stranger could spend the event quota. If that happens, filter their IP or rotate the DSN.
