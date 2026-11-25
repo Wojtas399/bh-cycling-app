@@ -7,5 +7,5 @@ export type SentryBuild = {
 export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
   if (!dsn || isDev) return null;
 
-  return { dsn, environment: appEnv };
+  return { dsn, environment: appEnv, sendDefaultPii: false };
 }

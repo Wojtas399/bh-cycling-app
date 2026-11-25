@@ -24,4 +24,10 @@ describe('sentryOptions', () => {
       sentryOptions({ dsn: DSN, appEnv: 'production', isDev: false }),
     ).toMatchObject({ dsn: DSN, environment: 'production' });
   });
+
+  it('keeps default PII, such as the IP address, out of events', () => {
+    expect(
+      sentryOptions({ dsn: DSN, appEnv: 'production', isDev: false }),
+    ).toMatchObject({ sendDefaultPii: false });
+  });
 });
