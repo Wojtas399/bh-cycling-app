@@ -6,7 +6,9 @@ export type SentryBuild = {
 
 type Headers = Record<string, string>;
 
-type QueryParams = string | Record<string, string> | [string, string][];
+type QueryParam = [name: string, value: string];
+
+type QueryParams = string | Record<string, string> | QueryParam[];
 
 type ScrubbableRequest = {
   url?: string;
@@ -41,6 +43,10 @@ function filteredValue(name: string, value: string): string {
   return isSecretParam(name) ? FILTERED : value;
 }
 
+function scrubQueryParam([name, value]: QueryParam): QueryParam {
+  return [name, filteredValue(name, value)];
+}
+
 function scrubParams(params: string): string {
   return params.replace(
     /(^|&)([^=&]+)=([^&]*)/g,
@@ -59,19 +65,9 @@ function scrubUrl(url: string): string {
 function scrubQuery(query: QueryParams): QueryParams {
   if (typeof query === 'string') return scrubParams(query);
 
-  if (Array.isArray(query)) {
-    return query.map(([name, value]): [string, string] => [
-      name,
-      filteredValue(name, value),
-    ]);
-  }
+  if (Array.isArray(query)) return query.map(scrubQueryParam);
 
-  return Object.fromEntries(
-    Object.entries(query).map(([name, value]) => [
-      name,
-      filteredValue(name, value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(query).map(scrubQueryParam));
 }
 
 function withoutSecretHeaders(headers: Headers): Headers {
