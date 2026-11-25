@@ -2,6 +2,7 @@ import { Appearance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import RenderErrorFallback from '@/components/RenderErrorFallback';
 import theme from '@/constants/theme';
 import { useAuthState } from '@/hooks/useAuthState';
 import '@/i18n';
@@ -17,6 +18,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import {
   DarkTheme,
+  type ErrorBoundaryProps,
   ThemeProvider as NavThemeProvider,
   Stack,
 } from 'expo-router';
@@ -31,6 +33,10 @@ startErrorReporting();
 keepSystemGlassSheetsAndAlertsDark();
 SplashScreen.preventAutoHideAsync();
 setupAppFocus();
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return <RenderErrorFallback error={error} onRetry={retry} />;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ ...Ionicons.font });
