@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Pressable,
   type PressableStateCallbackType,
@@ -156,10 +155,9 @@ interface DateRailProps {
 }
 
 function DateRail({
-  day: { weekday, dayOfMonth, isToday, railLabel },
+  day: { weekday, dayOfMonth, isToday, railLabel, railHint },
   onPress,
 }: DateRailProps) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
   const { colors, spacing } = useAppTheme();
 
   return (
@@ -167,7 +165,7 @@ function DateRail({
       onPress={onPress}
       accessibilityRole="header"
       accessibilityLabel={railLabel}
-      accessibilityHint={t('opensDay')}
+      accessibilityHint={railHint}
       style={{
         width: RAIL_WIDTH,
         alignItems: 'center',
@@ -371,20 +369,18 @@ function NoteRowButton({ row, onPress }: NoteRowButtonProps) {
 }
 
 function MoreNotesButton({
-  row: { text, label },
+  row: { text, label, hint },
   onPress,
 }: {
   row: MoreNotesRow;
   onPress: () => void;
 }) {
-  const { t } = useTranslation(undefined, { keyPrefix: 'calendar.week' });
-
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={t('opensDay')}
+      accessibilityHint={hint}
       style={rowPressStyle({ justifyContent: 'center' })}
     >
       <Text variant="body-xs-medium" color="textSecondary">

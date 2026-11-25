@@ -44,6 +44,7 @@ export interface WeekWords
   weekdaysShort: WeekdayNamesFromMonday;
   monthNamesGenitive: MonthNamesFromJanuary;
   rest: string;
+  opensDay: string;
   todayRail: (dayLabel: string) => string;
   noteLabel: (title: string, when: string) => string;
   moreNotes: {
@@ -176,6 +177,7 @@ export interface MoreNotesRow {
   count: number;
   text: string;
   label: string;
+  hint: string;
   press: DayPressTarget;
 }
 
@@ -187,6 +189,7 @@ export interface WeekDay {
   weekday: string;
   isToday: boolean;
   railLabel: string;
+  railHint: string;
   crossings: LaneCrossing[];
   rows: WeekRow[];
   press: DayPressTarget;
@@ -223,6 +226,7 @@ export function weekView(
         weekday: words.weekdaysShort[day.weekday].toUpperCase(),
         isToday,
         railLabel: isToday ? words.todayRail(dayLabel) : dayLabel,
+        railHint: words.opensDay,
         crossings,
         rows: [
           ...rows.map(row => noteRow(row, dayLabel, words)),
@@ -272,6 +276,7 @@ function moreNotesRows(
       count,
       text: words.moreNotes.shown(count),
       label: words.moreNotes.spoken(count),
+      hint: words.opensDay,
       press,
     },
   ];

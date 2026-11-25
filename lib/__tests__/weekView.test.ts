@@ -51,6 +51,7 @@ const WEEK_WORDS: WeekWords = {
   ],
   untitledNote: 'Untitled',
   rest: 'Rest',
+  opensDay: 'Opens the day',
   todayRail: dayLabel => `${dayLabel}, today`,
   noteLabel: (title, when) => `Note ${title}, ${when}`,
   moreNotes: {
@@ -101,6 +102,7 @@ describe('weekView', () => {
       weekday: 'WED',
       isToday: false,
       railLabel: `day ${WED}`,
+      railHint: 'Opens the day',
       crossings: [],
       rows: [{ kind: 'rest', key: 'rest', text: 'Rest', press: undefined }],
       press: {
@@ -466,6 +468,7 @@ describe('weekView', () => {
           count: 2,
           text: '+2 more',
           label: '2 more notes',
+          hint: 'Opens the day',
           press: thursday.press,
         },
         expect.objectContaining({ kind: 'item', key: 'workout-1' }),

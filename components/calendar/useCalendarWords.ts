@@ -33,6 +33,7 @@ export function useCalendarWords(): CalendarWords {
       },
       untitledNote: noteWord('untitled'),
       rest: weekWord('rest'),
+      opensDay: weekWord('opensDay'),
       todayRail: day => weekWord('today', { day }),
       noteLabel: (title, when) =>
         noteWord('accessibilityLabel', { title, when }),
