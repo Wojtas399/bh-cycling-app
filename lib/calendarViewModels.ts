@@ -5,12 +5,19 @@ import {
   formatDayLabel,
 } from './calendarDayCounts';
 import { type CalendarDay, getMonthGrid, getWeekDays } from './calendarGrid';
-import type {
-  CalendarItem,
-  RaceItem,
-  UnplannedActivity,
+import {
+  type CalendarItem,
+  type RaceItem,
+  type UnplannedActivity,
+  calendarItemKey,
 } from './calendarItems';
 import type { CalendarData } from './calendarMonth';
+import {
+  type CompactItemRow,
+  compactItemRow,
+  compactItemRowLabel,
+  rowFigures,
+} from './compactItemRow';
 import {
   type LocalDateString,
   eachDate,
@@ -25,6 +32,7 @@ import type {
 import type { Note } from './notes';
 import type { Race, RacePriority } from './races';
 import type { LaneCrossing } from './weekNotes';
+import type { WorkoutBlock } from './workoutProfile';
 import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
 
 export interface MonthWords {
@@ -154,7 +162,22 @@ export interface RestRow {
   press: undefined;
 }
 
-export type WeekRow = RestRow;
+export type ItemDisplay =
+  | { kind: 'workout'; status: WorkoutStatus; blocks: WorkoutBlock[] }
+  | { kind: 'activity' }
+  | { kind: 'race'; priority: RacePriority; paired: boolean };
+
+export interface ItemRow {
+  kind: 'item';
+  key: string;
+  display: ItemDisplay;
+  title: string;
+  figures?: string;
+  label: string;
+  press: CalendarPressTarget | undefined;
+}
+
+export type WeekRow = ItemRow | RestRow;
 
 export interface WeekDay {
   date: LocalDateString;
@@ -190,9 +213,56 @@ export function weekView(
         isToday,
         railLabel: isToday ? words.todayRail(words.day(day)) : words.day(day),
         crossings: [],
-        rows: [{ kind: 'rest', key: 'rest', press: undefined }],
+        rows: itemRows(data.itemsByDate[day.date] ?? [], words),
         press: { kind: 'day', day },
       };
     }),
   };
+}
+
+function itemRows(items: CalendarItem[], words: WeekWords): WeekRow[] {
+  if (items.length === 0)
+    return [{ kind: 'rest', key: 'rest', press: undefined }];
+
+  return items.map(item => itemRow(item, words));
+}
+
+function itemRow(item: CalendarItem, words: WeekWords): ItemRow {
+  const row = compactItemRow(item, words.stravaActivity);
+  const figures = rowFigures(row, words.figures.shown);
+
+  return {
+    kind: 'item',
+    key: calendarItemKey(item),
+    display: itemDisplay(row),
+    title: row.title,
+    ...(figures.length > 0 && { figures: figures.join(' · ') }),
+    label: compactItemRowLabel(row, {
+      ...words.itemKind,
+      ...words.figures.spoken,
+    }),
+    press: itemPress(item),
+  };
+}
+
+function itemDisplay(row: CompactItemRow): ItemDisplay {
+  switch (row.kind) {
+    case 'workout':
+      return { kind: 'workout', status: row.status, blocks: row.blocks };
+    case 'activity':
+      return { kind: 'activity' };
+    case 'race':
+      return { kind: 'race', priority: row.priority, paired: row.paired };
+  }
+}
+
+function itemPress(item: CalendarItem): CalendarPressTarget | undefined {
+  switch (item.kind) {
+    case 'workout':
+      return { kind: 'workout', workout: item.workout };
+    case 'race':
+      return undefined;
+    case 'activity':
+      return undefined;
+  }
 }

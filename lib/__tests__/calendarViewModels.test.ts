@@ -1,3 +1,4 @@
+import type { CalendarItem } from '../calendarItems';
 import type { CalendarData } from '../calendarMonth';
 import {
   type InMonthCell,
@@ -10,6 +11,7 @@ import {
 } from '../calendarViewModels';
 import type { LocalDateString } from '../localDate';
 import type { Note } from '../notes';
+import type { WorkoutBlock } from '../workoutProfile';
 import {
   activityItem,
   raceItem,
@@ -451,6 +453,11 @@ const [MON, TUE, WED, THU, FRI, SAT, SUN] = [
 ];
 const A_DAY_OUTSIDE_THE_WEEK = '2026-12-01';
 
+const BLOCKS: WorkoutBlock[] = [
+  { widthFraction: 0.5, minPct: 55, maxPct: 55, zone: 1 },
+  { widthFraction: 0.5, minPct: 90, maxPct: 90, zone: 3 },
+];
+
 const WEEK_WORDS: WeekWords = {
   day: day => `day ${day.date}`,
   weekdaysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -549,7 +556,58 @@ describe('weekView', () => {
       [SUN, false, `day ${SUN}`],
     ]);
   });
+
+  describe('a Calendar Item row', () => {
+    function rowsOn(
+      date: LocalDateString,
+      items: CalendarItem[],
+    ): WeekDay['rows'] {
+      return dayOn(
+        weekView(
+          WEEK,
+          { itemsByDate: { [date]: items }, notes: [] },
+          A_DAY_OUTSIDE_THE_WEEK,
+          WEEK_WORDS,
+        ),
+        date,
+      ).rows;
+    }
+
+    it('shows a Workout’s status, profile, name and planned duration, reads them, and opens the Workout', () => {
+      const workout = workoutItem({
+        id: 1,
+        name: 'Sweet spot 3×12',
+        date: WED,
+        status: 'completed',
+        durationSeconds: 4500,
+        blocks: BLOCKS,
+      });
+
+      expect(rowsOn(WED, [workout])).toEqual([
+        {
+          kind: 'item',
+          key: 'workout-1',
+          display: { kind: 'workout', status: 'completed', blocks: BLOCKS },
+          title: 'Sweet spot 3×12',
+          figures: '4500s',
+          label: 'completed workout, Sweet spot 3×12, 4500 seconds',
+          press: { kind: 'workout', workout: workout.workout },
+        },
+      ]);
+    });
+  });
 });
+
+function dayOn(
+  { days }: ReturnType<typeof weekView>,
+  date: LocalDateString,
+): WeekDay {
+  const day = days.find(candidate => candidate.date === date);
+
+  if (day === undefined) throw new Error(`No week day on ${date}`);
+
+  return day;
+}
 
 function hiddenNoteCounts(row: MonthRow): Record<LocalDateString, number> {
   return Object.fromEntries(
