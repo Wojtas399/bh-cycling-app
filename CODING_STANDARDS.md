@@ -101,7 +101,7 @@ For reviewers:
 
 ## Report unexpected errors to Sentry, and only those
 
-The app reports errors to Sentry ([ADR 0017](docs/adr/0017-error-tracking-uses-sentry.md)). Sentry records unhandled errors, native crashes and render errors on its own. Caught errors reach it through one place: the `onError` of the TanStack Query `QueryCache` and `MutationCache`.
+The app reports errors to Sentry ([ADR 0017](docs/adr/0017-error-tracking-uses-sentry.md)). Sentry records unhandled errors and native crashes on its own. A render error reaches it through the root layout's `ErrorBoundary`, which reports it with its component stack once the fallback lays out (`lib/renderErrorReport.ts`). Other caught errors reach it through one place: the `onError` of the TanStack Query `QueryCache` and `MutationCache`.
 
 - **Expected errors aren't reported.** An expected error is one the app already handles as a normal outcome: an `IntervalsAuthError`, no network or a timeout, the athlete cancelling (closing the OAuth or Google sign-in window), or a Firebase Auth error the athlete caused and sees a message for, such as a wrong password or an email already in use.
 - **`ignoreFailure` doesn't report.** Its work is best effort by design. If a failure there matters, the work stops being best effort.
@@ -110,7 +110,7 @@ The app reports errors to Sentry ([ADR 0017](docs/adr/0017-error-tracking-uses-s
 
 For reviewers:
 
-- Report a new `Sentry.capture*` call outside the query caches that its PR doesn't justify.
+- Report a new `reportError` call outside the query caches and the root `ErrorBoundary` that its PR doesn't justify.
 - Report an expected error that reaches Sentry, and an unexpected one that the filter drops.
 - Report personal data or a secret attached to an event, a breadcrumb or the user.
 
