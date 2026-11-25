@@ -48,7 +48,9 @@
       "withoutCredentials": true,
       "environment": "development",
       "env": {
-        "APP_ENV": "staging"
+        "APP_ENV": "staging",
+        "EXPO_PUBLIC_SENTRY_DSN": "off",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "ios": {
         "simulator": true

@@ -7,6 +7,11 @@ const pl = {
     hidePassword: 'Ukryj hasło',
     stravaActivity: 'Aktywność ze Stravy',
   },
+  renderError: {
+    title: 'Coś poszło nie tak',
+    body: 'Nie udało się wyświetlić tego ekranu.',
+    retry: 'Spróbuj ponownie',
+  },
   validation: {
     emailRequired: 'Podaj adres e-mail.',
     emailInvalid: 'Podaj prawidłowy adres e-mail.',

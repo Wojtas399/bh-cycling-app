@@ -60,6 +60,12 @@ const identity = IDENTITY[APP_ENV];
 
 const EAS_PROJECT_ID = 'a5a05625-f7f4-4b0c-89b8-72de6a9dbdd8';
 
+// Slugs from the Sentry project's settings. They aren't secret. They stay
+// literals, not env variables, because plugin options are part of the native
+// fingerprint.
+const SENTRY_ORGANIZATION_SLUG = 'wpiekle';
+const SENTRY_PROJECT_SLUG = 'bh-cycling-app';
+
 // The release build hangs on a Metaspace out-of-memory error with the
 // template's 512m. Prebuild rewrites gradle.properties, so it's set here.
 const GRADLE_JVM_ARGS = '-Xmx4096m -XX:MaxMetaspaceSize=1536m';
@@ -153,6 +159,15 @@ const appConfig = ({ config }: ConfigContext): ExpoConfig => ({
     '@react-native-firebase/app',
     '@react-native-google-signin/google-signin',
     '@maplibre/maplibre-react-native',
+    // The OTA source map upload in scripts/release.sh finds this entry by
+    // its /expo name.
+    [
+      '@sentry/react-native/expo',
+      {
+        organization: SENTRY_ORGANIZATION_SLUG,
+        project: SENTRY_PROJECT_SLUG,
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
