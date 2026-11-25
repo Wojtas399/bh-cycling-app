@@ -31,7 +31,7 @@ import type {
 } from './noteDates';
 import type { Note } from './notes';
 import type { Race, RacePriority } from './races';
-import type { LaneCrossing } from './weekNotes';
+import { type LaneCrossing, type NoteRow, weekNotes } from './weekNotes';
 import type { WorkoutBlock } from './workoutProfile';
 import type { CalendarWorkout, WorkoutStatus } from './workoutStatus';
 
@@ -152,7 +152,10 @@ export function monthView(
   });
 }
 
-function noteTitle(note: Note, words: MonthWords): string {
+function noteTitle(
+  note: Note,
+  words: Pick<MonthWords, 'untitledNote'>,
+): string {
   return note.name ?? words.untitledNote;
 }
 
@@ -177,7 +180,17 @@ export interface ItemRow {
   press: CalendarPressTarget | undefined;
 }
 
-export type WeekRow = ItemRow | RestRow;
+export interface WeekNoteRow {
+  kind: 'note';
+  key: string;
+  note: Note;
+  multiDay: boolean;
+  title: string;
+  label: string;
+  press: { kind: 'note'; note: Note };
+}
+
+export type WeekRow = WeekNoteRow | ItemRow | RestRow;
 
 export interface WeekDay {
   date: LocalDateString;
@@ -201,9 +214,15 @@ export function weekView(
   today: LocalDateString,
   words: WeekWords,
 ): WeekViewModel {
+  const days = getWeekDays(week);
+  const notes = weekNotes(
+    data.notes,
+    days.map(day => day.date),
+  );
+
   return {
     laneCount: 0,
-    days: getWeekDays(week).map(day => {
+    days: days.map(day => {
       const isToday = day.date === today;
 
       return {
@@ -213,10 +232,31 @@ export function weekView(
         isToday,
         railLabel: isToday ? words.todayRail(words.day(day)) : words.day(day),
         crossings: [],
-        rows: itemRows(data.itemsByDate[day.date] ?? [], words),
+        rows: [
+          ...notes.days[day.date].rows.map(row => noteRow(row, day, words)),
+          ...itemRows(data.itemsByDate[day.date] ?? [], words),
+        ],
         press: { kind: 'day', day },
       };
     }),
+  };
+}
+
+function noteRow(
+  { note, multiDay }: NoteRow,
+  day: CalendarDay,
+  words: WeekWords,
+): WeekNoteRow {
+  const title = noteTitle(note, words);
+
+  return {
+    kind: 'note',
+    key: `note-${note.id}`,
+    note,
+    multiDay,
+    title,
+    label: words.noteLabel(title, words.day(day)),
+    press: { kind: 'note', note },
   };
 }
 

@@ -795,6 +795,47 @@ describe('weekView', () => {
       ]);
     });
   });
+
+  describe('the Notes', () => {
+    function weekWith(
+      notes: Note[],
+      itemsByDate: CalendarData['itemsByDate'] = {},
+    ): ReturnType<typeof weekView> {
+      return weekView(
+        WEEK,
+        { itemsByDate, notes },
+        A_DAY_OUTSIDE_THE_WEEK,
+        WEEK_WORDS,
+      );
+    }
+
+    it('lists a single-day Note before the day’s Calendar Items, read with its day, opening the Note', () => {
+      const wolne = note({ id: 1, name: 'Wolne', start: WED, end: THU });
+      const workout = workoutItem({ id: 1, date: WED });
+
+      const { laneCount, days } = weekWith([wolne], { [WED]: [workout] });
+
+      expect(laneCount).toBe(0);
+      expect(dayOn({ laneCount, days }, WED)).toMatchObject({
+        crossings: [],
+        rows: [
+          {
+            kind: 'note',
+            key: 'note-1',
+            note: wolne,
+            multiDay: false,
+            title: 'Wolne',
+            label: `Note Wolne, day ${WED}`,
+            press: { kind: 'note', note: wolne },
+          },
+          expect.objectContaining({ kind: 'item', key: 'workout-1' }),
+        ],
+      });
+      expect(dayOn({ laneCount, days }, TUE).rows).toEqual([
+        { kind: 'rest', key: 'rest', press: undefined },
+      ]);
+    });
+  });
 });
 
 function dayOn(
