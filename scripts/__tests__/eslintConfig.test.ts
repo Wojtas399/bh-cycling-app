@@ -30,6 +30,15 @@ const TANSTACK_READ_IMPORT = [
   '',
 ].join('\n');
 
+const SENTRY_IMPORT = [
+  "import * as Sentry from '@sentry/react-native';",
+  "import type { ErrorEvent } from '@sentry/react-native';",
+  '',
+  'export { Sentry };',
+  'export type { ErrorEvent };',
+  '',
+].join('\n');
+
 async function restrictedImportsIn(source: string, filePath: string) {
   const [result] = await new ESLint({
     overrideConfigFile: true,
@@ -75,5 +84,28 @@ describe('eslint.config.js', () => {
     expect(await restrictedImportsIn(TANSTACK_READ_IMPORT, filePath)).toEqual(
       [],
     );
+  });
+
+  it.each([
+    'lib/queryClient.ts',
+    'lib/sentryConfig.ts',
+    'hooks/useAuthState.ts',
+    'components/Tile.tsx',
+    'app/_layout.tsx',
+    'hooks/useFormTextField.ts',
+  ])(
+    'makes %s report errors through lib/errorReporting.ts, not the Sentry SDK',
+    async filePath => {
+      expect(await restrictedImportsIn(SENTRY_IMPORT, filePath)).toEqual([
+        "'@sentry/react-native'",
+        "'@sentry/react-native'",
+      ]);
+    },
+  );
+
+  it('lets lib/errorReporting.ts import the Sentry SDK', async () => {
+    expect(
+      await restrictedImportsIn(SENTRY_IMPORT, 'lib/errorReporting.ts'),
+    ).toEqual([]);
   });
 });

@@ -11,6 +11,10 @@ const sonnerPath = {
   name: 'sonner-native',
   message: "Import from '@/lib/toast' instead (ADR 0004).",
 };
+const sentryPath = {
+  name: '@sentry/react-native',
+  message: "Report errors through '@/lib/errorReporting' (ADR 0017).",
+};
 const rhfBindingPath = {
   name: 'react-hook-form',
   importNames: ['Controller', 'useController'],
@@ -167,11 +171,11 @@ module.exports = defineConfig([
         },
       ],
 
-      // Library wrappers (ADR 0004): only the wrapper module may import the library.
+      // Library wrappers (ADR 0004, ADR 0017): only the wrapper module may import the library.
       // Form fields (ADR 0006): only the binding hooks may use useController.
       'no-restricted-imports': [
         'error',
-        { paths: [sonnerPath, rhfBindingPath] },
+        { paths: [sonnerPath, sentryPath, rhfBindingPath] },
       ],
       // Intervals.icu reads go through useIntervalsRead. This is the
       // typescript-eslint copy of the rule, so the blocks below that replace
@@ -206,14 +210,25 @@ module.exports = defineConfig([
     rules: {
       'no-restricted-imports': [
         'error',
-        { paths: [sonnerPath, rhfBindingPath, ...formFieldPaths] },
+        {
+          paths: [sonnerPath, sentryPath, rhfBindingPath, ...formFieldPaths],
+        },
       ],
     },
   },
   {
     files: ['hooks/useForm*Field.ts'],
     rules: {
-      'no-restricted-imports': ['error', { paths: [sonnerPath] }],
+      'no-restricted-imports': ['error', { paths: [sonnerPath, sentryPath] }],
+    },
+  },
+  {
+    files: ['lib/errorReporting.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [sonnerPath, rhfBindingPath] },
+      ],
     },
   },
   {

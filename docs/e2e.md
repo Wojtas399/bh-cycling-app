@@ -81,7 +81,7 @@ npm run e2e:build:ios
 npm run e2e:build:android
 ```
 
-Each runs `scripts/e2e-build.sh`. It sets `APP_ENV=staging`, runs a clean `expo prebuild` for the platform, then builds the Release variant with the JS bundled in and installs it on the dedicated device. On Android, boot the emulator first (`$ANDROID_HOME/emulator/emulator -avd BH_e2e_Pixel`), because the install can fail while the emulator is still cold-booting.
+Each runs `scripts/e2e-build.sh`. It sets `APP_ENV=staging`, blanks `EXPO_PUBLIC_SENTRY_DSN` so the build reports nothing to Sentry, skips the Sentry source-map upload (`SENTRY_DISABLE_AUTO_UPLOAD=true`), runs a clean `expo prebuild` for the platform, then builds the Release variant with the JS bundled in and installs it on the dedicated device. On Android, boot the emulator first (`$ANDROID_HOME/emulator/emulator -avd BH_e2e_Pixel`), because the install can fail while the emulator is still cold-booting.
 
 The JS is bundled into the build, so the suite tests the code you last built. Rebuild after you pull or change app code. Test files, `e2e/support/`, docs and other files outside the bundle need no rebuild. On success the script writes a stamp of the app code it built to `.e2e/build-stamp-<platform>.txt`.
 
