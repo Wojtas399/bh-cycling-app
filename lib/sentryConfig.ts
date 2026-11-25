@@ -6,7 +6,9 @@ export type SentryBuild = {
 
 type Headers = Record<string, string>;
 
-type QueryParams = string | Record<string, string> | [string, string][];
+type QueryParam = [name: string, value: string];
+
+type QueryParams = string | Record<string, string> | QueryParam[];
 
 type ScrubbableRequest = {
   url?: string;
@@ -29,16 +31,20 @@ type ScrubbableBreadcrumb = {
 
 const FILTERED = '[Filtered]';
 
-function isSecretField(name: string): boolean {
+function isSecretHeaderOrKey(name: string): boolean {
   return /authorization|token/i.test(name);
 }
 
-function isSecretParam(name: string): boolean {
-  return isSecretField(name) || /^(code|state)$/i.test(name);
+function isSecretQueryParam(name: string): boolean {
+  return isSecretHeaderOrKey(name) || /^(code|state)$/i.test(name);
 }
 
 function filteredValue(name: string, value: string): string {
-  return isSecretParam(name) ? FILTERED : value;
+  return isSecretQueryParam(name) ? FILTERED : value;
+}
+
+function scrubQueryParam([name, value]: QueryParam): QueryParam {
+  return [name, filteredValue(name, value)];
 }
 
 function scrubParams(params: string): string {
@@ -59,24 +65,14 @@ function scrubUrl(url: string): string {
 function scrubQuery(query: QueryParams): QueryParams {
   if (typeof query === 'string') return scrubParams(query);
 
-  if (Array.isArray(query)) {
-    return query.map(([name, value]): [string, string] => [
-      name,
-      filteredValue(name, value),
-    ]);
-  }
+  if (Array.isArray(query)) return query.map(scrubQueryParam);
 
-  return Object.fromEntries(
-    Object.entries(query).map(([name, value]) => [
-      name,
-      filteredValue(name, value),
-    ]),
-  );
+  return Object.fromEntries(Object.entries(query).map(scrubQueryParam));
 }
 
 function withoutSecretHeaders(headers: Headers): Headers {
   return Object.fromEntries(
-    Object.entries(headers).filter(([name]) => !isSecretField(name)),
+    Object.entries(headers).filter(([name]) => !isSecretHeaderOrKey(name)),
   );
 }
 
@@ -114,7 +110,7 @@ function scrubBreadcrumbValue(value: unknown): unknown {
 function scrubBreadcrumbData(data: object): BreadcrumbData {
   return Object.fromEntries(
     Object.entries(data)
-      .filter(([key]) => !isSecretField(key) && !isBodyName(key))
+      .filter(([key]) => !isSecretHeaderOrKey(key) && !isBodyName(key))
       .map(([key, value]) => [key, scrubBreadcrumbValue(value)]),
   );
 }
@@ -136,6 +132,7 @@ export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
     dsn,
     environment: appEnv,
     sendDefaultPii: false,
+    enableNetworkBreadcrumbs: false,
     beforeSend: scrubEvent,
     beforeBreadcrumb: scrubBreadcrumb,
   };
