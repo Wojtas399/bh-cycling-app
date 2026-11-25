@@ -173,4 +173,31 @@ describe('beforeBreadcrumb', () => {
       'Opened blackhorsecyclingapp://oauth?state=[Filtered]&access_token=[Filtered]',
     );
   });
+
+  it("drops bodies, the Authorization header and tokens from a breadcrumb's data, at any depth", () => {
+    const { beforeBreadcrumb } = releaseOptions();
+
+    expect(
+      beforeBreadcrumb({
+        type: 'http',
+        category: 'xhr',
+        data: {
+          url: 'https://intervals.icu/api/v1/athlete/0/wellness',
+          body: '{"weight":72}',
+          request_body: '{"weight":72}',
+          response_body: '[{"id":"2026-11-25"}]',
+          request_body_size: 13,
+          response_body_size: 21,
+          Authorization: 'Bearer t1',
+          headers: { authorization: 'Bearer t1', accept: 'application/json' },
+          refreshToken: 't2',
+        },
+      }).data,
+    ).toEqual({
+      url: 'https://intervals.icu/api/v1/athlete/0/wellness',
+      request_body_size: 13,
+      response_body_size: 21,
+      headers: { accept: 'application/json' },
+    });
+  });
 });

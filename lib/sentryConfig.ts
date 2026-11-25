@@ -93,12 +93,25 @@ function scrubEvent<Event extends ScrubbableEvent>(event: Event): Event {
   return { ...event, request: event.request && scrubRequest(event.request) };
 }
 
-function scrubBreadcrumbData(data: BreadcrumbData): BreadcrumbData {
+function isBodyName(name: string): boolean {
+  return /(^|[_.])body$/i.test(name);
+}
+
+function scrubBreadcrumbValue(value: unknown): unknown {
+  if (typeof value === 'string') return scrubUrl(value);
+
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return scrubBreadcrumbData(value);
+  }
+
+  return value;
+}
+
+function scrubBreadcrumbData(data: object): BreadcrumbData {
   return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [
-      key,
-      typeof value === 'string' ? scrubUrl(value) : value,
-    ]),
+    Object.entries(data)
+      .filter(([key]) => !isSecretName(key) && !isBodyName(key))
+      .map(([key, value]) => [key, scrubBreadcrumbValue(value)]),
   );
 }
 
