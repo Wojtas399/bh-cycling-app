@@ -110,6 +110,12 @@ skip_dev_build() {
 update() {
   eas update --channel "$channel" --platform "$platform" --environment "$environment" \
     --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
+  upload_update_source_maps
+}
+
+# eas update leaves the bundle and its source maps in dist/.
+upload_update_source_maps() {
+  npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist
 }
 
 # A shallow checkout lacks the branch and its history, so they're fetched
