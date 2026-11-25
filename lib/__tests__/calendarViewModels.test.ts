@@ -691,6 +691,109 @@ describe('weekView', () => {
         },
       ]);
     });
+
+    it.each(['completed', 'planned', 'missed'] as const)(
+      'shows and reads a %s Workout by its Workout Status',
+      status => {
+        expect(
+          rowsOn(WED, [workoutItem({ date: WED, name: 'Sweet spot', status })]),
+        ).toEqual([
+          expect.objectContaining({
+            display: expect.objectContaining({ status }),
+            label: `${status} workout, Sweet spot`,
+          }),
+        ]);
+      },
+    );
+
+    it('leaves out the figures and profile a Workout does not have', () => {
+      const [row] = rowsOn(WED, [workoutItem({ date: WED, blocks: [] })]);
+
+      expect(row).not.toHaveProperty('figures');
+      expect(row).toMatchObject({
+        display: { kind: 'workout', blocks: [] },
+        label: 'planned workout, Sweet spot',
+      });
+    });
+
+    it('never shows a load for a Workout, even a completed one carrying one', () => {
+      const { workout } = workoutItem({
+        date: WED,
+        status: 'completed',
+        durationSeconds: 3600,
+      });
+      const workoutCarryingLoad = { ...workout, load: 80 };
+      const withLoad: CalendarItem = {
+        kind: 'workout',
+        workout: workoutCarryingLoad,
+      };
+
+      expect(rowsOn(WED, [withLoad])).toEqual([
+        expect.objectContaining({
+          figures: '3600s',
+          label: 'completed workout, Sweet spot, 3600 seconds',
+        }),
+      ]);
+    });
+
+    it('leaves out the duration an Activity does not have, keeping the load after the name', () => {
+      expect(
+        rowsOn(WED, [
+          activityItem(unplannedActivity({ date: WED, load: 12.4 })),
+        ]),
+      ).toEqual([
+        expect.objectContaining({
+          figures: 'TL 12',
+          label: 'Activity, Dojazd do pracy, load 12',
+        }),
+      ]);
+    });
+
+    it('leaves out the figures an Activity has none of', () => {
+      const [row] = rowsOn(WED, [
+        activityItem(unplannedActivity({ date: WED })),
+      ]);
+
+      expect(row).not.toHaveProperty('figures');
+      expect(row).toMatchObject({ label: 'Activity, Dojazd do pracy' });
+    });
+
+    it.each(['A', 'B', 'C'] as const)(
+      'shows and reads an unpaired %s Race by its priority, leaving out a planned duration it lacks',
+      priority => {
+        const [row] = rowsOn(WED, [raceItem({ date: WED, priority })]);
+
+        expect(row).not.toHaveProperty('figures');
+        expect(row).toMatchObject({
+          display: { kind: 'race', priority, paired: false },
+          label: `${priority} race, Mazovia Maraton`,
+        });
+      },
+    );
+
+    it('leaves out the figures a paired Race’s Activity lacks, never falling back to the plan', () => {
+      const [row] = rowsOn(WED, [
+        raceItem(
+          { date: WED, durationSeconds: 7200 },
+          unplannedStravaActivity({ id: 'raced', date: WED }),
+        ),
+      ]);
+
+      expect(row).not.toHaveProperty('figures');
+      expect(row).toMatchObject({ label: 'A race, raced, Mazovia Maraton' });
+    });
+
+    it('lists the day’s Calendar Items in the order the day holds them, with no Rest row', () => {
+      const race = raceItem({ id: 7, date: WED });
+      const workout = workoutItem({ id: 1, date: WED });
+      const ride = activityItem(unplannedActivity({ id: 'a1', date: WED }));
+
+      expect(rowsOn(WED, [race, workout, ride]).map(row => row.key)).toEqual([
+        'race-7',
+        'workout-1',
+        'activity-a1',
+      ]);
+    });
   });
 });
 
