@@ -29,12 +29,16 @@ type ScrubbableBreadcrumb = {
 
 const FILTERED = '[Filtered]';
 
-function isSecretName(name: string): boolean {
-  return /authorization|token|^code$|^state$/i.test(name);
+function isSecretField(name: string): boolean {
+  return /authorization|token/i.test(name);
+}
+
+function isSecretParam(name: string): boolean {
+  return isSecretField(name) || /^(code|state)$/i.test(name);
 }
 
 function filteredValue(name: string, value: string): string {
-  return isSecretName(name) ? FILTERED : value;
+  return isSecretParam(name) ? FILTERED : value;
 }
 
 function scrubParams(params: string): string {
@@ -72,7 +76,7 @@ function scrubQuery(query: QueryParams): QueryParams {
 
 function withoutSecretHeaders(headers: Headers): Headers {
   return Object.fromEntries(
-    Object.entries(headers).filter(([name]) => !isSecretName(name)),
+    Object.entries(headers).filter(([name]) => !isSecretField(name)),
   );
 }
 
@@ -110,7 +114,7 @@ function scrubBreadcrumbValue(value: unknown): unknown {
 function scrubBreadcrumbData(data: object): BreadcrumbData {
   return Object.fromEntries(
     Object.entries(data)
-      .filter(([key]) => !isSecretName(key) && !isBodyName(key))
+      .filter(([key]) => !isSecretField(key) && !isBodyName(key))
       .map(([key, value]) => [key, scrubBreadcrumbValue(value)]),
   );
 }

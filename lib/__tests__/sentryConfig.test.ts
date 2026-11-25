@@ -200,6 +200,17 @@ describe('beforeBreadcrumb', () => {
       headers: { accept: 'application/json' },
     });
   });
+
+  it('keeps fields named code or state, which are secrets only as OAuth query parameters', () => {
+    const { beforeBreadcrumb } = releaseOptions();
+
+    expect(
+      beforeBreadcrumb({
+        category: 'app.lifecycle',
+        data: { state: 'background', code: 'auth/network-request-failed' },
+      }).data,
+    ).toEqual({ state: 'background', code: 'auth/network-request-failed' });
+  });
 });
 
 describe('sentryUser', () => {
