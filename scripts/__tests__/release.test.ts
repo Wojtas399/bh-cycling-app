@@ -97,12 +97,24 @@ function release({
 }
 
 describe('release.sh', () => {
-  it('uploads the source maps of an OTA update to Sentry once the update is published', () => {
-    const run = release({ refType: 'branch', refName: 'main' });
+  it.each([
+    { update: 'a dev update', refType: 'branch', refName: 'main' },
+    { update: 'a staging update', refType: 'branch', refName: 'rc/0.2.0' },
+    { update: 'a staging hotfix', refType: 'branch', refName: 'hotfix/v0.2.0' },
+    {
+      update: 'a production hotfix',
+      refType: 'tag',
+      refName: 'v0.2.0-hotfix-1',
+    },
+  ] as const)(
+    'uploads the source maps of $update to Sentry once it is published',
+    ({ refType, refName }) => {
+      const run = release({ refType, refName });
 
-    expect(run.status).toBe(0);
-    expect(run.publishSteps).toEqual(['eas update', UPLOAD]);
-  });
+      expect(run.status).toBe(0);
+      expect(run.publishSteps).toEqual(['eas update', UPLOAD]);
+    },
+  );
 
   it('warns and still succeeds when the source map upload fails, so a Sentry outage never holds up a release', () => {
     const run = release({
