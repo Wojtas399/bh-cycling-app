@@ -116,4 +116,15 @@ describe('release.sh', () => {
       '::warning::Could not upload the source maps of this update to Sentry. Its errors will show minified stack traces.',
     );
   });
+
+  it('fails the release and uploads nothing when the OTA update fails', () => {
+    const run = release({
+      refType: 'branch',
+      refName: 'main',
+      updateExit: 1,
+    });
+
+    expect(run.status).toBe(1);
+    expect(run.publishSteps).toEqual(['eas update']);
+  });
 });

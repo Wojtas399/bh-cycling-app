@@ -107,9 +107,11 @@ skip_dev_build() {
   echo "$line" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 }
 
+# Called with `|| die` on main, where `set -e` is off, so a failed update must
+# return here. Otherwise the upload after it would turn the run green.
 update() {
   eas update --channel "$channel" --platform "$platform" --environment "$environment" \
-    --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@"
+    --message "$REF_NAME: $(git log -1 --pretty=%s)" --non-interactive "$@" || return
   upload_update_source_maps
 }
 
