@@ -136,3 +136,9 @@ export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
     beforeBreadcrumb: scrubBreadcrumb,
   };
 }
+
+export function sentryUser(
+  user: { uid: string } | null,
+): { id: string } | null {
+  return user && { id: user.uid };
+}

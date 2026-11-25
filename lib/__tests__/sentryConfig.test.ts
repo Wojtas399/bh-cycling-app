@@ -1,4 +1,4 @@
-import { sentryOptions } from '../sentryConfig';
+import { sentryOptions, sentryUser } from '../sentryConfig';
 
 const DSN = 'https://public@o1.ingest.sentry.io/2';
 
@@ -199,5 +199,22 @@ describe('beforeBreadcrumb', () => {
       response_body_size: 21,
       headers: { accept: 'application/json' },
     });
+  });
+});
+
+describe('sentryUser', () => {
+  it('names a signed-in athlete by Firebase uid alone', () => {
+    const athlete = {
+      uid: 'firebase-uid-1',
+      email: 'athlete@example.com',
+      displayName: 'Athlete',
+      phoneNumber: '+48123456789',
+    };
+
+    expect(sentryUser(athlete)).toEqual({ id: 'firebase-uid-1' });
+  });
+
+  it('clears the user once the athlete has signed out', () => {
+    expect(sentryUser(null)).toBeNull();
   });
 });
