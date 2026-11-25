@@ -1,9 +1,12 @@
+import { getErrorCode } from './getErrorCode';
 import { IntervalsAuthError } from './intervalsApi';
 
 const FETCH_NETWORK_FAILURES = [
   'Network request failed',
   'Network request timed out',
 ];
+
+const EXPECTED_CODES = new Set(['auth/network-request-failed']);
 
 function isFetchNetworkFailure(error: unknown): boolean {
   return (
@@ -12,5 +15,9 @@ function isFetchNetworkFailure(error: unknown): boolean {
 }
 
 export function isExpectedError(error: unknown): boolean {
-  return error instanceof IntervalsAuthError || isFetchNetworkFailure(error);
+  return (
+    error instanceof IntervalsAuthError ||
+    isFetchNetworkFailure(error) ||
+    EXPECTED_CODES.has(getErrorCode(error))
+  );
 }

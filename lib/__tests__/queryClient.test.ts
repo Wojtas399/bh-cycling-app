@@ -17,6 +17,10 @@ jest.mock('../errorReporting', () => ({
 const mockHandleIntervalsAuthError = jest.mocked(handleIntervalsAuthError);
 const mockReportError = jest.mocked(reportError);
 
+function codedError(code: string): Error {
+  return Object.assign(new Error(`[${code}]`), { code });
+}
+
 describe('createQueryClient', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -103,6 +107,10 @@ describe('createQueryClient', () => {
     ['an IntervalsAuthError', new IntervalsAuthError()],
     ['a fetch with no network', new TypeError('Network request failed')],
     ['a fetch that timed out', new TypeError('Network request timed out')],
+    [
+      'Firebase Auth with no network',
+      codedError('auth/network-request-failed'),
+    ],
   ])("doesn't report %s", (_kind, error) => {
     it('from a query', async () => {
       const client = createQueryClient();
