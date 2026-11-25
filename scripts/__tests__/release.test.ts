@@ -103,4 +103,17 @@ describe('release.sh', () => {
     expect(run.status).toBe(0);
     expect(run.publishSteps).toEqual(['eas update', UPLOAD]);
   });
+
+  it('warns and still succeeds when the source map upload fails, so a Sentry outage never holds up a release', () => {
+    const run = release({
+      refType: 'branch',
+      refName: 'main',
+      uploadExit: 1,
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain(
+      '::warning::Could not upload the source maps of this update to Sentry. Its errors will show minified stack traces.',
+    );
+  });
 });

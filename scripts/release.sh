@@ -113,9 +113,12 @@ update() {
   upload_update_source_maps
 }
 
-# eas update leaves the bundle and its source maps in dist/.
+# eas update leaves the bundle and its source maps in dist/. A failed upload
+# only warns, so a Sentry outage or a missing SENTRY_AUTH_TOKEN never holds up
+# a release.
 upload_update_source_maps() {
-  npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist
+  npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist ||
+    echo "${warning_prefix}Could not upload the source maps of this update to Sentry. Its errors will show minified stack traces."
 }
 
 # A shallow checkout lacks the branch and its history, so they're fetched
