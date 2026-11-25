@@ -3,7 +3,10 @@ import {
   type InMonthCell,
   type MonthRow,
   type MonthWords,
+  type WeekDay,
+  type WeekWords,
   monthView,
+  weekView,
 } from '../calendarViewModels';
 import type { LocalDateString } from '../localDate';
 import type { Note } from '../notes';
@@ -431,6 +434,103 @@ describe('monthView', () => {
         date: '2026-11-01',
         dayOfMonth: 1,
       });
+    });
+  });
+});
+
+const WEEK_OF_MONDAY_19_TO_SUNDAY_25_OCTOBER_2026 = new Date(2026, 9, 21);
+const WEEK = WEEK_OF_MONDAY_19_TO_SUNDAY_25_OCTOBER_2026;
+const [MON, TUE, WED, THU, FRI, SAT, SUN] = [
+  '2026-10-19',
+  '2026-10-20',
+  '2026-10-21',
+  '2026-10-22',
+  '2026-10-23',
+  '2026-10-24',
+  '2026-10-25',
+];
+const A_DAY_OUTSIDE_THE_WEEK = '2026-12-01';
+
+const WEEK_WORDS: WeekWords = {
+  day: day => `day ${day.date}`,
+  weekdaysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  monthNamesGenitive: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+  untitledNote: 'Untitled',
+  todayRail: dayLabel => `${dayLabel}, today`,
+  noteLabel: (title, when) => `Note ${title}, ${when}`,
+  moreNotes: {
+    shown: count => `+${count} more`,
+    spoken: count => `${count} more notes`,
+  },
+  stravaActivity: 'Strava Activity',
+  itemKind: {
+    workout: status => `${status} workout`,
+    activity: 'Activity',
+    race: (priority, paired) =>
+      paired ? `${priority} race, raced` : `${priority} race`,
+  },
+  figures: {
+    shown: {
+      duration: seconds => `${seconds}s`,
+      load: load => `TL ${load}`,
+    },
+    spoken: {
+      duration: seconds => `${seconds} seconds`,
+      load: load => `load ${load}`,
+    },
+  },
+};
+
+describe('weekView', () => {
+  it('lays out an empty week as seven resting days, Monday first, each opening its day', () => {
+    const { laneCount, days } = weekView(
+      WEEK,
+      NOTHING,
+      A_DAY_OUTSIDE_THE_WEEK,
+      WEEK_WORDS,
+    );
+
+    expect(laneCount).toBe(0);
+    expect(days.map(day => day.date)).toEqual([
+      MON,
+      TUE,
+      WED,
+      THU,
+      FRI,
+      SAT,
+      SUN,
+    ]);
+    expect(days[2]).toEqual({
+      date: WED,
+      dayOfMonth: 21,
+      weekday: 'WED',
+      isToday: false,
+      railLabel: `day ${WED}`,
+      crossings: [],
+      rows: [{ kind: 'rest', key: 'rest', press: undefined }],
+      press: {
+        kind: 'day',
+        day: {
+          date: WED,
+          dayOfMonth: 21,
+          weekday: 2,
+          month: 9,
+          year: 2026,
+        },
+      },
     });
   });
 });
