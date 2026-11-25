@@ -20,6 +20,13 @@ type ScrubbableEvent = {
   request?: ScrubbableRequest;
 };
 
+type BreadcrumbData = Record<string, unknown>;
+
+type ScrubbableBreadcrumb = {
+  message?: string;
+  data?: BreadcrumbData;
+};
+
 const FILTERED = '[Filtered]';
 
 function isSecretName(name: string): boolean {
@@ -86,6 +93,25 @@ function scrubEvent<Event extends ScrubbableEvent>(event: Event): Event {
   return { ...event, request: event.request && scrubRequest(event.request) };
 }
 
+function scrubBreadcrumbData(data: BreadcrumbData): BreadcrumbData {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? scrubUrl(value) : value,
+    ]),
+  );
+}
+
+function scrubBreadcrumb<Breadcrumb extends ScrubbableBreadcrumb>(
+  breadcrumb: Breadcrumb,
+): Breadcrumb {
+  return {
+    ...breadcrumb,
+    message: breadcrumb.message && scrubUrl(breadcrumb.message),
+    data: breadcrumb.data && scrubBreadcrumbData(breadcrumb.data),
+  };
+}
+
 export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
   if (!dsn || isDev) return null;
 
@@ -94,5 +120,6 @@ export function sentryOptions({ dsn, appEnv, isDev }: SentryBuild) {
     environment: appEnv,
     sendDefaultPii: false,
     beforeSend: scrubEvent,
+    beforeBreadcrumb: scrubBreadcrumb,
   };
 }

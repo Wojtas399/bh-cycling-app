@@ -139,3 +139,38 @@ describe('beforeSend', () => {
     });
   });
 });
+
+describe('beforeBreadcrumb', () => {
+  it("filters tokens and the OAuth code and state out of a breadcrumb's URLs and message", () => {
+    const { beforeBreadcrumb } = releaseOptions();
+
+    expect(
+      beforeBreadcrumb({
+        type: 'http',
+        category: 'fetch',
+        data: {
+          method: 'GET',
+          url: 'https://example.com/cb?code=abc&scope=ACTIVITY',
+          status_code: 200,
+        },
+      }),
+    ).toEqual({
+      type: 'http',
+      category: 'fetch',
+      data: {
+        method: 'GET',
+        url: 'https://example.com/cb?code=[Filtered]&scope=ACTIVITY',
+        status_code: 200,
+      },
+    });
+    expect(
+      beforeBreadcrumb({
+        category: 'console',
+        message:
+          'Opened blackhorsecyclingapp://oauth?state=xyz&access_token=t1',
+      }).message,
+    ).toBe(
+      'Opened blackhorsecyclingapp://oauth?state=[Filtered]&access_token=[Filtered]',
+    );
+  });
+});
