@@ -191,7 +191,16 @@ export type WeekNoteRow = {
   press: { kind: 'note'; note: Note };
 } & ({ multiDay: false } | { multiDay: true; shortRange: string });
 
-export type WeekRow = WeekNoteRow | ItemRow | RestRow;
+export interface MoreNotesRow {
+  kind: 'moreNotes';
+  key: 'more-notes';
+  count: number;
+  text: string;
+  label: string;
+  press: DayPressTarget;
+}
+
+export type WeekRow = WeekNoteRow | MoreNotesRow | ItemRow | RestRow;
 
 export interface WeekDay {
   date: LocalDateString;
@@ -225,6 +234,8 @@ export function weekView(
     laneCount: notes.lanes.length,
     days: days.map(day => {
       const isToday = day.date === today;
+      const { crossings, rows, hiddenCount } = notes.days[day.date];
+      const press: DayPressTarget = { kind: 'day', day };
 
       return {
         date: day.date,
@@ -232,12 +243,13 @@ export function weekView(
         weekday: words.weekdaysShort[day.weekday].toUpperCase(),
         isToday,
         railLabel: isToday ? words.todayRail(words.day(day)) : words.day(day),
-        crossings: notes.days[day.date].crossings,
+        crossings,
         rows: [
-          ...notes.days[day.date].rows.map(row => noteRow(row, day, words)),
+          ...rows.map(row => noteRow(row, day, words)),
+          ...moreNotesRows(hiddenCount, press, words),
           ...itemRows(data.itemsByDate[day.date] ?? [], words),
         ],
-        press: { kind: 'day', day },
+        press,
       };
     }),
   };
@@ -264,6 +276,25 @@ function noteRow(
       ? { multiDay, shortRange: formatNoteShortRange(note) }
       : { multiDay }),
   };
+}
+
+function moreNotesRows(
+  count: number,
+  press: DayPressTarget,
+  words: WeekWords,
+): MoreNotesRow[] {
+  if (count === 0) return [];
+
+  return [
+    {
+      kind: 'moreNotes',
+      key: 'more-notes',
+      count,
+      text: words.moreNotes.shown(count),
+      label: words.moreNotes.spoken(count),
+      press,
+    },
+  ];
 }
 
 function itemRows(items: CalendarItem[], words: WeekWords): WeekRow[] {

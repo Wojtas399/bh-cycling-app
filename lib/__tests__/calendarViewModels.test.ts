@@ -875,6 +875,31 @@ describe('weekView', () => {
         [SUN]: [],
       });
     });
+
+    it('shows at most two Note rows, then "+N more" opening the day, then the Calendar Items', () => {
+      const notes = [1, 2, 3, 4].map(id => note({ id, start: THU, end: FRI }));
+      const workout = workoutItem({ id: 1, date: THU });
+
+      const thursday = dayOn(weekWith(notes, { [THU]: [workout] }), THU);
+
+      expect(thursday.rows).toEqual([
+        expect.objectContaining({ kind: 'note', key: 'note-1' }),
+        expect.objectContaining({ kind: 'note', key: 'note-2' }),
+        {
+          kind: 'moreNotes',
+          key: 'more-notes',
+          count: 2,
+          text: '+2 more',
+          label: '2 more notes',
+          press: thursday.press,
+        },
+        expect.objectContaining({ kind: 'item', key: 'workout-1' }),
+      ]);
+      expect(thursday.press).toEqual({
+        kind: 'day',
+        day: expect.objectContaining({ date: THU }),
+      });
+    });
   });
 });
 
