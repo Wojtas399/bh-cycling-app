@@ -1,6 +1,6 @@
 import type { CalendarData } from '../calendarMonth';
 import {
-  type MonthCell,
+  type InMonthCell,
   type MonthRow,
   type MonthWords,
   monthView,
@@ -52,7 +52,7 @@ describe('monthView', () => {
   it('gives an empty in-month day just its date as its label, and opens that day when pressed', () => {
     const rows = monthView(OCTOBER, NOTHING, A_DAY_OUTSIDE_OCTOBER, WORDS);
 
-    expect(cellOn(rows, '2026-10-07')).toEqual({
+    expect(inMonthCellOn(rows, '2026-10-07')).toEqual({
       inMonth: true,
       date: '2026-10-07',
       dayOfMonth: 7,
@@ -96,7 +96,7 @@ describe('monthView', () => {
       notes: [],
     };
 
-    const cell = cellOn(
+    const cell = inMonthCellOn(
       monthView(OCTOBER, data, A_DAY_OUTSIDE_OCTOBER, WORDS),
       '2026-10-14',
     );
@@ -120,7 +120,7 @@ describe('monthView', () => {
     };
 
     expect(
-      cellOn(
+      inMonthCellOn(
         monthView(OCTOBER, data, A_DAY_OUTSIDE_OCTOBER, WORDS),
         '2026-10-14',
       ),
@@ -129,12 +129,10 @@ describe('monthView', () => {
 
   describe('the day label', () => {
     function labelOn(data: CalendarData, date: LocalDateString): string {
-      const cell = cellOn(
+      return inMonthCellOn(
         monthView(OCTOBER, data, A_DAY_OUTSIDE_OCTOBER, WORDS),
         date,
-      );
-
-      return cell.inMonth ? cell.label : 'no label on a neighbouring day';
+      ).label;
     }
 
     it('follows the day with every count it holds', () => {
@@ -445,12 +443,14 @@ function hiddenNoteCounts(row: MonthRow): Record<LocalDateString, number> {
   );
 }
 
-function cellOn(rows: MonthRow[], date: LocalDateString): MonthCell {
+function inMonthCellOn(rows: MonthRow[], date: LocalDateString): InMonthCell {
   const cell = rows
     .flatMap(row => row.cells)
     .find(candidate => candidate.date === date);
 
-  if (cell === undefined) throw new Error(`No cell on ${date}`);
+  if (cell === undefined || !cell.inMonth) {
+    throw new Error(`No in-month cell on ${date}`);
+  }
 
   return cell;
 }
