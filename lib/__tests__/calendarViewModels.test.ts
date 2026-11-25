@@ -6,6 +6,7 @@ import {
   monthView,
 } from '../calendarViewModels';
 import type { LocalDateString } from '../localDate';
+import type { Note } from '../notes';
 import {
   activityItem,
   raceItem,
@@ -218,7 +219,231 @@ describe('monthView', () => {
       expect(labelOn(data, '2026-10-07')).toBe('day 2026-10-07. 4 notes');
     });
   });
+
+  describe('the Note bars', () => {
+    const FIRST_ROW = 0;
+    const SECOND_ROW = 1;
+    const THIRD_ROW = 2;
+    const LAST_ROW = 4;
+
+    function rowsWith(notes: Note[]): MonthRow[] {
+      return monthView(
+        OCTOBER,
+        { itemsByDate: {}, notes },
+        A_DAY_OUTSIDE_OCTOBER,
+        WORDS,
+      );
+    }
+
+    it('draws a single-day Note as one rounded, titled bar in lane 0, the top one', () => {
+      const wolne = note({
+        name: 'Wolne',
+        start: '2026-10-07',
+        end: '2026-10-08',
+      });
+
+      const row = rowsWith([wolne])[SECOND_ROW];
+
+      expect(row.noteBars).toEqual([
+        {
+          note: wolne,
+          lane: 0,
+          firstColumn: 2,
+          lastColumn: 2,
+          roundedStart: true,
+          roundedEnd: true,
+          title: 'Wolne',
+        },
+      ]);
+      expect(row.laneCount).toBe(1);
+    });
+
+    it('titles an untitled Note’s bar with the untitled fallback', () => {
+      const untitled = note({
+        name: null,
+        start: '2026-10-07',
+        end: '2026-10-08',
+      });
+
+      expect(rowsWith([untitled])[SECOND_ROW].noteBars).toEqual([
+        expect.objectContaining({ title: 'Untitled' }),
+      ]);
+    });
+
+    it('ignores Notes that miss the row, leaving it no lanes', () => {
+      const earlier = note({ id: 1, start: '2026-10-01', end: '2026-10-05' });
+      const later = note({ id: 2, start: '2026-10-12', end: '2026-10-13' });
+
+      const row = rowsWith([earlier, later])[SECOND_ROW];
+
+      expect(row.noteBars).toEqual([]);
+      expect(row.laneCount).toBe(0);
+    });
+
+    it('gives each Note, in id order, the lowest lane free across its span, reusing a lane once its Note ends', () => {
+      const camp = note({ id: 1, start: '2026-10-05', end: '2026-10-08' });
+      const rest = note({ id: 2, start: '2026-10-06', end: '2026-10-07' });
+      const race = note({ id: 3, start: '2026-10-08', end: '2026-10-09' });
+
+      const row = rowsWith([camp, rest, race])[SECOND_ROW];
+
+      expect(
+        row.noteBars.map(({ note: { id }, lane, firstColumn, lastColumn }) => ({
+          id,
+          lane,
+          firstColumn,
+          lastColumn,
+        })),
+      ).toEqual([
+        { id: 1, lane: 0, firstColumn: 0, lastColumn: 2 },
+        { id: 2, lane: 1, firstColumn: 1, lastColumn: 1 },
+        { id: 3, lane: 0, firstColumn: 3, lastColumn: 3 },
+      ]);
+      expect(row.laneCount).toBe(2);
+    });
+
+    it('keeps a Note in one lane across the row, even where a lower one frees up', () => {
+      const monday = note({ id: 1, start: '2026-10-05', end: '2026-10-06' });
+      const week = note({ id: 2, start: '2026-10-05', end: '2026-10-10' });
+      const friday = note({ id: 3, start: '2026-10-09', end: '2026-10-10' });
+
+      const row = rowsWith([monday, week, friday])[SECOND_ROW];
+
+      expect(row.noteBars.map(({ note: { id }, lane }) => [id, lane])).toEqual([
+        [1, 0],
+        [2, 1],
+        [3, 0],
+      ]);
+    });
+
+    it('rounds only the ends that are the Note’s real first and last day, starting each new row’s bar at its first cell', () => {
+      const campFrom2To13OctoberAcrossThreeRows = note({
+        start: '2026-10-02',
+        end: '2026-10-14',
+      });
+      const rows = rowsWith([campFrom2To13OctoberAcrossThreeRows]);
+
+      expect(rows[FIRST_ROW].noteBars).toEqual([
+        expect.objectContaining({
+          firstColumn: 4,
+          lastColumn: 6,
+          roundedStart: true,
+          roundedEnd: false,
+        }),
+      ]);
+      expect(rows[SECOND_ROW].noteBars).toEqual([
+        expect.objectContaining({
+          firstColumn: 0,
+          lastColumn: 6,
+          roundedStart: false,
+          roundedEnd: false,
+        }),
+      ]);
+      expect(rows[THIRD_ROW].noteBars).toEqual([
+        expect.objectContaining({
+          firstColumn: 0,
+          lastColumn: 1,
+          roundedStart: false,
+          roundedEnd: true,
+        }),
+      ]);
+    });
+
+    it('clips to the month, leaving neighbour-month cells bare and the clipped end square', () => {
+      const autumnFrom27SeptemberTo2October = note({
+        id: 1,
+        start: '2026-09-27',
+        end: '2026-10-03',
+      });
+      const allSaintsFrom30OctoberTo2November = note({
+        id: 2,
+        start: '2026-10-30',
+        end: '2026-11-03',
+      });
+      const rows = rowsWith([
+        autumnFrom27SeptemberTo2October,
+        allSaintsFrom30OctoberTo2November,
+      ]);
+
+      expect(rows[FIRST_ROW].noteBars).toEqual([
+        expect.objectContaining({
+          firstColumn: 3,
+          lastColumn: 4,
+          roundedStart: false,
+          roundedEnd: true,
+        }),
+      ]);
+      expect(rows[LAST_ROW].noteBars).toEqual([
+        expect.objectContaining({
+          firstColumn: 4,
+          lastColumn: 5,
+          roundedStart: true,
+          roundedEnd: false,
+        }),
+      ]);
+    });
+
+    it('ignores a Note that covers only neighbour-month days of the row', () => {
+      const september = note({ start: '2026-09-28', end: '2026-09-30' });
+
+      const row = rowsWith([september])[FIRST_ROW];
+
+      expect(row.noteBars).toEqual([]);
+      expect(row.laneCount).toBe(0);
+    });
+
+    it('counts the Notes past the second lane as "+N" on each day they cover', () => {
+      const one = note({ id: 1, start: '2026-10-05', end: '2026-10-08' });
+      const two = note({ id: 2, start: '2026-10-06', end: '2026-10-07' });
+      const three = note({ id: 3, start: '2026-10-06', end: '2026-10-08' });
+      const four = note({ id: 4, start: '2026-10-06', end: '2026-10-07' });
+
+      const rows = rowsWith([one, two, three, four]);
+
+      expect(rows[SECOND_ROW].noteBars.map(bar => bar.note.id)).toEqual([1, 2]);
+      expect(rows[SECOND_ROW].laneCount).toBe(2);
+      expect(hiddenNoteCounts(rows[SECOND_ROW])).toEqual({
+        '2026-10-05': 0,
+        '2026-10-06': 2,
+        '2026-10-07': 1,
+        '2026-10-08': 0,
+        '2026-10-09': 0,
+        '2026-10-10': 0,
+        '2026-10-11': 0,
+      });
+    });
+
+    it('counts "+N" only on the month’s own days', () => {
+      const one = note({ id: 1, start: '2026-10-31', end: '2026-11-02' });
+      const two = note({ id: 2, start: '2026-10-31', end: '2026-11-02' });
+      const three = note({ id: 3, start: '2026-10-31', end: '2026-11-02' });
+
+      const lastRow = rowsWith([one, two, three])[LAST_ROW];
+
+      expect(hiddenNoteCounts(lastRow)).toEqual({
+        '2026-10-26': 0,
+        '2026-10-27': 0,
+        '2026-10-28': 0,
+        '2026-10-29': 0,
+        '2026-10-30': 0,
+        '2026-10-31': 1,
+      });
+      expect(lastRow.cells[6]).toEqual({
+        inMonth: false,
+        date: '2026-11-01',
+        dayOfMonth: 1,
+      });
+    });
+  });
 });
+
+function hiddenNoteCounts(row: MonthRow): Record<LocalDateString, number> {
+  return Object.fromEntries(
+    row.cells.flatMap(cell =>
+      cell.inMonth ? [[cell.date, cell.hiddenNoteCount]] : [],
+    ),
+  );
+}
 
 function cellOn(rows: MonthRow[], date: LocalDateString): MonthCell {
   const cell = rows
