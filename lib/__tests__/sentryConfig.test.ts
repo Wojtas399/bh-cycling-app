@@ -94,4 +94,48 @@ describe('beforeSend', () => {
       'https://example.com/cb?Access_Token=[Filtered]&refresh_token=[Filtered]#id_token=[Filtered]',
     );
   });
+
+  it('filters tokens and the OAuth code and state out of the query string, in each of its forms', () => {
+    const { beforeSend } = releaseOptions();
+    const queryString = (query_string: string | Record<string, string>) =>
+      beforeSend({ request: { query_string } }).request?.query_string;
+
+    expect(queryString('code=abc&scope=ACTIVITY')).toBe(
+      'code=[Filtered]&scope=ACTIVITY',
+    );
+    expect(queryString({ state: 'xyz', oldest: '2026-11-01' })).toEqual({
+      state: '[Filtered]',
+      oldest: '2026-11-01',
+    });
+    expect(
+      beforeSend({
+        request: {
+          query_string: [
+            ['access_token', 't1'],
+            ['newest', '2026-11-30'],
+          ],
+        },
+      }).request?.query_string,
+    ).toEqual([
+      ['access_token', '[Filtered]'],
+      ['newest', '2026-11-30'],
+    ]);
+  });
+
+  it('drops the request body and cookies', () => {
+    const { beforeSend } = releaseOptions();
+    const { request } = beforeSend({
+      request: {
+        url: 'https://intervals.icu/api/v1/athlete/0/events',
+        method: 'POST',
+        data: { name: 'Sweet spot 3x15' },
+        cookies: { session: 'abc' },
+      },
+    });
+
+    expect(request).toEqual({
+      url: 'https://intervals.icu/api/v1/athlete/0/events',
+      method: 'POST',
+    });
+  });
 });

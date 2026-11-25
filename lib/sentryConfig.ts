@@ -6,9 +6,14 @@ export type SentryBuild = {
 
 type Headers = Record<string, string>;
 
+type QueryParams = string | Record<string, string> | [string, string][];
+
 type ScrubbableRequest = {
   url?: string;
+  query_string?: QueryParams;
   headers?: Headers;
+  data?: unknown;
+  cookies?: Record<string, string>;
 };
 
 type ScrubbableEvent = {
@@ -21,11 +26,40 @@ function isSecretName(name: string): boolean {
   return /authorization|token|^code$|^state$/i.test(name);
 }
 
+function filteredValue(name: string, value: string): string {
+  return isSecretName(name) ? FILTERED : value;
+}
+
+function scrubParams(params: string): string {
+  return params.replace(
+    /(^|&)([^=&]+)=([^&]*)/g,
+    (_param, separator: string, name: string, value: string) =>
+      `${separator}${name}=${filteredValue(name, value)}`,
+  );
+}
+
 function scrubUrl(url: string): string {
   return url.replace(
-    /([?&#])([^=&#]+)=([^&#]*)/g,
-    (param, separator: string, name: string) =>
-      isSecretName(name) ? `${separator}${name}=${FILTERED}` : param,
+    /([?#])([^#]*)/g,
+    (_part, mark: string, params: string) => `${mark}${scrubParams(params)}`,
+  );
+}
+
+function scrubQuery(query: QueryParams): QueryParams {
+  if (typeof query === 'string') return scrubParams(query);
+
+  if (Array.isArray(query)) {
+    return query.map(([name, value]): [string, string] => [
+      name,
+      filteredValue(name, value),
+    ]);
+  }
+
+  return Object.fromEntries(
+    Object.entries(query).map(([name, value]) => [
+      name,
+      filteredValue(name, value),
+    ]),
   );
 }
 
@@ -37,11 +71,14 @@ function withoutSecretHeaders(headers: Headers): Headers {
 
 function scrubRequest<Request extends ScrubbableRequest>(
   request: Request,
-): Request {
+): Omit<Request, 'data' | 'cookies'> {
+  const { data, cookies, ...kept } = request;
+
   return {
-    ...request,
-    url: request.url && scrubUrl(request.url),
-    headers: request.headers && withoutSecretHeaders(request.headers),
+    ...kept,
+    url: kept.url && scrubUrl(kept.url),
+    query_string: kept.query_string && scrubQuery(kept.query_string),
+    headers: kept.headers && withoutSecretHeaders(kept.headers),
   };
 }
 
