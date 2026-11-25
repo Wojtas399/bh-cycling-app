@@ -130,6 +130,35 @@ Runs and logs are in the repo's Actions tab, and the builds and updates they sta
 - For tags, `release.sh` fetches the `rc/` or `hotfix/` branch before checking that the tag is on it. It unshallows a shallow checkout first.
 - A running release is never canceled. A newer push to the same ref waits for it on that platform, and replaces an older push that is still waiting.
 - Builds start with `--no-wait`, so a failed store build still leaves the run green. Check new builds on expo.dev.
+- After each OTA update, `release.sh` uploads the update's source maps to Sentry. See [Sentry source maps](#sentry-source-maps).
+
+## Sentry source maps
+
+Sentry shows readable JavaScript stack traces only for code whose source maps it has ([ADR 0017](adr/0017-error-tracking-uses-sentry.md)). Each build and each OTA update uploads its own.
+
+- **EAS builds:** the `@sentry/react-native/expo` config plugin uploads the source maps during the build. It reads the org and project from `SENTRY_ORGANIZATION_SLUG` and `SENTRY_PROJECT_SLUG` in `app.config.ts`, and the token from the EAS env variable `SENTRY_AUTH_TOKEN`. If the upload fails, the build fails.
+- **OTA updates:** after `eas update`, `release.sh` runs `npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist` with the GitHub secret `SENTRY_AUTH_TOKEN`. This covers dev, staging, hotfix and production updates. If the upload fails, the run prints a warning and the release goes on.
+- **e2e builds:** the `e2e` profile and `scripts/e2e-build.sh` set `SENTRY_DISABLE_AUTO_UPLOAD=true`, so they build without a token.
+
+### Set the slugs and the token
+
+Do these steps once, before the first store build with Sentry. Until you do them, every EAS build fails on the upload, and every OTA run warns.
+
+1. Copy the org slug and the project slug from the Sentry project's settings into `SENTRY_ORGANIZATION_SLUG` and `SENTRY_PROJECT_SLUG` in `app.config.ts`. The slugs aren't secret. They are literals because plugin options are part of the native fingerprint: a change to either slug needs a new store build.
+2. Create a Sentry auth token with release and source map upload scope.
+3. Store the token as a Secret in the EAS `development` and `production` environments. The command asks for the value:
+
+   ```bash
+   eas env:set --name SENTRY_AUTH_TOKEN --environment development --environment production --visibility secret
+   ```
+
+4. Store the same token as the GitHub Actions repo secret `SENTRY_AUTH_TOKEN`, because `eas env:pull` skips Secret variables:
+
+   ```bash
+   gh secret set SENTRY_AUTH_TOKEN
+   ```
+
+A build from the `preview` profile uses the `preview` EAS environment. Add the token there too before you build that profile, or the build fails.
 
 ## Dev build
 
