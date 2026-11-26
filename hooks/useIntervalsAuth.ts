@@ -13,6 +13,7 @@ import {
 } from '@/constants/legal';
 import { functions } from '@/lib/firebase';
 import type { IntervalsAuthorization } from '@/lib/healthDataConsent';
+import { ignoreFailure } from '@/lib/ignoreFailure';
 import {
   intervalsKeys,
   removeHealthDataQueries,
@@ -153,7 +154,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         { text: t('healthDataConsentSwitch.cancel'), style: 'cancel' },
         {
           text: t('healthDataConsentPrompt.privacyPolicy'),
-          onPress: () => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL),
+          onPress: readPrivacyPolicyThenAskAgain,
         },
         {
           text: t('healthDataConsentSwitch.agree'),
@@ -161,6 +162,11 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         },
       ],
     );
+  }
+
+  async function readPrivacyPolicyThenAskAgain() {
+    await ignoreFailure(() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL));
+    askForHealthDataConsent();
   }
 
   function handleDisconnect() {

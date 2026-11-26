@@ -3,7 +3,10 @@ import { Alert, type AlertButton } from 'react-native';
 import { useHealthDataConsentRecord } from '../useHealthDataConsentRecord';
 import { useIntervalsAuth } from '../useIntervalsAuth';
 import { useIntervalsConnection } from '../useIntervalsConnection';
-import { HEALTH_DATA_CONSENT_VERSION } from '@/constants/legal';
+import {
+  HEALTH_DATA_CONSENT_VERSION,
+  PRIVACY_POLICY_URL,
+} from '@/constants/legal';
 import {
   getNeedsReconnect,
   setNeedsReconnect,
@@ -25,8 +28,11 @@ jest.mock('expo-auth-session', () => ({
   ResponseType: { Code: 'code' },
 }));
 
+const mockOpenBrowserAsync = jest.fn();
+
 jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
+  openBrowserAsync: (url: string) => mockOpenBrowserAsync(url),
 }));
 
 jest.mock('react-i18next', () => ({
@@ -488,6 +494,82 @@ describe('useIntervalsAuth', () => {
             ageConfirmed: true,
           },
         });
+      });
+
+      it('asks for the consent again once the athlete comes back from the privacy policy, so agreeing then still grants it', async () => {
+        const mockExchange = jest.fn().mockResolvedValue({ data: {} });
+
+        mockHttpsCallable.mockReturnValue(mockExchange);
+        mockOpenBrowserAsync.mockResolvedValue({ type: 'cancel' });
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+
+        const { result } = await renderAuth();
+
+        await act(() => {
+          result.current.handleHealthDataConsentSwitch(true);
+        });
+
+        const privacyPolicy = alertButtons().find(
+          ({ text }) =>
+            text === 'intervals.healthDataConsentPrompt.privacyPolicy',
+        );
+
+        mockAlert.mockClear();
+
+        await act(async () => {
+          await privacyPolicy?.onPress?.();
+        });
+
+        expect(mockOpenBrowserAsync).toHaveBeenCalledWith(PRIVACY_POLICY_URL);
+        expect(mockAlert).toHaveBeenCalledWith(
+          'intervals.healthDataConsentPrompt.title',
+          expect.any(String),
+          expect.any(Array),
+        );
+
+        const agree = alertButtons().find(
+          ({ text }) => text === 'intervals.healthDataConsentSwitch.agree',
+        );
+
+        await act(async () => {
+          await agree?.onPress?.();
+        });
+
+        expect(mockExchange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            healthData: expect.objectContaining({ action: 'grant' }),
+          }),
+        );
+      });
+
+      it('asks for the consent again even when the privacy policy fails to open', async () => {
+        mockOpenBrowserAsync.mockRejectedValue(new Error('no browser'));
+
+        const { result } = await renderAuth();
+
+        await act(() => {
+          result.current.handleHealthDataConsentSwitch(true);
+        });
+
+        const privacyPolicy = alertButtons().find(
+          ({ text }) =>
+            text === 'intervals.healthDataConsentPrompt.privacyPolicy',
+        );
+
+        mockAlert.mockClear();
+
+        await act(async () => {
+          await privacyPolicy?.onPress?.();
+        });
+
+        expect(mockAlert).toHaveBeenCalledWith(
+          'intervals.healthDataConsentPrompt.title',
+          expect.any(String),
+          expect.any(Array),
+        );
       });
 
       it('grants nothing when the athlete cancels the consent dialog', async () => {
