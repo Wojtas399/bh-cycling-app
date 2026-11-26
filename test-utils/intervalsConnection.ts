@@ -1,5 +1,4 @@
 import { HEALTH_DATA_CONSENT_VERSION } from '@/constants/legal';
-import type { HealthDataConsentRecord } from '@/hooks/healthDataConsent';
 import {
   type HealthDataConsentRecordState,
   useHealthDataConsentRecord,
@@ -8,6 +7,7 @@ import {
   type IntervalsConnectionState,
   useIntervalsConnection,
 } from '@/hooks/useIntervalsConnection';
+import type { HealthDataConsentRecord } from '@/lib/healthDataConsent';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(),
@@ -42,6 +42,11 @@ const NO_CONSENT_RECORD: HealthDataConsentRecordState = {
   record: null,
 };
 
+const LOADING_CONSENT_RECORD: HealthDataConsentRecordState = {
+  loading: true,
+  record: null,
+};
+
 function mockConnectionState(
   state: IntervalsConnectionState,
   consentRecord: HealthDataConsentRecordState,
@@ -66,7 +71,7 @@ export function connectIntervals({
       scope,
     },
     healthDataConsent === 'loading'
-      ? { loading: true, record: null }
+      ? LOADING_CONSENT_RECORD
       : { loading: false, record: healthDataConsent },
   );
 }
@@ -78,6 +83,6 @@ export function disconnectIntervals(): void {
 export function intervalsConnectionLoading(): void {
   mockConnectionState(
     { ...NOT_CONNECTED, loading: true },
-    { loading: true, record: null },
+    LOADING_CONSENT_RECORD,
   );
 }

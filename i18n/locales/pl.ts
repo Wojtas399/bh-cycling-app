@@ -559,6 +559,8 @@ const pl = {
       ageStatement: 'Mam co najmniej 16 lat',
       agree: 'Zgadzam się',
     },
+    healthDataConsentNotGiven:
+      'Nie udzielono zgody na dane o zdrowiu, bo Intervals.icu ich nie udostępnia. Zaznacz Wellness na stronie Intervals.icu.',
     healthDataConsentSwitch: {
       label: 'Dane o zdrowiu',
       cancel: 'Anuluj',

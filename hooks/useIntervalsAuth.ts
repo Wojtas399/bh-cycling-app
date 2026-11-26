@@ -1,22 +1,30 @@
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
-import type { IntervalsAuthorization } from './healthDataConsent';
 import {
   type IntervalsAuthMutation,
   mapIntervalsAuthError,
 } from './intervalsAuthErrors';
-import { asOneCommaSeparatedScope } from './intervalsScopes';
 import { useHealthDataConsent } from './useHealthDataConsent';
 import { useIntervalsConnection } from './useIntervalsConnection';
-import { PRIVACY_POLICY_URL } from '@/constants/legal';
+import {
+  HEALTH_DATA_CONSENT_PARAGRAPHS,
+  PRIVACY_POLICY_URL,
+} from '@/constants/legal';
 import { functions } from '@/lib/firebase';
+import type {
+  HealthDataAction,
+  IntervalsAuthorization,
+} from '@/lib/healthDataConsent';
+import { setHealthDataConsentWithdrawn } from '@/lib/healthDataConsentWithdrawalStore';
+import { ignoreFailure } from '@/lib/ignoreFailure';
 import {
   intervalsKeys,
   removeHealthDataQueries,
   removeIntervalsQueries,
 } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import { asOneCommaSeparatedScope } from '@/lib/intervalsScopes';
 import { toast } from '@/lib/toast';
 import {
   type QueryClient,
@@ -25,11 +33,21 @@ import {
 } from '@tanstack/react-query';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as v from 'valibot';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const AUTHORIZATION_ENDPOINT = 'https://intervals.icu/oauth/authorize';
 const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
+
+const healthDataConsentGivenSchema = v.object({
+  healthDataConsentGiven: v.literal(true),
+});
+
+type AuthorizationOutcome =
+  | 'cancelled'
+  | 'connected'
+  | 'connectedWithHealthDataConsent';
 
 export interface UseIntervalsAuthResult {
   handleConnect: () => void;
@@ -56,7 +74,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     mutationFn: async ({
       scopes,
       healthData,
-    }: IntervalsAuthorization): Promise<'connected' | 'cancelled'> => {
+    }: IntervalsAuthorization): Promise<AuthorizationOutcome> => {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
@@ -79,27 +97,28 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         'exchangeIntervalsToken',
       );
 
-      await exchangeIntervalsToken({
+      const { data } = await exchangeIntervalsToken({
         code: result.params.code,
         codeVerifier: request.codeVerifier,
         healthData,
       });
 
-      return 'connected';
+      return v.is(healthDataConsentGivenSchema, data)
+        ? 'connectedWithHealthDataConsent'
+        : 'connected';
     },
     onSuccess: async (outcome, { healthData }) => {
       if (outcome === 'cancelled') return;
 
       if (healthData.action === 'withdraw') {
+        setHealthDataConsentWithdrawn(true);
         await removeHealthDataQueries(queryClient);
+      } else if (outcome === 'connectedWithHealthDataConsent') {
+        setHealthDataConsentWithdrawn(false);
       }
 
       refetchIntervalsUnderNewConsent(queryClient);
-      toast.success(
-        healthData.action === 'withdraw'
-          ? t('healthDataConsentSwitch.withdrawn')
-          : t('connected'),
-      );
+      showAuthorized(healthData.action, outcome);
     },
     onError: () => toast.error(errorMessage('connect')),
   });
@@ -115,6 +134,22 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     onSuccess: () => removeIntervalsQueries(queryClient),
     onError: () => toast.error(errorMessage('disconnect')),
   });
+
+  function showAuthorized(
+    action: HealthDataAction['action'],
+    outcome: Exclude<AuthorizationOutcome, 'cancelled'>,
+  ) {
+    if (action === 'withdraw') {
+      toast.success(t('healthDataConsentSwitch.withdrawn'));
+    } else if (
+      action === 'grant' &&
+      outcome !== 'connectedWithHealthDataConsent'
+    ) {
+      toast.warning(t('healthDataConsentNotGiven'));
+    } else {
+      toast.success(t('connected'));
+    }
+  }
 
   function authorize(authorization: IntervalsAuthorization) {
     if (connect.isPending) return;
@@ -143,16 +178,14 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
   function askForHealthDataConsent() {
     Alert.alert(
       t('healthDataConsentPrompt.title'),
-      [
-        t('healthDataConsentPrompt.whatWeRead'),
-        t('healthDataConsentPrompt.notStored'),
-        t('healthDataConsentPrompt.withdraw'),
-      ].join('\n\n'),
+      HEALTH_DATA_CONSENT_PARAGRAPHS.map(paragraph =>
+        t(`healthDataConsentPrompt.${paragraph}`),
+      ).join('\n\n'),
       [
         { text: t('healthDataConsentSwitch.cancel'), style: 'cancel' },
         {
           text: t('healthDataConsentPrompt.privacyPolicy'),
-          onPress: () => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL),
+          onPress: readPrivacyPolicyThenAskAgain,
         },
         {
           text: t('healthDataConsentSwitch.agree'),
@@ -160,6 +193,11 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         },
       ],
     );
+  }
+
+  async function readPrivacyPolicyThenAskAgain() {
+    await ignoreFailure(() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL));
+    askForHealthDataConsent();
   }
 
   function handleDisconnect() {

@@ -1,9 +1,9 @@
 import { useState, useSyncExternalStore } from 'react';
 
-import type { HealthDataConsentRecord } from './healthDataConsent';
 import { subscribeToNothing } from '@/lib/externalStore';
 import { auth, firestore } from '@/lib/firebase';
 import { healthDataConsentDocPath } from '@/lib/firestorePaths';
+import type { HealthDataConsentRecord } from '@/lib/healthDataConsent';
 import * as v from 'valibot';
 
 export interface HealthDataConsentRecordState {

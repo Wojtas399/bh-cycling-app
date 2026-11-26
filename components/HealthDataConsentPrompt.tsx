@@ -6,10 +6,13 @@ import Box from '@/components/Box';
 import Button from '@/components/Button';
 import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
-import { PRIVACY_POLICY_URL } from '@/constants/legal';
+import {
+  HEALTH_DATA_CONSENT_PARAGRAPHS,
+  PRIVACY_POLICY_URL,
+} from '@/constants/legal';
 import { useAppTheme } from '@/constants/theme';
-import type { HealthDataConsentPrompt as Prompt } from '@/hooks/healthDataConsent';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
+import type { HealthDataConsentPrompt as Prompt } from '@/lib/healthDataConsent';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -32,15 +35,11 @@ function ConsentRequest() {
   return (
     <SheenSurface padding="base" gap="sm" alignItems="flex-start">
       <Text variant="body-l-semibold">{t('title')}</Text>
-      <Text variant="body-s-regular" color="textSecondary">
-        {t('whatWeRead')}
-      </Text>
-      <Text variant="body-s-regular" color="textSecondary">
-        {t('notStored')}
-      </Text>
-      <Text variant="body-s-regular" color="textSecondary">
-        {t('withdraw')}
-      </Text>
+      {HEALTH_DATA_CONSENT_PARAGRAPHS.map(paragraph => (
+        <Text key={paragraph} variant="body-s-regular" color="textSecondary">
+          {t(paragraph)}
+        </Text>
+      ))}
       <TouchableOpacity
         onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)}
         activeOpacity={0.8}
