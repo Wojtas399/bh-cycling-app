@@ -1,24 +1,54 @@
 import { callableRequest } from '../../../test-utils/callableRequest';
 import { exchangeIntervalsTokenHandler } from '../exchangeToken';
 
-const setMock = jest.fn().mockResolvedValue(undefined);
-const docMock = jest.fn(() => ({ set: setMock }));
+const mockStoredDocs = new Map<string, unknown>();
 
 jest.mock('firebase-admin/firestore', () => ({
-  getFirestore: () => ({ doc: docMock }),
+  getFirestore: () => ({
+    doc: (path: string) => ({
+      set: async (data: unknown) => {
+        mockStoredDocs.set(path, data);
+      },
+      get: async () => ({
+        exists: mockStoredDocs.has(path),
+        data: () => mockStoredDocs.get(path),
+      }),
+    }),
+  }),
   Timestamp: { now: () => 'MOCK_TIMESTAMP' },
 }));
 
-function buildRequest(code: string) {
+const INTEGRATION_PATH = 'users/user-1/integrations/intervals';
+const CONSENT_PATH = 'users/user-1/consents/healthData';
+const CONNECTION_SCOPE = 'ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ';
+const SCOPE_WITH_WELLNESS = `${CONNECTION_SCOPE},WELLNESS:READ`;
+const KEEP = { action: 'keep' };
+const GRANT = { action: 'grant', consentVersion: 2, ageConfirmed: true };
+
+function buildRequest(code: string, healthData: unknown = KEEP) {
   return callableRequest(
-    { code, codeVerifier: 'verifier-xyz' },
+    { code, codeVerifier: 'verifier-xyz', healthData },
     { uid: 'user-1' },
+  );
+}
+
+function mockTokenResponse(scope: string) {
+  return jest.spyOn(global, 'fetch').mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        access_token: 'token-abc',
+        scope,
+        athlete: { id: 'athlete-1', name: 'Jane Rider' },
+      }),
+      { status: 200 },
+    ),
   );
 }
 
 describe('exchangeIntervalsTokenHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockStoredDocs.clear();
     process.env.INTERVALS_CLIENT_ID = 'server-configured-client-id';
     process.env.INTERVALS_CLIENT_SECRET = 'test-secret';
   });
@@ -46,9 +76,9 @@ describe('exchangeIntervalsTokenHandler', () => {
     expect(result).toEqual({
       athleteId: 'athlete-1',
       athleteName: 'Jane Rider',
+      healthDataConsentGiven: false,
     });
-    expect(docMock).toHaveBeenCalledWith('users/user-1/integrations/intervals');
-    expect(setMock).toHaveBeenCalledWith({
+    expect(mockStoredDocs.get(INTEGRATION_PATH)).toEqual({
       accessToken: 'token-abc',
       athleteId: 'athlete-1',
       athleteName: 'Jane Rider',
@@ -103,7 +133,7 @@ describe('exchangeIntervalsTokenHandler', () => {
       exchangeIntervalsTokenHandler(buildRequest('valid-code')),
     ).rejects.toMatchObject({ code: 'internal' });
 
-    expect(setMock).not.toHaveBeenCalled();
+    expect(mockStoredDocs.size).toBe(0);
   });
 
   it('returns a structured error and writes nothing for an expired/invalid code', async () => {
@@ -117,7 +147,7 @@ describe('exchangeIntervalsTokenHandler', () => {
       exchangeIntervalsTokenHandler(buildRequest('expired-code')),
     ).rejects.toMatchObject({ code: 'invalid-argument' });
 
-    expect(setMock).not.toHaveBeenCalled();
+    expect(mockStoredDocs.size).toBe(0);
   });
 
   it('rejects an unauthenticated call before contacting Intervals.icu', async () => {
@@ -127,12 +157,16 @@ describe('exchangeIntervalsTokenHandler', () => {
 
     await expect(
       exchangeIntervalsTokenHandler(
-        callableRequest({ code: 'any-code', codeVerifier: 'any-verifier' }),
+        callableRequest({
+          code: 'any-code',
+          codeVerifier: 'any-verifier',
+          healthData: KEEP,
+        }),
       ),
     ).rejects.toMatchObject({ code: 'unauthenticated' });
 
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(setMock).not.toHaveBeenCalled();
+    expect(mockStoredDocs.size).toBe(0);
   });
 
   it('rejects a call without a code verifier before contacting Intervals.icu', async () => {
@@ -142,12 +176,15 @@ describe('exchangeIntervalsTokenHandler', () => {
 
     await expect(
       exchangeIntervalsTokenHandler(
-        callableRequest({ code: 'valid-code' }, { uid: 'user-1' }),
+        callableRequest(
+          { code: 'valid-code', healthData: KEEP },
+          { uid: 'user-1' },
+        ),
       ),
     ).rejects.toMatchObject({ code: 'invalid-argument' });
 
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(setMock).not.toHaveBeenCalled();
+    expect(mockStoredDocs.size).toBe(0);
   });
 
   it('surfaces a network failure as a structured error', async () => {
@@ -157,6 +194,128 @@ describe('exchangeIntervalsTokenHandler', () => {
       exchangeIntervalsTokenHandler(buildRequest('valid-code')),
     ).rejects.toMatchObject({ code: 'unavailable' });
 
-    expect(setMock).not.toHaveBeenCalled();
+    expect(mockStoredDocs.size).toBe(0);
+  });
+
+  describe('Health Data Consent', () => {
+    it('records the consent with its version, the age statement and the time when a grant comes back with Wellness access', async () => {
+      mockTokenResponse(SCOPE_WITH_WELLNESS);
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', GRANT),
+      );
+
+      expect(mockStoredDocs.get(CONSENT_PATH)).toEqual({
+        givenAt: 'MOCK_TIMESTAMP',
+        consentVersion: 2,
+        ageConfirmed: true,
+      });
+      expect(result.healthDataConsentGiven).toBe(true);
+    });
+
+    it('records no consent but still saves the token when the athlete unticked Wellness on the Intervals.icu page', async () => {
+      mockTokenResponse(CONNECTION_SCOPE);
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', GRANT),
+      );
+
+      expect(mockStoredDocs.has(CONSENT_PATH)).toBe(false);
+      expect(mockStoredDocs.get(INTEGRATION_PATH)).toMatchObject({
+        accessToken: 'token-abc',
+        scope: CONNECTION_SCOPE,
+      });
+      expect(result.healthDataConsentGiven).toBe(false);
+    });
+
+    it('reads Wellness access from a scope separated by spaces, as OAuth returns it', async () => {
+      mockTokenResponse('ACTIVITY:READ CALENDAR:READ WELLNESS:READ');
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', GRANT),
+      );
+
+      expect(result.healthDataConsentGiven).toBe(true);
+    });
+
+    it.each([
+      ['without the age statement', { action: 'grant', consentVersion: 2 }],
+      [
+        'with a refused age statement',
+        { action: 'grant', consentVersion: 2, ageConfirmed: false },
+      ],
+      ['without the consent version', { action: 'grant', ageConfirmed: true }],
+    ])(
+      'rejects a grant %s before contacting Intervals.icu',
+      async (_case, healthData) => {
+        const fetchSpy = mockTokenResponse(SCOPE_WITH_WELLNESS);
+
+        await expect(
+          exchangeIntervalsTokenHandler(buildRequest('valid-code', healthData)),
+        ).rejects.toMatchObject({ code: 'invalid-argument' });
+
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(mockStoredDocs.size).toBe(0);
+      },
+    );
+
+    it('rejects a call without a healthData action before contacting Intervals.icu', async () => {
+      const fetchSpy = mockTokenResponse(SCOPE_WITH_WELLNESS);
+
+      await expect(
+        exchangeIntervalsTokenHandler(
+          callableRequest(
+            { code: 'valid-code', codeVerifier: 'verifier-xyz' },
+            { uid: 'user-1' },
+          ),
+        ),
+      ).rejects.toMatchObject({ code: 'invalid-argument' });
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it('leaves an existing consent record untouched on keep, and says the consent is given while Wellness access is granted', async () => {
+      const earlierRecord = {
+        givenAt: 'EARLIER_TIMESTAMP',
+        consentVersion: 1,
+        ageConfirmed: true,
+      };
+
+      mockStoredDocs.set(CONSENT_PATH, earlierRecord);
+      mockTokenResponse(SCOPE_WITH_WELLNESS);
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', KEEP),
+      );
+
+      expect(mockStoredDocs.get(CONSENT_PATH)).toEqual(earlierRecord);
+      expect(result.healthDataConsentGiven).toBe(true);
+    });
+
+    it('says the consent is not given on keep when Wellness access is not granted', async () => {
+      mockStoredDocs.set(CONSENT_PATH, {
+        givenAt: 'EARLIER_TIMESTAMP',
+        consentVersion: 1,
+        ageConfirmed: true,
+      });
+      mockTokenResponse(CONNECTION_SCOPE);
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', KEEP),
+      );
+
+      expect(result.healthDataConsentGiven).toBe(false);
+    });
+
+    it('records no consent and says it is not given on keep without a record, whatever the scope', async () => {
+      mockTokenResponse(SCOPE_WITH_WELLNESS);
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', KEEP),
+      );
+
+      expect(mockStoredDocs.has(CONSENT_PATH)).toBe(false);
+      expect(result.healthDataConsentGiven).toBe(false);
+    });
   });
 });

@@ -113,6 +113,7 @@ function mockAuth(
 ) {
   mockUseIntervalsAuth.mockReturnValue({
     handleConnect: mockHandleConnect,
+    handleGrantHealthDataConsent: jest.fn(),
     handleDisconnect: mockHandleDisconnect,
     connecting: false,
     disconnecting: false,

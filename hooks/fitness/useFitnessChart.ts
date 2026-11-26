@@ -1,3 +1,4 @@
+import type { HealthDataConsentPrompt } from '@/hooks/healthDataConsent';
 import { type IntervalsRead, useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
 import { type FitnessDay, hasFitnessValues } from '@/lib/fitness';
@@ -7,7 +8,7 @@ import { fitnessQueryOptions } from '@/lib/intervalsQueries';
 export type FitnessChartState =
   | { status: 'loading' }
   | { status: 'notConnected' }
-  | { status: 'needsScope' }
+  | { status: 'needsScope'; prompt: HealthDataConsentPrompt }
   | { status: 'error' }
   | { status: 'empty' }
   | {
@@ -20,7 +21,7 @@ export function useFitnessChart() {
   const read = useIntervalsRead({
     queryOptions: fitnessQueryOptions,
     args: [today],
-    requiredScope: 'WELLNESS:READ',
+    readsHealthData: true,
   });
 
   return { state: toChartState(read), refetch: read.refetch };
@@ -28,14 +29,16 @@ export function useFitnessChart() {
 
 function toChartState({
   availability,
-  lacksScope,
+  healthDataConsentPrompt,
   query: { data, error, isError },
 }: IntervalsRead<FitnessDay[]>): FitnessChartState {
   if (availability === 'unavailable') return { status: 'notConnected' };
 
-  if (lacksScope || isForbiddenError(error)) {
-    return { status: 'needsScope' };
-  }
+  const prompt =
+    healthDataConsentPrompt ??
+    (isForbiddenError(error) ? 'needsReauthorization' : null);
+
+  if (prompt) return { status: 'needsScope', prompt };
 
   if (data !== undefined) {
     return data.some(hasFitnessValues)

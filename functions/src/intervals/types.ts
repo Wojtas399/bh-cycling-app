@@ -22,12 +22,31 @@ export const intervalsTokenResponseSchema = v.object({
   }),
 });
 
+export const healthDataActionSchema = v.variant('action', [
+  v.object({
+    action: v.literal('grant'),
+    consentVersion: v.pipe(v.number(), v.integer(), v.minValue(1)),
+    ageConfirmed: v.literal(true),
+  }),
+  v.object({ action: v.literal('keep') }),
+]);
+
+export type HealthDataAction = v.InferOutput<typeof healthDataActionSchema>;
+
 export const exchangeIntervalsTokenDataSchema = v.object({
   code: v.pipe(v.string(), v.nonEmpty()),
   codeVerifier: v.pipe(v.string(), v.nonEmpty()),
+  healthData: healthDataActionSchema,
 });
+
+export interface HealthDataConsentRecord {
+  givenAt: Timestamp;
+  consentVersion: number;
+  ageConfirmed: true;
+}
 
 export interface ExchangeIntervalsTokenResult {
   athleteId: string;
   athleteName: string;
+  healthDataConsentGiven: boolean;
 }

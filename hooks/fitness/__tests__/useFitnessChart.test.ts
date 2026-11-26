@@ -33,6 +33,11 @@ const TODAY = '2026-11-06';
 
 const SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR = 'ACTIVITY:READ,CALENDAR:READ';
 
+const NEEDS_REAUTHORIZATION = {
+  status: 'needsScope',
+  prompt: 'needsReauthorization',
+};
+
 const NEW_ATHLETE_THREE_WEEKS_TO_TODAY = [
   { id: '2026-10-17', ctl: 0, atl: 0, ctlLoad: 0 },
   { id: '2026-11-05', ctl: 9.6, atl: 31.2, ctlLoad: 64 },
@@ -100,27 +105,48 @@ describe('useFitnessChart', () => {
     expect(result.current.state).toEqual({ status: 'loading' });
   });
 
-  it('asks to reconnect, and asks for nothing, when the stored scope lacks Wellness', async () => {
+  it('asks for the Health Data Consent, and asks for nothing, without a consent record, even with Wellness access granted', async () => {
+    connectIntervals({ healthDataConsent: null });
+
+    const { result } = await renderHookWithClient(() => useFitnessChart());
+
+    expect(result.current.state).toEqual({
+      status: 'needsScope',
+      prompt: 'needsConsent',
+    });
+    expect(mockGetWellnessRange).not.toHaveBeenCalled();
+  });
+
+  it('is loading and asks for nothing while the consent record resolves', async () => {
+    connectIntervals({ healthDataConsent: 'loading' });
+
+    const { result } = await renderHookWithClient(() => useFitnessChart());
+
+    expect(result.current.state).toEqual({ status: 'loading' });
+    expect(mockGetWellnessRange).not.toHaveBeenCalled();
+  });
+
+  it('asks only to authorize again, and asks for nothing, when a consent is recorded but the stored scope lacks Wellness', async () => {
     connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
 
     const { result } = await renderHookWithClient(() => useFitnessChart());
 
-    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(result.current.state).toEqual(NEEDS_REAUTHORIZATION);
     expect(mockGetWellnessRange).not.toHaveBeenCalled();
   });
 
-  it('asks to reconnect when the read is refused for its scope, without retrying it or the global reconnect', async () => {
+  it('asks only to authorize again when the read is refused for its scope, without retrying it or the global reconnect', async () => {
     connectIntervals();
     mockGetWellnessRange.mockRejectedValue(new IntervalsApiError(403));
 
     const { result } = await renderSettled();
 
-    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(result.current.state).toEqual(NEEDS_REAUTHORIZATION);
     expect(mockGetWellnessRange).toHaveBeenCalledTimes(1);
     expect(handleIntervalsAuthError).not.toHaveBeenCalled();
   });
 
-  it('asks to reconnect over a chart already shown when Wellness access is taken away', async () => {
+  it('asks only to authorize again over a chart already shown when Wellness access is taken away', async () => {
     connectIntervals();
     mockGetWellnessRange.mockResolvedValue(NEW_ATHLETE_THREE_WEEKS_TO_TODAY);
 
@@ -129,7 +155,7 @@ describe('useFitnessChart', () => {
     mockGetWellnessRange.mockRejectedValue(new IntervalsApiError(403));
     await refetchAndSettle(hook);
 
-    expect(hook.result.current.state).toEqual({ status: 'needsScope' });
+    expect(hook.result.current.state).toEqual(NEEDS_REAUTHORIZATION);
   });
 
   it('fails with a retry when the read fails for any other reason', async () => {
@@ -239,7 +265,7 @@ describe('useFitnessChart', () => {
       useFitnessChart(),
     );
 
-    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(result.current.state).toEqual(NEEDS_REAUTHORIZATION);
 
     connectIntervals();
     await rerender({});

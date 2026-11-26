@@ -1,9 +1,12 @@
-import { type IntervalsScope, lacksScope } from './intervalsScopes';
+import type { HealthDataConsentPrompt } from './healthDataConsent';
+import {
+  type HealthDataConsentView,
+  useHealthDataConsent,
+} from './useHealthDataConsent';
 import {
   type IntervalsAvailability,
   useIntervalsAvailability,
 } from './useIntervalsAvailability';
-import { useIntervalsConnection } from './useIntervalsConnection';
 import { useRefetchQuery } from './useRefetchQuery';
 import { useStableSelect } from './useStableSelect';
 import { bindSelectArgs } from '@/lib/bindSelectArgs';
@@ -51,7 +54,7 @@ interface UnselectedRead<
 > {
   queryOptions: QueryOptionsFactory<Args, TQueryFnData, TData, TQueryKey>;
   args: Args;
-  requiredScope?: IntervalsScope;
+  readsHealthData?: true;
 }
 
 interface SelectedRead<
@@ -70,14 +73,14 @@ interface SelectedRead<
   args: Args;
   select: StoredSelect<TQueryFnData, TData, SelectArgs>;
   selectArgs: SelectArgs;
-  requiredScope?: IntervalsScope;
+  readsHealthData?: true;
 }
 
 export interface IntervalsRead<TData> {
   availability: IntervalsAvailability;
   query: UseQueryResult<TData>;
   refetch: () => Promise<void>;
-  lacksScope: boolean;
+  healthDataConsentPrompt: HealthDataConsentPrompt | null;
 }
 
 type SelectBinding<
@@ -117,6 +120,12 @@ function selectBindingOf<
   return 'select' in read
     ? ['selected', read.queryOptions, read.select, ...read.selectArgs]
     : ['unselected', read.queryOptions];
+}
+
+function consentPromptFor(
+  consent: HealthDataConsentView,
+): HealthDataConsentPrompt | null {
+  return consent.loading || consent.state === 'given' ? null : consent.state;
 }
 
 function bindSelectToQueryOptions<
@@ -166,19 +175,27 @@ export function useIntervalsRead<
     | SelectedRead<Args, TQueryFnData, TData, TQueryKey, SelectArgs>,
 ): IntervalsRead<TData> {
   const { availability, credentials } = useIntervalsAvailability();
-  const { scope } = useIntervalsConnection();
-  const lacksRequiredScope =
-    read.requiredScope !== undefined && lacksScope(scope, read.requiredScope);
+  const consent = useHealthDataConsent();
+  const awaitsHealthDataConsent =
+    read.readsHealthData === true &&
+    (consent.loading || consent.state !== 'given');
   const queryOptionsWithStableSelect = useStableSelect(
     bindSelectToQueryOptions,
     ...selectBindingOf(read),
   );
   const options = queryOptionsWithStableSelect(
-    lacksRequiredScope ? null : credentials,
+    awaitsHealthDataConsent ? null : credentials,
     ...read.args,
   );
   const query = useQuery(options);
   const refetch = useRefetchQuery(options.queryKey);
 
-  return { availability, query, refetch, lacksScope: lacksRequiredScope };
+  return {
+    availability,
+    query,
+    refetch,
+    healthDataConsentPrompt: read.readsHealthData
+      ? consentPromptFor(consent)
+      : null,
+  };
 }

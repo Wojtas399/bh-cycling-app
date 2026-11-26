@@ -1,5 +1,5 @@
 import Box from '@/components/Box';
-import WellnessScopePrompt from '@/components/WellnessScopePrompt';
+import HealthDataConsentPrompt from '@/components/HealthDataConsentPrompt';
 import FitnessCard from '@/components/home/FitnessCard';
 import WellnessCard from '@/components/home/WellnessCard';
 import type { TodayCardsState } from '@/hooks/home/useTodayCards';
@@ -9,7 +9,7 @@ export default function TodayCards({ state }: { state: TodayCardsState }) {
     case 'hidden':
       return null;
     case 'needsScope':
-      return <WellnessScopePrompt />;
+      return <HealthDataConsentPrompt prompt={state.prompt} />;
     default:
       return (
         <Box gap="md">
