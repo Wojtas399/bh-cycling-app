@@ -151,6 +151,10 @@ _Avoid_: ATL, acute training load
 The balance between Fitness and Fatigue: how fresh the athlete is relative to their recent training. BH Cycling shows it as Fitness minus Fatigue from Intervals.icu's rounded values, the same way Intervals.icu does, and never models it.
 _Avoid_: TSB, training stress balance
 
+**Health Data Consent**:
+The athlete's explicit, optional agreement that BH Cycling may read their Wellness from Intervals.icu, given in BH Cycling, apart from connecting Intervals.icu. Only an athlete who confirms they are at least 16 can give it. Wellness, Fitness, Fatigue and Form show only while it is given and Intervals.icu grants the access. The athlete can withdraw it in Settings at any time and keep the connection for Workouts and Activities. It outlives the connection's access: reconnecting after Intervals.icu stops accepting it, or after the athlete withdraws the access on Intervals.icu, keeps it. It ends when the athlete withdraws it, disconnects Intervals.icu or deletes their account, and it must be given again when BH Cycling changes what it does with Wellness. It is not the consent page on Intervals.icu, which only lets Intervals.icu share the data.
+_Avoid_: Wellness scope, wellness permission
+
 **Sign-in Method**:
 How a user authenticates: `email` (email + password) and/or `google`. A user can have more than one (Firebase may auto-link Google to an existing email/password account). Change Password is offered whenever `email` is among them.
 _Avoid_: provider, auth type, login type
