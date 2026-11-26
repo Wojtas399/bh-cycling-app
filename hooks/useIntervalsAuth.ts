@@ -65,7 +65,10 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         'exchangeIntervalsToken',
       );
 
-      await exchangeIntervalsToken({ code: result.params.code });
+      await exchangeIntervalsToken({
+        code: result.params.code,
+        codeVerifier: request.codeVerifier,
+      });
 
       return 'connected';
     },
