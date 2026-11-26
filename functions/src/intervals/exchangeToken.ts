@@ -1,10 +1,17 @@
-import { intervalsIntegrationDocPath } from '../firestorePaths';
+import {
+  healthDataConsentDocPath,
+  intervalsIntegrationDocPath,
+} from '../firestorePaths';
 import type {
-  ExchangeIntervalsTokenData,
   ExchangeIntervalsTokenResult,
+  HealthDataAction,
+  HealthDataConsentRecord,
   IntervalsIntegration,
 } from './types';
-import { intervalsTokenResponseSchema } from './types';
+import {
+  exchangeIntervalsTokenDataSchema,
+  intervalsTokenResponseSchema,
+} from './types';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -15,19 +22,30 @@ export const intervalsClientId = defineSecret('INTERVALS_CLIENT_ID');
 export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
 
 const TOKEN_URL = 'https://intervals.icu/api/oauth/token';
+const HEALTH_DATA_SCOPE = 'WELLNESS:READ';
+const HEALTH_DATA_CONSENT_VERSION = 1;
+
+const currentConsentRecordSchema = v.object({
+  consentVersion: v.literal(HEALTH_DATA_CONSENT_VERSION),
+});
 
 export async function exchangeIntervalsTokenHandler(
-  request: CallableRequest<ExchangeIntervalsTokenData>,
+  request: CallableRequest<unknown>,
 ): Promise<ExchangeIntervalsTokenResult> {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
 
-  const { code } = request.data ?? {};
+  const dataParse = v.safeParse(exchangeIntervalsTokenDataSchema, request.data);
 
-  if (!code) {
-    throw new HttpsError('invalid-argument', 'code is required.');
+  if (!dataParse.success) {
+    throw new HttpsError(
+      'invalid-argument',
+      'code, codeVerifier and a valid healthData action are required.',
+    );
   }
+
+  const { code, codeVerifier, healthData } = dataParse.output;
 
   let response: Response;
 
@@ -39,6 +57,7 @@ export async function exchangeIntervalsTokenHandler(
         client_id: intervalsClientId.value(),
         client_secret: intervalsClientSecret.value(),
         code,
+        code_verifier: codeVerifier,
       }).toString(),
     });
   } catch {
@@ -81,5 +100,44 @@ export async function exchangeIntervalsTokenHandler(
   return {
     athleteId: integration.athleteId,
     athleteName: integration.athleteName,
+    healthDataConsentGiven: await applyHealthDataAction(
+      request.auth.uid,
+      healthData,
+      grantsHealthData(integration.scope),
+    ),
   };
+}
+
+function grantsHealthData(scope: string): boolean {
+  return scope.split(/[\s,]+/).includes(HEALTH_DATA_SCOPE);
+}
+
+async function applyHealthDataAction(
+  uid: string,
+  healthData: HealthDataAction,
+  healthDataGranted: boolean,
+): Promise<boolean> {
+  const consentDoc = getFirestore().doc(healthDataConsentDocPath(uid));
+
+  if (healthData.action === 'withdraw') {
+    await consentDoc.delete();
+
+    return false;
+  }
+
+  if (!healthDataGranted) return false;
+
+  if (healthData.action === 'keep') {
+    return v.is(currentConsentRecordSchema, (await consentDoc.get()).data());
+  }
+
+  const record: HealthDataConsentRecord = {
+    givenAt: Timestamp.now(),
+    consentVersion: healthData.consentVersion,
+    ageConfirmed: true,
+  };
+
+  await consentDoc.set(record);
+
+  return true;
 }

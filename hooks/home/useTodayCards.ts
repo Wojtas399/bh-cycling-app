@@ -1,14 +1,14 @@
 import { type IntervalsRead, useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
 import type { FitnessValues } from '@/lib/fitness';
-import { isForbiddenError } from '@/lib/intervalsApi';
+import type { HealthDataConsentPrompt } from '@/lib/healthDataConsent';
 import { type TodayEntry, todayQueryOptions } from '@/lib/intervalsQueries';
 import type { WellnessRow } from '@/lib/wellness';
 
 export type TodayCardsState =
   | { status: 'loading' }
   | { status: 'hidden' }
-  | { status: 'needsScope' }
+  | { status: 'needsScope'; prompt: HealthDataConsentPrompt }
   | {
       status: 'ready';
       fitness: FitnessValues | null;
@@ -25,7 +25,7 @@ export function useTodayCards() {
   const read = useIntervalsRead({
     queryOptions: todayQueryOptions,
     args: [today],
-    requiredScope: 'WELLNESS:READ',
+    readsHealthData: true,
   });
 
   return { state: toCardsState(read) };
@@ -33,13 +33,13 @@ export function useTodayCards() {
 
 function toCardsState({
   availability,
-  lacksScope,
-  query: { data, error, isError },
+  healthDataConsentPrompt,
+  query: { data, isError },
 }: IntervalsRead<TodayEntry>): TodayCardsState {
   if (availability === 'unavailable') return { status: 'hidden' };
 
-  if (lacksScope || isForbiddenError(error)) {
-    return { status: 'needsScope' };
+  if (healthDataConsentPrompt) {
+    return { status: 'needsScope', prompt: healthDataConsentPrompt };
   }
 
   if (data !== undefined) return { status: 'ready', ...data };

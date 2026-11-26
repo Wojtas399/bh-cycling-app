@@ -5,6 +5,7 @@ import {
 } from '@/test-utils/intervalsConnection';
 
 import { useIntervalsRead } from '../useIntervalsRead';
+import { IntervalsApiError } from '@/lib/intervalsApi';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
@@ -110,58 +111,119 @@ describe('useIntervalsRead', () => {
     });
   });
 
-  describe('scope gate', () => {
-    function renderWellnessGated() {
+  describe('Health Data Consent gate', () => {
+    const SCOPE_WITHOUT_WELLNESS = 'ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ';
+
+    function renderHealthDataRead() {
       return renderHookWithClient(() =>
         useIntervalsRead({
           queryOptions: rideDatesQueryOptions,
           args: [7],
-          requiredScope: 'WELLNESS:READ',
+          readsHealthData: true,
         }),
       );
     }
 
-    it('requests nothing and lacks the scope when the stored scope lacks the required one', async () => {
-      connectIntervals({ scope: 'ACTIVITY:READ,CALENDAR:READ' });
+    it('requests nothing and prompts for the consent without a consent record, even with Wellness access granted', async () => {
+      connectIntervals({ healthDataConsent: null });
 
-      const { result } = await renderWellnessGated();
+      const { result } = await renderHealthDataRead();
 
       await settleQueries();
 
-      expect(result.current.lacksScope).toBe(true);
+      expect(result.current.healthDataConsentPrompt).toBe('needsConsent');
       expect(result.current.availability).toBe('available');
       expect(fetchRideDates).not.toHaveBeenCalled();
     });
 
-    it("requests the read with the athlete's token and lacks no scope once the required one is granted", async () => {
-      connectIntervals({ scope: 'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ' });
+    it('requests nothing and prompts for the consent with a record for an older consent version', async () => {
+      connectIntervals({ healthDataConsent: { consentVersion: 0 } });
 
-      const { result } = await renderWellnessGated();
-
-      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      expect(result.current.lacksScope).toBe(false);
-      expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
-    });
-
-    it('requests nothing and lacks no scope while the connection resolves', async () => {
-      intervalsConnectionLoading();
-
-      const { result } = await renderWellnessGated();
+      const { result } = await renderHealthDataRead();
 
       await settleQueries();
 
-      expect(result.current.lacksScope).toBe(false);
+      expect(result.current.healthDataConsentPrompt).toBe('needsConsent');
+      expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+
+    it('requests nothing and prompts only to authorize again with a current record but no Wellness access', async () => {
+      connectIntervals({ scope: SCOPE_WITHOUT_WELLNESS });
+
+      const { result } = await renderHealthDataRead();
+
+      await settleQueries();
+
+      expect(result.current.healthDataConsentPrompt).toBe(
+        'needsReauthorization',
+      );
+      expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+
+    it("requests the read with the athlete's token and prompts nothing once the consent is given", async () => {
+      connectIntervals();
+
+      const { result } = await renderHealthDataRead();
+
+      await settleQueries();
+
+      expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
+      expect(result.current.healthDataConsentPrompt).toBeNull();
+    });
+
+    it('requests nothing and prompts nothing while the consent record loads', async () => {
+      connectIntervals({ healthDataConsent: 'loading' });
+
+      const { result } = await renderHealthDataRead();
+
+      await settleQueries();
+
+      expect(result.current.healthDataConsentPrompt).toBeNull();
+      expect(result.current.query.isPending).toBe(true);
+      expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+
+    it('requests nothing and prompts nothing while the connection resolves', async () => {
+      intervalsConnectionLoading();
+
+      const { result } = await renderHealthDataRead();
+
+      await settleQueries();
+
+      expect(result.current.healthDataConsentPrompt).toBeNull();
       expect(result.current.availability).toBe('loading');
       expect(fetchRideDates).not.toHaveBeenCalled();
     });
 
-    it('lacks no scope and requests the read without a required scope, whatever the stored scope', async () => {
-      connectIntervals({ scope: 'ACTIVITY:READ' });
+    it('prompts only to authorize again when Intervals.icu refuses the read for its scope despite a given consent', async () => {
+      connectIntervals();
+      fetchRideDates.mockRejectedValue(new IntervalsApiError(403));
+
+      const { result } = await renderHealthDataRead();
+
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
+      expect(result.current.healthDataConsentPrompt).toBe(
+        'needsReauthorization',
+      );
+    });
+
+    it('prompts nothing when Intervals.icu refuses a read that reads no health data', async () => {
+      connectIntervals();
+      fetchRideDates.mockRejectedValue(new IntervalsApiError(403));
+
+      const { result } = await renderRideDates();
+
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
+      expect(result.current.healthDataConsentPrompt).toBeNull();
+    });
+
+    it('requests a read that reads no health data and prompts nothing, whatever the consent', async () => {
+      connectIntervals({ scope: 'ACTIVITY:READ', healthDataConsent: null });
 
       const { result } = await renderRideDates();
 
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      expect(result.current.lacksScope).toBe(false);
+      expect(result.current.healthDataConsentPrompt).toBeNull();
       expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
     });
   });

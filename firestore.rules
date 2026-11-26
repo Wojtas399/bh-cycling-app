@@ -3,6 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId}/integrations/intervals {
+      allow read, delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if false;
+    }
+
+    match /users/{userId}/consents/healthData {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }

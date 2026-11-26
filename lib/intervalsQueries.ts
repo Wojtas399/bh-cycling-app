@@ -128,6 +128,22 @@ export async function removeIntervalsQueries(
   client.removeQueries({ queryKey: intervalsKeys.all });
 }
 
+const HEALTH_DATA_QUERIES = {
+  queryKey: intervalsKeys.all,
+  predicate: ({ queryKey }: { queryKey: QueryKey }) => {
+    const [, , kind] = queryKey;
+
+    return kind === 'wellness' || kind === 'fitness';
+  },
+};
+
+export async function removeHealthDataQueries(
+  client: QueryClient,
+): Promise<void> {
+  await client.cancelQueries(HEALTH_DATA_QUERIES);
+  client.removeQueries(HEALTH_DATA_QUERIES);
+}
+
 const CHANGING_DATA_FRESHNESS = {
   staleTime: 5 * 60_000,
   refetchOnWindowFocus: true,

@@ -34,6 +34,11 @@ const TODAY = '2026-11-02';
 
 const SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR = 'ACTIVITY:READ,CALENDAR:READ';
 
+const NEEDS_REAUTHORIZATION = {
+  status: 'needsScope',
+  prompt: 'needsReauthorization',
+};
+
 const DAY_WITHOUT_DATA_ALL_NULL = {
   ctl: null,
   atl: null,
@@ -145,12 +150,33 @@ describe('useTodayCards', () => {
     expect(result.current.state).toEqual({ status: 'loading' });
   });
 
-  it('asks to reconnect, and asks for nothing, when the stored scope lacks Wellness', async () => {
+  it('asks for the Health Data Consent, and asks for nothing, without a consent record, even with Wellness access granted', async () => {
+    connectIntervals({ healthDataConsent: null });
+
+    const { result } = await renderHookWithClient(() => useTodayCards());
+
+    expect(result.current.state).toEqual({
+      status: 'needsScope',
+      prompt: 'needsConsent',
+    });
+    expect(mockGetWellness).not.toHaveBeenCalled();
+  });
+
+  it('is loading and asks for nothing while the consent record resolves', async () => {
+    connectIntervals({ healthDataConsent: 'loading' });
+
+    const { result } = await renderHookWithClient(() => useTodayCards());
+
+    expect(result.current.state).toEqual({ status: 'loading' });
+    expect(mockGetWellness).not.toHaveBeenCalled();
+  });
+
+  it('asks only to authorize again, and asks for nothing, when a consent is recorded but the stored scope lacks Wellness', async () => {
     connectIntervals({ scope: SCOPE_FROM_BEFORE_WELLNESS_WAS_ASKED_FOR });
 
     const { result } = await renderHookWithClient(() => useTodayCards());
 
-    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(result.current.state).toEqual(NEEDS_REAUTHORIZATION);
     expect(mockGetWellness).not.toHaveBeenCalled();
   });
 
@@ -163,18 +189,18 @@ describe('useTodayCards', () => {
     expect(result.current.state).toEqual(FULLY_FILLED_ENTRY_ON_BOTH_CARDS);
   });
 
-  it('asks to reconnect when the request is refused for its scope, without retrying it or the global reconnect', async () => {
+  it('asks only to authorize again when the request is refused for its scope, without retrying it or the global reconnect', async () => {
     connectIntervals();
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
 
     const { result } = await renderSettled();
 
-    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(result.current.state).toEqual(NEEDS_REAUTHORIZATION);
     expect(mockGetWellness).toHaveBeenCalledTimes(1);
     expect(handleIntervalsAuthError).not.toHaveBeenCalled();
   });
 
-  it('asks to reconnect over values already shown when Wellness access is taken away', async () => {
+  it('asks only to authorize again over values already shown when Wellness access is taken away', async () => {
     connectIntervals();
     mockGetWellness.mockResolvedValue(FULLY_FILLED_ENTRY);
 
@@ -183,7 +209,7 @@ describe('useTodayCards', () => {
     mockGetWellness.mockRejectedValue(new IntervalsApiError(403));
     await refreshScreenAndSettle(hook);
 
-    expect(hook.result.current.state).toEqual({ status: 'needsScope' });
+    expect(hook.result.current.state).toEqual(NEEDS_REAUTHORIZATION);
   });
 
   it('fills in once a reconnect grants Wellness, without a restart', async () => {
@@ -194,7 +220,7 @@ describe('useTodayCards', () => {
       useTodayCards(),
     );
 
-    expect(result.current.state).toEqual({ status: 'needsScope' });
+    expect(result.current.state).toEqual(NEEDS_REAUTHORIZATION);
 
     connectIntervals();
     await rerender({});
@@ -438,7 +464,7 @@ describe('useTodayCards', () => {
     await hook.rerender({});
     await refreshScreenAndSettle(hook);
 
-    expect(hook.result.current.state).toEqual({ status: 'needsScope' });
+    expect(hook.result.current.state).toEqual(NEEDS_REAUTHORIZATION);
     expect(mockGetWellness).toHaveBeenCalledTimes(1);
   });
 });

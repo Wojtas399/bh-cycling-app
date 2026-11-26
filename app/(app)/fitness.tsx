@@ -4,12 +4,12 @@ import { RefreshControl, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import Box from '@/components/Box';
+import HealthDataConsentPrompt from '@/components/HealthDataConsentPrompt';
 import IntervalsConnectPrompt from '@/components/IntervalsConnectPrompt';
 import IntervalsReconnectBanner from '@/components/IntervalsReconnectBanner';
 import MessageWithAction from '@/components/MessageWithAction';
 import ScreenHeader from '@/components/ScreenHeader';
 import Text from '@/components/Text';
-import WellnessScopePrompt from '@/components/WellnessScopePrompt';
 import FitnessChart from '@/components/fitness/FitnessChart';
 import FitnessChartSkeleton from '@/components/fitness/FitnessChartSkeleton';
 import FitnessRangeSelector from '@/components/fitness/FitnessRangeSelector';
@@ -97,7 +97,7 @@ function FitnessChartBody({
     case 'loading':
       return <FitnessChartSkeleton />;
     case 'needsScope':
-      return <WellnessScopePrompt />;
+      return <HealthDataConsentPrompt prompt={state.prompt} />;
     case 'error':
       return (
         <MessageWithAction

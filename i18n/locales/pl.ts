@@ -549,10 +549,28 @@ const pl = {
       message: 'Połączenie z Intervals.icu wygasło.',
       action: 'Połącz ponownie',
     },
-    wellnessScopePrompt: {
+    healthDataConsentPrompt: {
+      title: 'Zgoda na dane o zdrowiu',
+      whatWeRead:
+        'Aby pokazać Twój sen, tętno spoczynkowe i HRV oraz Fitness, Zmęczenie i Formę, BH Cycling odczyta je z Intervals.icu.',
+      notStored: 'Nie przechowujemy tych danych na naszych serwerach.',
+      withdraw: 'Zgodę możesz w każdej chwili wycofać w Ustawieniach.',
+      privacyPolicy: 'Polityka prywatności',
+      ageStatement: 'Mam co najmniej 16 lat',
+      agree: 'Zgadzam się',
+    },
+    healthDataConsentNotGiven:
+      'Nie udzielono zgody na dane o zdrowiu, bo Intervals.icu ich nie udostępnia. Zaznacz Wellness na stronie Intervals.icu.',
+    healthDataConsentSwitch: {
+      label: 'Dane o zdrowiu',
+      cancel: 'Anuluj',
+      agree: 'Mam co najmniej 16 lat i się zgadzam',
+      withdrawn: 'Wycofano zgodę na dane o zdrowiu',
+    },
+    healthDataReauthorizationPrompt: {
       message:
-        'Połącz ponownie Intervals.icu i zezwól na dostęp do Wellness, aby zobaczyć Fitness i Wellness.',
-      action: 'Połącz ponownie',
+        'Intervals.icu nie udostępnia BH Cycling Twoich danych o zdrowiu. Autoryzuj ponownie, aby zobaczyć Fitness i Wellness.',
+      action: 'Autoryzuj ponownie',
     },
   },
 } as const;
