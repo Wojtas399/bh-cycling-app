@@ -7,7 +7,10 @@ import {
 } from './intervalsAuthErrors';
 import { useHealthDataConsent } from './useHealthDataConsent';
 import { useIntervalsConnection } from './useIntervalsConnection';
-import { PRIVACY_POLICY_URL } from '@/constants/legal';
+import {
+  HEALTH_DATA_CONSENT_PARAGRAPHS,
+  PRIVACY_POLICY_URL,
+} from '@/constants/legal';
 import { functions } from '@/lib/firebase';
 import type { IntervalsAuthorization } from '@/lib/healthDataConsent';
 import {
@@ -143,11 +146,9 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
   function askForHealthDataConsent() {
     Alert.alert(
       t('healthDataConsentPrompt.title'),
-      [
-        t('healthDataConsentPrompt.whatWeRead'),
-        t('healthDataConsentPrompt.notStored'),
-        t('healthDataConsentPrompt.withdraw'),
-      ].join('\n\n'),
+      HEALTH_DATA_CONSENT_PARAGRAPHS.map(paragraph =>
+        t(`healthDataConsentPrompt.${paragraph}`),
+      ).join('\n\n'),
       [
         { text: t('healthDataConsentSwitch.cancel'), style: 'cancel' },
         {
