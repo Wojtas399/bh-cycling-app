@@ -1,10 +1,12 @@
 import { intervalsIntegrationDocPath } from '../firestorePaths';
 import type {
-  ExchangeIntervalsTokenData,
   ExchangeIntervalsTokenResult,
   IntervalsIntegration,
 } from './types';
-import { intervalsTokenResponseSchema } from './types';
+import {
+  exchangeIntervalsTokenDataSchema,
+  intervalsTokenResponseSchema,
+} from './types';
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -17,17 +19,22 @@ export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
 const TOKEN_URL = 'https://intervals.icu/api/oauth/token';
 
 export async function exchangeIntervalsTokenHandler(
-  request: CallableRequest<ExchangeIntervalsTokenData>,
+  request: CallableRequest<unknown>,
 ): Promise<ExchangeIntervalsTokenResult> {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
 
-  const { code } = request.data ?? {};
+  const dataParse = v.safeParse(exchangeIntervalsTokenDataSchema, request.data);
 
-  if (!code) {
-    throw new HttpsError('invalid-argument', 'code is required.');
+  if (!dataParse.success) {
+    throw new HttpsError(
+      'invalid-argument',
+      'code and codeVerifier are required.',
+    );
   }
+
+  const { code, codeVerifier } = dataParse.output;
 
   let response: Response;
 
@@ -39,6 +46,7 @@ export async function exchangeIntervalsTokenHandler(
         client_id: intervalsClientId.value(),
         client_secret: intervalsClientSecret.value(),
         code,
+        code_verifier: codeVerifier,
       }).toString(),
     });
   } catch {

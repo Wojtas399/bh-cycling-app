@@ -17,7 +17,9 @@ const mockHttpsCallable = jest.fn();
 jest.mock('expo-auth-session', () => ({
   AuthRequest: jest.fn().mockImplementation(() => ({
     promptAsync: mockPromptAsync,
+    codeVerifier: 'verifier-xyz',
   })),
+  CodeChallengeMethod: { S256: 'S256' },
   ResponseType: { Code: 'code' },
 }));
 
@@ -112,7 +114,21 @@ describe('useIntervalsAuth', () => {
       );
     });
 
-    it('exchanges the code on a successful authorization', async () => {
+    it('authorizes with PKCE over S256, so an app that intercepts the redirect cannot redeem the code', async () => {
+      mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleConnect();
+      });
+
+      expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ usePKCE: true, codeChallengeMethod: 'S256' }),
+      );
+    });
+
+    it('exchanges the code together with the PKCE code verifier on a successful authorization', async () => {
       const mockExchange = jest.fn().mockResolvedValue({ data: {} });
 
       mockHttpsCallable.mockReturnValue(mockExchange);
@@ -128,7 +144,10 @@ describe('useIntervalsAuth', () => {
       });
 
       expect(mockHttpsCallable).toHaveBeenCalledWith('exchangeIntervalsToken');
-      expect(mockExchange).toHaveBeenCalledWith({ code: 'auth-code' });
+      expect(mockExchange).toHaveBeenCalledWith({
+        code: 'auth-code',
+        codeVerifier: 'verifier-xyz',
+      });
       expect(result.current.connecting).toBe(false);
     });
 
