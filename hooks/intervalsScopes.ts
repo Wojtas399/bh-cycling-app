@@ -1,13 +1,20 @@
-const REQUESTED_SCOPES = [
+export const CONNECTION_SCOPES = [
   'ACTIVITY:READ',
   'CALENDAR:READ',
-  'WELLNESS:READ',
   'SETTINGS:READ',
 ] as const;
 
-export type IntervalsScope = (typeof REQUESTED_SCOPES)[number];
+export const HEALTH_DATA_SCOPE = 'WELLNESS:READ';
 
-export const COMMA_SEPARATED_CONSENT_SCOPES = [REQUESTED_SCOPES.join(',')];
+export type IntervalsScope =
+  | (typeof CONNECTION_SCOPES)[number]
+  | typeof HEALTH_DATA_SCOPE;
+
+export function asOneCommaSeparatedScope(
+  scopes: readonly IntervalsScope[],
+): string[] {
+  return [scopes.join(',')];
+}
 
 export function lacksScope(
   granted: string | null,

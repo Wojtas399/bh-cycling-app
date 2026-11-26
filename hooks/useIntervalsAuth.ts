@@ -1,11 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
+import type { IntervalsAuthorization } from './healthDataConsent';
 import {
   type IntervalsAuthMutation,
   mapIntervalsAuthError,
 } from './intervalsAuthErrors';
-import { COMMA_SEPARATED_CONSENT_SCOPES } from './intervalsScopes';
+import { asOneCommaSeparatedScope } from './intervalsScopes';
+import { useHealthDataConsent } from './useHealthDataConsent';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
 import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
@@ -26,6 +28,7 @@ const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
 
 export interface UseIntervalsAuthResult {
   handleConnect: () => void;
+  handleGrantHealthDataConsent: () => void;
   handleDisconnect: () => void;
   connecting: boolean;
   disconnecting: boolean;
@@ -39,14 +42,18 @@ function refetchIntervalsUnderNewConsent(queryClient: QueryClient) {
 export function useIntervalsAuth(): UseIntervalsAuthResult {
   const { t } = useTranslation(undefined, { keyPrefix: 'intervals' });
   const connection = useIntervalsConnection();
+  const consent = useHealthDataConsent();
   const queryClient = useQueryClient();
 
   const connect = useMutation({
-    mutationFn: async (): Promise<'connected' | 'cancelled'> => {
+    mutationFn: async ({
+      scopes,
+      healthData,
+    }: IntervalsAuthorization): Promise<'connected' | 'cancelled'> => {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
-        scopes: COMMA_SEPARATED_CONSENT_SCOPES,
+        scopes: asOneCommaSeparatedScope(scopes),
         redirectUri: REDIRECT_URI,
         responseType: AuthSession.ResponseType.Code,
         usePKCE: true,
@@ -68,6 +75,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       await exchangeIntervalsToken({
         code: result.params.code,
         codeVerifier: request.codeVerifier,
+        healthData,
       });
 
       return 'connected';
@@ -93,10 +101,18 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     onError: () => toast.error(errorMessage('disconnect')),
   });
 
-  function handleConnect() {
+  function authorize(authorization: IntervalsAuthorization) {
     if (connect.isPending) return;
 
-    connect.mutate();
+    connect.mutate(authorization);
+  }
+
+  function handleConnect() {
+    authorize(consent.connect);
+  }
+
+  function handleGrantHealthDataConsent() {
+    authorize(consent.grant);
   }
 
   function handleDisconnect() {
@@ -124,6 +140,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
   return {
     handleConnect,
+    handleGrantHealthDataConsent,
     handleDisconnect,
     connecting: connect.isPending,
     disconnecting: disconnect.isPending,

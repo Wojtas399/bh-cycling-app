@@ -1,7 +1,9 @@
 import { Alert, type AlertButton } from 'react-native';
 
+import { useHealthDataConsentRecord } from '../useHealthDataConsentRecord';
 import { useIntervalsAuth } from '../useIntervalsAuth';
 import { useIntervalsConnection } from '../useIntervalsConnection';
+import { HEALTH_DATA_CONSENT_VERSION } from '@/constants/legal';
 import {
   getNeedsReconnect,
   setNeedsReconnect,
@@ -46,6 +48,10 @@ jest.mock('../useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(() => ({ isConnected: true })),
 }));
 
+jest.mock('../useHealthDataConsentRecord', () => ({
+  useHealthDataConsentRecord: jest.fn(),
+}));
+
 const INTERVALS_KEY = ['intervals', 'athlete-1', 'upcoming', '2026-10-11'];
 const ATHLETE_SETTINGS_KEY = ['intervals', 'athlete-1', 'athleteSettings'];
 
@@ -73,6 +79,7 @@ async function confirmDisconnect(
 
 const mockToast = jest.mocked(toast);
 const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
+const mockUseHealthDataConsentRecord = jest.mocked(useHealthDataConsentRecord);
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
 
 function alertButtons(): AlertButton[] {
@@ -94,11 +101,15 @@ describe('useIntervalsAuth', () => {
       scope: null,
       loading: false,
     });
+    mockUseHealthDataConsentRecord.mockReturnValue({
+      loading: false,
+      record: null,
+    });
     setNeedsReconnect(false);
   });
 
   describe('handleConnect', () => {
-    it('asks for all four scopes as one comma-separated item, since expo-auth-session joins items with spaces and Intervals.icu wants commas', async () => {
+    it('asks a new connection for the connection scopes only, as one comma-separated item, since expo-auth-session joins items with spaces and Intervals.icu wants commas', async () => {
       mockPromptAsync.mockResolvedValue({ type: 'cancel' });
 
       const { result } = await renderAuth();
@@ -109,8 +120,37 @@ describe('useIntervalsAuth', () => {
 
       expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
         expect.objectContaining({
-          scopes: ['ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ'],
+          scopes: ['ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ'],
         }),
+      );
+    });
+
+    it('asks for Wellness access too and keeps the consent when reconnecting with a current consent record, so a reconnect after a 401 keeps Wellness', async () => {
+      const mockExchange = jest.fn().mockResolvedValue({ data: {} });
+
+      mockHttpsCallable.mockReturnValue(mockExchange);
+      mockUseHealthDataConsentRecord.mockReturnValue({
+        loading: false,
+        record: { consentVersion: HEALTH_DATA_CONSENT_VERSION },
+      });
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleConnect();
+      });
+
+      expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scopes: ['ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ,WELLNESS:READ'],
+        }),
+      );
+      expect(mockExchange).toHaveBeenCalledWith(
+        expect.objectContaining({ healthData: { action: 'keep' } }),
       );
     });
 
@@ -128,7 +168,7 @@ describe('useIntervalsAuth', () => {
       );
     });
 
-    it('exchanges the code together with the PKCE code verifier on a successful authorization', async () => {
+    it('exchanges the code together with the PKCE code verifier, keeping the consent, on a successful authorization', async () => {
       const mockExchange = jest.fn().mockResolvedValue({ data: {} });
 
       mockHttpsCallable.mockReturnValue(mockExchange);
@@ -147,6 +187,7 @@ describe('useIntervalsAuth', () => {
       expect(mockExchange).toHaveBeenCalledWith({
         code: 'auth-code',
         codeVerifier: 'verifier-xyz',
+        healthData: { action: 'keep' },
       });
       expect(result.current.connecting).toBe(false);
     });
@@ -312,6 +353,72 @@ describe('useIntervalsAuth', () => {
       expect(mockHttpsCallable).not.toHaveBeenCalled();
       expect(mockToast.success).not.toHaveBeenCalled();
       expect(mockToast.error).not.toHaveBeenCalled();
+      expect(result.current.connecting).toBe(false);
+    });
+  });
+
+  describe('handleGrantHealthDataConsent', () => {
+    it('authorizes again with Wellness access and grants the consent to the current version with the age statement', async () => {
+      const mockExchange = jest.fn().mockResolvedValue({ data: {} });
+
+      mockHttpsCallable.mockReturnValue(mockExchange);
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleGrantHealthDataConsent();
+      });
+
+      expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scopes: ['ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ,WELLNESS:READ'],
+          usePKCE: true,
+        }),
+      );
+      expect(mockHttpsCallable).toHaveBeenCalledWith('exchangeIntervalsToken');
+      expect(mockExchange).toHaveBeenCalledWith({
+        code: 'auth-code',
+        codeVerifier: 'verifier-xyz',
+        healthData: {
+          action: 'grant',
+          consentVersion: HEALTH_DATA_CONSENT_VERSION,
+          ageConfirmed: true,
+        },
+      });
+    });
+
+    it("refetches the athlete's Intervals data once the grant succeeds, so Wellness shows on return", async () => {
+      mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+      const { result, client } = await renderAuth();
+
+      client.setQueryData(INTERVALS_KEY, []);
+
+      await act(async () => {
+        result.current.handleGrantHealthDataConsent();
+      });
+
+      expect(client.getQueryState(INTERVALS_KEY)?.isInvalidated).toBe(true);
+    });
+
+    it('grants nothing when the athlete cancels on the Intervals.icu page', async () => {
+      mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleGrantHealthDataConsent();
+      });
+
+      expect(mockHttpsCallable).not.toHaveBeenCalled();
+      expect(mockToast.success).not.toHaveBeenCalled();
       expect(result.current.connecting).toBe(false);
     });
   });
