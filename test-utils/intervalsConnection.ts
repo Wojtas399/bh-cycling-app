@@ -24,7 +24,7 @@ jest.mock('@/lib/handleIntervalsAuthError', () => ({
 const FULL_CONSENT_SCOPE =
   'ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ';
 
-export const CURRENT_HEALTH_DATA_CONSENT: HealthDataConsentRecord = {
+const CURRENT_HEALTH_DATA_CONSENT: HealthDataConsentRecord = {
   consentVersion: HEALTH_DATA_CONSENT_VERSION,
 };
 
