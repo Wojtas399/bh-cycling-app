@@ -12,7 +12,10 @@ import {
   PRIVACY_POLICY_URL,
 } from '@/constants/legal';
 import { functions } from '@/lib/firebase';
-import type { IntervalsAuthorization } from '@/lib/healthDataConsent';
+import type {
+  HealthDataAction,
+  IntervalsAuthorization,
+} from '@/lib/healthDataConsent';
 import { ignoreFailure } from '@/lib/ignoreFailure';
 import {
   intervalsKeys,
@@ -29,11 +32,21 @@ import {
 } from '@tanstack/react-query';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as v from 'valibot';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const AUTHORIZATION_ENDPOINT = 'https://intervals.icu/oauth/authorize';
 const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
+
+const healthDataConsentGivenSchema = v.object({
+  healthDataConsentGiven: v.literal(true),
+});
+
+type AuthorizationOutcome =
+  | 'cancelled'
+  | 'connected'
+  | 'connectedWithHealthDataConsent';
 
 export interface UseIntervalsAuthResult {
   handleConnect: () => void;
@@ -60,7 +73,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     mutationFn: async ({
       scopes,
       healthData,
-    }: IntervalsAuthorization): Promise<'connected' | 'cancelled'> => {
+    }: IntervalsAuthorization): Promise<AuthorizationOutcome> => {
       const clientId = process.env.EXPO_PUBLIC_INTERVALS_CLIENT_ID ?? '';
       const request = new AuthSession.AuthRequest({
         clientId,
@@ -83,13 +96,15 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         'exchangeIntervalsToken',
       );
 
-      await exchangeIntervalsToken({
+      const { data } = await exchangeIntervalsToken({
         code: result.params.code,
         codeVerifier: request.codeVerifier,
         healthData,
       });
 
-      return 'connected';
+      return v.is(healthDataConsentGivenSchema, data)
+        ? 'connectedWithHealthDataConsent'
+        : 'connected';
     },
     onSuccess: async (outcome, { healthData }) => {
       if (outcome === 'cancelled') return;
@@ -99,11 +114,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       }
 
       refetchIntervalsUnderNewConsent(queryClient);
-      toast.success(
-        healthData.action === 'withdraw'
-          ? t('healthDataConsentSwitch.withdrawn')
-          : t('connected'),
-      );
+      showAuthorized(healthData.action, outcome);
     },
     onError: () => toast.error(errorMessage('connect')),
   });
@@ -119,6 +130,22 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     onSuccess: () => removeIntervalsQueries(queryClient),
     onError: () => toast.error(errorMessage('disconnect')),
   });
+
+  function showAuthorized(
+    action: HealthDataAction['action'],
+    outcome: Exclude<AuthorizationOutcome, 'cancelled'>,
+  ) {
+    if (action === 'withdraw') {
+      toast.success(t('healthDataConsentSwitch.withdrawn'));
+    } else if (
+      action === 'grant' &&
+      outcome !== 'connectedWithHealthDataConsent'
+    ) {
+      toast.warning(t('healthDataConsentNotGiven'));
+    } else {
+      toast.success(t('connected'));
+    }
+  }
 
   function authorize(authorization: IntervalsAuthorization) {
     if (connect.isPending) return;

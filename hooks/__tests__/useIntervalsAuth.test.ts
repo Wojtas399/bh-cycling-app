@@ -431,6 +431,62 @@ describe('useIntervalsAuth', () => {
       expect(client.getQueryState(INTERVALS_KEY)?.isInvalidated).toBe(true);
     });
 
+    it('tells the athlete the consent was not given when they unticked Wellness on the Intervals.icu page', async () => {
+      mockHttpsCallable.mockReturnValue(
+        jest.fn().mockResolvedValue({
+          data: {
+            athleteId: 'athlete-1',
+            athleteName: 'Jane Rider',
+            healthDataConsentGiven: false,
+          },
+        }),
+      );
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleGrantHealthDataConsent();
+      });
+
+      await waitFor(() =>
+        expect(mockToast.warning).toHaveBeenCalledWith(
+          'intervals.healthDataConsentNotGiven',
+        ),
+      );
+      expect(mockToast.success).not.toHaveBeenCalled();
+    });
+
+    it('says Intervals.icu connected once the grant comes back with Wellness access', async () => {
+      mockHttpsCallable.mockReturnValue(
+        jest.fn().mockResolvedValue({
+          data: {
+            athleteId: 'athlete-1',
+            athleteName: 'Jane Rider',
+            healthDataConsentGiven: true,
+          },
+        }),
+      );
+      mockPromptAsync.mockResolvedValue({
+        type: 'success',
+        params: { code: 'auth-code' },
+      });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleGrantHealthDataConsent();
+      });
+
+      await waitFor(() =>
+        expect(mockToast.success).toHaveBeenCalledWith('intervals.connected'),
+      );
+      expect(mockToast.warning).not.toHaveBeenCalled();
+    });
+
     it('grants nothing when the athlete cancels on the Intervals.icu page', async () => {
       mockPromptAsync.mockResolvedValue({ type: 'cancel' });
 
