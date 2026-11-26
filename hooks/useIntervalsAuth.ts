@@ -9,6 +9,7 @@ import {
 import { asOneCommaSeparatedScope } from './intervalsScopes';
 import { useHealthDataConsent } from './useHealthDataConsent';
 import { useIntervalsConnection } from './useIntervalsConnection';
+import { PRIVACY_POLICY_URL } from '@/constants/legal';
 import { functions } from '@/lib/firebase';
 import {
   intervalsKeys,
@@ -130,7 +131,35 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
   }
 
   function handleHealthDataConsentSwitch(on: boolean) {
-    if (!on) authorize(consent.withdraw);
+    if (!on) {
+      authorize(consent.withdraw);
+    } else if (consent.state === 'needsReauthorization') {
+      authorize(consent.connect);
+    } else {
+      askForHealthDataConsent();
+    }
+  }
+
+  function askForHealthDataConsent() {
+    Alert.alert(
+      t('healthDataConsentPrompt.title'),
+      [
+        t('healthDataConsentPrompt.whatWeRead'),
+        t('healthDataConsentPrompt.notStored'),
+        t('healthDataConsentPrompt.withdraw'),
+      ].join('\n\n'),
+      [
+        { text: t('healthDataConsentSwitch.cancel'), style: 'cancel' },
+        {
+          text: t('healthDataConsentPrompt.privacyPolicy'),
+          onPress: () => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL),
+        },
+        {
+          text: t('healthDataConsentSwitch.agree'),
+          onPress: handleGrantHealthDataConsent,
+        },
+      ],
+    );
   }
 
   function handleDisconnect() {

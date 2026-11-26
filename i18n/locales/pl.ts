@@ -560,6 +560,9 @@ const pl = {
       agree: 'Zgadzam się',
     },
     healthDataConsentSwitch: {
+      label: 'Dane o zdrowiu',
+      cancel: 'Anuluj',
+      agree: 'Mam co najmniej 16 lat i się zgadzam',
       withdrawn: 'Wycofano zgodę na dane o zdrowiu',
     },
     healthDataReauthorizationPrompt: {
