@@ -18,7 +18,8 @@ export interface HealthDataConsentRecord {
 
 export type HealthDataAction =
   | { action: 'grant'; consentVersion: number; ageConfirmed: true }
-  | { action: 'keep' };
+  | { action: 'keep' }
+  | { action: 'withdraw' };
 
 export interface IntervalsAuthorization {
   scopes: IntervalsScope[];
@@ -29,6 +30,7 @@ export interface HealthDataConsent {
   state: HealthDataConsentState;
   connect: IntervalsAuthorization;
   grant: IntervalsAuthorization;
+  withdraw: IntervalsAuthorization;
 }
 
 const SCOPES_WITH_HEALTH_DATA: IntervalsScope[] = [
@@ -58,6 +60,10 @@ export function healthDataConsent(
         consentVersion: currentVersion,
         ageConfirmed: true,
       },
+    },
+    withdraw: {
+      scopes: [...CONNECTION_SCOPES],
+      healthData: { action: 'withdraw' },
     },
   };
 }

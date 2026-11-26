@@ -107,4 +107,16 @@ describe('healthDataConsent', () => {
       });
     });
   });
+
+  describe('withdraw', () => {
+    it('withdraws the consent, asking only for the connection scopes so Intervals.icu takes the Wellness access away too', () => {
+      expect(
+        healthDataConsent(CURRENT_RECORD, SCOPE_WITH_WELLNESS, CURRENT_VERSION)
+          .withdraw,
+      ).toEqual({
+        scopes: ['ACTIVITY:READ', 'CALENDAR:READ', 'SETTINGS:READ'],
+        healthData: { action: 'withdraw' },
+      });
+    });
+  });
 });
