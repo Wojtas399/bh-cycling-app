@@ -296,6 +296,30 @@ describe('exchangeIntervalsTokenHandler', () => {
       expect(result.healthDataConsentGiven).toBe(true);
     });
 
+    it.each([
+      ['an older', 0],
+      ['a newer', 2],
+    ])(
+      'leaves a record for %s consent version untouched on keep, and says the consent is not given, since only the current version counts',
+      async (_case, consentVersion) => {
+        const otherVersionRecord = {
+          givenAt: 'EARLIER_TIMESTAMP',
+          consentVersion,
+          ageConfirmed: true,
+        };
+
+        mockStoredDocs.set(CONSENT_PATH, otherVersionRecord);
+        mockTokenResponse(SCOPE_WITH_WELLNESS);
+
+        const result = await exchangeIntervalsTokenHandler(
+          buildRequest('valid-code', KEEP),
+        );
+
+        expect(mockStoredDocs.get(CONSENT_PATH)).toEqual(otherVersionRecord);
+        expect(result.healthDataConsentGiven).toBe(false);
+      },
+    );
+
     it('says the consent is not given on keep when Wellness access is not granted', async () => {
       mockStoredDocs.set(CONSENT_PATH, {
         givenAt: 'EARLIER_TIMESTAMP',

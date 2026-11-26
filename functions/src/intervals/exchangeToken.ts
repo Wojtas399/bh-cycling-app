@@ -23,6 +23,11 @@ export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
 
 const TOKEN_URL = 'https://intervals.icu/api/oauth/token';
 const HEALTH_DATA_SCOPE = 'WELLNESS:READ';
+const HEALTH_DATA_CONSENT_VERSION = 1;
+
+const currentConsentRecordSchema = v.object({
+  consentVersion: v.literal(HEALTH_DATA_CONSENT_VERSION),
+});
 
 export async function exchangeIntervalsTokenHandler(
   request: CallableRequest<unknown>,
@@ -123,7 +128,7 @@ async function applyHealthDataAction(
   if (!healthDataGranted) return false;
 
   if (healthData.action === 'keep') {
-    return (await consentDoc.get()).exists;
+    return v.is(currentConsentRecordSchema, (await consentDoc.get()).data());
   }
 
   const record: HealthDataConsentRecord = {
