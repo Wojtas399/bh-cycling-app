@@ -1,4 +1,8 @@
 import {
+  getHealthDataConsentWithdrawn,
+  setHealthDataConsentWithdrawn,
+} from '../healthDataConsentWithdrawalStore';
+import {
   getNeedsReconnect,
   setNeedsReconnect,
 } from '../intervalsReconnectStore';
@@ -47,6 +51,14 @@ describe('signOutAndClear', () => {
     await signOutAndClear();
 
     expect(getNeedsReconnect()).toBe(false);
+  });
+
+  it("forgets a Health Data Consent withdrawn on this device, so the next athlete's own consent counts", async () => {
+    setHealthDataConsentWithdrawn(true);
+
+    await signOutAndClear();
+
+    expect(getHealthDataConsentWithdrawn()).toBe(false);
   });
 
   it('still signs out of Firebase when Google sign-out fails', async () => {

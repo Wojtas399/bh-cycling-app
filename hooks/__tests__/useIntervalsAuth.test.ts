@@ -3,16 +3,22 @@ import { Alert, type AlertButton } from 'react-native';
 import { useHealthDataConsentRecord } from '../useHealthDataConsentRecord';
 import { useIntervalsAuth } from '../useIntervalsAuth';
 import { useIntervalsConnection } from '../useIntervalsConnection';
+import { useIntervalsRead } from '../useIntervalsRead';
 import {
   HEALTH_DATA_CONSENT_VERSION,
   PRIVACY_POLICY_URL,
 } from '@/constants/legal';
+import { setHealthDataConsentWithdrawn } from '@/lib/healthDataConsentWithdrawalStore';
+import { IntervalsApiError } from '@/lib/intervalsApi';
+import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import {
   getNeedsReconnect,
   setNeedsReconnect,
 } from '@/lib/intervalsReconnectStore';
 import { toast } from '@/lib/toast';
 import { renderHookWithClient } from '@/test-utils/queryClient';
+import { settleQueries } from '@/test-utils/settle';
+import { queryOptions, skipToken } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react-native';
 import * as AuthSession from 'expo-auth-session';
 
@@ -65,6 +71,28 @@ const FITNESS_KEY = ['intervals', 'athlete-1', 'fitness', '2026-10-11'];
 
 function renderAuth() {
   return renderHookWithClient(() => useIntervalsAuth());
+}
+
+const mockReadWellness = jest.fn<Promise<number[]>, [accessToken: string]>();
+
+function wellnessQueryOptions(credentials: IntervalsCredentials | null) {
+  return queryOptions({
+    queryKey: WELLNESS_KEY,
+    queryFn: credentials
+      ? () => mockReadWellness(credentials.accessToken)
+      : skipToken,
+  });
+}
+
+function renderAuthWithWellness() {
+  return renderHookWithClient(() => ({
+    auth: useIntervalsAuth(),
+    wellness: useIntervalsRead({
+      queryOptions: wellnessQueryOptions,
+      args: [],
+      readsHealthData: true,
+    }),
+  }));
 }
 
 async function confirmDisconnect(
@@ -129,6 +157,7 @@ describe('useIntervalsAuth', () => {
       record: null,
     });
     setNeedsReconnect(false);
+    setHealthDataConsentWithdrawn(false);
   });
 
   describe('handleConnect', () => {
@@ -729,6 +758,102 @@ describe('useIntervalsAuth', () => {
         );
         expect(client.getQueryData(FITNESS_KEY)).toBeUndefined();
         expect(client.getQueryData(INTERVALS_KEY)).toEqual([]);
+      });
+
+      it('asks for the consent at once once the withdraw succeeds, before Firestore drops the consent record, rather than asking to authorize again', async () => {
+        mockHttpsCallable.mockReturnValue(
+          jest.fn().mockResolvedValue({
+            data: { healthDataConsentGiven: false },
+          }),
+        );
+        mockGivenConsent();
+        mockReadWellness.mockResolvedValue([42]);
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+        const { result } = await renderAuthWithWellness();
+
+        await settleQueries();
+        expect(mockReadWellness).toHaveBeenCalledTimes(1);
+        mockReadWellness.mockRejectedValue(new IntervalsApiError(403));
+
+        await act(async () => {
+          result.current.auth.handleHealthDataConsentSwitch(false);
+        });
+        await settleQueries();
+
+        expect(result.current.wellness.healthDataConsentPrompt).toBe(
+          'needsConsent',
+        );
+        expect(result.current.auth.healthDataConsentGiven).toBe(false);
+        expect(mockReadWellness).toHaveBeenCalledTimes(1);
+      });
+
+      it('asks for the consent, not to authorize again, when the new scope reaches the device before the dropped consent record does', async () => {
+        mockHttpsCallable.mockReturnValue(
+          jest.fn().mockResolvedValue({
+            data: { healthDataConsentGiven: false },
+          }),
+        );
+        mockGivenConsent();
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+        const { result, rerender } = await renderAuthWithWellness();
+
+        await act(async () => {
+          result.current.auth.handleHealthDataConsentSwitch(false);
+        });
+        mockUseIntervalsConnection.mockReturnValue({
+          isConnected: true,
+          athleteName: null,
+          athleteId: 'athlete-1',
+          accessToken: 'token-1',
+          scope: 'ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ',
+          loading: false,
+        });
+        await rerender({});
+
+        expect(result.current.wellness.healthDataConsentPrompt).toBe(
+          'needsConsent',
+        );
+      });
+
+      it('reads Wellness again once the athlete gives the consent after withdrawing it', async () => {
+        mockGivenConsent();
+        mockReadWellness.mockResolvedValue([42]);
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+        mockHttpsCallable.mockReturnValue(
+          jest.fn().mockResolvedValue({
+            data: { healthDataConsentGiven: false },
+          }),
+        );
+        const { result } = await renderAuthWithWellness();
+
+        await act(async () => {
+          result.current.auth.handleHealthDataConsentSwitch(false);
+        });
+        await settleQueries();
+
+        mockHttpsCallable.mockReturnValue(
+          jest.fn().mockResolvedValue({
+            data: { healthDataConsentGiven: true },
+          }),
+        );
+
+        await act(async () => {
+          result.current.auth.handleGrantHealthDataConsent();
+        });
+
+        await waitFor(() =>
+          expect(result.current.auth.healthDataConsentGiven).toBe(true),
+        );
+        expect(result.current.wellness.healthDataConsentPrompt).toBeNull();
       });
 
       it('says the consent was withdrawn once the withdraw succeeds, not that Intervals.icu connected', async () => {

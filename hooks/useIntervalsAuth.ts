@@ -16,6 +16,7 @@ import type {
   HealthDataAction,
   IntervalsAuthorization,
 } from '@/lib/healthDataConsent';
+import { setHealthDataConsentWithdrawn } from '@/lib/healthDataConsentWithdrawalStore';
 import { ignoreFailure } from '@/lib/ignoreFailure';
 import {
   intervalsKeys,
@@ -110,7 +111,10 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       if (outcome === 'cancelled') return;
 
       if (healthData.action === 'withdraw') {
+        setHealthDataConsentWithdrawn(true);
         await removeHealthDataQueries(queryClient);
+      } else if (outcome === 'connectedWithHealthDataConsent') {
+        setHealthDataConsentWithdrawn(false);
       }
 
       refetchIntervalsUnderNewConsent(queryClient);
