@@ -1,6 +1,11 @@
-import { intervalsIntegrationDocPath } from '../firestorePaths';
+import {
+  healthDataConsentDocPath,
+  intervalsIntegrationDocPath,
+} from '../firestorePaths';
 import type {
   ExchangeIntervalsTokenResult,
+  HealthDataAction,
+  HealthDataConsentRecord,
   IntervalsIntegration,
 } from './types';
 import {
@@ -17,6 +22,7 @@ export const intervalsClientId = defineSecret('INTERVALS_CLIENT_ID');
 export const intervalsClientSecret = defineSecret('INTERVALS_CLIENT_SECRET');
 
 const TOKEN_URL = 'https://intervals.icu/api/oauth/token';
+const HEALTH_DATA_SCOPE = 'WELLNESS:READ';
 
 export async function exchangeIntervalsTokenHandler(
   request: CallableRequest<unknown>,
@@ -30,11 +36,11 @@ export async function exchangeIntervalsTokenHandler(
   if (!dataParse.success) {
     throw new HttpsError(
       'invalid-argument',
-      'code and codeVerifier are required.',
+      'code, codeVerifier and a valid healthData action are required.',
     );
   }
 
-  const { code, codeVerifier } = dataParse.output;
+  const { code, codeVerifier, healthData } = dataParse.output;
 
   let response: Response;
 
@@ -89,5 +95,38 @@ export async function exchangeIntervalsTokenHandler(
   return {
     athleteId: integration.athleteId,
     athleteName: integration.athleteName,
+    healthDataConsentGiven: await applyHealthDataAction(
+      request.auth.uid,
+      healthData,
+      grantsHealthData(integration.scope),
+    ),
   };
+}
+
+function grantsHealthData(scope: string): boolean {
+  return scope.split(/[\s,]+/).includes(HEALTH_DATA_SCOPE);
+}
+
+async function applyHealthDataAction(
+  uid: string,
+  healthData: HealthDataAction,
+  healthDataGranted: boolean,
+): Promise<boolean> {
+  if (!healthDataGranted) return false;
+
+  const consentDoc = getFirestore().doc(healthDataConsentDocPath(uid));
+
+  if (healthData.action === 'keep') {
+    return (await consentDoc.get()).exists;
+  }
+
+  const record: HealthDataConsentRecord = {
+    givenAt: Timestamp.now(),
+    consentVersion: healthData.consentVersion,
+    ageConfirmed: true,
+  };
+
+  await consentDoc.set(record);
+
+  return true;
 }
