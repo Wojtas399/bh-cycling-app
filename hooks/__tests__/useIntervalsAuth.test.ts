@@ -54,6 +54,8 @@ jest.mock('../useHealthDataConsentRecord', () => ({
 
 const INTERVALS_KEY = ['intervals', 'athlete-1', 'upcoming', '2026-10-11'];
 const ATHLETE_SETTINGS_KEY = ['intervals', 'athlete-1', 'athleteSettings'];
+const WELLNESS_KEY = ['intervals', 'athlete-1', 'wellness', '2026-10-11'];
+const FITNESS_KEY = ['intervals', 'athlete-1', 'fitness', '2026-10-11'];
 
 function renderAuth() {
   return renderHookWithClient(() => useIntervalsAuth());
@@ -81,6 +83,21 @@ const mockToast = jest.mocked(toast);
 const mockUseIntervalsConnection = jest.mocked(useIntervalsConnection);
 const mockUseHealthDataConsentRecord = jest.mocked(useHealthDataConsentRecord);
 const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+
+function mockGivenConsent() {
+  mockUseIntervalsConnection.mockReturnValue({
+    isConnected: true,
+    athleteName: null,
+    athleteId: 'athlete-1',
+    accessToken: 'token-1',
+    scope: 'ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ,WELLNESS:READ',
+    loading: false,
+  });
+  mockUseHealthDataConsentRecord.mockReturnValue({
+    loading: false,
+    record: { consentVersion: HEALTH_DATA_CONSENT_VERSION },
+  });
+}
 
 function alertButtons(): AlertButton[] {
   const buttons = mockAlert.mock.calls[0][2];
@@ -420,6 +437,63 @@ describe('useIntervalsAuth', () => {
       expect(mockHttpsCallable).not.toHaveBeenCalled();
       expect(mockToast.success).not.toHaveBeenCalled();
       expect(result.current.connecting).toBe(false);
+    });
+  });
+
+  describe('handleHealthDataConsentSwitch', () => {
+    describe('turned off', () => {
+      it('authorizes again without Wellness access and withdraws the consent', async () => {
+        const mockExchange = jest.fn().mockResolvedValue({ data: {} });
+
+        mockHttpsCallable.mockReturnValue(mockExchange);
+        mockGivenConsent();
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+
+        const { result } = await renderAuth();
+
+        await act(async () => {
+          result.current.handleHealthDataConsentSwitch(false);
+        });
+
+        expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
+          expect.objectContaining({
+            scopes: ['ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ'],
+            usePKCE: true,
+          }),
+        );
+        expect(mockExchange).toHaveBeenCalledWith({
+          code: 'auth-code',
+          codeVerifier: 'verifier-xyz',
+          healthData: { action: 'withdraw' },
+        });
+      });
+
+      it('drops the cached Wellness and Fitness once the withdraw succeeds, and keeps the rest of the Intervals data', async () => {
+        mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+        mockGivenConsent();
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+        const { result, client } = await renderAuth();
+
+        client.setQueryData(INTERVALS_KEY, []);
+        client.setQueryData(WELLNESS_KEY, { fitness: null, wellness: [] });
+        client.setQueryData(FITNESS_KEY, []);
+
+        await act(async () => {
+          result.current.handleHealthDataConsentSwitch(false);
+        });
+
+        await waitFor(() =>
+          expect(client.getQueryData(WELLNESS_KEY)).toBeUndefined(),
+        );
+        expect(client.getQueryData(FITNESS_KEY)).toBeUndefined();
+        expect(client.getQueryData(INTERVALS_KEY)).toEqual([]);
+      });
     });
   });
 

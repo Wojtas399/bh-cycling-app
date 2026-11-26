@@ -10,7 +10,11 @@ import { asOneCommaSeparatedScope } from './intervalsScopes';
 import { useHealthDataConsent } from './useHealthDataConsent';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { functions } from '@/lib/firebase';
-import { intervalsKeys, removeIntervalsQueries } from '@/lib/intervalsQueries';
+import {
+  intervalsKeys,
+  removeHealthDataQueries,
+  removeIntervalsQueries,
+} from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { toast } from '@/lib/toast';
 import {
@@ -29,6 +33,7 @@ const REDIRECT_URI = 'blackhorsecyclingapp://oauth/intervals';
 export interface UseIntervalsAuthResult {
   handleConnect: () => void;
   handleGrantHealthDataConsent: () => void;
+  handleHealthDataConsentSwitch: (on: boolean) => void;
   handleDisconnect: () => void;
   connecting: boolean;
   disconnecting: boolean;
@@ -80,8 +85,12 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
 
       return 'connected';
     },
-    onSuccess: outcome => {
+    onSuccess: async (outcome, { healthData }) => {
       if (outcome === 'cancelled') return;
+
+      if (healthData.action === 'withdraw') {
+        await removeHealthDataQueries(queryClient);
+      }
 
       refetchIntervalsUnderNewConsent(queryClient);
       toast.success(t('connected'));
@@ -115,6 +124,10 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     authorize(consent.grant);
   }
 
+  function handleHealthDataConsentSwitch(on: boolean) {
+    if (!on) authorize(consent.withdraw);
+  }
+
   function handleDisconnect() {
     if (!connection.isConnected) return;
 
@@ -141,6 +154,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
   return {
     handleConnect,
     handleGrantHealthDataConsent,
+    handleHealthDataConsentSwitch,
     handleDisconnect,
     connecting: connect.isPending,
     disconnecting: disconnect.isPending,
