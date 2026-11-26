@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Switch,
   TouchableOpacity,
 } from 'react-native';
 
@@ -48,8 +49,14 @@ export default function SettingsScreen() {
   const router = useRouter();
   const header = useGlassHeader('tab');
   const connection = useIntervalsConnection();
-  const { handleConnect, handleDisconnect, connecting, disconnecting } =
-    useIntervalsAuth();
+  const {
+    handleConnect,
+    handleDisconnect,
+    handleHealthDataConsentSwitch,
+    healthDataConsentGiven,
+    connecting,
+    disconnecting,
+  } = useIntervalsAuth();
 
   const user = auth().currentUser;
   const signInMethods = getSignInMethods(user);
@@ -154,6 +161,24 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             }
           />
+          {connection.isConnected ? (
+            <SettingsRow
+              icon="heart-outline"
+              iconColor="danger"
+              label={tIntervals('healthDataConsentSwitch.label')}
+              trailing={
+                <Switch
+                  accessibilityLabel={tIntervals(
+                    'healthDataConsentSwitch.label',
+                  )}
+                  value={healthDataConsentGiven}
+                  onValueChange={handleHealthDataConsentSwitch}
+                  disabled={busy}
+                  trackColor={{ true: theme.colors.success }}
+                />
+              }
+            />
+          ) : null}
         </SettingsSection>
 
         <SettingsSection title={t('about.title')}>

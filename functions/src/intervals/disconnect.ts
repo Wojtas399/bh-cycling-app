@@ -1,4 +1,7 @@
-import { intervalsIntegrationDocPath } from '../firestorePaths';
+import {
+  healthDataConsentDocPath,
+  intervalsIntegrationDocPath,
+} from '../firestorePaths';
 import { revokeIntervalsToken } from './revokeToken';
 import { getFirestore } from 'firebase-admin/firestore';
 import type { CallableRequest } from 'firebase-functions/v2/https';
@@ -11,11 +14,17 @@ export async function disconnectIntervalsHandler(
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
 
-  await revokeIntervalsToken(request.auth.uid);
+  const { uid } = request.auth;
 
-  await getFirestore()
-    .doc(intervalsIntegrationDocPath(request.auth.uid))
-    .delete();
+  await revokeIntervalsToken(uid);
+
+  const db = getFirestore();
+
+  await db
+    .batch()
+    .delete(db.doc(intervalsIntegrationDocPath(uid)))
+    .delete(db.doc(healthDataConsentDocPath(uid)))
+    .commit();
 
   return { success: true };
 }
