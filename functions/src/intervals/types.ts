@@ -22,9 +22,10 @@ export const intervalsTokenResponseSchema = v.object({
   }),
 });
 
-export interface ExchangeIntervalsTokenData {
-  code: string;
-}
+export const exchangeIntervalsTokenDataSchema = v.object({
+  code: v.pipe(v.string(), v.nonEmpty()),
+  codeVerifier: v.pipe(v.string(), v.nonEmpty()),
+});
 
 export interface ExchangeIntervalsTokenResult {
   athleteId: string;

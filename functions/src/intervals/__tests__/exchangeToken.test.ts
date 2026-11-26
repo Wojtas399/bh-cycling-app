@@ -10,7 +10,10 @@ jest.mock('firebase-admin/firestore', () => ({
 }));
 
 function buildRequest(code: string) {
-  return callableRequest({ code }, { uid: 'user-1' });
+  return callableRequest(
+    { code, codeVerifier: 'verifier-xyz' },
+    { uid: 'user-1' },
+  );
 }
 
 describe('exchangeIntervalsTokenHandler', () => {
@@ -63,6 +66,28 @@ describe('exchangeIntervalsTokenHandler', () => {
     ).toBe('server-configured-client-id');
   });
 
+  it('forwards the code verifier to Intervals.icu alongside the client secret, so only the app that started the authorization can redeem its code', async () => {
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          access_token: 'token-abc',
+          scope: 'ACTIVITY:READ,CALENDAR:READ',
+          athlete: { id: 'athlete-1', name: 'Jane Rider' },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await exchangeIntervalsTokenHandler(buildRequest('valid-code'));
+
+    const [, requestInit] = fetchSpy.mock.calls[0];
+    const body = new URLSearchParams(String(requestInit?.body));
+
+    expect(body.get('code')).toBe('valid-code');
+    expect(body.get('code_verifier')).toBe('verifier-xyz');
+    expect(body.get('client_secret')).toBe('test-secret');
+  });
+
   it('fails with internal and writes nothing when the token response is malformed', async () => {
     jest.spyOn(global, 'fetch').mockResolvedValue(
       new Response(
@@ -101,8 +126,25 @@ describe('exchangeIntervalsTokenHandler', () => {
       .mockResolvedValue(new Response(null, { status: 200 }));
 
     await expect(
-      exchangeIntervalsTokenHandler(callableRequest({ code: 'any-code' })),
+      exchangeIntervalsTokenHandler(
+        callableRequest({ code: 'any-code', codeVerifier: 'any-verifier' }),
+      ),
     ).rejects.toMatchObject({ code: 'unauthenticated' });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(setMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a call without a code verifier before contacting Intervals.icu', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }));
+
+    await expect(
+      exchangeIntervalsTokenHandler(
+        callableRequest({ code: 'valid-code' }, { uid: 'user-1' }),
+      ),
+    ).rejects.toMatchObject({ code: 'invalid-argument' });
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(setMock).not.toHaveBeenCalled();
