@@ -23,7 +23,7 @@ export async function exchangeIntervalsTokenHandler(
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
 
-  const { code } = request.data ?? {};
+  const { code, codeVerifier } = request.data ?? {};
 
   if (!code) {
     throw new HttpsError('invalid-argument', 'code is required.');
@@ -39,6 +39,7 @@ export async function exchangeIntervalsTokenHandler(
         client_id: intervalsClientId.value(),
         client_secret: intervalsClientSecret.value(),
         code,
+        code_verifier: codeVerifier,
       }).toString(),
     });
   } catch {

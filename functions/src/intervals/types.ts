@@ -24,6 +24,7 @@ export const intervalsTokenResponseSchema = v.object({
 
 export interface ExchangeIntervalsTokenData {
   code: string;
+  codeVerifier: string;
 }
 
 export interface ExchangeIntervalsTokenResult {
