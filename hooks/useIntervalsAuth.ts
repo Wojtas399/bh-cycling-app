@@ -35,6 +35,7 @@ export interface UseIntervalsAuthResult {
   handleGrantHealthDataConsent: () => void;
   handleHealthDataConsentSwitch: (on: boolean) => void;
   handleDisconnect: () => void;
+  healthDataConsentGiven: boolean;
   connecting: boolean;
   disconnecting: boolean;
 }
@@ -93,7 +94,11 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
       }
 
       refetchIntervalsUnderNewConsent(queryClient);
-      toast.success(t('connected'));
+      toast.success(
+        healthData.action === 'withdraw'
+          ? t('healthDataConsentSwitch.withdrawn')
+          : t('connected'),
+      );
     },
     onError: () => toast.error(errorMessage('connect')),
   });
@@ -156,6 +161,7 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
     handleGrantHealthDataConsent,
     handleHealthDataConsentSwitch,
     handleDisconnect,
+    healthDataConsentGiven: consent.state === 'given',
     connecting: connect.isPending,
     disconnecting: disconnect.isPending,
   };

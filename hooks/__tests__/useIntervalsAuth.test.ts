@@ -494,6 +494,50 @@ describe('useIntervalsAuth', () => {
         expect(client.getQueryData(FITNESS_KEY)).toBeUndefined();
         expect(client.getQueryData(INTERVALS_KEY)).toEqual([]);
       });
+
+      it('says the consent was withdrawn once the withdraw succeeds, not that Intervals.icu connected', async () => {
+        mockHttpsCallable.mockReturnValue(jest.fn().mockResolvedValue({}));
+        mockGivenConsent();
+        mockPromptAsync.mockResolvedValue({
+          type: 'success',
+          params: { code: 'auth-code' },
+        });
+        const { result } = await renderAuth();
+
+        await act(async () => {
+          result.current.handleHealthDataConsentSwitch(false);
+        });
+
+        await waitFor(() =>
+          expect(mockToast.success).toHaveBeenCalledWith(
+            'intervals.healthDataConsentSwitch.withdrawn',
+          ),
+        );
+        expect(mockToast.success).toHaveBeenCalledTimes(1);
+      });
+
+      it('changes nothing when the athlete cancels on the Intervals.icu page, so the consent and its data stay', async () => {
+        mockGivenConsent();
+        mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+        const { result, client } = await renderAuth();
+
+        client.setQueryData(WELLNESS_KEY, { fitness: null, wellness: [] });
+        client.setQueryData(FITNESS_KEY, []);
+
+        await act(async () => {
+          result.current.handleHealthDataConsentSwitch(false);
+        });
+
+        expect(mockHttpsCallable).not.toHaveBeenCalled();
+        expect(client.getQueryData(WELLNESS_KEY)).toEqual({
+          fitness: null,
+          wellness: [],
+        });
+        expect(client.getQueryData(FITNESS_KEY)).toEqual([]);
+        expect(client.getQueryState(WELLNESS_KEY)?.isInvalidated).toBe(false);
+        expect(mockToast.success).not.toHaveBeenCalled();
+        expect(result.current.healthDataConsentGiven).toBe(true);
+      });
     });
   });
 

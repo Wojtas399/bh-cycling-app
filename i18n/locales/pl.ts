@@ -559,6 +559,9 @@ const pl = {
       ageStatement: 'Mam co najmniej 16 lat',
       agree: 'Zgadzam się',
     },
+    healthDataConsentSwitch: {
+      withdrawn: 'Wycofano zgodę na dane o zdrowiu',
+    },
     healthDataReauthorizationPrompt: {
       message:
         'Intervals.icu nie udostępnia BH Cycling Twoich danych o zdrowiu. Autoryzuj ponownie, aby zobaczyć Fitness i Wellness.',
