@@ -49,7 +49,8 @@ export function useIntervalsAuth(): UseIntervalsAuthResult {
         scopes: COMMA_SEPARATED_CONSENT_SCOPES,
         redirectUri: REDIRECT_URI,
         responseType: AuthSession.ResponseType.Code,
-        usePKCE: false,
+        usePKCE: true,
+        codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,
       });
 
       const result = await request.promptAsync({

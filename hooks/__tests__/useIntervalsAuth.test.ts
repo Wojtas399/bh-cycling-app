@@ -18,6 +18,7 @@ jest.mock('expo-auth-session', () => ({
   AuthRequest: jest.fn().mockImplementation(() => ({
     promptAsync: mockPromptAsync,
   })),
+  CodeChallengeMethod: { S256: 'S256' },
   ResponseType: { Code: 'code' },
 }));
 
@@ -109,6 +110,20 @@ describe('useIntervalsAuth', () => {
         expect.objectContaining({
           scopes: ['ACTIVITY:READ,CALENDAR:READ,WELLNESS:READ,SETTINGS:READ'],
         }),
+      );
+    });
+
+    it('authorizes with PKCE over S256, so an app that intercepts the redirect cannot redeem the code', async () => {
+      mockPromptAsync.mockResolvedValue({ type: 'cancel' });
+
+      const { result } = await renderAuth();
+
+      await act(async () => {
+        result.current.handleConnect();
+      });
+
+      expect(AuthSession.AuthRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ usePKCE: true, codeChallengeMethod: 'S256' }),
       );
     });
 
