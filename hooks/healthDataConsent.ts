@@ -10,6 +10,8 @@ export type HealthDataConsentState =
   | 'needsConsent'
   | 'needsReauthorization';
 
+export type HealthDataConsentPrompt = Exclude<HealthDataConsentState, 'given'>;
+
 export interface HealthDataConsentRecord {
   consentVersion: number;
 }
