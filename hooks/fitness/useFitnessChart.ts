@@ -2,7 +2,6 @@ import { type IntervalsRead, useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
 import { type FitnessDay, hasFitnessValues } from '@/lib/fitness';
 import type { HealthDataConsentPrompt } from '@/lib/healthDataConsent';
-import { isForbiddenError } from '@/lib/intervalsApi';
 import { fitnessQueryOptions } from '@/lib/intervalsQueries';
 
 export type FitnessChartState =
@@ -30,15 +29,13 @@ export function useFitnessChart() {
 function toChartState({
   availability,
   healthDataConsentPrompt,
-  query: { data, error, isError },
+  query: { data, isError },
 }: IntervalsRead<FitnessDay[]>): FitnessChartState {
   if (availability === 'unavailable') return { status: 'notConnected' };
 
-  const prompt =
-    healthDataConsentPrompt ??
-    (isForbiddenError(error) ? 'needsReauthorization' : null);
-
-  if (prompt) return { status: 'needsScope', prompt };
+  if (healthDataConsentPrompt) {
+    return { status: 'needsScope', prompt: healthDataConsentPrompt };
+  }
 
   if (data !== undefined) {
     return data.some(hasFitnessValues)

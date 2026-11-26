@@ -10,6 +10,7 @@ import { useRefetchQuery } from './useRefetchQuery';
 import { useStableSelect } from './useStableSelect';
 import { bindSelectArgs } from '@/lib/bindSelectArgs';
 import type { HealthDataConsentPrompt } from '@/lib/healthDataConsent';
+import { isForbiddenError } from '@/lib/intervalsApi';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import {
   type DefaultError,
@@ -124,8 +125,13 @@ function selectBindingOf<
 
 function consentPromptFor(
   consent: HealthDataConsentView,
+  error: unknown,
 ): HealthDataConsentPrompt | null {
-  return consent.loading || consent.state === 'given' ? null : consent.state;
+  if (consent.loading) return null;
+
+  if (consent.state !== 'given') return consent.state;
+
+  return isForbiddenError(error) ? 'needsReauthorization' : null;
 }
 
 function bindSelectToQueryOptions<
@@ -195,7 +201,7 @@ export function useIntervalsRead<
     query,
     refetch,
     healthDataConsentPrompt: read.readsHealthData
-      ? consentPromptFor(consent)
+      ? consentPromptFor(consent, query.error)
       : null,
   };
 }

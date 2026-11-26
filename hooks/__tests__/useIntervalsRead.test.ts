@@ -5,6 +5,7 @@ import {
 } from '@/test-utils/intervalsConnection';
 
 import { useIntervalsRead } from '../useIntervalsRead';
+import { IntervalsApiError } from '@/lib/intervalsApi';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
 import { renderHookWithClient } from '@/test-utils/queryClient';
@@ -164,9 +165,10 @@ describe('useIntervalsRead', () => {
 
       const { result } = await renderHealthDataRead();
 
-      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-      expect(result.current.healthDataConsentPrompt).toBeNull();
+      await settleQueries();
+
       expect(fetchRideDates).toHaveBeenCalledWith('token-1', 7);
+      expect(result.current.healthDataConsentPrompt).toBeNull();
     });
 
     it('requests nothing and prompts nothing while the consent record loads', async () => {
@@ -191,6 +193,28 @@ describe('useIntervalsRead', () => {
       expect(result.current.healthDataConsentPrompt).toBeNull();
       expect(result.current.availability).toBe('loading');
       expect(fetchRideDates).not.toHaveBeenCalled();
+    });
+
+    it('prompts only to authorize again when Intervals.icu refuses the read for its scope despite a given consent', async () => {
+      connectIntervals();
+      fetchRideDates.mockRejectedValue(new IntervalsApiError(403));
+
+      const { result } = await renderHealthDataRead();
+
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
+      expect(result.current.healthDataConsentPrompt).toBe(
+        'needsReauthorization',
+      );
+    });
+
+    it('prompts nothing when Intervals.icu refuses a read that reads no health data', async () => {
+      connectIntervals();
+      fetchRideDates.mockRejectedValue(new IntervalsApiError(403));
+
+      const { result } = await renderRideDates();
+
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
+      expect(result.current.healthDataConsentPrompt).toBeNull();
     });
 
     it('requests a read that reads no health data and prompts nothing, whatever the consent', async () => {
