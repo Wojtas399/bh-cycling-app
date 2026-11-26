@@ -112,9 +112,15 @@ async function applyHealthDataAction(
   healthData: HealthDataAction,
   healthDataGranted: boolean,
 ): Promise<boolean> {
-  if (!healthDataGranted) return false;
-
   const consentDoc = getFirestore().doc(healthDataConsentDocPath(uid));
+
+  if (healthData.action === 'withdraw') {
+    await consentDoc.delete();
+
+    return false;
+  }
+
+  if (!healthDataGranted) return false;
 
   if (healthData.action === 'keep') {
     return (await consentDoc.get()).exists;

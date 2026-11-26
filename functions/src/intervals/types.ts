@@ -29,6 +29,7 @@ export const healthDataActionSchema = v.variant('action', [
     ageConfirmed: v.literal(true),
   }),
   v.object({ action: v.literal('keep') }),
+  v.object({ action: v.literal('withdraw') }),
 ]);
 
 export type HealthDataAction = v.InferOutput<typeof healthDataActionSchema>;

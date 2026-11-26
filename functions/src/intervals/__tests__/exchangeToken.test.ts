@@ -9,6 +9,9 @@ jest.mock('firebase-admin/firestore', () => ({
       set: async (data: unknown) => {
         mockStoredDocs.set(path, data);
       },
+      delete: async () => {
+        mockStoredDocs.delete(path);
+      },
       get: async () => ({
         exists: mockStoredDocs.has(path),
         data: () => mockStoredDocs.get(path),
@@ -24,6 +27,7 @@ const CONNECTION_SCOPE = 'ACTIVITY:READ,CALENDAR:READ,SETTINGS:READ';
 const SCOPE_WITH_WELLNESS = `${CONNECTION_SCOPE},WELLNESS:READ`;
 const KEEP = { action: 'keep' };
 const GRANT = { action: 'grant', consentVersion: 2, ageConfirmed: true };
+const WITHDRAW = { action: 'withdraw' };
 
 function buildRequest(code: string, healthData: unknown = KEEP) {
   return callableRequest(
@@ -305,6 +309,47 @@ describe('exchangeIntervalsTokenHandler', () => {
       );
 
       expect(result.healthDataConsentGiven).toBe(false);
+    });
+
+    it('deletes the consent record on withdraw, still saves the token and says the consent is not given', async () => {
+      mockStoredDocs.set(CONSENT_PATH, {
+        givenAt: 'EARLIER_TIMESTAMP',
+        consentVersion: 1,
+        ageConfirmed: true,
+      });
+      mockTokenResponse(CONNECTION_SCOPE);
+
+      const result = await exchangeIntervalsTokenHandler(
+        buildRequest('valid-code', WITHDRAW),
+      );
+
+      expect(mockStoredDocs.has(CONSENT_PATH)).toBe(false);
+      expect(mockStoredDocs.get(INTEGRATION_PATH)).toMatchObject({
+        accessToken: 'token-abc',
+        scope: CONNECTION_SCOPE,
+      });
+      expect(result.healthDataConsentGiven).toBe(false);
+    });
+
+    it('keeps the consent record when Intervals.icu rejects the code of a withdraw, so the consent ends only once the Wellness access does', async () => {
+      const earlierRecord = {
+        givenAt: 'EARLIER_TIMESTAMP',
+        consentVersion: 1,
+        ageConfirmed: true,
+      };
+
+      mockStoredDocs.set(CONSENT_PATH, earlierRecord);
+      jest.spyOn(global, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ error: 'invalid_grant' }), {
+          status: 400,
+        }),
+      );
+
+      await expect(
+        exchangeIntervalsTokenHandler(buildRequest('expired-code', WITHDRAW)),
+      ).rejects.toMatchObject({ code: 'invalid-argument' });
+
+      expect(mockStoredDocs.get(CONSENT_PATH)).toEqual(earlierRecord);
     });
 
     it('records no consent and says it is not given on keep without a record, whatever the scope', async () => {
