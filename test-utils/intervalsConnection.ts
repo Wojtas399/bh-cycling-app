@@ -42,6 +42,11 @@ const NO_CONSENT_RECORD: HealthDataConsentRecordState = {
   record: null,
 };
 
+const LOADING_CONSENT_RECORD: HealthDataConsentRecordState = {
+  loading: true,
+  record: null,
+};
+
 function mockConnectionState(
   state: IntervalsConnectionState,
   consentRecord: HealthDataConsentRecordState,
@@ -66,7 +71,7 @@ export function connectIntervals({
       scope,
     },
     healthDataConsent === 'loading'
-      ? { loading: true, record: null }
+      ? LOADING_CONSENT_RECORD
       : { loading: false, record: healthDataConsent },
   );
 }
@@ -78,6 +83,6 @@ export function disconnectIntervals(): void {
 export function intervalsConnectionLoading(): void {
   mockConnectionState(
     { ...NOT_CONNECTED, loading: true },
-    { loading: true, record: null },
+    LOADING_CONSENT_RECORD,
   );
 }
