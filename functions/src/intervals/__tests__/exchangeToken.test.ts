@@ -135,6 +135,21 @@ describe('exchangeIntervalsTokenHandler', () => {
     expect(setMock).not.toHaveBeenCalled();
   });
 
+  it('rejects a call without a code verifier before contacting Intervals.icu', async () => {
+    const fetchSpy = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 200 }));
+
+    await expect(
+      exchangeIntervalsTokenHandler(
+        callableRequest({ code: 'valid-code' }, { uid: 'user-1' }),
+      ),
+    ).rejects.toMatchObject({ code: 'invalid-argument' });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(setMock).not.toHaveBeenCalled();
+  });
+
   it('surfaces a network failure as a structured error', async () => {
     jest.spyOn(global, 'fetch').mockRejectedValue(new Error('network down'));
 
