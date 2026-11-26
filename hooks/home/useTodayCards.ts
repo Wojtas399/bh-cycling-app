@@ -1,7 +1,7 @@
-import type { HealthDataConsentPrompt } from '@/hooks/healthDataConsent';
 import { type IntervalsRead, useIntervalsRead } from '@/hooks/useIntervalsRead';
 import { useToday } from '@/hooks/useToday';
 import type { FitnessValues } from '@/lib/fitness';
+import type { HealthDataConsentPrompt } from '@/lib/healthDataConsent';
 import { isForbiddenError } from '@/lib/intervalsApi';
 import { type TodayEntry, todayQueryOptions } from '@/lib/intervalsQueries';
 import type { WellnessRow } from '@/lib/wellness';

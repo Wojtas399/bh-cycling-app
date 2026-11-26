@@ -1,5 +1,4 @@
 import { HEALTH_DATA_CONSENT_VERSION } from '@/constants/legal';
-import type { HealthDataConsentRecord } from '@/hooks/healthDataConsent';
 import {
   type HealthDataConsentRecordState,
   useHealthDataConsentRecord,
@@ -8,6 +7,7 @@ import {
   type IntervalsConnectionState,
   useIntervalsConnection,
 } from '@/hooks/useIntervalsConnection';
+import type { HealthDataConsentRecord } from '@/lib/healthDataConsent';
 
 jest.mock('@/hooks/useIntervalsConnection', () => ({
   useIntervalsConnection: jest.fn(),

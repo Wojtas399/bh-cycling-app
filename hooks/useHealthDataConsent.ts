@@ -1,7 +1,10 @@
-import { type HealthDataConsent, healthDataConsent } from './healthDataConsent';
 import { useHealthDataConsentRecord } from './useHealthDataConsentRecord';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { HEALTH_DATA_CONSENT_VERSION } from '@/constants/legal';
+import {
+  type HealthDataConsent,
+  healthDataConsent,
+} from '@/lib/healthDataConsent';
 
 export interface HealthDataConsentView extends HealthDataConsent {
   loading: boolean;

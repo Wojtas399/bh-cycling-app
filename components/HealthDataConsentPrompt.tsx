@@ -8,8 +8,8 @@ import SheenSurface from '@/components/SheenSurface';
 import Text from '@/components/Text';
 import { PRIVACY_POLICY_URL } from '@/constants/legal';
 import { useAppTheme } from '@/constants/theme';
-import type { HealthDataConsentPrompt as Prompt } from '@/hooks/healthDataConsent';
 import { useIntervalsAuth } from '@/hooks/useIntervalsAuth';
+import type { HealthDataConsentPrompt as Prompt } from '@/lib/healthDataConsent';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 

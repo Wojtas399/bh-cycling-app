@@ -1,22 +1,22 @@
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
-import type { IntervalsAuthorization } from './healthDataConsent';
 import {
   type IntervalsAuthMutation,
   mapIntervalsAuthError,
 } from './intervalsAuthErrors';
-import { asOneCommaSeparatedScope } from './intervalsScopes';
 import { useHealthDataConsent } from './useHealthDataConsent';
 import { useIntervalsConnection } from './useIntervalsConnection';
 import { PRIVACY_POLICY_URL } from '@/constants/legal';
 import { functions } from '@/lib/firebase';
+import type { IntervalsAuthorization } from '@/lib/healthDataConsent';
 import {
   intervalsKeys,
   removeHealthDataQueries,
   removeIntervalsQueries,
 } from '@/lib/intervalsQueries';
 import { setNeedsReconnect } from '@/lib/intervalsReconnectStore';
+import { asOneCommaSeparatedScope } from '@/lib/intervalsScopes';
 import { toast } from '@/lib/toast';
 import {
   type QueryClient,

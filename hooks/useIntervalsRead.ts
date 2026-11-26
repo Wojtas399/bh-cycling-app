@@ -1,4 +1,3 @@
-import type { HealthDataConsentPrompt } from './healthDataConsent';
 import {
   type HealthDataConsentView,
   useHealthDataConsent,
@@ -10,6 +9,7 @@ import {
 import { useRefetchQuery } from './useRefetchQuery';
 import { useStableSelect } from './useStableSelect';
 import { bindSelectArgs } from '@/lib/bindSelectArgs';
+import type { HealthDataConsentPrompt } from '@/lib/healthDataConsent';
 import type { IntervalsCredentials } from '@/lib/intervalsQueries';
 import {
   type DefaultError,
